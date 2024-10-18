@@ -68,7 +68,7 @@ RichText(
     style: const TextStyle(fontSize: 18), // Estilo general de texto
     children: [
       const TextSpan(
-        text: '● Medicamento: ',
+        text: '• Medicamento: ',
         style: TextStyle(
           color: Colors.blue, 
           fontWeight: FontWeight.bold, // Negrita para el texto azul
@@ -87,7 +87,7 @@ RichText(
     style: const TextStyle(fontSize: 18),
     children: [
       const TextSpan(
-        text: '● Debe tomarse en: ',
+        text: '• Debe tomarse en: ',
         style: TextStyle(
           color: Colors.blue, 
           fontWeight: FontWeight.bold, // Negrita para el texto azul
@@ -106,7 +106,7 @@ RichText(
     style: const TextStyle(fontSize: 18),
     children: [
       const TextSpan(
-        text: '● Frecuencia: ',
+        text: '• Frecuencia: ',
         style: TextStyle(
           color: Colors.blue, 
           fontWeight: FontWeight.bold, // Negrita para el texto azul
@@ -125,7 +125,7 @@ RichText(
     style: const TextStyle(fontSize: 18),
     children: [
       const TextSpan(
-        text: '● Cada: ',
+        text: '• Cada: ',
         style: TextStyle(
           color: Colors.blue, 
           fontWeight: FontWeight.bold, // Negrita para el texto azul
@@ -145,7 +145,7 @@ if (receta['vecesPorDia'] != null)
       style: const TextStyle(fontSize: 18),
       children: [
         const TextSpan(
-          text: '● Veces por día: ',
+          text: '• Veces por día: ',
           style: TextStyle(
             color: Colors.blue, 
             fontWeight: FontWeight.bold, // Negrita para el texto azul
