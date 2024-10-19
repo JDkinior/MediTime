@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'register_page.dart'; // Asegúrate de importar la nueva página de registro
+import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -107,17 +107,17 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 8.0),
-TextButton(
-  onPressed: _isLoading
-      ? null
-      : () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const RegisterPage()),
-          );
-        },
-  child: const Text('¿No tienes una cuenta? Regístrate'),
-),
+              TextButton(
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const RegisterPage()),
+                        );
+                      },
+                child: const Text('¿No tienes una cuenta? Regístrate'),
+              ),
 
                 if (_errorMessage.isNotEmpty)
                   Padding(
