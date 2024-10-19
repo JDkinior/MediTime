@@ -74,6 +74,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
       });
     } else {
       await _loadProfileData(user);
+      // Asegúrate de reconstruir la interfaz después de cargar los datos del perfil
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
