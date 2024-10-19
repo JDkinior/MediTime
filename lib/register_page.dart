@@ -86,6 +86,9 @@ class _RegisterPageState extends State<RegisterPage> {
                     labelText: 'Contraseña',
                     border: OutlineInputBorder(),
                   ),
+
+
+                  
                   obscureText: true,
                   validator: (value) {
                     if (value == null || value.isEmpty || value.length < 6) {
@@ -96,16 +99,24 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const SizedBox(height: 24.0),
                 SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _register,
-                    child: _isLoading
-                        ? const CircularProgressIndicator(
-                            color: Colors.white,
-                          )
-                        : const Text('Registrarse'),
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        fixedSize: const Size(80, 50), // Tamaño del botón
+                        backgroundColor: Colors.blue, // Color del botón
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50), // Radio del botón
+                        ),
+                        foregroundColor: Colors.white, // Color del texto
+                      ),
+                      onPressed: _isLoading ? null : _register,
+                      child: _isLoading
+                          ? const CircularProgressIndicator(
+                              color: Colors.white,
+                            )
+                          : const Text('Registrarse'),
+                    ),
                   ),
-                ),
                 if (_errorMessage.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0),

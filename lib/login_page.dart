@@ -98,6 +98,14 @@ class _LoginPageState extends State<LoginPage> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      fixedSize: const Size(80, 50), // Tamaño del botón
+                      backgroundColor: Colors.blue, // Color del botón
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50), // Radio del botón
+                      ),
+                      foregroundColor: Colors.white, // Color del texto
+                    ),
                     onPressed: _isLoading ? null : _login,
                     child: _isLoading
                         ? const CircularProgressIndicator(
@@ -106,6 +114,7 @@ class _LoginPageState extends State<LoginPage> {
                         : const Text('Iniciar Sesión'),
                   ),
                 ),
+
                 const SizedBox(height: 8.0),
               TextButton(
                 onPressed: _isLoading
@@ -117,6 +126,7 @@ class _LoginPageState extends State<LoginPage> {
                         );
                       },
                 child: const Text('¿No tienes una cuenta? Regístrate'),
+                
               ),
 
                 if (_errorMessage.isNotEmpty)

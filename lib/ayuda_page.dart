@@ -56,7 +56,7 @@ class AyudaPage extends StatelessWidget {
                 context: context,
                 builder: (BuildContext context) {
                   const data =
-                      'La aplicación se encuentra actualmente en desarrollo, esta es la versión: 0.9.5 Alpha';
+                      'La aplicación se encuentra actualmente en desarrollo, esta es la versión: 10.0.2 Alpha';
                   return AlertDialog(
                     title: Text('Versión de la aplicación',
                         style: TextStyle(color: textColor)),
