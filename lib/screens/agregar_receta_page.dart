@@ -341,13 +341,6 @@ void _saveData() async {
     await NotificationService.cancelAllNotifications();
     
     // Calcula la hora de la primera dosis
-    final firstDoseTime = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
-      _horaPrimeraDosis.hour,
-      _horaPrimeraDosis.minute,
-    );
     
     // Si la primera dosis ya pasó hoy, programarla para mañana
     final now = DateTime.now();
