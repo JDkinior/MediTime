@@ -42,7 +42,7 @@ dependencies:
   firebase_storage: ^12.4.4
   table_calendar: ^3.2.0
   intl: ^0.20.2
-  image: ^3.0.1
+  image: ^4.5.3
 
 
 dev_dependencies:
