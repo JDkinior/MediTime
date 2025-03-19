@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:meditime/screens/calendario_page.dart';
 import 'package:meditime/screens/instrucciones_page.dart';
 import 'package:meditime/screens/perfil_page.dart';
@@ -70,6 +71,21 @@ class _HomePageState extends State<HomePage> {
 
   void _handleLogout() async {
     await FirebaseAuth.instance.signOut();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _requestNotificationPermissions();
+  }
+
+  Future<void> _requestNotificationPermissions() async {
+    final granted = await NotificationPermissions.requestPermissions();
+    if (!granted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Los permisos son necesarios para recordatorios')),
+      );
+    }
   }
 
   @override
@@ -222,5 +238,17 @@ title: Padding(
         ),
       ),
     );
+  }
+}
+class NotificationPermissions {
+  static final FlutterLocalNotificationsPlugin _notificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  static Future<bool> requestPermissions() async {
+    final result = await _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
+    return result ?? false;
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
+import 'package:meditime/notification_service.dart';
 import '../data/medicamentos_data.dart';
 
 class AgregarRecetaPage extends StatefulWidget {
@@ -323,13 +324,109 @@ bool _isStepValid() {
   }
 }
 
-  void _saveData() {
-    MedicamentosData.saveMedicamentoData(
+// _saveData() corregido para agregar_receta_page.dart
+void _saveData() async {
+  try {
+    // Primero guarda los datos en Firestore
+    await MedicamentosData.saveMedicamentoData(
       nombreMedicamento: _nombreMedicamento,
       presentacion: _presentacion,
-      duracion: _duracion, // Añadir este campo
+      duracion: _duracion,
       horaPrimeraDosis: _horaPrimeraDosis,
       intervaloDosis: _dosis,
     );
+    
+    // Cancela todas las notificaciones existentes para este medicamento
+    // (opcionalmente, podrías implementar esto en MedicamentosData)
+    await NotificationService.cancelAllNotifications();
+    
+    // Calcula la hora de la primera dosis
+    final firstDoseTime = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+      _horaPrimeraDosis.hour,
+      _horaPrimeraDosis.minute,
+    );
+    
+    // Si la primera dosis ya pasó hoy, programarla para mañana
+    final now = DateTime.now();
+    DateTime adjustedFirstDoseTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      _horaPrimeraDosis.hour,
+      _horaPrimeraDosis.minute,
+    );
+    if (adjustedFirstDoseTime.isBefore(now)) {
+      adjustedFirstDoseTime = adjustedFirstDoseTime.add(const Duration(days: 1));
+    }
+    // Valor del intervalo en horas
+    final intervalHours = int.parse(_dosis);
+    // Duración total del tratamiento en días
+    final totalDays = int.parse(_duracion);
+    
+    // Número de dosis por día
+    final dosesPerDay = 24 ~/ intervalHours;
+    
+    // ID base para evitar colisiones
+    final baseId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    
+    debugPrint('Programando notificaciones:');
+    debugPrint('- Medicamento: $_nombreMedicamento');
+    debugPrint('- Intervalo: $intervalHours horas');
+    debugPrint('- Duración: $totalDays días');
+    debugPrint('- Dosis por día: $dosesPerDay');
+    
+    // Programa cada dosis individualmente
+    int notificationCount = 0;
+    for (int day = 0; day < totalDays; day++) {
+      for (int dose = 0; dose < dosesPerDay; dose++) {
+        // Calcula el momento de esta dosis
+        // Reemplázalo por:
+        final doseTime = adjustedFirstDoseTime.add(
+          Duration(hours: (day * 24) + (dose * intervalHours)),
+        );
+        
+        // Solo programa si está en el futuro
+        if (doseTime.isAfter(now)) {
+          // Crea un ID único para esta notificación
+          final notificationId = baseId + notificationCount;
+          
+          await NotificationService.scheduleNotification(
+            id: notificationId,
+            title: 'Hora de tomar $_nombreMedicamento',
+            body: 'Recuerda tomar tu dosis según la receta',
+            scheduledTime: doseTime,
+            interval: _dosis,
+          );
+          
+          debugPrint('Notificación #$notificationCount programada para: $doseTime');
+          notificationCount++;
+        }
+      }
+    }
+    
+    debugPrint('Total de notificaciones programadas: $notificationCount');
+    
+
+    if (!mounted) return; 
+    
+    // Muestra un mensaje al usuario
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Recordatorios configurados para $_nombreMedicamento'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  } catch (e) {
+    debugPrint('Error al guardar datos o programar notificaciones: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error al configurar recordatorios: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
+}
 }
