@@ -49,55 +49,41 @@ class NotificationService {
         ?.requestExactAlarmsPermission();
   }
 
-  static Future<void> scheduleNotification({
-    required int id,
-    required String title,
-    required String body,
-    required DateTime scheduledTime,
-    required String interval,
-  }) async {
-    try {
-      // Verificar si la hora programada es en el futuro
-      if (scheduledTime.isBefore(DateTime.now())) {
-        debugPrint('Error: La hora programada está en el pasado: $scheduledTime');
-        return;
-      }
-      
-      debugPrint('Programando notificación para: $scheduledTime');
-      
-      // Configurar los detalles de la notificación para Android
-      final androidDetails = AndroidNotificationDetails(
-        'meditime_channel',
-        'MediTime Notificaciones',
-        channelDescription: 'Canal para recordatorios de medicamentos',
-        importance: Importance.max,
-        priority: Priority.high,
-        enableVibration: true,
-        enableLights: true,
-        color: Colors.blue,
-        ledColor: Colors.blue,
-        ledOnMs: 1000,
-        ledOffMs: 500,
-      );
+static Future<void> scheduleNotification({
+  required int id,
+  required String title,
+  required String body,
+  required DateTime scheduledTime,
+  required String interval,
+}) async {
+  try {
+    if (scheduledTime.isBefore(DateTime.now())) return;
 
-      // Convertir a TZDateTime
-      final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
-      
-      await _notificationsPlugin.zonedSchedule(
-        id,
-        title,
-        body,
-        tzScheduledTime,
-        NotificationDetails(android: androidDetails),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        matchDateTimeComponents: DateTimeComponents.time,
-      );
-      
-      debugPrint('Notificación programada con éxito para: $tzScheduledTime');
-    } catch (e) {
-      debugPrint('Error al programar notificación: $e');
-    }
+    final androidDetails = AndroidNotificationDetails(
+      'meditime_channel',
+      'MediTime Notificaciones',
+      channelDescription: 'Canal para recordatorios de medicamentos',
+      importance: Importance.max,
+      priority: Priority.high,
+      enableVibration: true,
+    );
+
+    final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+    
+    await _notificationsPlugin.zonedSchedule(
+      id,
+      title,
+      body,
+      tzScheduledTime,
+      NotificationDetails(android: androidDetails),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      // Elimina matchDateTimeComponents para evitar repetición diaria
+    );
+    
+  } catch (e) {
+    debugPrint('Error al programar notificación: $e');
   }
+}
 
   // Método para cancelar todas las notificaciones
   static Future<void> cancelAllNotifications() async {

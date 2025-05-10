@@ -363,7 +363,8 @@ void _saveData() async {
     final dosesPerDay = 24 ~/ intervalHours;
     
     // ID base para evitar colisiones
-    final baseId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+    final baseId = DateTime.now().millisecondsSinceEpoch % 100000;
     
     debugPrint('Programando notificaciones:');
     debugPrint('- Medicamento: $_nombreMedicamento');
@@ -372,32 +373,25 @@ void _saveData() async {
     debugPrint('- Dosis por día: $dosesPerDay');
     
     // Programa cada dosis individualmente
+    // Reemplaza el bucle actual por:
     int notificationCount = 0;
-    for (int day = 0; day < totalDays; day++) {
-      for (int dose = 0; dose < dosesPerDay; dose++) {
-        // Calcula el momento de esta dosis
-        // Reemplázalo por:
-        final doseTime = adjustedFirstDoseTime.add(
-          Duration(hours: (day * 24) + (dose * intervalHours)),
+    DateTime doseTime = adjustedFirstDoseTime;
+
+    while (doseTime.isBefore(adjustedFirstDoseTime.add(Duration(days: totalDays)))) {
+      if (doseTime.isAfter(now)) {
+        final notificationId = baseId + notificationCount;
+        
+        await NotificationService.scheduleNotification(
+          id: notificationId,
+          title: 'Hora de tomar $_nombreMedicamento',
+          body: 'Recuerda tomar tu dosis según la receta',
+          scheduledTime: doseTime,
+          interval: _dosis,
         );
         
-        // Solo programa si está en el futuro
-        if (doseTime.isAfter(now)) {
-          // Crea un ID único para esta notificación
-          final notificationId = baseId + notificationCount;
-          
-          await NotificationService.scheduleNotification(
-            id: notificationId,
-            title: 'Hora de tomar $_nombreMedicamento',
-            body: 'Recuerda tomar tu dosis según la receta',
-            scheduledTime: doseTime,
-            interval: _dosis,
-          );
-          
-          debugPrint('Notificación #$notificationCount programada para: $doseTime');
-          notificationCount++;
-        }
+        notificationCount++;
       }
+      doseTime = doseTime.add(Duration(hours: intervalHours)); // Avanza el intervalo
     }
     
     debugPrint('Total de notificaciones programadas: $notificationCount');
