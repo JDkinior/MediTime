@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         scaffoldBackgroundColor: const Color.fromARGB(255, 241, 241, 241),
         appBarTheme: const AppBarTheme(
-          color: Color.fromARGB(255, 241, 241, 241),
+          color: Color.fromARGB(255, 241, 241, 241), 
         ),
       ),
       home: const AuthWrapper(),
