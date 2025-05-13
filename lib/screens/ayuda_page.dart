@@ -56,7 +56,7 @@ class AyudaPage extends StatelessWidget {
                 context: context,
                 builder: (BuildContext context) {
                   const data =
-                      'La aplicación se encuentra actualmente en desarrollo, esta es la versión: 10.0.2 Alpha';
+                      'La aplicación se encuentra actualmente en desarrollo, esta es la versión: 2.13.4 alpha.';
                   return AlertDialog(
                     title: Text('Versión de la aplicación',
                         style: TextStyle(color: textColor)),
@@ -130,7 +130,6 @@ class AyudaPage extends StatelessWidget {
                           Text(
                             '● Daniel Esteban Castiblanco\n'
                             '● Brayan Esteban Salinas\n'
-                            '● Juan Sebastian Gómez\n'
                             '● Santiago Garzón Cuadrado\n'
                             '● Jorge Eliecer Delgado\n'
                             '● Johan Alexander Arévalo\n'
@@ -142,7 +141,7 @@ class AyudaPage extends StatelessWidget {
                             '\nAgradecimientos Especiales a la Universidad de Cundinamarca seccional Ubaté por incentivar el desarrollo de proyectos innovadores y el acompañamiento por parte de los docentes y directivos.\n\n'
                             'Universidad de Cundinamarca\n'
                             'Ingeniería en Sistemas y Computación\n'
-                            '©Todos los Derechos Reservados\n2022-2024',
+                            '©Todos los Derechos Reservados\n2022-2025',
                             style: TextStyle(color: textColor),
                           ),
                         ],

@@ -9,6 +9,16 @@ class OpcionesPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Opciones'),
       ),
+      body: const Center(
+        child: Text(
+          'Aún en desarrollo',
+          style: TextStyle(
+            fontSize: 24,
+            color: Colors.grey,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      ),
     );
   }
 }
