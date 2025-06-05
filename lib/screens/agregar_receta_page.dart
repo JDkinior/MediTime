@@ -32,19 +32,16 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
     'Emulsiones'
   ];
 
-  final TextEditingController _nombreMedicamentoController = TextEditingController();
+  final TextEditingController _nombreMedicamentoController =
+      TextEditingController();
   final TextEditingController _dosisController = TextEditingController();
-  final TextEditingController _vecesPorDiaController = TextEditingController();
-  // Añadir controlador para duración:
-final TextEditingController _duracionController = TextEditingController();
+  final TextEditingController _vecesPorDiaController =
+      TextEditingController(); // Aunque no se usa directamente para guardar, mantenlo si planeas usarlo
+  final TextEditingController _duracionController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // Genera un ID único para esta receta cuando la página se inicializa
-    // o cuando se guardan los datos por primera vez.
-    // Podrías basarlo en el ID del documento de Firestore si la receta se guarda primero allí.
-    // Por ahora, un ID aleatorio simple para el ejemplo:
   }
 
   @override
@@ -52,8 +49,109 @@ final TextEditingController _duracionController = TextEditingController();
     _nombreMedicamentoController.dispose();
     _dosisController.dispose();
     _vecesPorDiaController.dispose();
+    _duracionController.dispose(); // Asegúrate de liberar este también
     _pageController.dispose();
     super.dispose();
+  }
+
+  // Función _saveData corregida y explícitamente Future<void>
+  Future<void> _saveData() async { // Asegúrate de que 'async' está aquí y el tipo de retorno es Future<void>
+    try {
+      final int prescriptionAlarmManagerId = Random().nextInt(2147483647);
+
+      await MedicamentosData.saveMedicamentoData(
+        nombreMedicamento: _nombreMedicamento,
+        presentacion: _presentacion,
+        duracion: _duracion,
+        horaPrimeraDosis: _horaPrimeraDosis,
+        intervaloDosis: _dosis,
+      );
+
+      final now = DateTime.now();
+      DateTime primeraDosisDateTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        _horaPrimeraDosis.hour,
+        _horaPrimeraDosis.minute,
+      );
+
+      if (primeraDosisDateTime.isBefore(now)) {
+        primeraDosisDateTime = primeraDosisDateTime.add(const Duration(days: 1));
+      }
+
+      // Validar que _duracion y _dosis no estén vacíos antes de parsear
+      if (_duracion.isEmpty || _dosis.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Por favor, completa la duración y el intervalo de dosis.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return; // Salir si los campos numéricos están vacíos
+      }
+
+      final int duracionEnDias = int.parse(_duracion);
+      final DateTime fechaFinTratamiento =
+          primeraDosisDateTime.add(Duration(days: duracionEnDias));
+      final int intervaloEnHoras = int.parse(_dosis);
+      final int firstLocalNotificationId = Random().nextInt(100000);
+
+      if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
+        debugPrint(
+            "Programando PRIMERA alarma para $_nombreMedicamento a las $primeraDosisDateTime con ID de Alarma (AlarmManager): $prescriptionAlarmManagerId");
+        await AndroidAlarmManager.oneShotAt(
+          primeraDosisDateTime,
+          prescriptionAlarmManagerId,
+          alarmCallbackLogic,
+          exact: true,
+          wakeup: true,
+          alarmClock: true,
+          rescheduleOnReboot: true,
+          params: {
+            'currentNotificationId': firstLocalNotificationId,
+            'nombreMedicamento': _nombreMedicamento,
+            'presentacion': _presentacion,
+            'intervaloHoras': intervaloEnHoras,
+            'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
+            'prescriptionAlarmId': prescriptionAlarmManagerId,
+          },
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content:
+                  Text('Recordatorios configurados para $_nombreMedicamento'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'La fecha de primera dosis es posterior a la fecha de fin de tratamiento.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error al guardar datos o programar alarma: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al configurar recordatorios: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+    // No llamar a Navigator.pop() aquí
   }
 
   @override
@@ -79,13 +177,21 @@ final TextEditingController _duracionController = TextEditingController();
           child: PageView(
             controller: _pageController,
             physics: const NeverScrollableScrollPhysics(),
+            onPageChanged: (step) {
+              // Esto es opcional, pero podría ser útil si necesitas
+              // actualizar _currentStep cuando el PageView cambia
+              // (aunque con NeverScrollableScrollPhysics, solo cambiará programáticamente)
+              setState(() {
+                _currentStep = step;
+              });
+            },
             children: [
-              _buildFadeTransition(0),
-              _buildFadeTransition(1),
-              _buildFadeTransition(2),
-              _buildFadeTransition(3),
-              _buildFadeTransition(4),
-              _buildFadeTransition(5),
+              _buildFadeTransition(0, _buildStepContent(0)),
+              _buildFadeTransition(1, _buildStepContent(1)),
+              _buildFadeTransition(2, _buildStepContent(2)),
+              _buildFadeTransition(3, _buildStepContent(3)),
+              _buildFadeTransition(4, _buildStepContent(4)),
+              _buildFadeTransition(5, _buildStepContent(5)),
             ],
           ),
         ),
@@ -110,7 +216,7 @@ final TextEditingController _duracionController = TextEditingController();
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
                   shape: const CircleBorder(),
-                  heroTag: 'botonAnterior',
+                  heroTag: 'botonAnterior', // Tags únicos para Hero animations
                   child: const Icon(Icons.arrow_back),
                 ),
               ),
@@ -129,7 +235,7 @@ final TextEditingController _duracionController = TextEditingController();
                             curve: Curves.easeInOut,
                           );
                         }
-                      : null,
+                      : null, // Deshabilitado si el paso no es válido
                   backgroundColor: _isStepValid() ? Colors.blue : Colors.grey,
                   foregroundColor: Colors.white,
                   shape: const CircleBorder(),
@@ -137,50 +243,98 @@ final TextEditingController _duracionController = TextEditingController();
                   child: const Icon(Icons.arrow_forward),
                 ),
               ),
-if (_currentStep == 5)
-  SizedBox(
-    width: 70,
-    height: 70,
-    child: FloatingActionButton(
-      onPressed: () {
-        _saveData();
-        Navigator.of(context).pop();
-      },
-      backgroundColor: const Color.fromARGB(255, 92, 214, 96), // Cambiar el color a verde
-      foregroundColor: Colors.white, // Color del ícono
-      shape: const CircleBorder(),
-      heroTag: 'botonFinalizar', // Asegúrate de dar un heroTag único
-      child: const Icon(Icons.check), // El ícono de chulito
-    ),
-  ),
+            if (_currentStep == 5)
+              SizedBox(
+                width: 70,
+                height: 70,
+                child: FloatingActionButton(
+                  onPressed: () async { // onPressed es async
+                    // Opcional: puedes añadir un indicador de carga aquí
+                    // setState(() => _isSaving = true); // necesitarías _isSaving en tu estado
 
+                    await _saveData(); // Espera a que _saveData termine
+
+                    // Opcional: ocultar indicador de carga
+                    // setState(() => _isSaving = false);
+
+                    if (mounted) {
+                      // Asegúrate de que el widget sigue en el árbol
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  backgroundColor: const Color.fromARGB(255, 92, 214, 96),
+                  foregroundColor: Colors.white,
+                  shape: const CircleBorder(),
+                  heroTag: 'botonFinalizar',
+                  child: const Icon(Icons.check),
+                ),
+              ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildFadeTransition(int step) {
+  Widget _buildFadeTransition(int step, Widget stepContent) {
     return AnimatedBuilder(
       animation: _pageController,
       builder: (context, child) {
-        double opacity = 1.0;
-        if (_pageController.position.haveDimensions) {
-          double offset = _pageController.page! - step;
-          opacity = (1 - offset.abs()).clamp(0.0, 1.0);
+        double opacity = 0.0; // Inicia invisible
+        if (_pageController.position.haveDimensions && _pageController.page != null) {
+          // Calcula la opacidad basada en qué tan cerca está la página actual de este 'step'
+          // opacity = (1 - (_pageController.page! - step).abs()).clamp(0.0, 1.0);
+          // Para una transición más simple de encendido/apagado basada en el currentStep del PageController:
+          if (_pageController.page!.round() == step) {
+            opacity = 1.0;
+          }
+        } else if (_currentStep == step) {
+           // Fallback si PageController no está listo, usa _currentStep
+           opacity = 1.0;
         }
         return Opacity(
           opacity: opacity,
-          child: child,
+          child: stepContent, // Usa el stepContent pasado como argumento
         );
       },
-      child: _buildStepContent(step),
     );
   }
 
-Widget _buildStepContent(int step) {
-    switch (step) {
+  Widget _buildQuestionText(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 30, // Ajustado para mejor visualización
+        color: Colors.blue,
+        fontWeight: FontWeight.bold,
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
+
+  bool _isStepValid() {
+    switch (_currentStep) {
       case 0:
+        return _nombreMedicamentoController.text.isNotEmpty;
+      case 1:
+        return _presentacion.isNotEmpty;
+      case 2:
+        return true; // La hora siempre es válida ya que tiene un valor por defecto
+      case 3:
+        return _dosisController.text.isNotEmpty &&
+            (int.tryParse(_dosisController.text) ?? 0) > 0;
+      case 4:
+        return _duracionController.text.isNotEmpty &&
+            (int.tryParse(_duracionController.text) ?? 0) > 0;
+      case 5:
+        return true; // El resumen siempre es válido para mostrar
+      default:
+        return false;
+    }
+  }
+
+  Widget _buildStepContent(int step) {
+    switch (step) {
+        case 0:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -294,148 +448,32 @@ Widget _buildStepContent(int step) {
           ],
         );
       case 5:
-        return Column(
+        return Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildQuestionText('Resumen de la receta:'),
-            const SizedBox(height: 16),
-            Text('Medicamento: $_nombreMedicamento'),
-            Text('Presentación: $_presentacion'),
-            Text('Hora primera dosis: ${_horaPrimeraDosis.format(context)}'),
-            Text('Intervalo entre dosis: $_dosis horas'),
-            Text('Duración del tratamiento: $_duracion días'),
-            Text('Veces por día: ${_dosis.isNotEmpty ? 24 ~/ int.parse(_dosis) : "No definido"}'),
-          ],
-        );
-      default:
-        return Container();
-    }
-  }
-  Widget _buildQuestionText(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 30,
-        color: Colors.blue,
-        fontWeight: FontWeight.bold,
-      ),
-      textAlign: TextAlign.center,
-    );
-  }
-
-bool _isStepValid() {
-  switch (_currentStep) {
-    case 0: return _nombreMedicamento.isNotEmpty;
-    case 1: return _presentacion.isNotEmpty; // Hora siempre válida
-    case 2: return true; // Hora siempre válida
-    case 3: return _dosis.isNotEmpty && int.parse(_dosis) > 0;
-    case 4: return _duracion.isNotEmpty && int.parse(_duracion) > 0;
-    default: return false;
-  }
-}
-
-// _saveData() corregido para agregar_receta_page.dart
-  void _saveData() async {
-    try {
-      // Guardar en Firestore primero para tener un ID de documento si es necesario.
-      // Asumamos que tienes `docId` después de guardar en Firestore.
-      // Si no, puedes usar el _uniquePrescriptionId generado o crear uno nuevo aquí.
-      // Por ahora, usaremos un ID de alarma entero aleatorio para AndroidAlarmManager.
-      // Es MEJOR si este ID está vinculado de forma única y recuperable a la receta.
-      // Por ejemplo, si guardas la receta en Firestore y obtienes un ID de documento,
-      // podrías convertir una parte de ese ID de documento a un entero si es posible,
-      // o mantener un mapeo.
-      // Para simplificar, usaremos un entero aleatorio grande como ID para AndroidAlarmManager.
-      // Este ID se usará para TODAS las alarmas de ESTA receta.
-      final int prescriptionAlarmManagerId = Random().nextInt(2147483647); // Max int
-
-      await MedicamentosData.saveMedicamentoData(
-        nombreMedicamento: _nombreMedicamento,
-        presentacion: _presentacion,
-        duracion: _duracion, //
-        horaPrimeraDosis: _horaPrimeraDosis, //
-        intervaloDosis: _dosis, //
-        // Podrías añadir `prescriptionAlarmManagerId` a los datos guardados en Firestore
-        // para poder cancelarlo más tarde si se borra la receta.
-        // prescriptionAlarmManagerId: prescriptionAlarmManagerId,
-      );
-      
-      // Limpia notificaciones ANTERIORES de flutter_local_notifications si aún usabas ese sistema
-      // await NotificationService.cancelAllNotifications(); // O una cancelación más específica
-
-      final now = DateTime.now();
-      DateTime primeraDosisDateTime = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        _horaPrimeraDosis.hour,
-        _horaPrimeraDosis.minute,
-      );
-
-      if (primeraDosisDateTime.isBefore(now)) {
-        primeraDosisDateTime = primeraDosisDateTime.add(const Duration(days: 1));
-      }
-
-      final int duracionEnDias = int.parse(_duracion);
-      final DateTime fechaFinTratamiento = primeraDosisDateTime.add(Duration(days: duracionEnDias));
-      final int intervaloEnHoras = int.parse(_dosis);
-      
-      // ID para la primera notificación local que se mostrará
-      final int firstLocalNotificationId = Random().nextInt(100000);
-
-      if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
-        debugPrint("Programando PRIMERA alarma para $_nombreMedicamento a las $primeraDosisDateTime con ID de Alarma (AlarmManager): $prescriptionAlarmManagerId");
-        await AndroidAlarmManager.oneShotAt(
-          primeraDosisDateTime,
-          prescriptionAlarmManagerId, // ID para la serie de alarmas de esta receta
-          alarmCallbackLogic,       // Tu función callback global
-          exact: true,
-          wakeup: true,
-          alarmClock: true,
-          rescheduleOnReboot: true,
-          params: {
-            'currentNotificationId': firstLocalNotificationId, // ID para la notificación visual
-            'nombreMedicamento': _nombreMedicamento,
-            'presentacion': _presentacion,
-            'intervaloHoras': intervaloEnHoras,
-            'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
-            'prescriptionAlarmId': prescriptionAlarmManagerId, // Pasa el ID de la serie
-          },
-        );
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Recordatorios configurados para $_nombreMedicamento'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
-         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('La fecha de primera dosis es posterior a la fecha de fin de tratamiento.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-      }
-
-    } catch (e) {
-      debugPrint('Error al guardar datos o programar alarma: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al configurar recordatorios: $e'),
-            backgroundColor: Colors.red,
+            children: [
+              _buildQuestionText('Resumen de la receta:'),
+              const SizedBox(height: 24),
+              Text('Medicamento: ${_nombreMedicamentoController.text}', style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 8),
+              Text('Presentación: $_presentacion', style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 8),
+              Text('Hora primera dosis: ${_horaPrimeraDosis.format(context)}', style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 8),
+              Text('Intervalo entre dosis: ${_dosisController.text} horas', style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 8),
+              Text('Duración del tratamiento: ${_duracionController.text} días', style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 8),
+              Text(
+                  'Veces por día: ${(_dosisController.text.isNotEmpty && (int.tryParse(_dosisController.text) ?? 0) > 0) ? (24 / int.parse(_dosisController.text)).round() : "No definido"}',
+                  style: const TextStyle(fontSize: 16)),
+            ],
           ),
         );
-      }
-    }
-    if (mounted) {
-      Navigator.of(context).pop();
+      default:
+        return Container(); // No debería llegar aquí
     }
   }
 }
