@@ -288,6 +288,8 @@ Widget build(BuildContext context) {
         resizeToAvoidBottomInset: false,
         body: Stack(
           children: [
+            // Este AnimatedBuilder es simple y no necesita el 'child', ya que
+            // el Container en sí es lo que se reconstruye con una nueva altura.
             AnimatedBuilder(
               animation: _animationController,
               builder: (context, child) {
@@ -296,10 +298,10 @@ Widget build(BuildContext context) {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-          colors: [
-            Color.fromARGB(255, 73, 194, 255),
-            Color.fromARGB(255, 47, 109, 180),
-          ],
+                      colors: [
+                        Color.fromARGB(255, 73, 194, 255),
+                        Color.fromARGB(255, 47, 109, 180),
+                      ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
@@ -315,62 +317,70 @@ Widget build(BuildContext context) {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
+                    // --- OPTIMIZACIÓN 1: Título de la App ---
                     AnimatedBuilder(
                       animation: _animationController,
+                      // El contenido del título (el Column) se construye una sola vez.
+                      child: const Column(
+                        children: [
+                          Text(
+                            'MediTime',
+                            style: TextStyle(
+                              fontSize: 55,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 5),
+                          Text(
+                            'Controla tus medicamentos\nMejora tu salud',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 20,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                       builder: (context, child) {
+                        // El builder solo reconstruye el Positioned, que es muy ligero.
                         return Positioned(
                           top: screenHeight * 0.35 - (screenHeight * 0.24 * _animationController.value),
-                          child: Column(
-                            children: [
-                              Text(
-                                'MediTime',
-                                style: TextStyle(
-                                  fontSize: 55,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 5),
-                              Text(
-                                'Controla tus medicamentos\nMejora tu salud',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  color: Colors.white.withOpacity(0.9),
-                                ),
-                              ),
-                            ],
-                          ),
+                          child: child!, // Usamos el child pre-construido.
                         );
                       },
                     ),
 
+                    // --- OPTIMIZACIÓN 2: Botones de Autenticación Iniciales ---
                     AnimatedBuilder(
                       animation: _animationController,
+                      // El contenido (los botones) se construye una sola vez.
+                      child: Column(
+                        children: [
+                          _SingButton(
+                            text: 'Iniciar sesión',
+                            onPressed: _toggleLoginForm,
+                          ),
+                          const SizedBox(height: 20),
+                          _AuthButton(
+                            text: 'Registrarme',
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const RegisterPage()),
+                            ),
+                          ),
+                        ],
+                      ),
                       builder: (context, child) {
                         final opacity = (1.0 - _animationController.value * 2).clamp(0.0, 1.0);
+                        // El builder solo reconstruye el Positioned, Opacity y Visibility.
                         return Positioned(
                           top: screenHeight * 0.75,
                           child: Opacity(
                             opacity: opacity,
                             child: Visibility(
                               visible: _animationController.value < 0.5,
-                              child: Column(
-                                children: [
-                                  _SingButton(
-                                    text: 'Iniciar sesión',
-                                    onPressed: _toggleLoginForm,
-                                  ),
-                                  const SizedBox(height: 20),
-                                  _AuthButton(
-                                    text: 'Registrarme',
-                                    onPressed: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (context) => const RegisterPage()),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              child: child!, // Usamos el child pre-construido.
                             ),
                           ),
                         );
@@ -381,165 +391,137 @@ Widget build(BuildContext context) {
               ),
             ),
 
-            // Formulario deslizable
+            // --- OPTIMIZACIÓN 3: Formulario de Login Deslizable (LA MÁS IMPORTANTE) ---
             Positioned(
               bottom: 0,
               left: 0,
               right: 0,
               child: AnimatedBuilder(
                 animation: _animationController,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(0, screenHeight * 0.63 * (1 - _animationController.value)),
-                    child: GestureDetector(
-                      onTap: () {
-                        final currentFocus = FocusScope.of(context);
-                        if (!currentFocus.hasPrimaryFocus) {
-                          currentFocus.unfocus();
-                        }
-                      },
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        height: screenHeight * 0.63,
-                        decoration: BoxDecoration(
-                          color: Color(0xFFF3F3F3),
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(30),
-                          ),
-                                      ),
-                        padding: const EdgeInsets.all(30),
-                        child: SingleChildScrollView(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 5),
-                              _buildEmailField(),
-                              const SizedBox(height: 15),
-                              _buildPasswordField(),
-                              const SizedBox(height: 70),
-                            // Botón de iniciar sesión
-                            SizedBox(
-                              width: double.infinity,
-                              height: 55,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                onPressed: _isLoading ? null : _login,
-                                child: Ink(
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                colors: [
-                                  Color.fromARGB(255, 73, 194, 255),
-                                  Color.fromARGB(255, 47, 109, 180),
-                                ],
-                                      begin: Alignment.centerLeft,
-                                      end: Alignment.centerRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(22),
-                                  ),
-                                  child: Container(
-                                    alignment: Alignment.center,
-                                    child: _isLoading
-                                        ? const CircularProgressIndicator(color: Colors.white)
-                                        : const Text(
-                                            'Iniciar Sesión',
-                                            style: TextStyle(fontSize: 16, color: Colors.white),
-                                          ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            // Barra separadora
-                            Row(
-                              children: const [
-                                Expanded(
-                                  child: Divider(
-                                    color: Color.fromARGB(255, 165, 165, 165),
-                                    thickness: 1,
-                                  ),
-                                ),
-                                Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 10),
-                                  child: Text(
-                                    'o',
-                                    style: TextStyle(
-                                      color: Color.fromARGB(255, 165, 165, 165),
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Divider(
-                                    color: Color.fromARGB(255, 165, 165, 165),
-                                    thickness: 1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            // Botón de Google
-                            SizedBox(
-                              width: double.infinity,
-                              height: 55,
-                              child: ElevatedButton.icon(
-                                icon: Image.asset(
-                                  'assets/google_logo.png',
-                                  width: 30,
-                                  height: 30,
-                                ),
-                                label: const Text('Continuar con Google'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFF3F3F3),
-                                  foregroundColor: Colors.black,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                    side: const BorderSide(color: Color.fromARGB(255, 165, 165, 165)),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                onPressed: () {},
-                              ),
-                            ),
-                            const SizedBox(height: 15),
-                            // Enlace a registro
-                            Center(
-                              child: TextButton(
-                                onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => const RegisterPage()),
-                                ),
-                                child: const Text(
-                                  '¿No tienes cuenta? Regístrate aquí',
-                                  style: TextStyle(
-                                    color:        Color.fromARGB(255, 47, 109, 180),
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (_errorMessage.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 10),
-                                child: Text(
-                                  _errorMessage,
-                                  style: const TextStyle(color: Colors.red),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                // El formulario completo se construye una sola vez.
+                child: GestureDetector(
+                  onTap: () {
+                    final currentFocus = FocusScope.of(context);
+                    if (!currentFocus.hasPrimaryFocus) {
+                      currentFocus.unfocus();
+                    }
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    height: screenHeight * 0.63,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF3F3F3),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(30),
                       ),
                     ),
+                    padding: const EdgeInsets.all(30),
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.only(
+                        bottom: MediaQuery.of(context).viewInsets.bottom,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 5),
+                          _buildEmailField(),
+                          const SizedBox(height: 15),
+                          _buildPasswordField(),
+                          const SizedBox(height: 70),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 55,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                elevation: 0,
+                              ),
+                              onPressed: _isLoading ? null : _login,
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color.fromARGB(255, 73, 194, 255),
+                                      Color.fromARGB(255, 47, 109, 180),
+                                    ],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  child: _isLoading
+                                      ? const CircularProgressIndicator(color: Colors.white)
+                                      : const Text(
+                                          'Iniciar Sesión',
+                                          style: TextStyle(fontSize: 16, color: Colors.white),
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Row(
+                            children: [
+                              Expanded(child: Divider(color: Color.fromARGB(255, 165, 165, 165), thickness: 1)),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 10),
+                                child: Text('o', style: TextStyle(color: Color.fromARGB(255, 165, 165, 165), fontSize: 14)),
+                              ),
+                              Expanded(child: Divider(color: Color.fromARGB(255, 165, 165, 165), thickness: 1)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 55,
+                            child: ElevatedButton.icon(
+                              icon: Image.asset('assets/google_logo.png', width: 30, height: 30),
+                              label: const Text('Continuar con Google'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFF3F3F3),
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  side: const BorderSide(color: Color.fromARGB(255, 165, 165, 165)),
+                                ),
+                                elevation: 0,
+                              ),
+                              onPressed: () {},
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+                          Center(
+                            child: TextButton(
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const RegisterPage()),
+                              ),
+                              child: const Text(
+                                '¿No tienes cuenta? Regístrate aquí',
+                                style: TextStyle(color: Color.fromARGB(255, 47, 109, 180), fontSize: 15, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ),
+                          if (_errorMessage.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: Text(_errorMessage, style: const TextStyle(color: Colors.red)),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                builder: (context, child) {
+                  // El builder solo reconstruye el Transform.translate, que es muy ligero.
+                  return Transform.translate(
+                    offset: Offset(0, screenHeight * 0.63 * (1 - _animationController.value)),
+                    child: child!, // Usamos el child pre-construido.
                   );
                 },
               ),
@@ -547,8 +529,8 @@ Widget build(BuildContext context) {
           ],
         ),
       ),
-    );
-  }
+  );
+}
 }
 
 class _AuthButton extends StatelessWidget {

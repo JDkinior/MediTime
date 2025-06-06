@@ -15,6 +15,7 @@ class AgregarRecetaPage extends StatefulWidget {
 class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
   int _currentStep = 0;
   final PageController _pageController = PageController();
+  bool _isAnimating = false;  
   String _nombreMedicamento = '';
   String _presentacion = '';
   String _duracion = ''; // En días
@@ -162,140 +163,140 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: _buildStep(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: PageView(
-            controller: _pageController,
-            physics: const NeverScrollableScrollPhysics(),
-            onPageChanged: (step) {
-              // Esto es opcional, pero podría ser útil si necesitas
-              // actualizar _currentStep cuando el PageView cambia
-              // (aunque con NeverScrollableScrollPhysics, solo cambiará programáticamente)
-              setState(() {
-                _currentStep = step;
-              });
-            },
-            children: [
-              _buildFadeTransition(0, _buildStepContent(0)),
-              _buildFadeTransition(1, _buildStepContent(1)),
-              _buildFadeTransition(2, _buildStepContent(2)),
-              _buildFadeTransition(3, _buildStepContent(3)),
-              _buildFadeTransition(4, _buildStepContent(4)),
-              _buildFadeTransition(5, _buildStepContent(5)),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        child: Column( 
           children: [
-            if (_currentStep > 0)
-              SizedBox(
-                width: 70,
-                height: 70,
-                child: FloatingActionButton(
-                  onPressed: () {
-                    setState(() {
-                      _currentStep--;
-                    });
-                    _pageController.previousPage(
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.easeInOut,
-                    );
-                  },
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  shape: const CircleBorder(),
-                  heroTag: 'botonAnterior', // Tags únicos para Hero animations
-                  child: const Icon(Icons.arrow_back),
-                ),
-              ),
-            if (_currentStep < 5)
-              SizedBox(
-                width: 70,
-                height: 70,
-                child: FloatingActionButton(
-                  onPressed: _isStepValid()
-                      ? () {
-                          setState(() {
-                            _currentStep++;
-                          });
-                          _pageController.nextPage(
-                            duration: const Duration(milliseconds: 500),
-                            curve: Curves.easeInOut,
-                          );
-                        }
-                      : null, // Deshabilitado si el paso no es válido
-                  backgroundColor: _isStepValid() ? Colors.blue : Colors.grey,
-                  foregroundColor: Colors.white,
-                  shape: const CircleBorder(),
-                  heroTag: 'botonSiguiente',
-                  child: const Icon(Icons.arrow_forward),
-                ),
-              ),
-            if (_currentStep == 5)
-              SizedBox(
-                width: 70,
-                height: 70,
-                child: FloatingActionButton(
-                  onPressed: () async { // onPressed es async
-                    // Opcional: puedes añadir un indicador de carga aquí
-                    // setState(() => _isSaving = true); // necesitarías _isSaving en tu estado
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: 6,
+                onPageChanged: (page) {
+                  setState(() {
+                    _currentStep = page;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  // SOLUCIÓN: Pasa el contenido del paso a la propiedad 'child'.
+                  // Se construirá solo una vez.
+                  return AnimatedBuilder(
+                    animation: _pageController,
+                    child: _buildStepContent(index), // <-- 1. Mueve la construcción aquí
 
-                    await _saveData(); // Espera a que _saveData termine
+                    // El builder ahora recibe el widget pre-construido.
+                    builder: (context, child) {
+                      double opacity = 1.0;
+                      if (_pageController.position.haveDimensions) {
+                        opacity = (1 - (_pageController.page! - index).abs()).clamp(0.0, 1.0);
+                      }
 
-                    // Opcional: ocultar indicador de carga
-                    // setState(() => _isSaving = false);
-
-                    if (mounted) {
-                      // Asegúrate de que el widget sigue en el árbol
-                      Navigator.of(context).pop();
-                    }
-                  },
-                  backgroundColor: const Color.fromARGB(255, 92, 214, 96),
-                  foregroundColor: Colors.white,
-                  shape: const CircleBorder(),
-                  heroTag: 'botonFinalizar',
-                  child: const Icon(Icons.check),
-                ),
+                      // La lógica de reconstrucción ahora es súper ligera.
+                      // Solo reconstruye el Opacity, no el contenido completo.
+                      return Opacity(
+                        opacity: opacity,
+                        child: child, // <-- 2. Usa el 'child' pre-construido aquí
+                      );
+                    },
+                  );
+                },
               ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                if (_currentStep > 0)
+                  SizedBox(
+                    width: 70,
+                    height: 70,
+                    child: FloatingActionButton(
+                      onPressed: _isAnimating
+                          ? null // Si está animando, el botón está desactivado
+                          : () async {
+                              setState(() {
+                                _isAnimating = true;
+                              });
+                              // YA NO CAMBIAMOS _currentStep AQUÍ
+                              await _pageController.previousPage(
+                                duration: const Duration(milliseconds: 400),
+                                curve: Curves.easeInOut,
+                              );
+                              // Esperamos a que la animación termine y luego reactivamos el botón
+                              if (mounted) {
+                                setState(() {
+                                  _isAnimating = false;
+                                });
+                              }
+                            },
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      shape: const CircleBorder(),
+                      heroTag: 'botonAnterior',
+                      child: const Icon(Icons.arrow_back),
+                    ),
+                  ),
+                if (_currentStep < 5)
+                  SizedBox(
+                    width: 70,
+                    height: 70,
+                    child: FloatingActionButton(
+                      onPressed: _isStepValid() && !_isAnimating
+                          ? () async {
+                              setState(() {
+                                _isAnimating = true;
+                              });
+                              // YA NO CAMBIAMOS _currentStep AQUÍ
+                              await _pageController.nextPage(
+                                duration: const Duration(milliseconds: 400),
+                                curve: Curves.easeInOut,
+                              );
+                              if (mounted) {
+                                setState(() {
+                                  _isAnimating = false;
+                                });
+                              }
+                            }
+                          : null,
+                      backgroundColor: _isStepValid() ? Colors.blue : Colors.grey,
+                      foregroundColor: Colors.white,
+                      shape: const CircleBorder(),
+                      heroTag: 'botonSiguiente',
+                      child: const Icon(Icons.arrow_forward),
+                    ),
+                  ),
+              if (_currentStep == 5)
+                SizedBox(
+                  width: 70,
+                  height: 70,
+                  child: FloatingActionButton(
+                    backgroundColor: const Color.fromARGB(255, 92, 214, 96),
+                    foregroundColor: Colors.white,
+                    shape: const CircleBorder(),
+                    heroTag: 'botonFinalizar',
+                    // LÓGICA MODIFICADA AQUÍ
+                    onPressed: _isAnimating // <-- 1. Comprueba si ya hay una acción en curso
+                        ? null // <-- 2. Si es así, desactiva el botón
+                        : () async {
+                            setState(() {
+                              _isAnimating = true; // <-- 3. Desactiva inmediatamente el botón
+                            });
+
+                            await _saveData(); // Espera a que los datos se guarden
+
+                            if (mounted) {
+                              Navigator.of(context).pop(); // Cierra la pantalla de forma segura
+                            }
+                            // No es necesario volver a poner _isAnimating en false,
+                            // porque esta página será destruida.
+                          },
+                    child: const Icon(Icons.check),
+                  ),
+                ),
+              ],
+            ),
+             const SizedBox(height: 16), // Espacio adicional en la parte inferior
           ],
         ),
-      ],
-    );
-  }
-
-  Widget _buildFadeTransition(int step, Widget stepContent) {
-    return AnimatedBuilder(
-      animation: _pageController,
-      builder: (context, child) {
-        double opacity = 0.0; // Inicia invisible
-        if (_pageController.position.haveDimensions && _pageController.page != null) {
-          // Calcula la opacidad basada en qué tan cerca está la página actual de este 'step'
-          // opacity = (1 - (_pageController.page! - step).abs()).clamp(0.0, 1.0);
-          // Para una transición más simple de encendido/apagado basada en el currentStep del PageController:
-          if (_pageController.page!.round() == step) {
-            opacity = 1.0;
-          }
-        } else if (_currentStep == step) {
-           // Fallback si PageController no está listo, usa _currentStep
-           opacity = 1.0;
-        }
-        return Opacity(
-          opacity: opacity,
-          child: stepContent, // Usa el stepContent pasado como argumento
-        );
-      },
+      ),
     );
   }
 
@@ -448,11 +449,12 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
           ],
         );
       case 5:
-        return Padding(
+      return SingleChildScrollView(
+        child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildQuestionText('Resumen de la receta:'),
               const SizedBox(height: 24),
@@ -471,9 +473,10 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
                   style: const TextStyle(fontSize: 16)),
             ],
           ),
-        );
-      default:
-        return Container(); // No debería llegar aquí
+        ),
+      );
+    default:
+      return Container();
     }
   }
 }
