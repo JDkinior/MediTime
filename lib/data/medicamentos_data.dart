@@ -15,11 +15,13 @@ class MedicamentosData {
 static Future<void> saveMedicamentoData({
   required String nombreMedicamento,
   required String presentacion,
-  required String duracion, // Añadir este parámetro
+  required String duracion,
   required TimeOfDay horaPrimeraDosis,
   required String intervaloDosis,
   required int prescriptionAlarmId,
+  required DateTime fechaInicioTratamiento, // <-- NUEVO CAMPO
   required DateTime fechaFinTratamiento,
+  required String notas, // <-- AÑADIR
 }) async {
   final userId = getCurrentUserId();
   if (userId == null) {
@@ -31,12 +33,14 @@ static Future<void> saveMedicamentoData({
   await firestore.collection(collectionName).doc(userId).collection('userMedicamentos').add({
     'nombreMedicamento': nombreMedicamento,
     'presentacion': presentacion,
-    'duracion': duracion, // Usar parámetro en lugar de variable no existente
+    'duracion': duracion,
     'horaPrimeraDosis': '${horaPrimeraDosis.hour}:${horaPrimeraDosis.minute}',
     'intervaloDosis': intervaloDosis,
     'prescriptionAlarmId': prescriptionAlarmId,
-    'fechaFinTratamiento': Timestamp.fromDate(fechaFinTratamiento), // <--- AÑADE ESTE CAMPO
-    'skippedDoses': [], // <--- AÑADE UN CAMPO VACÍO PARA LAS DOSIS OMITIDAS    
+    'fechaInicioTratamiento': Timestamp.fromDate(fechaInicioTratamiento), // <-- GUARDAR NUEVO CAMPO
+    'fechaFinTratamiento': Timestamp.fromDate(fechaFinTratamiento),
+    'skippedDoses': [], 
+    'notas': notas, // <-- GUARDAR
   });
 }
 

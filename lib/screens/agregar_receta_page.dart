@@ -22,6 +22,9 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
   String _dosis = '';
   TimeOfDay _horaPrimeraDosis = TimeOfDay.now();
 
+  final TextEditingController _notasController = TextEditingController();
+  String _notas = ''; // Y una variable para guardar el valor
+
   final List<String> _presentaciones = [
     'Comprimidos',
     'Grageas',
@@ -52,13 +55,13 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
     _vecesPorDiaController.dispose();
     _duracionController.dispose(); // Asegúrate de liberar este también
     _pageController.dispose();
+    _notasController.dispose();
     super.dispose();
   }
 
   // Función _saveData corregida y explícitamente Future<void>
   Future<void> _saveData() async {
   try {
-    // --- PASO 1: Validar que los campos de texto no estén vacíos ---
     if (_duracion.isEmpty || _dosis.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -68,16 +71,14 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
           ),
         );
       }
-      return; // Salir de la función si los datos son inválidos
+      return;
     }
 
-    // --- PASO 2: Inicializar todas las variables necesarias ---
     final int prescriptionAlarmManagerId = Random().nextInt(2147483647);
     final int intervaloEnHoras = int.parse(_dosis);
     final int duracionEnDias = int.parse(_duracion);
     final int firstLocalNotificationId = Random().nextInt(100000);
 
-    // Definimos la hora de la primera dosis
     final now = DateTime.now();
     DateTime primeraDosisDateTime = DateTime(
       now.year,
@@ -87,16 +88,16 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
       _horaPrimeraDosis.minute,
     );
 
-    // Si la hora ya pasó hoy, programamos la primera dosis para mañana
     if (primeraDosisDateTime.isBefore(now)) {
       primeraDosisDateTime = primeraDosisDateTime.add(const Duration(days: 1));
     }
-
-    // Calculamos la fecha de fin ahora que 'primeraDosisDateTime' ya tiene un valor
-    final DateTime fechaFinTratamiento =
-        primeraDosisDateTime.add(Duration(days: duracionEnDias));
     
-    // --- PASO 3: Guardar los datos en Firestore ---
+    // La fecha de inicio es la fecha de la primera dosis programada.
+    final DateTime fechaInicioTratamiento = primeraDosisDateTime; // <-- ¡AQUÍ ESTÁ!
+    final DateTime fechaFinTratamiento =
+        fechaInicioTratamiento.add(Duration(days: duracionEnDias));
+    
+    // --- Guardar en Firestore ---
     await MedicamentosData.saveMedicamentoData(
       nombreMedicamento: _nombreMedicamento,
       presentacion: _presentacion,
@@ -104,10 +105,12 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
       horaPrimeraDosis: _horaPrimeraDosis,
       intervaloDosis: _dosis,
       prescriptionAlarmId: prescriptionAlarmManagerId,
+      fechaInicioTratamiento: fechaInicioTratamiento, // <-- PASAR EL NUEVO DATO
       fechaFinTratamiento: fechaFinTratamiento,
+      notas: _notas,
     );
 
-    // --- PASO 4: Programar la alarma ---
+    // --- Programar la alarma ---
     if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
       debugPrint(
           "Programando PRIMERA alarma para $_nombreMedicamento a las $primeraDosisDateTime con ID de Alarma (AlarmManager): $prescriptionAlarmManagerId");
@@ -139,7 +142,7 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
         );
       }
     } else {
-      if (mounted) {
+       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('La fecha de primera dosis es posterior a la fecha de fin de tratamiento.'),
@@ -175,7 +178,7 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
               child: PageView.builder(
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: 6,
+                itemCount: 7,
                 onPageChanged: (page) {
                   setState(() {
                     _currentStep = page;
@@ -240,7 +243,7 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
                       child: const Icon(Icons.arrow_back),
                     ),
                   ),
-                if (_currentStep < 5)
+                if (_currentStep < 6)
                   SizedBox(
                     width: 70,
                     height: 70,
@@ -269,7 +272,7 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
                       child: const Icon(Icons.arrow_forward),
                     ),
                   ),
-              if (_currentStep == 5)
+              if (_currentStep == 6)
                 SizedBox(
                   width: 70,
                   height: 70,
@@ -332,13 +335,14 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
       case 4:
         return _duracionController.text.isNotEmpty &&
             (int.tryParse(_duracionController.text) ?? 0) > 0;
-      case 5:
-        return true; // El resumen siempre es válido para mostrar
+      case 5: // El nuevo paso para las notas
+        return true; // Las notas son opcionales
+      case 6: // El resumen ahora es el paso 6
+        return true;
       default:
         return false;
     }
   }
-
   Widget _buildStepContent(int step) {
     switch (step) {
         case 0:
@@ -454,7 +458,29 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
             ),
           ],
         );
-      case 5:
+            case 5: // <-- NUEVO PASO
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildQuestionText('¿Alguna nota o indicación especial?'),
+          const SizedBox(height: 4),
+          const Text('(Ej: "Tomar con comida", "No conducir")', style: TextStyle(color: Colors.grey)),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _notasController,
+            decoration: const InputDecoration(
+              labelText: 'Notas (Opcional)',
+            ),
+            onChanged: (value) {
+              setState(() {
+                _notas = value;
+              });
+            },
+          ),
+        ],
+      );
+      case 6:
       return SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(8.0),
@@ -481,7 +507,7 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
           ),
         ),
       );
-    default:
+      default:
       return Container();
     }
   }
