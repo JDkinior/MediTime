@@ -56,104 +56,110 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
   }
 
   // Función _saveData corregida y explícitamente Future<void>
-  Future<void> _saveData() async { // Asegúrate de que 'async' está aquí y el tipo de retorno es Future<void>
-    try {
-      final int prescriptionAlarmManagerId = Random().nextInt(2147483647);
-
-      await MedicamentosData.saveMedicamentoData(
-        nombreMedicamento: _nombreMedicamento,
-        presentacion: _presentacion,
-        duracion: _duracion,
-        horaPrimeraDosis: _horaPrimeraDosis,
-        intervaloDosis: _dosis,
-      );
-
-      final now = DateTime.now();
-      DateTime primeraDosisDateTime = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        _horaPrimeraDosis.hour,
-        _horaPrimeraDosis.minute,
-      );
-
-      if (primeraDosisDateTime.isBefore(now)) {
-        primeraDosisDateTime = primeraDosisDateTime.add(const Duration(days: 1));
-      }
-
-      // Validar que _duracion y _dosis no estén vacíos antes de parsear
-      if (_duracion.isEmpty || _dosis.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Por favor, completa la duración y el intervalo de dosis.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return; // Salir si los campos numéricos están vacíos
-      }
-
-      final int duracionEnDias = int.parse(_duracion);
-      final DateTime fechaFinTratamiento =
-          primeraDosisDateTime.add(Duration(days: duracionEnDias));
-      final int intervaloEnHoras = int.parse(_dosis);
-      final int firstLocalNotificationId = Random().nextInt(100000);
-
-      if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
-        debugPrint(
-            "Programando PRIMERA alarma para $_nombreMedicamento a las $primeraDosisDateTime con ID de Alarma (AlarmManager): $prescriptionAlarmManagerId");
-        await AndroidAlarmManager.oneShotAt(
-          primeraDosisDateTime,
-          prescriptionAlarmManagerId,
-          alarmCallbackLogic,
-          exact: true,
-          wakeup: true,
-          alarmClock: true,
-          rescheduleOnReboot: true,
-          params: {
-            'currentNotificationId': firstLocalNotificationId,
-            'nombreMedicamento': _nombreMedicamento,
-            'presentacion': _presentacion,
-            'intervaloHoras': intervaloEnHoras,
-            'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
-            'prescriptionAlarmId': prescriptionAlarmManagerId,
-          },
-        );
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content:
-                  Text('Recordatorios configurados para $_nombreMedicamento'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                  'La fecha de primera dosis es posterior a la fecha de fin de tratamiento.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('Error al guardar datos o programar alarma: $e');
+  Future<void> _saveData() async {
+  try {
+    // --- PASO 1: Validar que los campos de texto no estén vacíos ---
+    if (_duracion.isEmpty || _dosis.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al configurar recordatorios: $e'),
+          const SnackBar(
+            content: Text('Por favor, completa la duración y el intervalo de dosis.'),
             backgroundColor: Colors.red,
           ),
         );
       }
+      return; // Salir de la función si los datos son inválidos
     }
-    // No llamar a Navigator.pop() aquí
+
+    // --- PASO 2: Inicializar todas las variables necesarias ---
+    final int prescriptionAlarmManagerId = Random().nextInt(2147483647);
+    final int intervaloEnHoras = int.parse(_dosis);
+    final int duracionEnDias = int.parse(_duracion);
+    final int firstLocalNotificationId = Random().nextInt(100000);
+
+    // Definimos la hora de la primera dosis
+    final now = DateTime.now();
+    DateTime primeraDosisDateTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      _horaPrimeraDosis.hour,
+      _horaPrimeraDosis.minute,
+    );
+
+    // Si la hora ya pasó hoy, programamos la primera dosis para mañana
+    if (primeraDosisDateTime.isBefore(now)) {
+      primeraDosisDateTime = primeraDosisDateTime.add(const Duration(days: 1));
+    }
+
+    // Calculamos la fecha de fin ahora que 'primeraDosisDateTime' ya tiene un valor
+    final DateTime fechaFinTratamiento =
+        primeraDosisDateTime.add(Duration(days: duracionEnDias));
+    
+    // --- PASO 3: Guardar los datos en Firestore ---
+    await MedicamentosData.saveMedicamentoData(
+      nombreMedicamento: _nombreMedicamento,
+      presentacion: _presentacion,
+      duracion: _duracion,
+      horaPrimeraDosis: _horaPrimeraDosis,
+      intervaloDosis: _dosis,
+      prescriptionAlarmId: prescriptionAlarmManagerId,
+      fechaFinTratamiento: fechaFinTratamiento,
+    );
+
+    // --- PASO 4: Programar la alarma ---
+    if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
+      debugPrint(
+          "Programando PRIMERA alarma para $_nombreMedicamento a las $primeraDosisDateTime con ID de Alarma (AlarmManager): $prescriptionAlarmManagerId");
+      
+      await AndroidAlarmManager.oneShotAt(
+        primeraDosisDateTime,
+        prescriptionAlarmManagerId,
+        alarmCallbackLogic,
+        exact: true,
+        wakeup: true,
+        alarmClock: true,
+        rescheduleOnReboot: true,
+        params: {
+          'currentNotificationId': firstLocalNotificationId,
+          'nombreMedicamento': _nombreMedicamento,
+          'presentacion': _presentacion,
+          'intervaloHoras': intervaloEnHoras,
+          'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
+          'prescriptionAlarmId': prescriptionAlarmManagerId,
+        },
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Recordatorios configurados para $_nombreMedicamento'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('La fecha de primera dosis es posterior a la fecha de fin de tratamiento.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  } catch (e) {
+    debugPrint('Error al guardar datos o programar alarma: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al configurar recordatorios: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
+}
 
   @override
   Widget build(BuildContext context) {

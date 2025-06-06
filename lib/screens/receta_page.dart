@@ -1,40 +1,53 @@
+// lib/screens/receta_page.dart
+
+// Imports necesarios (asegúrate de que todos estén presentes)
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'package:meditime/alarm_callback_handler.dart';
 import 'agregar_receta_page.dart';
 import 'detalle_receta_page.dart';
 
-class RecetaPage extends StatelessWidget {
+
+// --- PASO 1: CONVERTIR A STATEFULWIDGET ---
+
+class RecetaPage extends StatefulWidget {
   const RecetaPage({super.key});
 
-List<DateTime> _generarDosisDiarias(Map<String, dynamic> receta) {
-  final horaInicial = DateFormat('HH:mm').parse(receta['horaPrimeraDosis']);
-  final intervalo = int.parse(receta['intervaloDosis']);
-  final duracionDias = int.parse(receta['duracion']);
-  List<DateTime> dosis = [];
-  
-  DateTime dosisActual = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
-    DateTime.now().day,
-    horaInicial.hour,
-    horaInicial.minute,
-  );
-
-  final fechaFin = dosisActual.add(Duration(days: duracionDias));
-  
-  // Generar dosis hasta cubrir el periodo completo del tratamiento
-  while (dosisActual.isBefore(fechaFin)) {
-    // Solo agregar dosis futuras o de hoy
-    if (dosisActual.isAfter(DateTime.now().subtract(const Duration(minutes: 1)))) {
-      dosis.add(dosisActual);
-    }
-    dosisActual = dosisActual.add(Duration(hours: intervalo));
-  }
-
-  return dosis;
+  @override
+  State<RecetaPage> createState() => _RecetaPageState();
 }
+
+class _RecetaPageState extends State<RecetaPage> {
+  // Mueve toda la lógica y el método build dentro de la clase _RecetaPageState
+
+  List<DateTime> _generarDosisDiarias(Map<String, dynamic> receta) {
+    final horaInicial = DateFormat('HH:mm').parse(receta['horaPrimeraDosis']);
+    final intervalo = int.parse(receta['intervaloDosis']);
+    final duracionDias = int.parse(receta['duracion']);
+    List<DateTime> dosis = [];
+    
+    DateTime dosisActual = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+      horaInicial.hour,
+      horaInicial.minute,
+    );
+
+    final fechaFin = dosisActual.add(Duration(days: duracionDias));
+    
+    while (dosisActual.isBefore(fechaFin)) {
+      if (dosisActual.isAfter(DateTime.now().subtract(const Duration(minutes: 1)))) {
+        dosis.add(dosisActual);
+      }
+      dosisActual = dosisActual.add(Duration(hours: intervalo));
+    }
+
+    return dosis;
+  }
 
   Map<String, List<DateTime>> _agruparPorFecha(List<DateTime> dosis) {
     Map<String, List<DateTime>> agrupadas = {};
@@ -48,105 +61,88 @@ List<DateTime> _generarDosisDiarias(Map<String, dynamic> receta) {
     return agrupadas;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: StreamBuilder(
-        stream: FirebaseFirestore.instance
-            .collection('medicamentos')
-            .doc(FirebaseAuth.instance.currentUser?.uid)
-            .collection('userMedicamentos')
-            .snapshots(),
-        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text(
-                'Aún no has agregado ninguna receta',
-                style: TextStyle(fontSize: 20),
-              ),
-            );
-          }
+  // --- PASO 2: CORREGIR LA LÓGICA ASÍNCRONA EN EL DIÁLOGO ---
 
-          List<Map<String, dynamic>> todasDosis = [];
-          for (var receta in snapshot.data!.docs) {
-            final datos = receta.data() as Map<String, dynamic>;
-            final dosis = _generarDosisDiarias(datos);
-            todasDosis.addAll(dosis.map((hora) => {
-              ...datos,
-              'horaDosis': hora,
-              'docId': receta.id
-            }));
-          }
+  void _showDeleteOptionsDialog(BuildContext dialogContext, Map<String, dynamic> medicamento) {
+    showDialog(
+      context: dialogContext,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+          title: const Text('Eliminar Dosis'),
+          content: const Text('¿Qué te gustaría hacer con esta toma?'),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Omitir solo esta toma', style: TextStyle(color: Colors.blue)),
+              onPressed: () async {
+                // Guardamos una referencia al Navigator y al ScaffoldMessenger ANTES del 'await'.
+                // Usamos el 'context' del diálogo para cerrarlo.
+                final navigator = Navigator.of(context);
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                
+                navigator.pop();
+                
+                // Lógica de cancelar y reprogramar
+                final String docId = medicamento['docId'];
+                final int alarmId = medicamento['prescriptionAlarmId'];
+                final DateTime horaDosisOmitida = medicamento['horaDosis'];
+                final int intervalo = int.parse(medicamento['intervaloDosis']);
+                final DateTime fechaFinTratamiento = (medicamento['fechaFinTratamiento'] as Timestamp).toDate();
 
-          todasDosis.sort((a, b) => a['horaDosis'].compareTo(b['horaDosis']));
+                await AndroidAlarmManager.cancel(alarmId);
 
-          final dosisAgrupadas = _agruparPorFecha(
-              todasDosis.map((d) => d['horaDosis'] as DateTime).toList());
+                final DateTime proximaDosis = horaDosisOmitida.add(Duration(hours: intervalo));
 
-          return ListView(
-            children: [
-              for (var entrada in dosisAgrupadas.entries)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Text(
-                        entrada.key,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    ),
-                    ...entrada.value.map((hora) {
-                      final medicamento = todasDosis.firstWhere(
-                          (d) => d['horaDosis'] == hora);
-                      return _buildDosisCard(medicamento, context);
-                    }),
-                  ],
-                ),
-            ],
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AgregarRecetaPage()),
-          );
-        },
-        tooltip: 'Agregar Medicamento',
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
-        backgroundColor: Colors.transparent,
-        heroTag: 'uniqueTag1',
-        child: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color.fromARGB(255, 73, 194, 255),
-                Color.fromARGB(255, 47, 109, 180),
-              ],
+                if (proximaDosis.isBefore(fechaFinTratamiento)) {
+                  final params = {
+                    'currentNotificationId': medicamento['currentNotificationId'] ?? 0,
+                    'nombreMedicamento': medicamento['nombreMedicamento'],
+                    'presentacion': medicamento['presentacion'],
+                    'intervaloHoras': intervalo,
+                    'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
+                    'prescriptionAlarmId': alarmId,
+                  };
+                  await AndroidAlarmManager.oneShotAt(proximaDosis, alarmId, alarmCallbackLogic, exact: true, wakeup: true, alarmClock: true, rescheduleOnReboot: true, params: params);
+                }
+
+                final docRef = FirebaseFirestore.instance.collection('medicamentos').doc(FirebaseAuth.instance.currentUser?.uid).collection('userMedicamentos').doc(docId);
+                await docRef.update({'skippedDoses': FieldValue.arrayUnion([Timestamp.fromDate(horaDosisOmitida)])});
+                
+                // --- La comprobación de seguridad 'mounted' ---
+                // Ahora podemos usar 'mounted' porque estamos en un StatefulWidget.
+                if (mounted) {
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(content: Text('Dosis omitida y reprogramada.'), duration: Duration(seconds: 2)),
+                  );
+                }
+              },
             ),
-          ),
-          child: const Icon(
-            Icons.add,
-            color: Colors.white,
-          ),
-        ),
-      ),
+            TextButton(
+              child: const Text('Eliminar tratamiento', style: TextStyle(color: Colors.red)),
+              onPressed: () async {
+                final navigator = Navigator.of(context);
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+                navigator.pop();
+
+                final alarmId = medicamento['prescriptionAlarmId'];
+                if (alarmId != null) {
+                  await AndroidAlarmManager.cancel(alarmId);
+                }
+                
+                await FirebaseFirestore.instance.collection('medicamentos').doc(FirebaseAuth.instance.currentUser?.uid).collection('userMedicamentos').doc(medicamento['docId']).delete();
+                
+                if (mounted) {
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(content: Text('Tratamiento eliminado.'), duration: Duration(seconds: 2)),
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -156,9 +152,7 @@ List<DateTime> _generarDosisDiarias(Map<String, dynamic> receta) {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => DetalleRecetaPage(receta: medicamento),
-        ),
+        MaterialPageRoute(builder: (context) => DetalleRecetaPage(receta: medicamento)),
       ),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -182,11 +176,7 @@ List<DateTime> _generarDosisDiarias(Map<String, dynamic> receta) {
                 children: [
                   Text(
                     horaFormateada,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
                   ),
                 ],
               ),
@@ -201,11 +191,7 @@ List<DateTime> _generarDosisDiarias(Map<String, dynamic> receta) {
                   children: [
                     Text(
                       medicamento['nombreMedicamento'],
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
                     ),
                     const SizedBox(height: 5),
                     Text('Dosis cada ${medicamento['intervaloDosis']} horas'),
@@ -213,19 +199,104 @@ List<DateTime> _generarDosisDiarias(Map<String, dynamic> receta) {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.delete, 
-                    color: Color.fromARGB(255, 247, 128, 120)),
-                onPressed: () async {
-                  await FirebaseFirestore.instance
-                      .collection('medicamentos')
-                      .doc(FirebaseAuth.instance.currentUser?.uid)
-                      .collection('userMedicamentos')
-                      .doc(medicamento['docId']) // Usar medicamento aquí
-                      .delete();
+                icon: const Icon(Icons.delete, color: Color.fromARGB(255, 247, 128, 120)),
+                onPressed: () {
+                  _showDeleteOptionsDialog(context, medicamento);
                 },
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: StreamBuilder(
+        stream: FirebaseFirestore.instance
+            .collection('medicamentos')
+            .doc(FirebaseAuth.instance.currentUser?.uid)
+            .collection('userMedicamentos')
+            .snapshots(),
+        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+          if (snapshot.hasError) {
+            print('Error en StreamBuilder: ${snapshot.error}');
+            return const Center(child: Text('Ocurrió un error al cargar las recetas.'));
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text('Aún no has agregado ninguna receta', style: TextStyle(fontSize: 20)),
+            );
+          }
+
+          List<Map<String, dynamic>> todasDosis = [];
+          for (var recetaDoc in snapshot.data!.docs) {
+            final datos = recetaDoc.data() as Map<String, dynamic>;
+            final List<dynamic> skippedDosesRaw = datos['skippedDoses'] ?? [];
+            final List<DateTime> skippedDoses = skippedDosesRaw.map((ts) => (ts as Timestamp).toDate()).toList();
+            final dosisGeneradas = _generarDosisDiarias(datos);
+            for (var horaDosis in dosisGeneradas) {
+              bool esOmitida = skippedDoses.any((skippedTime) => skippedTime.isAtSameMomentAs(horaDosis));
+              if (!esOmitida) {
+                todasDosis.add({'docId': recetaDoc.id, ...datos, 'horaDosis': horaDosis});
+              }
+            }
+          }
+
+          todasDosis.sort((a, b) => a['horaDosis'].compareTo(b['horaDosis']));
+
+          final dosisAgrupadas = _agruparPorFecha(todasDosis.map((d) => d['horaDosis'] as DateTime).toList());
+
+          return ListView(
+            children: [
+              for (var entrada in dosisAgrupadas.entries)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Text(
+                        entrada.key,
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[700]),
+                      ),
+                    ),
+                    ...entrada.value.map((hora) {
+                      final medicamento = todasDosis.firstWhere((d) => d['horaDosis'] == hora);
+                      return _buildDosisCard(medicamento, context);
+                    }),
+                  ],
+                ),
+            ],
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const AgregarRecetaPage()));
+        },
+        tooltip: 'Agregar Medicamento',
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        backgroundColor: Colors.transparent,
+        heroTag: 'uniqueTag1',
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color.fromARGB(255, 73, 194, 255), Color.fromARGB(255, 47, 109, 180)],
+            ),
+          ),
+          child: const Icon(Icons.add, color: Colors.white),
         ),
       ),
     );

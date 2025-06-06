@@ -18,6 +18,8 @@ static Future<void> saveMedicamentoData({
   required String duracion, // Añadir este parámetro
   required TimeOfDay horaPrimeraDosis,
   required String intervaloDosis,
+  required int prescriptionAlarmId,
+  required DateTime fechaFinTratamiento,
 }) async {
   final userId = getCurrentUserId();
   if (userId == null) {
@@ -32,6 +34,9 @@ static Future<void> saveMedicamentoData({
     'duracion': duracion, // Usar parámetro en lugar de variable no existente
     'horaPrimeraDosis': '${horaPrimeraDosis.hour}:${horaPrimeraDosis.minute}',
     'intervaloDosis': intervaloDosis,
+    'prescriptionAlarmId': prescriptionAlarmId,
+    'fechaFinTratamiento': Timestamp.fromDate(fechaFinTratamiento), // <--- AÑADE ESTE CAMPO
+    'skippedDoses': [], // <--- AÑADE UN CAMPO VACÍO PARA LAS DOSIS OMITIDAS    
   });
 }
 
