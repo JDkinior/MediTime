@@ -24,22 +24,18 @@ class _RecetaPageState extends State<RecetaPage> {
   // Mueve toda la lógica y el método build dentro de la clase _RecetaPageState
 
   List<DateTime> _generarDosisDiarias(Map<String, dynamic> receta) {
-    final horaInicial = DateFormat('HH:mm').parse(receta['horaPrimeraDosis']);
-    final intervalo = int.parse(receta['intervaloDosis']);
-    final duracionDias = int.parse(receta['duracion']);
+    // CAMBIO 1: Usar las fechas de inicio y fin reales del tratamiento guardadas en Firestore.
+    final DateTime fechaInicio = (receta['fechaInicioTratamiento'] as Timestamp).toDate();
+    final DateTime fechaFin = (receta['fechaFinTratamiento'] as Timestamp).toDate();
+    final int intervalo = int.parse(receta['intervaloDosis']);
     List<DateTime> dosis = [];
     
-    DateTime dosisActual = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
-      horaInicial.hour,
-      horaInicial.minute,
-    );
+    // CAMBIO 2: Empezar el cálculo desde la fecha de inicio real.
+    DateTime dosisActual = fechaInicio;
 
-    final fechaFin = dosisActual.add(Duration(days: duracionDias));
-    
+    // CAMBIO 3: El bucle debe continuar mientras la dosis sea ANTES de la fecha de fin.
     while (dosisActual.isBefore(fechaFin)) {
+      // Solo mostramos las dosis que aún no han pasado.
       if (dosisActual.isAfter(DateTime.now().subtract(const Duration(minutes: 1)))) {
         dosis.add(dosisActual);
       }

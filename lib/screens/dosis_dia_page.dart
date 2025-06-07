@@ -129,11 +129,14 @@ class _DosisDiaViewState extends State<DosisDiaView> {
   // --- Lógica de la pantalla ---
   List<DateTime> _generarDosisDelDia() {
     final DateTime inicio = (widget.tratamiento['fechaInicioTratamiento'] as Timestamp).toDate();
+    final DateTime fechaFin = (widget.tratamiento['fechaFinTratamiento'] as Timestamp).toDate();
     final int intervalo = int.parse(widget.tratamiento['intervaloDosis']);
     List<DateTime> dosisGeneradas = [];
     DateTime dosisActual = inicio;
 
-    while (dosisActual.isBefore(widget.selectedDay.add(const Duration(days: 1)))) {
+    // CAMBIO CLAVE: El bucle, al igual que en el calendario, recorre TODO el tratamiento.
+    while (dosisActual.isBefore(fechaFin)) {
+      // Filtramos aquí adentro solo las dosis que corresponden al día seleccionado.
       if (isSameDay(dosisActual, widget.selectedDay)) {
         dosisGeneradas.add(dosisActual);
       }

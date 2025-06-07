@@ -83,10 +83,15 @@ class _CalendarioPageState extends State<CalendarioPage> {
               Map<String, dynamic> tratamiento, DateTime forDay) {
             final DateTime inicioTratamiento =
                 (tratamiento['fechaInicioTratamiento'] as Timestamp).toDate();
+            final DateTime fechaFin =
+                (tratamiento['fechaFinTratamiento'] as Timestamp).toDate();
             final int intervalo = int.parse(tratamiento['intervaloDosis']);
             int count = 0;
             DateTime dosisActual = inicioTratamiento;
-            while (dosisActual.isBefore(forDay.add(const Duration(days: 1)))) {
+
+            // CAMBIO CLAVE: El bucle ahora recorre TODO el tratamiento.
+            while (dosisActual.isBefore(fechaFin)) {
+              // El filtro para el día específico se hace aquí adentro.
               if (isSameDay(dosisActual, forDay)) {
                 count++;
               }
