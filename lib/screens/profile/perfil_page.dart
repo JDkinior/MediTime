@@ -3,25 +3,24 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
-// Widgets y servicios
+// Widgets, servicios y el notifier
 import 'package:meditime/widgets/primary_button.dart';
 import 'package:meditime/widgets/styled_text_field.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/storage_service.dart';
+import 'package:meditime/notifiers/profile_notifier.dart'; // Se importa el notifier
+import 'package:meditime/theme/app_theme.dart'; // Se importa el tema para estilos consistentes
 
 class PerfilPage extends StatefulWidget {
   final bool isEditing;
   final VoidCallback toggleEditing;
-  final Function(String) onImageChanged;
-  final Function(String) onNameChanged;
+  // Se eliminan los callbacks onImageChanged y onNameChanged
 
   const PerfilPage({
     super.key,
     required this.isEditing,
     required this.toggleEditing,
-    required this.onImageChanged,
-    required this.onNameChanged,
   });
 
   @override
@@ -29,7 +28,7 @@ class PerfilPage extends StatefulWidget {
 }
 
 class _PerfilPageState extends State<PerfilPage> {
-  // --- Lógica de estado y controladores (sin cambios) ---
+  // Controladores y estado local de la página
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -38,11 +37,14 @@ class _PerfilPageState extends State<PerfilPage> {
   final TextEditingController _allergiesController = TextEditingController();
   final TextEditingController _medicationsController = TextEditingController();
   final TextEditingController _medicalHistoryController = TextEditingController();
-  String? _profileImageUrl;
+
+  String? _profileImageUrl; // Puede ser una URL de red o una ruta de archivo local
   final ImagePicker _picker = ImagePicker();
   bool _isSaveButtonEnabled = false;
   bool _isPickingImage = false;
   bool _isSaving = false;
+
+  // Variables para guardar el estado original y poder cancelar la edición
   String? _originalName;
   String? _originalPhone;
   String? _originalEmail;
@@ -56,12 +58,13 @@ class _PerfilPageState extends State<PerfilPage> {
   @override
   void initState() {
     super.initState();
+    // Carga los datos del perfil después de que el widget se construya
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadProfileData();
     });
     _addListeners();
   }
-  
+
   void _addListeners() {
     _nameController.addListener(_updateSaveButtonState);
     _phoneController.addListener(_updateSaveButtonState);
@@ -89,120 +92,149 @@ class _PerfilPageState extends State<PerfilPage> {
   @override
   void didUpdateWidget(covariant PerfilPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Si se cancela la edición, se revierten los cambios
     if (oldWidget.isEditing && !widget.isEditing) {
-      _loadProfileData();
+      _resetToOriginalData();
     }
   }
 
-  // --- Lógica de datos (sin cambios) ---
   Future<void> _loadProfileData() async {
     if (!mounted) return;
     final authService = context.read<AuthService>();
     final firestoreService = context.read<FirestoreService>();
     final user = authService.currentUser;
     if (user == null) return;
+
     final doc = await firestoreService.getUserProfile(user.uid);
     final profileData = doc.data() as Map<String, dynamic>?;
+
     setState(() {
-      _nameController.text = profileData?['name'] ?? '';
-      _phoneController.text = profileData?['phone'] ?? '';
-      _emailController.text = user.email ?? '';
-      _dobController.text = profileData?['dob'] ?? '';
-      _bloodTypeController.text = profileData?['bloodType'] ?? '';
-      _allergiesController.text = profileData?['allergies'] ?? '';
-      _medicationsController.text = profileData?['medications'] ?? '';
-      _medicalHistoryController.text = profileData?['medicalHistory'] ?? '';
-      _profileImageUrl = profileData?['profileImage'] ?? '';
-      _originalName = _nameController.text;
-      _originalPhone = _phoneController.text;
-      _originalEmail = _emailController.text;
-      _originalDob = _dobController.text;
-      _originalBloodType = _bloodTypeController.text;
-      _originalAllergies = _allergiesController.text;
-      _originalMedications = _medicationsController.text;
-      _originalMedicalHistory = _medicalHistoryController.text;
-      _originalProfileImageUrl = _profileImageUrl;
-      _updateSaveButtonState();
+      // Guardamos los datos originales para poder revertir si se cancela
+      _originalName = profileData?['name'] ?? '';
+      _originalPhone = profileData?['phone'] ?? '';
+      _originalEmail = user.email ?? '';
+      _originalDob = profileData?['dob'] ?? '';
+      _originalBloodType = profileData?['bloodType'] ?? '';
+      _originalAllergies = profileData?['allergies'] ?? '';
+      _originalMedications = profileData?['medications'] ?? '';
+      _originalMedicalHistory = profileData?['medicalHistory'] ?? '';
+      _originalProfileImageUrl = profileData?['profileImage'] ?? '';
+      
+      _resetToOriginalData();
+    });
+  }
+
+  void _resetToOriginalData() {
+    setState(() {
+        _nameController.text = _originalName ?? '';
+        _phoneController.text = _originalPhone ?? '';
+        _emailController.text = _originalEmail ?? '';
+        _dobController.text = _originalDob ?? '';
+        _bloodTypeController.text = _originalBloodType ?? '';
+        _allergiesController.text = _originalAllergies ?? '';
+        _medicationsController.text = _originalMedications ?? '';
+        _medicalHistoryController.text = _originalMedicalHistory ?? '';
+        _profileImageUrl = _originalProfileImageUrl;
+        _updateSaveButtonState();
     });
   }
 
   void _updateSaveButtonState() {
-    setState(() {
-      _isSaveButtonEnabled = _nameController.text != _originalName ||
+    final hasChanged = _nameController.text != _originalName ||
           _phoneController.text != _originalPhone ||
-          _emailController.text != _originalEmail ||
           _dobController.text != _originalDob ||
           _bloodTypeController.text != _originalBloodType ||
           _allergiesController.text != _originalAllergies ||
           _medicationsController.text != _originalMedications ||
           _medicalHistoryController.text != _originalMedicalHistory ||
           _profileImageUrl != _originalProfileImageUrl;
-    });
-  }
 
-  Future<void> _saveProfileData() async {
-    if (!mounted) return;
-    setState(() => _isSaving = true);
-    final authService = context.read<AuthService>();
-    final firestoreService = context.read<FirestoreService>();
-    final user = authService.currentUser;
-    if (user == null) {
-        setState(() => _isSaving = false);
-        return;
-    }
-    final dataToSave = {
-      'name': _nameController.text, 'phone': _phoneController.text,
-      'email': _emailController.text, 'dob': _dobController.text,
-      'bloodType': _bloodTypeController.text, 'allergies': _allergiesController.text,
-      'medications': _medicationsController.text, 'medicalHistory': _medicalHistoryController.text,
-      'profileImage': _profileImageUrl ?? '',
-    };
-    await firestoreService.saveUserProfile(user.uid, dataToSave);
-    if(mounted){
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cambios guardados')));
-        widget.onNameChanged(_nameController.text);
-        widget.toggleEditing();
-        setState(() => _isSaving = false);
-    }
+    setState(() {
+      _isSaveButtonEnabled = hasChanged;
+    });
   }
 
   Future<void> _pickImage() async {
     if (_isPickingImage) return;
     setState(() => _isPickingImage = true);
+
     try {
       final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
       if (pickedFile != null && mounted) {
-        final authService = context.read<AuthService>();
-        final storageService = context.read<StorageService>();
-        final user = authService.currentUser;
-        if (user == null) return;
-        File imageFile = File(pickedFile.path);
-        String downloadUrl = await storageService.uploadProfileImage(user.uid, imageFile);
-        if (mounted) {
-          setState(() { _profileImageUrl = downloadUrl; });
-          widget.onImageChanged(downloadUrl);
-          _updateSaveButtonState();
-        }
+        // Guardamos la RUTA LOCAL de la imagen temporalmente.
+        // La subida a Firebase se hará solo al presionar "Guardar Cambios".
+        setState(() {
+            _profileImageUrl = pickedFile.path;
+        });
+        _updateSaveButtonState(); // Habilitamos el botón de guardar
       }
     } catch (e) {
-        if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al subir la imagen: $e')));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al seleccionar la imagen: $e')));
     } finally {
       if (mounted) setState(() => _isPickingImage = false);
     }
   }
 
-  // --- Inicio de la nueva UI ---
+  Future<void> _saveProfileData() async {
+    if (!mounted) return;
+    setState(() => _isSaving = true);
+
+    final authService = context.read<AuthService>();
+    final firestoreService = context.read<FirestoreService>();
+    final storageService = context.read<StorageService>();
+    final user = authService.currentUser;
+    if (user == null) {
+      setState(() => _isSaving = false);
+      return;
+    }
+
+    String? finalImageUrl = _originalProfileImageUrl;
+
+    // Si la imagen cambió (es una ruta de archivo local), la subimos a Firebase
+    if (_profileImageUrl != null && !_profileImageUrl!.startsWith('http')) {
+        File imageFile = File(_profileImageUrl!);
+        finalImageUrl = await storageService.uploadProfileImage(user.uid, imageFile);
+    }
+
+    final dataToSave = {
+      'name': _nameController.text, 'phone': _phoneController.text,
+      'dob': _dobController.text, 'bloodType': _bloodTypeController.text,
+      'allergies': _allergiesController.text, 'medications': _medicationsController.text,
+      'medicalHistory': _medicalHistoryController.text,
+      'profileImage': finalImageUrl ?? '',
+    };
+
+    await firestoreService.saveUserProfile(user.uid, dataToSave);
+
+    if (mounted) {
+      // Notificamos a toda la app sobre los nuevos datos del perfil
+      context.read<ProfileNotifier>().updateProfile(
+            newName: _nameController.text,
+            newImageUrl: finalImageUrl,
+          );
+
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cambios guardados')));
+      widget.toggleEditing(); // Salimos del modo edición
+    }
+
+    if (mounted) {
+      setState(() => _isSaving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // El ProfileNotifier se usa para mostrar los datos en el header
+    // sin necesidad de pasarlos por el constructor.
+    final profile = context.watch<ProfileNotifier>();
+    
     return Scaffold(
-      // Usamos el color de fondo consistente con el resto de la app
-      backgroundColor: const Color(0xFFF3F3F3),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildProfileHeader(),
+            _buildProfileHeader(profile),
             const SizedBox(height: 24),
             
             _buildSectionTitle('Datos Personales'),
@@ -239,7 +271,17 @@ class _PerfilPageState extends State<PerfilPage> {
     );
   }
 
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader(ProfileNotifier profile) {
+    // Determina qué imagen mostrar: la nueva seleccionada o la de la red
+    ImageProvider<Object> backgroundImage;
+    if (_profileImageUrl != null && _profileImageUrl!.startsWith('http')) {
+      backgroundImage = NetworkImage(_profileImageUrl!);
+    } else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
+      backgroundImage = FileImage(File(_profileImageUrl!));
+    } else {
+      backgroundImage = const AssetImage('assets/profile_picture.png');
+    }
+
     return Center(
       child: Column(
         children: [
@@ -250,17 +292,17 @@ class _PerfilPageState extends State<PerfilPage> {
               backgroundColor: Colors.white,
               child: CircleAvatar(
                 radius: 52,
-                backgroundImage: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                    ? NetworkImage(_profileImageUrl!)
-                    : const AssetImage('assets/profile_picture.png') as ImageProvider,
+                backgroundImage: backgroundImage,
                 child: widget.isEditing
                     ? Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.black.withOpacity(0.4),
                         ),
-                        child: const Center(
-                          child: Icon(Icons.camera_alt, color: Colors.white, size: 30),
+                        child: Center(
+                          child: _isPickingImage
+                              ? const CircularProgressIndicator(color: Colors.white)
+                              : const Icon(Icons.camera_alt, color: Colors.white, size: 30),
                         ),
                       )
                     : null,
@@ -269,8 +311,9 @@ class _PerfilPageState extends State<PerfilPage> {
           ),
           const SizedBox(height: 12),
           Text(
-            _nameController.text.isNotEmpty ? _nameController.text : "Nombre de Usuario",
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF2F71B6)),
+            // Muestra el nombre del controlador si se está editando, o el del notifier si no
+            widget.isEditing ? _nameController.text : (profile.userName ?? 'Nombre de Usuario'),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kSecondaryColor),
           ),
           Text(
             _emailController.text,
@@ -304,23 +347,15 @@ class _PerfilPageState extends State<PerfilPage> {
         labelText: labelText,
         hintText: hintText,
         keyboardType: keyboardType,
-        // El StyledTextField ya maneja el estilo, no necesitamos lógica extra aquí
+        enabled: enabled,
       );
     } else {
-      // Este es el modo de visualización, que ahora usa un contenedor con
-      // el estilo de sombra y borde de tu app.
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Color.fromARGB(255, 241, 241, 241),
           borderRadius: BorderRadius.circular(20),
-          boxShadow: const [
-            BoxShadow(
-              color: Color.fromARGB(15, 47, 109, 180),
-              blurRadius: 5,
-              offset: Offset(0, 2),
-            ),
-          ],
+          boxShadow: kCustomBoxShadow,
         ),
         child: Row(
           children: [

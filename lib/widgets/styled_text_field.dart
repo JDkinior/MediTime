@@ -1,4 +1,3 @@
-// lib/widgets/styled_text_field.dart
 import 'package:flutter/material.dart';
 
 class StyledTextField extends StatelessWidget {
@@ -10,6 +9,7 @@ class StyledTextField extends StatelessWidget {
   final TextInputAction textInputAction;
   final String? errorText;
   final ValueChanged<String>? onChanged;
+  final bool enabled; // <-- 1. AÑADIMOS EL PARÁMETRO
 
   const StyledTextField({
     super.key,
@@ -21,6 +21,7 @@ class StyledTextField extends StatelessWidget {
     this.textInputAction = TextInputAction.next,
     this.errorText,
     this.onChanged,
+    this.enabled = true, // <-- 2. LO AÑADIMOS AL CONSTRUCTOR (por defecto es true)
   });
 
   @override
@@ -44,10 +45,14 @@ class StyledTextField extends StatelessWidget {
           keyboardType: keyboardType,
           textInputAction: textInputAction,
           onChanged: onChanged,
+          enabled: enabled, // <-- 3. PASAMOS EL PARÁMETRO AL TEXTFORMFIELD
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: TextStyle(color: Colors.grey[400]),
             errorText: errorText,
+            // Cambiamos el color de relleno si está deshabilitado para dar feedback visual
+            fillColor: enabled ? Colors.white : Colors.grey.shade200,
+            filled: true,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(20),
               borderSide: BorderSide(
@@ -69,8 +74,14 @@ class StyledTextField extends StatelessWidget {
                 width: 2,
               ),
             ),
-            filled: true,
-            fillColor: Colors.white,
+            // Borde para cuando el campo está deshabilitado
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: BorderSide(
+                color: Colors.grey.shade300,
+                width: 1,
+              ),
+            ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           ),
         ),

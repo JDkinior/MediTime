@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:meditime/notifiers/profile_notifier.dart'; // Importa el Notifier
 import 'package:meditime/screens/shared/ayuda_page.dart';
 import 'package:meditime/screens/shared/opciones_page.dart';
 
 class CustomDrawer extends StatelessWidget {
-  final List<String>? nameParts;
-  final String? profileImagePath;
   final VoidCallback onLogout;
+  // Se eliminan nameParts y profileImagePath del constructor
 
   const CustomDrawer({
     super.key,
-    this.nameParts,
-    this.profileImagePath,
     required this.onLogout,
   });
 
@@ -23,18 +22,23 @@ class CustomDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Escuchamos los cambios en el ProfileNotifier
+    final profile = context.watch<ProfileNotifier>();
+    final nameParts = profile.userName?.split(' ');
+    final profileImagePath = profile.profileImageUrl;
+
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
           DrawerHeader(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFF3FB8EE), // HEX #49C2E1
-                  Color(0xFF4092E4), // HEX #2F6DB4
+                  Color(0xFF3FB8EE),
+                  Color(0xFF4092E4),
                 ],
               ),
             ),
@@ -42,10 +46,10 @@ class CustomDrawer extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 40,
-                  backgroundImage: profileImagePath != null && profileImagePath!.isNotEmpty
-                      ? NetworkImage(profileImagePath!)
+                  backgroundImage: profileImagePath != null && profileImagePath.isNotEmpty
+                      ? NetworkImage(profileImagePath)
                       : null,
-                  child: profileImagePath == null || profileImagePath!.isEmpty
+                  child: profileImagePath == null || profileImagePath.isEmpty
                       ? const Icon(Icons.person, size: 50, color: Colors.white)
                       : null,
                 ),
@@ -64,11 +68,13 @@ class CustomDrawer extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        nameParts?.take(2).join(' ') ?? '',
+                        // Usamos los datos del notifier
+                        nameParts?.take(2).join(' ') ?? 'Usuario',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
