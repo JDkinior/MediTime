@@ -123,6 +123,29 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     }
   }
 
+    Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      final authService = context.read<AuthService>();
+      await authService.signInWithGoogle();
+      // El AuthWrapper se encargará de la navegación
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error al iniciar sesión con Google. Inténtalo de nuevo.';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -342,7 +365,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                 ),
                                 elevation: 0,
                               ),
-                              onPressed: () {},
+                            onPressed: _isLoading ? null : _signInWithGoogle,
                             ),
                           ),
                           const SizedBox(height: 15),

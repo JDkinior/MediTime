@@ -42,7 +42,7 @@ class MyApp extends StatelessWidget {
 
         // ----- INICIO DEL CAMBIO -----
         // Añade el proveedor para tu nuevo notifier
-        ChangeNotifierProvider<ProfileNotifier>(
+        ChangeNotifierProvider<ProfileNotifier>( 
           create: (_) => ProfileNotifier(),
         ),
         // ----- FIN DEL CAMBIO -----
