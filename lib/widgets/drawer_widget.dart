@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:meditime/screens/ayuda_page.dart';
-import 'package:meditime/screens/opciones_page.dart';
+import 'package:meditime/screens/shared/ayuda_page.dart';
+import 'package:meditime/screens/shared/opciones_page.dart';
 
 class CustomDrawer extends StatelessWidget {
   final List<String>? nameParts;

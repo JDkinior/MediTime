@@ -1,9 +1,14 @@
+// lib/screens/agregar_receta_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
-import '../data/medicamentos_data.dart';
-import 'dart:math'; // Para Random
+import 'dart:math';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
-import 'package:meditime/alarm_callback_handler.dart'; // Importa tu callback
+import 'package:provider/provider.dart'; // CAMBIO: Importar Provider
+
+// CAMBIO: Importar los servicios
+import 'package:meditime/services/auth_service.dart';
+import 'package:meditime/services/firestore_service.dart';
+import 'package:meditime/alarm_callback_handler.dart';
 
 class AgregarRecetaPage extends StatefulWidget {
   const AgregarRecetaPage({super.key});
@@ -15,154 +20,140 @@ class AgregarRecetaPage extends StatefulWidget {
 class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
   int _currentStep = 0;
   final PageController _pageController = PageController();
-  bool _isAnimating = false;  
+  bool _isAnimating = false;
+
+  // Controladores y variables para el formulario (sin cambios)
   String _nombreMedicamento = '';
   String _presentacion = '';
-  String _duracion = ''; // En días
+  String _duracion = '';
   String _dosis = '';
   TimeOfDay _horaPrimeraDosis = TimeOfDay.now();
-
   final TextEditingController _notasController = TextEditingController();
-  String _notas = ''; // Y una variable para guardar el valor
-
+  String _notas = '';
   final List<String> _presentaciones = [
-    'Comprimidos',
-    'Grageas',
-    'Cápsulas',
-    'Sobres',
-    'Jarabes',
-    'Gotas',
-    'Suspensiones',
-    'Emulsiones'
+    'Comprimidos', 'Grageas', 'Cápsulas', 'Sobres',
+    'Jarabes', 'Gotas', 'Suspensiones', 'Emulsiones'
   ];
-
-  final TextEditingController _nombreMedicamentoController =
-      TextEditingController();
+  final TextEditingController _nombreMedicamentoController = TextEditingController();
   final TextEditingController _dosisController = TextEditingController();
-  final TextEditingController _vecesPorDiaController =
-      TextEditingController(); // Aunque no se usa directamente para guardar, mantenlo si planeas usarlo
+  final TextEditingController _vecesPorDiaController = TextEditingController();
   final TextEditingController _duracionController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   void dispose() {
     _nombreMedicamentoController.dispose();
     _dosisController.dispose();
     _vecesPorDiaController.dispose();
-    _duracionController.dispose(); // Asegúrate de liberar este también
+    _duracionController.dispose();
     _pageController.dispose();
     _notasController.dispose();
     super.dispose();
   }
 
-  // Función _saveData corregida y explícitamente Future<void>
+  // CAMBIO: La función de guardar ahora usa los servicios
   Future<void> _saveData() async {
-  try {
-    if (_duracion.isEmpty || _dosis.isEmpty) {
-      if (mounted) {
+    if (!mounted) return;
+
+    // Obtener los servicios de Provider
+    final authService = context.read<AuthService>();
+    final firestoreService = context.read<FirestoreService>();
+    final user = authService.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: Usuario no encontrado.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    try {
+      if (_duracion.isEmpty || _dosis.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Por favor, completa la duración y el intervalo de dosis.'),
             backgroundColor: Colors.red,
           ),
         );
+        return;
       }
-      return;
-    }
 
-    final int prescriptionAlarmManagerId = Random().nextInt(2147483647);
-    final int intervaloEnHoras = int.parse(_dosis);
-    final int duracionEnDias = int.parse(_duracion);
-    final int firstLocalNotificationId = Random().nextInt(100000);
+      final int prescriptionAlarmManagerId = Random().nextInt(2147483647);
+      final int intervaloEnHoras = int.parse(_dosis);
+      final int duracionEnDias = int.parse(_duracion);
+      final int firstLocalNotificationId = Random().nextInt(100000);
 
-    final now = DateTime.now();
-    DateTime primeraDosisDateTime = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      _horaPrimeraDosis.hour,
-      _horaPrimeraDosis.minute,
-    );
-
-    if (primeraDosisDateTime.isBefore(now)) {
-      primeraDosisDateTime = primeraDosisDateTime.add(const Duration(days: 1));
-    }
-    
-    // La fecha de inicio es la fecha de la primera dosis programada.
-    final DateTime fechaInicioTratamiento = primeraDosisDateTime; // <-- ¡AQUÍ ESTÁ!
-    final DateTime fechaFinTratamiento =
-        fechaInicioTratamiento.add(Duration(days: duracionEnDias));
-    
-    // --- Guardar en Firestore ---
-    await MedicamentosData.saveMedicamentoData(
-      nombreMedicamento: _nombreMedicamento,
-      presentacion: _presentacion,
-      duracion: _duracion,
-      horaPrimeraDosis: _horaPrimeraDosis,
-      intervaloDosis: _dosis,
-      prescriptionAlarmId: prescriptionAlarmManagerId,
-      fechaInicioTratamiento: fechaInicioTratamiento, // <-- PASAR EL NUEVO DATO
-      fechaFinTratamiento: fechaFinTratamiento,
-      notas: _notas,
-    );
-
-    // --- Programar la alarma ---
-    if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
-      debugPrint(
-          "Programando PRIMERA alarma para $_nombreMedicamento a las $primeraDosisDateTime con ID de Alarma (AlarmManager): $prescriptionAlarmManagerId");
-      
-      await AndroidAlarmManager.oneShotAt(
-        primeraDosisDateTime,
-        prescriptionAlarmManagerId,
-        alarmCallbackLogic,
-        exact: true,
-        wakeup: true,
-        alarmClock: true,
-        rescheduleOnReboot: true,
-        params: {
-          'currentNotificationId': firstLocalNotificationId,
-          'nombreMedicamento': _nombreMedicamento,
-          'presentacion': _presentacion,
-          'intervaloHoras': intervaloEnHoras,
-          'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
-          'prescriptionAlarmId': prescriptionAlarmManagerId,
-        },
+      final now = DateTime.now();
+      DateTime primeraDosisDateTime = DateTime(
+        now.year, now.month, now.day,
+        _horaPrimeraDosis.hour, _horaPrimeraDosis.minute,
       );
 
+      if (primeraDosisDateTime.isBefore(now)) {
+        primeraDosisDateTime = primeraDosisDateTime.add(const Duration(days: 1));
+      }
+
+      final DateTime fechaInicioTratamiento = primeraDosisDateTime;
+      final DateTime fechaFinTratamiento = fechaInicioTratamiento.add(Duration(days: duracionEnDias));
+      
+      // CAMBIO: Llamar al método del servicio para guardar en Firestore
+      await firestoreService.saveMedicamento(
+        userId: user.uid,
+        nombreMedicamento: _nombreMedicamento,
+        presentacion: _presentacion,
+        duracion: _duracion,
+        horaPrimeraDosis: _horaPrimeraDosis,
+        intervaloDosis: _dosis,
+        prescriptionAlarmId: prescriptionAlarmManagerId,
+        fechaInicioTratamiento: fechaInicioTratamiento,
+        fechaFinTratamiento: fechaFinTratamiento,
+        notas: _notas,
+      );
+
+      // La lógica de la alarma no cambia, ya que está bien encapsulada.
+      if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
+        debugPrint(
+            "Programando PRIMERA alarma para $_nombreMedicamento a las $primeraDosisDateTime con ID de Alarma (AlarmManager): $prescriptionAlarmManagerId");
+        
+        await AndroidAlarmManager.oneShotAt(
+          primeraDosisDateTime,
+          prescriptionAlarmManagerId,
+          alarmCallbackLogic,
+          exact: true,
+          wakeup: true,
+          alarmClock: true,
+          rescheduleOnReboot: true,
+          params: {
+            'currentNotificationId': firstLocalNotificationId,
+            'nombreMedicamento': _nombreMedicamento,
+            'presentacion': _presentacion,
+            'intervaloHoras': intervaloEnHoras,
+            'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
+            'prescriptionAlarmId': prescriptionAlarmManagerId,
+          },
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Recordatorios configurados para $_nombreMedicamento'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error al guardar datos o programar alarma: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Recordatorios configurados para $_nombreMedicamento'),
-            backgroundColor: Colors.green,
+            content: Text('Error al configurar recordatorios: $e'),
+            backgroundColor: Colors.red,
           ),
         );
       }
-    } else {
-       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('La fecha de primera dosis es posterior a la fecha de fin de tratamiento.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    }
-  } catch (e) {
-    debugPrint('Error al guardar datos o programar alarma: $e');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al configurar recordatorios: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {

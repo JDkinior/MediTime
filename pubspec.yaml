@@ -47,7 +47,9 @@ dependencies:
   timezone: ^0.10.0
   android_alarm_manager_plus: any
   shared_preferences: ^2.5.3
-
+  provider: ^6.1.2
+  shimmer: ^3.0.0 
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter

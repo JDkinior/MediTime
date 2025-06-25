@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Mantener para FirebaseAuthException
+import 'package:meditime/services/auth_service.dart'; // Importa tu servicio
+import 'package:provider/provider.dart'; // Importa Provider
 import 'register_page.dart';
+import 'package:meditime/widgets/primary_button.dart';
+import 'package:meditime/widgets/styled_text_field.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -10,7 +14,8 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  // Ya no necesitamos la instancia de FirebaseAuth aquí
+  // final FirebaseAuth _auth = FirebaseAuth.instance;
   late AnimationController _animationController;
   bool _showLoginForm = false;
   final TextEditingController _emailController = TextEditingController();
@@ -55,216 +60,71 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   }
 
   Future<void> _login() async {
-  setState(() {
-    _emailError = false;
-    _passwordError = false;
-    _emailErrorText = '';
-    _passwordErrorText = '';
-    _errorMessage = '';
-  });
-
-  bool hasErrors = false;
-  if (_emailController.text.isEmpty) {
+    // Limpieza de errores (sin cambios)
     setState(() {
-      _emailError = true;
-      _emailErrorText = 'Por favor ingresa tu correo';
-      hasErrors = true;
+      _emailError = false;
+      _passwordError = false;
+      _emailErrorText = '';
+      _passwordErrorText = '';
+      _errorMessage = '';
     });
-  }
-  if (_passwordController.text.isEmpty) {
-    setState(() {
-      _passwordError = true;
-      _passwordErrorText = 'Por favor ingresa tu contraseña';
-      hasErrors = true;
-    });
-  }
-  if (hasErrors) return;
 
-  setState(() => _isLoading = true);
-
-  try {
-    await _auth.signInWithEmailAndPassword(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
-  } on FirebaseAuthException catch (e) {
-    switch (e.code) {
-      case 'user-not-found':
-        setState(() {
-          _emailError = true;
-          _emailErrorText = 'Usuario no encontrado';
-        });
-        break;
-      case 'wrong-password':
-        setState(() {
-          _passwordError = true;
-          _passwordErrorText = 'Contraseña incorrecta';
-        });
-        break;
-      case 'invalid-email':
-        setState(() {
-          _emailError = true;
-          _emailErrorText = 'Formato de correo inválido';
-        });
-        break;
-      default:
-        setState(() => _errorMessage = 'Error: ${e.message}');
+    // Validaciones (sin cambios)
+    bool hasErrors = false;
+    if (_emailController.text.isEmpty) {
+      setState(() {
+        _emailError = true;
+        _emailErrorText = 'Por favor ingresa tu correo';
+        hasErrors = true;
+      });
     }
-  } finally {
-    if (mounted) {
-      setState(() => _isLoading = false);
+    if (_passwordController.text.isEmpty) {
+      setState(() {
+        _passwordError = true;
+        _passwordErrorText = 'Por favor ingresa tu contraseña';
+        hasErrors = true;
+      });
     }
-  }
-}
+    if (hasErrors) return;
 
-    Widget _buildEmailField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(bottom: 8.0),
-          child: Text(
-            'Correo Electrónico',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-            ),
-          ),
-        ),
-        TextFormField(
-          controller: _emailController,
-          textInputAction: TextInputAction.next,
-          onChanged: (_) {
-            if (_emailError) {
-              setState(() {
-                _emailError = false;
-                _emailErrorText = '';
-              });
-            }
-          },
-          decoration: InputDecoration(
-            hintText: 'Escribe tu correo electrónico',
-            hintStyle: TextStyle(color: Colors.grey[400]),
-            errorText: _emailError ? _emailErrorText : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: BorderSide(
-                color: _emailError ? Colors.red : Colors.transparent,
-                width: 2,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: BorderSide(
-                color: _emailError ? Colors.red : Colors.transparent,
-                width: 2,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: BorderSide(
-                color: _emailError ? Colors.red : const Color(0xFF41B8DB),
-                width: 2,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 2,
-              ),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 2,
-              ),
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          ),
-          keyboardType: TextInputType.emailAddress,
-        ),
-      ],
-    );
-  }
+    setState(() => _isLoading = true);
 
-  Widget _buildPasswordField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(bottom: 8.0),
-          child: Text(
-            'Contraseña',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-            ),
-          ),
-        ),
-        TextFormField(
-          controller: _passwordController,
-          focusNode: _passwordFocusNode,
-          textInputAction: TextInputAction.done,
-          onChanged: (_) {
-            if (_passwordError) {
-              setState(() {
-                _passwordError = false;
-                _passwordErrorText = '';
-              });
-            }
-          },
-          onFieldSubmitted: (_) => _login(),
-          decoration: InputDecoration(
-            hintText: 'Escribe tu contraseña',
-            hintStyle: TextStyle(color: Colors.grey[400]),
-            errorText: _passwordError ? _passwordErrorText : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: BorderSide(
-                color: _passwordError ? Colors.red : Colors.transparent,
-                width: 2,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: BorderSide(
-                color: _passwordError ? Colors.red : Colors.transparent,
-                width: 2,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: BorderSide(
-                color: _passwordError ? Colors.red : const Color(0xFF41B8DB),
-                width: 2,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 2,
-              ),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 2,
-              ),
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          ),
-          obscureText: true,
-        ),
-      ],
-    );
+    try {
+      // *** CAMBIO CLAVE: Usa el AuthService a través de Provider ***
+      final authService = context.read<AuthService>();
+      await authService.signInWithEmailAndPassword(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
+      // El AuthWrapper se encargará de navegar a HomePage, por lo que no necesitamos hacer nada aquí.
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'user-not-found':
+          setState(() {
+            _emailError = true;
+            _emailErrorText = 'Usuario no encontrado';
+          });
+          break;
+        case 'wrong-password':
+          setState(() {
+            _passwordError = true;
+            _passwordErrorText = 'Contraseña incorrecta';
+          });
+          break;
+        case 'invalid-email':
+          setState(() {
+            _emailError = true;
+            _emailErrorText = 'Formato de correo inválido';
+          });
+          break;
+        default:
+          setState(() => _errorMessage = 'Error: ${e.message}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
 
@@ -424,45 +284,43 @@ Widget build(BuildContext context) {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 5),
-                          _buildEmailField(),
+                          StyledTextField(
+                            controller: _emailController,
+                            labelText: 'Correo Electrónico',
+                            hintText: 'Escribe tu correo electrónico',
+                            keyboardType: TextInputType.emailAddress,
+                            errorText: _emailError ? _emailErrorText : null,
+                            onChanged: (_) {
+                              if (_emailError) {
+                                setState(() {
+                                  _emailError = false;
+                                  _emailErrorText = '';
+                                });
+                              }
+                            },
+                          ),
                           const SizedBox(height: 15),
-                          _buildPasswordField(),
+                          StyledTextField(
+                            controller: _passwordController,
+                            labelText: 'Contraseña',
+                            hintText: 'Escribe tu contraseña',
+                            obscureText: true,
+                            textInputAction: TextInputAction.done,
+                            errorText: _passwordError ? _passwordErrorText : null,
+                            onChanged: (_) {
+                              if (_passwordError) {
+                                setState(() {
+                                  _passwordError = false;
+                                  _passwordErrorText = '';
+                                });
+                              }
+                            },
+                          ),
                           const SizedBox(height: 70),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 55,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                elevation: 0,
-                              ),
-                              onPressed: _isLoading ? null : _login,
-                              child: Ink(
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color.fromARGB(255, 73, 194, 255),
-                                      Color.fromARGB(255, 47, 109, 180),
-                                    ],
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                                child: Container(
-                                  alignment: Alignment.center,
-                                  child: _isLoading
-                                      ? const CircularProgressIndicator(color: Colors.white)
-                                      : const Text(
-                                          'Iniciar Sesión',
-                                          style: TextStyle(fontSize: 16, color: Colors.white),
-                                        ),
-                                ),
-                              ),
-                            ),
+                          PrimaryButton(
+                            text: 'Iniciar Sesión',
+                            isLoading: _isLoading,
+                            onPressed: _login,
                           ),
                           const SizedBox(height: 10),
                           const Row(
@@ -478,7 +336,7 @@ Widget build(BuildContext context) {
                           const SizedBox(height: 10),
                           SizedBox(
                             width: double.infinity,
-                            height: 55,
+                            height: 60,
                             child: ElevatedButton.icon(
                               icon: Image.asset('assets/google_logo.png', width: 30, height: 30),
                               label: const Text('Continuar con Google'),

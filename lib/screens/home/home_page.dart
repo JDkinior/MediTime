@@ -1,12 +1,16 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:meditime/services/auth_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:meditime/screens/calendario_page.dart';
-import 'package:meditime/screens/instrucciones_page.dart';
-import 'package:meditime/screens/perfil_page.dart';
-import 'package:meditime/screens/receta_page.dart';
-import 'package:meditime/screens/ayuda_page.dart';
-import 'data/drawer_widget.dart';
+
+// CAMBIO: Actualizar imports de las pantallas y widgets
+import 'package:meditime/screens/calendar/calendario_page.dart';
+import 'package:meditime/screens/shared/instrucciones_page.dart';
+import 'package:meditime/screens/profile/perfil_page.dart';
+import 'package:meditime/screens/medication/receta_page.dart';
+import 'package:meditime/screens/shared/ayuda_page.dart';
+import 'package:meditime/widgets/drawer_widget.dart'; // Nueva ruta para el drawer
 
 class HomePage extends StatefulWidget {
   final List<String>? nameParts;

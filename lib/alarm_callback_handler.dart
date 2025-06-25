@@ -1,7 +1,7 @@
 // lib/alarm_callback_handler.dart
 import 'dart:math';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
-import 'package:meditime/notification_service.dart';
+import 'package:meditime/services/notification_service.dart';
 import 'package:flutter/material.dart'; // Para debugPrint
 
 @pragma('vm:entry-point')

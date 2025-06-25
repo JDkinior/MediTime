@@ -1,12 +1,16 @@
+// lib/auth_wrapper.dart
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:meditime/screens/loading_screen.dart';
-import 'package:meditime/screens/login_page.dart';
-import 'home_page.dart';
-import 'package:meditime/data/perfil_data.dart';
+import 'package:meditime/services/auth_service.dart'; // Ya usa el servicio, ¡bien!
+import 'package:meditime/services/firestore_service.dart';
+import 'package:provider/provider.dart';
+
+// CAMBIO: Actualizar imports de las pantallas
+import 'package:meditime/screens/shared/loading_screen.dart';
+import 'package:meditime/screens/auth/login_page.dart';
+import 'package:meditime/screens/home/home_page.dart';
+
 
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
@@ -18,13 +22,14 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   String? _profileImagePath;
   List<String>? _nameParts;
-  bool _isLoading = true;
   StreamSubscription<User?>? _authSubscription;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _authSubscription = FirebaseAuth.instance.authStateChanges().listen(_handleAuthStateChange);
+    final authService = context.read<AuthService>();
+    _authSubscription = authService.authStateChanges.listen(_handleAuthStateChange);
   }
 
   @override
@@ -49,41 +54,44 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _loadProfileData(User user) async {
+    final firestoreService = context.read<FirestoreService>();
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      final doc = await firestoreService.getUserProfile(user.uid);
 
       if (doc.exists) {
-        final data = doc.data();
-        setState(() {
-          _nameParts = (data?[PerfilData.keyName] as String?)?.split(' ') ?? [];
-          _profileImagePath = data?[PerfilData.keyProfileImage] as String? ?? '';
-        });
+        final data = doc.data() as Map<String, dynamic>?;
+        if (mounted) {
+          setState(() {
+            _nameParts = (data?['name'] as String?)?.split(' ');
+            _profileImagePath = data?['profileImage'] as String? ?? '';
+          });
+        }
       }
     } catch (e) {
-      print('Error al cargar datos: $e');
+      print('Error al cargar datos en AuthWrapper: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authService = context.watch<AuthService>();
+
     return _isLoading
-        ? const LoadingScreen()
-        : StreamBuilder<User?>(
-            stream: FirebaseAuth.instance.authStateChanges(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              return snapshot.hasData
-                  ? HomePage(
-                      nameParts: _nameParts,
-                      profileImagePath: _profileImagePath,
-                    )
-                  : const LoginPage();
-            },
-          );
+      ? const LoadingScreen()
+      : StreamBuilder<User?>(
+          stream: authService.authStateChanges,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const LoadingScreen();
+            }
+            if (snapshot.hasData) {
+              return HomePage(
+                nameParts: _nameParts,
+                profileImagePath: _profileImagePath,
+              );
+            }
+            return const LoginPage();
+          },
+        );
   }
 }

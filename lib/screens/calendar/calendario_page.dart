@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:meditime/screens/dosis_dia_page.dart';
-import 'package:meditime/screens/resumen_tratamiento_page.dart';
+import 'package:meditime/screens/medication/dosis_dia_page.dart';
+import 'package:meditime/screens/medication/resumen_tratamiento_page.dart';
 
 // Definimos la sombra como una constante para reutilizarla y mantener la consistencia.
 const kCustomBoxShadow = [
