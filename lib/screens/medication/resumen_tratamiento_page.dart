@@ -1,16 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-
-// Definimos la sombra como una constante para reutilizarla y mantener la consistencia.
-const kCustomBoxShadow = [
-  BoxShadow(
-    color: Color.fromARGB(20, 47, 109, 180), // Sombra azul sutil
-    blurRadius: 6,
-    spreadRadius: 3,
-    offset: Offset(0, 4),
-  ),
-];
+import 'package:meditime/theme/app_theme.dart';
 
 class ResumenTratamientoPage extends StatelessWidget {
   final Map<String, dynamic> tratamiento;

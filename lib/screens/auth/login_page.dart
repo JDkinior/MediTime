@@ -14,8 +14,6 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
-  // Ya no necesitamos la instancia de FirebaseAuth aquí
-  // final FirebaseAuth _auth = FirebaseAuth.instance;
   late AnimationController _animationController;
   bool _showLoginForm = false;
   final TextEditingController _emailController = TextEditingController();
@@ -27,8 +25,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   bool _passwordError = false;
   String _emailErrorText = '';
   String _passwordErrorText = '';
-
-
 
   @override
   void initState() {
@@ -128,28 +124,26 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   }
 
 
-@override
-Widget build(BuildContext context) {
-  final screenHeight = MediaQuery.of(context).size.height;
-  final screenWidth = MediaQuery.of(context).size.width;
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
 
-  return GestureDetector(
-    onTap: () {
-      final currentFocus = FocusScope.of(context);
-      if (!currentFocus.hasPrimaryFocus) {
-        currentFocus.unfocus();
-      }
-      if (_showLoginForm) {
-        _toggleLoginForm();
-      }
-    },
-    behavior: HitTestBehavior.opaque,
+    return GestureDetector(
+      onTap: () {
+        final currentFocus = FocusScope.of(context);
+        if (!currentFocus.hasPrimaryFocus) {
+          currentFocus.unfocus();
+        }
+        if (_showLoginForm) {
+          _toggleLoginForm();
+        }
+      },
+      behavior: HitTestBehavior.opaque,
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         body: Stack(
           children: [
-            // Este AnimatedBuilder es simple y no necesita el 'child', ya que
-            // el Container en sí es lo que se reconstruye con una nueva altura.
             AnimatedBuilder(
               animation: _animationController,
               builder: (context, child) {
@@ -169,7 +163,6 @@ Widget build(BuildContext context) {
                 );
               },
             ),
-
             SafeArea(
               child: SizedBox(
                 width: screenWidth,
@@ -180,7 +173,7 @@ Widget build(BuildContext context) {
                     // --- OPTIMIZACIÓN 1: Título de la App ---
                     AnimatedBuilder(
                       animation: _animationController,
-                      // El contenido del título (el Column) se construye una sola vez.
+                      // El contenido del título se construye una sola vez.
                       child: const Column(
                         children: [
                           Text(
@@ -203,7 +196,7 @@ Widget build(BuildContext context) {
                         ],
                       ),
                       builder: (context, child) {
-                        // El builder solo reconstruye el Positioned, que es muy ligero.
+                        // El builder solo reconstruye el Positioned, que es ligero.
                         return Positioned(
                           top: screenHeight * 0.35 - (screenHeight * 0.24 * _animationController.value),
                           child: child!, // Usamos el child pre-construido.
@@ -233,7 +226,7 @@ Widget build(BuildContext context) {
                       ),
                       builder: (context, child) {
                         final opacity = (1.0 - _animationController.value * 2).clamp(0.0, 1.0);
-                        // El builder solo reconstruye el Positioned, Opacity y Visibility.
+                        // El builder solo reconstruye Positioned, Opacity y Visibility.
                         return Positioned(
                           top: screenHeight * 0.75,
                           child: Opacity(
@@ -258,7 +251,7 @@ Widget build(BuildContext context) {
               right: 0,
               child: AnimatedBuilder(
                 animation: _animationController,
-                // El formulario completo se construye una sola vez.
+                // El formulario completo se construye una sola vez y se pasa como 'child'.
                 child: GestureDetector(
                   onTap: () {
                     final currentFocus = FocusScope.of(context);
@@ -283,7 +276,7 @@ Widget build(BuildContext context) {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 5),
+                           const SizedBox(height: 5),
                           StyledTextField(
                             controller: _emailController,
                             labelText: 'Correo Electrónico',
@@ -376,10 +369,9 @@ Widget build(BuildContext context) {
                   ),
                 ),
                 builder: (context, child) {
-                  // El builder solo reconstruye el Transform.translate, que es muy ligero.
                   return Transform.translate(
                     offset: Offset(0, screenHeight * 0.63 * (1 - _animationController.value)),
-                    child: child!, // Usamos el child pre-construido.
+                    child: child!, // Usamos el 'child' que ya fue construido.
                   );
                 },
               ),
@@ -387,8 +379,8 @@ Widget build(BuildContext context) {
           ],
         ),
       ),
-  );
-}
+    );
+  }
 }
 
 class _AuthButton extends StatelessWidget {

@@ -7,16 +7,9 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:meditime/alarm_callback_handler.dart';
-
+import 'package:meditime/theme/app_theme.dart'; // Asegúrate de tener tu tema definido aquí
 // Definición de la sombra personalizada
-const kCustomBoxShadow = [
-  BoxShadow(
-    color: Color.fromARGB(20, 47, 109, 180),
-    blurRadius: 6,
-    spreadRadius: 3,
-    offset: Offset(0, 4),
-  ),
-];
+
 
 class DosisDiaPage extends StatelessWidget {
   final String tratamientoId;

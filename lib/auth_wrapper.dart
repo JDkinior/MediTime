@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:meditime/screens/shared/loading_screen.dart';
 import 'package:meditime/screens/auth/login_page.dart';
 import 'package:meditime/screens/home/home_page.dart';
+import 'package:meditime/notifiers/profile_notifier.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -46,15 +47,14 @@ class AuthWrapper extends StatelessWidget {
 
               // Una vez que tenemos los datos del usuario y el perfil, vamos a HomePage
               final profileData = profileSnapshot.data;
-              final nameParts = (profileData?['name'] as String?)?.split(' ');
-              final profileImagePath = profileData?['profileImage'] as String?;
-
-              return HomePage(
-                nameParts: nameParts,
-                profileImagePath: profileImagePath,
+              context.read<ProfileNotifier>().updateProfile(
+                newName: profileData?['name'] as String?,
+                newImageUrl: profileData?['profileImage'] as String?,
               );
+              return const HomePage();
             },
           );
+
         }
 
         // Si no hay usuario, vamos a la página de login

@@ -163,7 +163,7 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column( 
+        child: Column(
           children: [
             Expanded(
               child: PageView.builder(
@@ -176,27 +176,25 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
                   });
                 },
                 itemBuilder: (context, index) {
-                  // SOLUCIÓN: Pasa el contenido del paso a la propiedad 'child'.
-                  // Se construirá solo una vez.
+                  // --- INICIO DE LA OPTIMIZACIÓN ---
                   return AnimatedBuilder(
                     animation: _pageController,
-                    child: _buildStepContent(index), // <-- 1. Mueve la construcción aquí
-
-                    // El builder ahora recibe el widget pre-construido.
+                    // 1. El contenido del paso se construye una sola vez y se pasa como 'child'.
+                    child: _buildStepContent(index),
+                    // 2. El 'builder' recibe el 'child' ya construido.
                     builder: (context, child) {
                       double opacity = 1.0;
                       if (_pageController.position.haveDimensions) {
                         opacity = (1 - (_pageController.page! - index).abs()).clamp(0.0, 1.0);
                       }
-
-                      // La lógica de reconstrucción ahora es súper ligera.
-                      // Solo reconstruye el Opacity, no el contenido completo.
+                      // 3. Solo reconstruimos el Opacity, que es muy eficiente.
                       return Opacity(
                         opacity: opacity,
-                        child: child, // <-- 2. Usa el 'child' pre-construido aquí
+                        child: child, // Usamos el 'child'.
                       );
                     },
                   );
+                  // --- FIN DE LA OPTIMIZACIÓN ---
                 },
               ),
             ),

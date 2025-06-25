@@ -12,7 +12,7 @@ import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/storage_service.dart';
-
+import 'package:meditime/notifiers/profile_notifier.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,21 +33,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Envuelve MaterialApp con MultiProvider
     return MultiProvider(
       providers: [
-        // Proveedor para el servicio de autenticación
-        Provider<AuthService>(
-          create: (_) => AuthService(),
+        // Proveedores para los servicios
+        Provider<AuthService>(create: (_) => AuthService()),
+        Provider<FirestoreService>(create: (_) => FirestoreService()),
+        Provider<StorageService>(create: (_) => StorageService()),
+
+        // ----- INICIO DEL CAMBIO -----
+        // Añade el proveedor para tu nuevo notifier
+        ChangeNotifierProvider<ProfileNotifier>(
+          create: (_) => ProfileNotifier(),
         ),
-        // Proveedor para el servicio de Firestore
-        Provider<FirestoreService>(
-          create: (_) => FirestoreService(),
-        ),
-        // Proveedor para el servicio de Storage
-        Provider<StorageService>(
-          create: (_) => StorageService(),
-        ),
+        // ----- FIN DEL CAMBIO -----
       ],
       child: MaterialApp(
         title: 'MediTime',
