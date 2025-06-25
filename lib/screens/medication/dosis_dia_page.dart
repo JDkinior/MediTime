@@ -372,7 +372,7 @@ class _DosisDiaViewState extends State<DosisDiaView> {
             ],
           ),
           const Spacer(),
-          if (trailingWidget != null) trailingWidget,
+          trailingWidget,
         ],
       ),
     );

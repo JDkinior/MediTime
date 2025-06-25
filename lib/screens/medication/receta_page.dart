@@ -10,7 +10,6 @@ import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 
 // CAMBIO: Importar las otras páginas y el handler
-import 'package:meditime/alarm_callback_handler.dart';
 import 'agregar_receta_page.dart';
 import 'detalle_receta_page.dart';
 
@@ -76,7 +75,6 @@ class _RecetaPageState extends State<RecetaPage> {
                 navigator.pop();
                 
                 final String docId = medicamento['docId'];
-                final int alarmId = medicamento['prescriptionAlarmId'];
                 final DateTime horaDosisOmitida = medicamento['horaDosis'];
                 
                 // Obtenemos la referencia al documento desde el servicio
