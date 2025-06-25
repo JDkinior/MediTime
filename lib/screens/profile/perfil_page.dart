@@ -313,7 +313,7 @@ class _PerfilPageState extends State<PerfilPage> {
           Text(
             // Muestra el nombre del controlador si se está editando, o el del notifier si no
             widget.isEditing ? _nameController.text : (profile.userName ?? 'Nombre de Usuario'),
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kSecondaryColor),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF4092E4)),
           ),
           Text(
             _emailController.text,
