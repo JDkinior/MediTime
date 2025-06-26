@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'instrucciones_page.dart';
 import 'terminos_page.dart';
 import 'politica_page.dart';
-
+import 'package:meditime/widgets/primary_button.dart';
 // ignore: camel_case_types
 class AyudaPage extends StatelessWidget {
   const AyudaPage({super.key});
@@ -56,36 +56,24 @@ class AyudaPage extends StatelessWidget {
                 context: context,
                 builder: (BuildContext context) {
                   const data =
-                      'La aplicación se encuentra actualmente en desarrollo, esta es la versión: 2.13.7 alpha.';
+                      'La aplicación se encuentra actualmente en desarrollo, esta es la versión: 2.20.2 alpha.';
                   return AlertDialog(
                     title: Text('Versión de la aplicación',
-                        style: TextStyle(color: textColor)),
+                        style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF4092E4))),
                     shape: RoundedRectangleBorder(
                       borderRadius:
-                          BorderRadius.circular(20.0), // Ajusta el radio aquí
+                          BorderRadius.circular(32.0), // Ajusta el radio aquí
                     ),
                     content: SingleChildScrollView(
                       child: Text(data, style: TextStyle(color: textColor)),
                     ),
                     actions: <Widget>[
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            fixedSize: const Size(150, 50), // Ta
-                            backgroundColor: Colors.blue, // Color del botón
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(10), // Radio del botón
-                            ),
-                            foregroundColor: Colors.white, // Color del texto
+                        PrimaryButton(
+                            text: 'Entendido',
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
                           ),
-                          child: const Text('Entendido'),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                        ),
-                      ),
                     ],
                   );
                 },
@@ -100,10 +88,10 @@ class AyudaPage extends StatelessWidget {
                 builder: (BuildContext context) {
                   return AlertDialog(
                     title: Text('Desarrolladores',
-                        style: TextStyle(color: textColor)),
+                        style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF4092E4))),
                     shape: RoundedRectangleBorder(
                       borderRadius:
-                          BorderRadius.circular(20.0), // Ajusta el radio aquí
+                          BorderRadius.circular(32.0), // Ajusta el radio aquí
                     ),
                     content: SingleChildScrollView(
                       padding: const EdgeInsets.all(5.0),
@@ -148,24 +136,12 @@ class AyudaPage extends StatelessWidget {
                       ),
                     ),
                     actions: <Widget>[
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            fixedSize: const Size(150, 50), // Ta
-                            backgroundColor: Colors.blue, // Color del botón
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(10), // Radio del botón
-                            ),
-                            foregroundColor: Colors.white, // Color del texto
+                        PrimaryButton(
+                            text: 'Entendido',
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
                           ),
-                          child: const Text('Entendido'),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                        ),
-                      ),
                     ],
                   );
                 },
