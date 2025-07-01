@@ -24,6 +24,7 @@ class AuthService {
 
   // Cerrar sesión
   Future<void> signOut() async {
+    await _googleSignIn.disconnect(); // <-- AÑADE ESTA LÍNEA
     await _auth.signOut();
   }
 

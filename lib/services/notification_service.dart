@@ -1,4 +1,4 @@
-// lib/notification_service.dart
+// lib/services/notification_service.dart
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
@@ -18,7 +18,6 @@ class NotificationService {
 
     tz.initializeTimeZones();
     try {
-      // CORRECCIÓN 1: Error tipográfico en currentTimeZone
       final String currentTimeZone = await FlutterLocalNotificationsPlugin()
           .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>()
@@ -38,7 +37,6 @@ class NotificationService {
       requestAlertPermission: false,
       requestBadgePermission: false,
       requestSoundPermission: false,
-      // onDidReceiveLocalNotification: onDidReceiveLocalNotification, // Para iOS < 10
     );
 
     const InitializationSettings initializationSettings =
@@ -51,7 +49,6 @@ class NotificationService {
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         debugPrint('Notificación tocada (onDidReceiveNotificationResponse): ${response.payload}');
       },
-      // onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
     _isCoreInitialized = true;
     debugPrint("NotificationService Core Inicializado.");
@@ -75,13 +72,16 @@ class NotificationService {
       await androidImplementation.requestNotificationsPermission();
       debugPrint("Solicitando permisos de alarma exacta (Android)...");
       await androidImplementation.requestExactAlarmsPermission();
+      
+      // MEJORA: Solicitar permisos adicionales para evitar restricciones
+      debugPrint("Solicitando permisos adicionales para alarmas...");
+      await androidImplementation.requestNotificationsPermission();
     }
 
-    // CORRECCIÓN 2 y 3: Usar IOSFlutterLocalNotificationsPlugin para iOS
     debugPrint("Solicitando permisos de notificación (iOS)...");
-    final IOSFlutterLocalNotificationsPlugin? iOSImplementation = // Cambiado aquí
+    final IOSFlutterLocalNotificationsPlugin? iOSImplementation =
         _notificationsPlugin
-            .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>(); // Y aquí
+            .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
 
     if (iOSImplementation != null) {
       await iOSImplementation.requestPermissions(
@@ -90,16 +90,6 @@ class NotificationService {
         sound: true,
       );
     }
-    // Si necesitas también para macOS:
-    // final MacOSFlutterLocalNotificationsPlugin? macOSImplementation =
-    //   _notificationsPlugin.resolvePlatformSpecificImplementation<MacOSFlutterLocalNotificationsPlugin>();
-    // if (macOSImplementation != null) {
-    //   await macOSImplementation.requestPermissions(
-    //     alert: true,
-    //     badge: true,
-    //     sound: true,
-    //   );
-    // }
 
     _permissionsHaveBeenRequested = true;
     debugPrint("Solicitud de permisos completada.");
@@ -120,6 +110,7 @@ class NotificationService {
       }
     }
 
+    // MEJORA: Configuración más agresiva para notificaciones críticas
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'meditime_dosis_channel',
       'MediTime Recordatorios de Dosis',
@@ -127,12 +118,21 @@ class NotificationService {
       importance: Importance.max,
       priority: Priority.high,
       enableVibration: true,
+      playSound: true,
+     /* sound: RawResourceAndroidNotificationSound('notification_sound'),  Asegúrate de tener este archivo*/
+      fullScreenIntent: true, // NUEVA OPCIÓN: Muestra la notificación en pantalla completa
+      category: AndroidNotificationCategory.alarm, // NUEVA OPCIÓN: Categoriza como alarma
+      visibility: NotificationVisibility.public, // NUEVA OPCIÓN: Visible en pantalla de bloqueo
+      autoCancel: false, // NUEVA OPCIÓN: No se cancela automáticamente
+      ongoing: false, // Puede ser true si quieres que persista
+      ticker: 'Hora de tomar medicamento', // NUEVA OPCIÓN: Texto que aparece en la barra de estado
     );
 
     const DarwinNotificationDetails iOSDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
+      interruptionLevel: InterruptionLevel.critical, // NUEVA OPCIÓN: Nivel crítico para iOS
     );
 
     const NotificationDetails notificationDetails = NotificationDetails(
@@ -140,7 +140,7 @@ class NotificationService {
         iOS: iOSDetails);
 
     await _notificationsPlugin.show(id, title, body, notificationDetails, payload: payload);
-    debugPrint("Notificación local mostrada - ID: $id, Título: $title");
+    debugPrint("Notificación local mostrada - ID: $id, Título: $title, Hora: ${DateTime.now()}");
   }
 
   static Future<void> cancelAllFlutterLocalNotifications() async {
@@ -161,18 +161,20 @@ class NotificationService {
     if (androidImplementation != null) {
       return await androidImplementation.areNotificationsEnabled() ?? false;
     }
-    // Para iOS, la verificación de permisos es diferente, usualmente con `getNotificationSettings`
-    _notificationsPlugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+    
+    return false;
+  }
+
+  // NUEVA FUNCIÓN: Para verificar si las alarmas exactas están permitidas
+  static Future<bool> checkExactAlarmPermissions() async {
+    final androidImplementation = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+
+    if (androidImplementation != null) {
+      return await androidImplementation.canScheduleExactNotifications() ?? false;
+    }
     
     return false;
   }
 }
-
-// @pragma('vm:entry-point')
-// void notificationTapBackground(NotificationResponse notificationResponse) {
-//   debugPrint('notificationTapBackground: ${notificationResponse.payload}');
-// }
-
-// void onDidReceiveLocalNotification(int id, String? title, String? body, String? payload) async {
-//   debugPrint('iOS < 10 onDidReceiveLocalNotification: id: $id, title: $title, body: $body, payload: $payload');
-// }

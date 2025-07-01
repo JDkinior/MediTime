@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
 import 'dart:math';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'package:meditime/screens/shared/guia_optimizacion_page.dart';
+import 'package:meditime/services/notification_service.dart';
 import 'package:provider/provider.dart'; // CAMBIO: Importar Provider
 
 // CAMBIO: Importar los servicios
@@ -52,108 +54,163 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
   }
 
   // CAMBIO: La función de guardar ahora usa los servicios
-  Future<void> _saveData() async {
-    if (!mounted) return;
+Future<void> _saveData() async {
+  if (!mounted) return;
 
-    // Obtener los servicios de Provider
-    final authService = context.read<AuthService>();
-    final firestoreService = context.read<FirestoreService>();
-    final user = authService.currentUser;
+  final authService = context.read<AuthService>();
+  final firestoreService = context.read<FirestoreService>();
+  final user = authService.currentUser;
 
-    if (user == null) {
+  if (user == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Error: Usuario no encontrado.'), backgroundColor: Colors.red),
+    );
+    return;
+  }
+
+  try {
+    if (_duracion.isEmpty || _dosis.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error: Usuario no encontrado.'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('Por favor, completa la duración y el intervalo de dosis.'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
 
-    try {
-      if (_duracion.isEmpty || _dosis.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Por favor, completa la duración y el intervalo de dosis.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
+    final int prescriptionAlarmManagerId = Random().nextInt(2147483647);
+    final int intervaloEnHoras = int.parse(_dosis);
+    final int duracionEnDias = int.parse(_duracion);
+    final int firstLocalNotificationId = Random().nextInt(100000);
 
-      final int prescriptionAlarmManagerId = Random().nextInt(2147483647);
-      final int intervaloEnHoras = int.parse(_dosis);
-      final int duracionEnDias = int.parse(_duracion);
-      final int firstLocalNotificationId = Random().nextInt(100000);
+    final now = DateTime.now();
+    DateTime primeraDosisDateTime = DateTime(
+      now.year, now.month, now.day,
+      _horaPrimeraDosis.hour, _horaPrimeraDosis.minute,
+    );
 
-      final now = DateTime.now();
-      DateTime primeraDosisDateTime = DateTime(
-        now.year, now.month, now.day,
-        _horaPrimeraDosis.hour, _horaPrimeraDosis.minute,
-      );
+    if (primeraDosisDateTime.isBefore(now)) {
+      primeraDosisDateTime = primeraDosisDateTime.add(const Duration(days: 1));
+    }
 
-      if (primeraDosisDateTime.isBefore(now)) {
-        primeraDosisDateTime = primeraDosisDateTime.add(const Duration(days: 1));
-      }
+    final DateTime fechaInicioTratamiento = primeraDosisDateTime;
+    final DateTime fechaFinTratamiento = fechaInicioTratamiento.add(Duration(days: duracionEnDias));
+    
+    await firestoreService.saveMedicamento(
+      userId: user.uid,
+      nombreMedicamento: _nombreMedicamento,
+      presentacion: _presentacion,
+      duracion: _duracion,
+      horaPrimeraDosis: _horaPrimeraDosis,
+      intervaloDosis: _dosis,
+      prescriptionAlarmId: prescriptionAlarmManagerId,
+      fechaInicioTratamiento: fechaInicioTratamiento,
+      fechaFinTratamiento: fechaFinTratamiento,
+      notas: _notas,
+    );
 
-      final DateTime fechaInicioTratamiento = primeraDosisDateTime;
-      final DateTime fechaFinTratamiento = fechaInicioTratamiento.add(Duration(days: duracionEnDias));
+    // MEJORAS EN LA PROGRAMACIÓN DE ALARMAS
+    if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
+      debugPrint(
+          "Programando PRIMERA alarma para $_nombreMedicamento a las $primeraDosisDateTime con ID de Alarma (AlarmManager): $prescriptionAlarmManagerId");
       
-      // CAMBIO: Llamar al método del servicio para guardar en Firestore
-      await firestoreService.saveMedicamento(
-        userId: user.uid,
-        nombreMedicamento: _nombreMedicamento,
-        presentacion: _presentacion,
-        duracion: _duracion,
-        horaPrimeraDosis: _horaPrimeraDosis,
-        intervaloDosis: _dosis,
-        prescriptionAlarmId: prescriptionAlarmManagerId,
-        fechaInicioTratamiento: fechaInicioTratamiento,
-        fechaFinTratamiento: fechaFinTratamiento,
-        notas: _notas,
-      );
-
-      // La lógica de la alarma no cambia, ya que está bien encapsulada.
-      if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
-        debugPrint(
-            "Programando PRIMERA alarma para $_nombreMedicamento a las $primeraDosisDateTime con ID de Alarma (AlarmManager): $prescriptionAlarmManagerId");
-        
-        await AndroidAlarmManager.oneShotAt(
-          primeraDosisDateTime,
-          prescriptionAlarmManagerId,
-          alarmCallbackLogic,
-          exact: true,
-          wakeup: true,
-          alarmClock: true,
-          rescheduleOnReboot: true,
-          params: {
-            'currentNotificationId': firstLocalNotificationId,
-            'nombreMedicamento': _nombreMedicamento,
-            'presentacion': _presentacion,
-            'intervaloHoras': intervaloEnHoras,
-            'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
-            'prescriptionAlarmId': prescriptionAlarmManagerId,
-          },
-        );
-
+      // MEJORA 1: Usar allowWhileIdle y verificar permisos antes de programar
+      final hasPermissions = await NotificationService.checkExactAlarmPermissions();
+      if (!hasPermissions) {
+        debugPrint("ADVERTENCIA: No se tienen permisos para alarmas exactas");
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Recordatorios configurados para $_nombreMedicamento'),
-              backgroundColor: Colors.green,
+            const SnackBar(
+              content: Text('Atención: Es posible que las alarmas se retrasen sin permisos especiales'),
+              backgroundColor: Colors.orange,
             ),
           );
         }
       }
-    } catch (e) {
-      debugPrint('Error al guardar datos o programar alarma: $e');
+      
+      await AndroidAlarmManager.oneShotAt(
+        primeraDosisDateTime,
+        prescriptionAlarmManagerId,
+        alarmCallbackLogic,
+        exact: true,
+        wakeup: true,
+        alarmClock: true, // CRÍTICO: Esto evita muchas restricciones
+        rescheduleOnReboot: true,
+        allowWhileIdle: true, // NUEVA OPCIÓN: Permite ejecución durante Doze Mode
+        params: {
+          'currentNotificationId': firstLocalNotificationId,
+          'nombreMedicamento': _nombreMedicamento,
+          'presentacion': _presentacion,
+          'intervaloHoras': intervaloEnHoras,
+          'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
+          'prescriptionAlarmId': prescriptionAlarmManagerId,
+        },
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al configurar recordatorios: $e'),
-            backgroundColor: Colors.red,
+            content: Text('Recordatorios configurados para $_nombreMedicamento'),
+            backgroundColor: Colors.green,
           ),
         );
       }
+      
+      // OPCIONAL: Mostrar consejos para optimizar las notificaciones
+      if (mounted) {
+        await _showBatteryOptimizationTip();
+      }
+    }
+  } catch (e) {
+    debugPrint('Error al guardar datos o programar alarma: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al configurar recordatorios: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
+}
+
+Future<void> _showBatteryOptimizationTip() async {
+  await showDialog(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return AlertDialog(
+        title: const Text('Optimización de Recordatorios'),
+        content: const Text(
+          'Para asegurar que recibas tus recordatorios a tiempo, es recomendable realizar unos ajustes en tu teléfono.\n\n¿Quieres ver cómo?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Ahora no'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop(); // Cierra el diálogo primero
+              
+              // SOLUCIÓN: Usar el contexto del widget principal y un delay
+              Future.delayed(const Duration(milliseconds: 100), () {
+                if (mounted) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const GuiaOptimizacionPage(),
+                    ),
+                  );
+                }
+              });
+            },
+            child: const Text('Ver guía'),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {

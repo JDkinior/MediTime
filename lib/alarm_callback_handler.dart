@@ -35,14 +35,17 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
     final int nextLocalNotificationId = Random().nextInt(100000); 
 
     debugPrint("Reprogramando siguiente alarma para $nombreMedicamento a las $proximaDosis (ID de serie: $prescriptionAlarmId)");
+    
+    // MEJORA 1: Usar allowWhileIdle para evitar restricciones de Doze Mode
     await AndroidAlarmManager.oneShotAt(
       proximaDosis,
       prescriptionAlarmId, // Usa el MISMO ID de serie de AlarmManager
       alarmCallbackLogic,
       exact: true,
       wakeup: true,
-      alarmClock: true,
+      alarmClock: true, // IMPORTANTE: Esto ayuda a evitar restricciones de batería
       rescheduleOnReboot: true,
+      allowWhileIdle: true, // NUEVA OPCIÓN: Permite ejecutar durante Doze Mode
       params: {
         'currentNotificationId': nextLocalNotificationId, // Nuevo ID para la próxima notificación visual
         'nombreMedicamento': nombreMedicamento,
