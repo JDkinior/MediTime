@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'instrucciones_page.dart';
 import 'terminos_page.dart';
 import 'politica_page.dart';
+import 'guia_optimizacion_page.dart';
 import 'package:meditime/widgets/primary_button.dart';
 // ignore: camel_case_types
 class AyudaPage extends StatelessWidget {
@@ -26,6 +27,17 @@ class AyudaPage extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                     builder: (context) => const InstruccionesPage()),
+              );
+            },
+          ),
+          ListTile(
+            title: Text('Guía de optimización de recordatorios',
+                style: TextStyle(color: textColor)),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const GuiaOptimizacionPage()),
               );
             },
           ),
@@ -56,7 +68,7 @@ class AyudaPage extends StatelessWidget {
                 context: context,
                 builder: (BuildContext context) {
                   const data =
-                      'La aplicación se encuentra actualmente en desarrollo, esta es la versión: 2.20.2 alpha.';
+                      'La aplicación se encuentra actualmente en desarrollo, esta es la versión: 2.20.8 alpha.';
                   return AlertDialog(
                     title: Text('Versión de la aplicación',
                         style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF4092E4))),
