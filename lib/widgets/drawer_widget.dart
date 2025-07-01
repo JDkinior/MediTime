@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/profile_notifier.dart'; // Importa el Notifier
 import 'package:meditime/screens/shared/ayuda_page.dart';
 import 'package:meditime/screens/shared/opciones_page.dart';
+import 'package:meditime/screens/reports/reportes_page.dart';
 
 class CustomDrawer extends StatelessWidget {
   final VoidCallback onLogout;
@@ -83,20 +84,35 @@ class CustomDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
+            leading: const Icon(Icons.assessment_outlined), // <-- Ícono para el reporte
+            title: const Text('Reporte de Adherencia'),
+            onTap: () {
+              Navigator.pop(context); // Cierra el drawer
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ReportesPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings_outlined),
             title: const Text('Opciones'),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const OpcionesPage()),
-            ),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const OpcionesPage()));
+            },
           ),
           ListTile(
+            leading: const Icon(Icons.help_outline),
             title: const Text('Ayuda'),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AyudaPage()),
-            ),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const AyudaPage()));
+            },
           ),
+          const Divider(),
           ListTile(
+            leading: const Icon(Icons.exit_to_app),
             title: const Text('Salir'),
             onTap: onLogout,
           ),
