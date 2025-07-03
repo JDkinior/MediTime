@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'package:meditime/alarm_callback_handler.dart';
 import 'package:provider/provider.dart'; // CAMBIO: Importar Provider
 
 // CAMBIO: Importar los servicios
@@ -81,8 +82,39 @@ class _RecetaPageState extends State<RecetaPage> {
                 final docRef = firestoreService.getMedicamentoDocRef(user.uid, docId);
                 await docRef.update({'skippedDoses': FieldValue.arrayUnion([Timestamp.fromDate(horaDosisOmitida)])});
                 
-                // La lógica de la alarma no cambia.
-                // ... (lógica para cancelar y reprogramar)
+                // 1. Obtener los datos necesarios del medicamento para la alarma
+                final int alarmId = medicamento['prescriptionAlarmId'];
+                final int intervalo = int.parse(medicamento['intervaloDosis']);
+                final DateTime fechaFinTratamiento = (medicamento['fechaFinTratamiento'] as Timestamp).toDate();
+
+                // 2. Cancelar la alarma que estaba programada para la dosis omitida
+                await AndroidAlarmManager.cancel(alarmId);
+
+                // 3. Calcular la fecha y hora de la siguiente dosis
+                final DateTime proximaDosis = horaDosisOmitida.add(Duration(hours: intervalo));
+
+                // 4. Si la próxima dosis está dentro del tratamiento, se reprograma la alarma
+                if (!proximaDosis.isAfter(fechaFinTratamiento)) {
+                  // Asegúrate de que 'alarmCallbackLogic' es una función de nivel superior o estática
+                  // para que android_alarm_manager_plus pueda ejecutarla en segundo plano.
+                  await AndroidAlarmManager.oneShotAt(
+                    proximaDosis,
+                    alarmId, // Reutilizamos el mismo ID para la nueva alarma
+                    alarmCallbackLogic, // Esta es la función que se ejecutará cuando suene la alarma
+                    exact: true,
+                    wakeup: true,
+                    alarmClock: true,
+                    rescheduleOnReboot: true,
+                    params: { // Pasamos los datos necesarios para la notificación
+                      'currentNotificationId': medicamento['currentNotificationId'] ?? 0,
+                      'nombreMedicamento': medicamento['nombreMedicamento'],
+                      'presentacion': medicamento['presentacion'],
+                      'intervaloHoras': intervalo,
+                      'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
+                      'prescriptionAlarmId': alarmId,
+                    },
+                  );
+                }
 
                 scaffoldMessenger.showSnackBar(
                   const SnackBar(content: Text('Dosis omitida.'), duration: Duration(seconds: 2)),
@@ -226,6 +258,11 @@ class _RecetaPageState extends State<RecetaPage> {
 
                 final dosisAgrupadas = _agruparPorFecha(todasDosis.map((d) => d['horaDosis'] as DateTime).toList());
 
+                // Crear un mapa de búsqueda para acceso O(1)
+                final Map<DateTime, Map<String, dynamic>> dosisLookup = {
+                  for (var d in todasDosis) d['horaDosis'] as DateTime: d
+                };
+
                 return ListView(
                   children: [
                     for (var entrada in dosisAgrupadas.entries)
@@ -240,8 +277,8 @@ class _RecetaPageState extends State<RecetaPage> {
                             ),
                           ),
                           ...entrada.value.map((hora) {
-                            final medicamento = todasDosis.firstWhere((d) => d['horaDosis'] == hora);
-                            return _buildDosisCard(medicamento, context);
+                            final medicamento = dosisLookup[hora];
+                            return _buildDosisCard(medicamento!, context);
                           }),
                         ],
                       ),
