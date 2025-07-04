@@ -2,15 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
 import 'dart:math';
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:meditime/screens/shared/guia_optimizacion_page.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:provider/provider.dart'; // CAMBIO: Importar Provider
-
 // CAMBIO: Importar los servicios
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
-import 'package:meditime/alarm_callback_handler.dart';
 
 class AgregarRecetaPage extends StatefulWidget {
   const AgregarRecetaPage({super.key});
@@ -82,7 +79,6 @@ Future<void> _saveData() async {
     final int prescriptionAlarmManagerId = Random().nextInt(2147483647);
     final int intervaloEnHoras = int.parse(_dosis);
     final int duracionEnDias = int.parse(_duracion);
-    final int firstLocalNotificationId = Random().nextInt(100000);
 
     final now = DateTime.now();
     DateTime primeraDosisDateTime = DateTime(
@@ -129,23 +125,13 @@ Future<void> _saveData() async {
         }
       }
       
-      await AndroidAlarmManager.oneShotAt(
-        primeraDosisDateTime,
-        prescriptionAlarmManagerId,
-        alarmCallbackLogic,
-        exact: true,
-        wakeup: true,
-        alarmClock: true, // CRÍTICO: Esto evita muchas restricciones
-        rescheduleOnReboot: true,
-        allowWhileIdle: true, // NUEVA OPCIÓN: Permite ejecución durante Doze Mode
-        params: {
-          'currentNotificationId': firstLocalNotificationId,
-          'nombreMedicamento': _nombreMedicamento,
-          'presentacion': _presentacion,
-          'intervaloHoras': intervaloEnHoras,
-          'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
-          'prescriptionAlarmId': prescriptionAlarmManagerId,
-        },
+      await NotificationService.scheduleNewTreatment(
+        nombreMedicamento: _nombreMedicamento,
+        presentacion: _presentacion,
+        intervaloEnHoras: intervaloEnHoras,
+        primeraDosisDateTime: primeraDosisDateTime,
+        fechaFinTratamiento: fechaFinTratamiento,
+        prescriptionAlarmManagerId: prescriptionAlarmManagerId,
       );
 
       if (mounted) {

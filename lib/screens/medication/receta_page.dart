@@ -2,15 +2,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
-import 'package:meditime/alarm_callback_handler.dart';
-import 'package:provider/provider.dart'; // CAMBIO: Importar Provider
-
-// CAMBIO: Importar los servicios
+import 'package:provider/provider.dart';
+import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
-
-// CAMBIO: Importar las otras páginas y el handler
 import 'agregar_receta_page.dart';
 import 'detalle_receta_page.dart';
 
@@ -23,7 +18,7 @@ class RecetaPage extends StatefulWidget {
 
 class _RecetaPageState extends State<RecetaPage> {
 
-  // La lógica para generar y agrupar dosis no ha cambiado.
+  // Lógica para generar y agrupar dosis.
   List<DateTime> _generarDosisDiarias(Map<String, dynamic> receta) {
     final DateTime fechaInicio = (receta['fechaInicioTratamiento'] as Timestamp).toDate();
     final DateTime fechaFin = (receta['fechaFinTratamiento'] as Timestamp).toDate();
@@ -50,7 +45,7 @@ class _RecetaPageState extends State<RecetaPage> {
     return agrupadas;
   }
   
-  // CAMBIO: La lógica del diálogo ahora usa los servicios.
+  // Lógica del diálogo ahora usa los servicios.
   void _showDeleteOptionsDialog(BuildContext dialogContext, Map<String, dynamic> medicamento) {
     final authService = Provider.of<AuthService>(context, listen: false);
     final firestoreService = Provider.of<FirestoreService>(context, listen: false);
@@ -66,59 +61,39 @@ class _RecetaPageState extends State<RecetaPage> {
           title: const Text('Eliminar Dosis'),
           content: const Text('¿Qué te gustaría hacer con esta toma?'),
           actionsAlignment: MainAxisAlignment.center,
-          actions: <Widget>[
+           actions: <Widget>[
             TextButton(
-              child: const Text('Omitir solo esta toma', style: TextStyle(color: Colors.blue)),
+              child: const Text('Omitir solo esta toma',
+                  style: TextStyle(color: Colors.blue)),
               onPressed: () async {
                 final navigator = Navigator.of(context);
                 final scaffoldMessenger = ScaffoldMessenger.of(context);
-                
-                navigator.pop();
-                
-                final String docId = medicamento['docId'];
-                final DateTime horaDosisOmitida = medicamento['horaDosis'];
-                
-                // Obtenemos la referencia al documento desde el servicio
-                final docRef = firestoreService.getMedicamentoDocRef(user.uid, docId);
-                await docRef.update({'skippedDoses': FieldValue.arrayUnion([Timestamp.fromDate(horaDosisOmitida)])});
-                
-                // 1. Obtener los datos necesarios del medicamento para la alarma
-                final int alarmId = medicamento['prescriptionAlarmId'];
-                final int intervalo = int.parse(medicamento['intervaloDosis']);
-                final DateTime fechaFinTratamiento = (medicamento['fechaFinTratamiento'] as Timestamp).toDate();
+                final DocumentReference docRef = firestoreService.getMedicamentoDocRef(user.uid, medicamento['docId']);
 
-                // 2. Cancelar la alarma que estaba programada para la dosis omitida
-                await AndroidAlarmManager.cancel(alarmId);
+                navigator.pop(); // Cierra el diálogo
 
-                // 3. Calcular la fecha y hora de la siguiente dosis
-                final DateTime proximaDosis = horaDosisOmitida.add(Duration(hours: intervalo));
-
-                // 4. Si la próxima dosis está dentro del tratamiento, se reprograma la alarma
-                if (!proximaDosis.isAfter(fechaFinTratamiento)) {
-                  // Asegúrate de que 'alarmCallbackLogic' es una función de nivel superior o estática
-                  // para que android_alarm_manager_plus pueda ejecutarla en segundo plano.
-                  await AndroidAlarmManager.oneShotAt(
-                    proximaDosis,
-                    alarmId, // Reutilizamos el mismo ID para la nueva alarma
-                    alarmCallbackLogic, // Esta es la función que se ejecutará cuando suene la alarma
-                    exact: true,
-                    wakeup: true,
-                    alarmClock: true,
-                    rescheduleOnReboot: true,
-                    params: { // Pasamos los datos necesarios para la notificación
-                      'currentNotificationId': medicamento['currentNotificationId'] ?? 0,
-                      'nombreMedicamento': medicamento['nombreMedicamento'],
-                      'presentacion': medicamento['presentacion'],
-                      'intervaloHoras': intervalo,
-                      'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
-                      'prescriptionAlarmId': alarmId,
-                    },
-                  );
-                }
-
-                scaffoldMessenger.showSnackBar(
-                  const SnackBar(content: Text('Dosis omitida.'), duration: Duration(seconds: 2)),
+                // *** REFACTORIZACIÓN CLAVE ***
+                // Toda la lógica compleja se reemplaza por una sola llamada al servicio.
+                final bool success =
+                    await NotificationService.skipNextDoseAndReschedule(
+                  tratamiento: medicamento,
+                  docRef: docRef,
                 );
+                // *** FIN DE LA REFACTORIZACIÓN ***
+
+                if (scaffoldMessenger.mounted) {
+                  if (success) {
+                    scaffoldMessenger.showSnackBar(
+                      const SnackBar(
+                          content: Text('Próxima dosis omitida y reprogramada.')),
+                    );
+                  } else {
+                    scaffoldMessenger.showSnackBar(
+                      const SnackBar(
+                          content: Text('No hay próximas dosis para omitir.')),
+                    );
+                  }
+                }
               },
             ),
             TextButton(
@@ -131,14 +106,13 @@ class _RecetaPageState extends State<RecetaPage> {
 
                 final alarmId = medicamento['prescriptionAlarmId'];
                 if (alarmId != null) {
-                  await AndroidAlarmManager.cancel(alarmId);
+                  await NotificationService.cancelTreatmentAlarms(alarmId);
                 }
-                
-                // Usamos el servicio para eliminar el tratamiento
+
                 await firestoreService.deleteTratamiento(user.uid, medicamento['docId']);
-                
+
                 scaffoldMessenger.showSnackBar(
-                  const SnackBar(content: Text('Tratamiento eliminado.'), duration: Duration(seconds: 2)),
+                  const SnackBar(content: Text('Tratamiento eliminado.')),
                 );
               },
             ),

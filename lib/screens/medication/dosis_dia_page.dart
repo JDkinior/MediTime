@@ -1,14 +1,11 @@
 import 'dart:async';
-import 'dart:math'; // Para generar un nuevo ID de notificación
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
-import 'package:meditime/alarm_callback_handler.dart';
-import 'package:meditime/theme/app_theme.dart'; // Asegúrate de tener tu tema definido aquí
-// Definición de la sombra personalizada
+import 'package:meditime/theme/app_theme.dart';
+import 'package:meditime/services/notification_service.dart';
 
 
 class DosisDiaPage extends StatelessWidget {
@@ -127,7 +124,7 @@ class _DosisDiaViewState extends State<DosisDiaView> {
     List<DateTime> dosisGeneradas = [];
     DateTime dosisActual = inicio;
 
-    // CAMBIO CLAVE: El bucle, al igual que en el calendario, recorre TODO el tratamiento.
+    // CAMBIO CLAVE: El bucle, al igual que en el calendario, recorre todo el tratamiento.
     while (dosisActual.isBefore(fechaFin)) {
       // Filtramos aquí adentro solo las dosis que corresponden al día seleccionado.
       if (isSameDay(dosisActual, widget.selectedDay)) {
@@ -146,109 +143,35 @@ class _DosisDiaViewState extends State<DosisDiaView> {
 
   Future<void> _toggleDosisStatus(DateTime dosisTime, bool fueOmitida) async {
     final timestamp = Timestamp.fromDate(dosisTime);
-    final int alarmId = widget.tratamiento['prescriptionAlarmId'];
-    
-    // --- LÓGICA PARA OMITIR UNA DOSIS (igual que antes) ---
-    if (!fueOmitida) {
-      debugPrint("OMITIENDO: Cancelando cadena de alarmas con ID: $alarmId");
-      await AndroidAlarmManager.cancel(alarmId);
 
+    // --- REFACTORIZACIÓN PARA OMITIR UNA DOSIS ---
+    if (!fueOmitida) {
+      // 1. Actualiza Firestore
       await widget.docRef.update({
         'skippedDoses': FieldValue.arrayUnion([timestamp])
       });
 
-      // Reprogramar desde la siguiente dosis
-      final DateTime? proximaDosisReal = await _findNextUpcomingDose();
-
-      if (proximaDosisReal != null) {
-        debugPrint("OMITIENDO: Reprogramando la alarma para las $proximaDosisReal con ID: $alarmId");
-        await AndroidAlarmManager.oneShotAt(
-          proximaDosisReal,
-          alarmId,
-          alarmCallbackLogic,
-          exact: true,
-          wakeup: true,
-          alarmClock: true,
-          rescheduleOnReboot: true,
-          params: {
-            'currentNotificationId': Random().nextInt(100000),
-            'nombreMedicamento': widget.tratamiento['nombreMedicamento'],
-            'presentacion': widget.tratamiento['presentacion'],
-            'intervaloHoras': int.parse(widget.tratamiento['intervaloDosis']),
-            'fechaFinTratamientoString': (widget.tratamiento['fechaFinTratamiento'] as Timestamp).toDate().toIso8601String(),
-            'prescriptionAlarmId': alarmId,
-          },
-        );
-      } else {
-        debugPrint("OMITIENDO: No hay más dosis futuras que programar.");
-      }
-    } 
-    // --- NUEVA LÓGICA PARA ANULAR UNA OMISIÓN ---
+      // 2. Llama al servicio para que se encargue de la alarma
+      await NotificationService.omitDoseAndReschedule(
+        tratamiento: widget.tratamiento,
+        docRef: widget.docRef,
+      );
+    }
+    // --- REFACTORIZACIÓN PARA ANULAR OMISIÓN ---
     else {
-      debugPrint("ANULANDO OMISIÓN: Cancelando cualquier alarma existente con ID: $alarmId para reevaluar.");
-      await AndroidAlarmManager.cancel(alarmId);
-      
-      // Quitar la dosis del array de omitidas en Firestore
+      // 1. Actualiza Firestore
       await widget.docRef.update({
         'skippedDoses': FieldValue.arrayRemove([timestamp])
       });
-      
-      // Volver a calcular cuál es la próxima dosis real (podría ser la que acabamos de "des-omitir")
-      final DateTime? proximaDosisReal = await _findNextUpcomingDose();
 
-      if (proximaDosisReal != null) {
-        debugPrint("ANULANDO OMISIÓN: La próxima alarma real es a las $proximaDosisReal. Reprogramando con ID: $alarmId");
-        await AndroidAlarmManager.oneShotAt(
-          proximaDosisReal,
-          alarmId,
-          alarmCallbackLogic,
-          exact: true,
-          wakeup: true,
-          alarmClock: true,
-          rescheduleOnReboot: true,
-           params: {
-            'currentNotificationId': Random().nextInt(100000),
-            'nombreMedicamento': widget.tratamiento['nombreMedicamento'],
-            'presentacion': widget.tratamiento['presentacion'],
-            'intervaloHoras': int.parse(widget.tratamiento['intervaloDosis']),
-            'fechaFinTratamientoString': (widget.tratamiento['fechaFinTratamiento'] as Timestamp).toDate().toIso8601String(),
-            'prescriptionAlarmId': alarmId,
-          },
-        );
-      } else {
-         debugPrint("ANULANDO OMISIÓN: No hay más dosis futuras que programar.");
-      }
+      // 2. Llama al servicio para que se encargue de la alarma
+      await NotificationService.undoOmissionAndReschedule(
+        tratamiento: widget.tratamiento,
+        docRef: widget.docRef,
+      );
     }
   }
 
-  Future<DateTime?> _findNextUpcomingDose() async {
-    // Primero, recargamos los datos más recientes desde Firestore
-    final freshSnapshot = await widget.docRef.get();
-    final freshTratamiento = freshSnapshot.data() as Map<String, dynamic>;
-
-    final DateTime inicio = (freshTratamiento['fechaInicioTratamiento'] as Timestamp).toDate();
-    final DateTime fechaFin = (freshTratamiento['fechaFinTratamiento'] as Timestamp).toDate();
-    final int intervalo = int.parse(freshTratamiento['intervaloDosis']);
-    final List<DateTime> dosisOmitidas = (freshTratamiento['skippedDoses'] as List<dynamic>?)
-        ?.map((ts) => (ts as Timestamp).toDate())
-        .toList() ?? [];
-
-    DateTime dosisActual = inicio;
-
-    while (dosisActual.isBefore(fechaFin)) {
-      // Buscamos la primera dosis futura que NO esté en la lista de omitidas
-      if (dosisActual.isAfter(DateTime.now())) {
-        final esOmitida = dosisOmitidas.any((om) => om.isAtSameMomentAs(dosisActual));
-        if (!esOmitida) {
-          return dosisActual; // ¡Esta es la próxima!
-        }
-      }
-      dosisActual = dosisActual.add(Duration(hours: intervalo));
-    }
-    
-    return null; // No hay más dosis futuras
-  }
-  
   // --- Widgets de Construcción ---
   @override
   Widget build(BuildContext context) {
