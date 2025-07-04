@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:meditime/enums/view_state.dart';
+import 'package:meditime/widgets/estado_vista.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
@@ -204,14 +206,27 @@ class _ReportesPageState extends State<ReportesPage> {
                     stream: firestoreService.getMedicamentosStream(user.uid),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
+                        return const EstadoVista(state: ViewState.loading, child: SizedBox.shrink());
                       }
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return const Center(
-                          child: Text('No hay tratamientos activos.',
-                              style: TextStyle(fontSize: 18, color: Colors.grey)),
+                      if (snapshot.hasError) {
+                        return EstadoVista(
+                          state: ViewState.error,
+                          errorMessage: "Error al cargar los datos para el reporte.",
+                          onRetry: () => setState(() {}),
+                          child: const SizedBox.shrink(),
                         );
                       }
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const EstadoVista(
+                          state: ViewState.empty,
+                          emptyMessage: 'No hay tratamientos para generar un reporte.',
+                          child: SizedBox.shrink(),
+                        );
+                      }
+                      
+                  return EstadoVista(
+                    state: ViewState.success,
+                    child: Builder(builder: (context) {
 
                       int totalDosisProgramadas = 0;
                       int totalDosisOmitidas = 0;
@@ -240,16 +255,18 @@ class _ReportesPageState extends State<ReportesPage> {
                           const SizedBox(height: 12),
                           ...tratamientos.map((doc) {
                             return _buildTratamientoCard(doc.data() as Map<String, dynamic>, dateRange);
-                          }).toList(),
-                        ],
+                              }).toList(),
+                            ],
+                          );
+                        }),
                       );
                     },
                   ),
                 ),
               ],
             ),
-    );
-  }
+          );
+        }
 
   Widget _buildOverallAdherenceCard(int tomadas, int omitidas) {
     final int total = tomadas + omitidas;

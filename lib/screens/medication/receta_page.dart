@@ -8,6 +8,8 @@ import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'agregar_receta_page.dart';
 import 'detalle_receta_page.dart';
+import 'package:meditime/widgets/estado_vista.dart';
+import 'package:meditime/enums/view_state.dart';
 
 class RecetaPage extends StatefulWidget {
   const RecetaPage({super.key});
@@ -201,20 +203,34 @@ class _RecetaPageState extends State<RecetaPage> {
           : StreamBuilder<QuerySnapshot>(
               stream: firestoreService.getMedicamentosStream(user.uid),
               builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                if (snapshot.hasError) {
-                  return const Center(child: Text('Ocurrió un error al cargar las recetas.'));
-                }
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Text('Aún no has agregado ninguna receta', style: TextStyle(fontSize: 20)),
-                  );
-                }
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const EstadoVista(state: ViewState.loading, child: SizedBox.shrink());
+              }
+              if (snapshot.hasError) {
+                return EstadoVista(
+                  state: ViewState.error,
+                  errorMessage: 'Ocurrió un error al cargar las recetas.',
+                  onRetry: () {
+                    // Lógica para reintentar la carga si es necesario
+                    setState(() {});
+                  },
+                  child: const SizedBox.shrink(),
+                );
+              }
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const EstadoVista(
+                  state: ViewState.empty,
+                  emptyMessage: 'Aún no has agregado ninguna receta. ¡Añade una para empezar!',
+                  child: SizedBox.shrink(),
+                );
+              }
 
-                // La lógica para procesar los datos no cambia.
-                List<Map<String, dynamic>> todasDosis = [];
+              return EstadoVista(
+                state: ViewState.success,
+                child: Builder( // Usamos un Builder para que el contexto sea correcto
+                  builder: (context) {
+                    // La lógica para procesar los datos no cambia.
+                    List<Map<String, dynamic>> todasDosis = [];
                 for (var recetaDoc in snapshot.data!.docs) {
                   final datos = recetaDoc.data() as Map<String, dynamic>;
                   final List<dynamic> skippedDosesRaw = datos['skippedDoses'] ?? [];
@@ -257,9 +273,12 @@ class _RecetaPageState extends State<RecetaPage> {
                         ],
                       ),
                   ],
-                );
-              },
-            ),
+                    );
+                  }
+                ),
+              );
+            },
+          ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const AgregarRecetaPage()));

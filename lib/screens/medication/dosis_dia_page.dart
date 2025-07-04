@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:meditime/enums/view_state.dart';
+import 'package:meditime/widgets/estado_vista.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/services/notification_service.dart';
@@ -30,13 +32,38 @@ class DosisDiaPage extends StatelessWidget {
     return StreamBuilder<DocumentSnapshot>(
       stream: docRef.snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(body: EstadoVista(state: ViewState.loading, child: SizedBox.shrink()));
+          }
+          if (!snapshot.hasData || !snapshot.data!.exists) {
+            return Scaffold(
+              appBar: AppBar(title: const Text("Error")),
+              body: const EstadoVista(
+                state: ViewState.empty,
+                emptyMessage: "Parece que este tratamiento ya no existe.",
+                child: SizedBox.shrink(),
+              ),
+            );
+          }
+          if (snapshot.hasError) {
+            return Scaffold(
+              appBar: AppBar(title: const Text("Error")),
+              body: EstadoVista(
+                state: ViewState.error,
+                errorMessage: "No se pudo cargar el detalle del tratamiento.",
+                child: const SizedBox.shrink(),
+              ),
+            );
+          }
+
+    return EstadoVista(
+        state: ViewState.success,
+        child: Builder(builder: (context) {
 
         final tratamiento = snapshot.data!.data() as Map<String, dynamic>;
         final String nombreMedicamento = tratamiento['nombreMedicamento'] ?? 'N/A';
         final DateFormat formatter = DateFormat('d \'de\' MMMM', 'es_ES');
+
 
         return Scaffold(
           appBar: AppBar(
@@ -76,8 +103,10 @@ class DosisDiaPage extends StatelessWidget {
             tratamiento: tratamiento,
             selectedDay: selectedDay,
             docRef: docRef,
-          ),
-        );
+            ),
+          );
+        }),
+      );
       },
     );
   }
