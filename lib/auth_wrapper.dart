@@ -1,3 +1,4 @@
+// lib/auth_wrapper.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:meditime/services/auth_service.dart';
@@ -29,37 +30,37 @@ class AuthWrapper extends StatelessWidget {
         if (snapshot.hasData) {
           final user = snapshot.data!;
           final firestoreService = context.read<FirestoreService>();
+          final profileNotifier = context.read<ProfileNotifier>();
 
-          return FutureBuilder<Map<String, dynamic>?>(
-            future: firestoreService.getUserProfile(user.uid).then((doc) => doc.data() as Map<String, dynamic>?),
-            builder: (context, profileSnapshot) {
-              if (profileSnapshot.connectionState == ConnectionState.waiting) {
-                return const LoadingScreen();
-              }
-              
-              if (profileSnapshot.hasError) {
-                return const Scaffold(body: Center(child: Text('Error al cargar el perfil.')));
-              }
-
-              // Una vez que tenemos los datos del perfil...
-              final profileData = profileSnapshot.data;
-
-              // ----- INICIO DE LA CORRECCIÓN -----
-              // Usamos addPostFrameCallback para actualizar el estado DESPUÉS del build.
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (context.mounted) { // Verificamos que el contexto aún sea válido
-                  context.read<ProfileNotifier>().updateProfile(
-                    newName: profileData?['name'] as String?,
-                    newImageUrl: profileData?['profileImage'] as String?,
-                  );
+          // Si el perfil aún no se ha cargado en el notifier, lo cargamos.
+          if (profileNotifier.userName == null) {
+            return FutureBuilder<Map<String, dynamic>?>(
+              future: firestoreService.getUserProfile(user.uid).then((doc) => doc.data() as Map<String, dynamic>?),
+              builder: (context, profileSnapshot) {
+                if (profileSnapshot.connectionState == ConnectionState.waiting) {
+                  return const LoadingScreen();
                 }
-              });
-              // ----- FIN DE LA CORRECCIÓN -----
+                
+                if (profileSnapshot.hasError) {
+                  return const Scaffold(body: Center(child: Text('Error al cargar el perfil.')));
+                }
 
-              // Ya no pasamos los datos directamente a HomePage.
-              return const HomePage();
-            },
-          );
+                final profileData = profileSnapshot.data;
+
+                // Actualizamos el notifier con los datos cargados.
+                profileNotifier.updateProfile(
+                  newName: profileData?['name'] as String?,
+                  newImageUrl: profileData?['profileImage'] as String?,
+                );
+                
+                // Una vez cargado, vamos a la HomePage.
+                return const HomePage();
+              },
+            );
+          } else {
+            // Si el perfil ya está en el notifier, vamos directamente a la HomePage.
+            return const HomePage();
+          }
         }
 
         return const LoginPage();

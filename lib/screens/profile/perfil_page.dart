@@ -98,19 +98,21 @@ class _PerfilPageState extends State<PerfilPage> {
     }
   }
 
-  Future<void> _loadProfileData() async {
+ Future<void> _loadProfileData() async {
     if (!mounted) return;
     final authService = context.read<AuthService>();
     final firestoreService = context.read<FirestoreService>();
     final user = authService.currentUser;
     if (user == null) return;
 
+    final profileNotifier = context.read<ProfileNotifier>();
     final doc = await firestoreService.getUserProfile(user.uid);
     final profileData = doc.data() as Map<String, dynamic>?;
 
     setState(() {
-      // Guardamos los datos originales para poder revertir si se cancela
-      _originalName = profileData?['name'] ?? '';
+      _originalName = profileNotifier.userName ?? profileData?['name'] ?? '';
+      _originalProfileImageUrl = profileNotifier.profileImageUrl ?? profileData?['profileImage'] ?? '';
+      
       _originalPhone = profileData?['phone'] ?? '';
       _originalEmail = user.email ?? '';
       _originalDob = profileData?['dob'] ?? '';
@@ -118,7 +120,6 @@ class _PerfilPageState extends State<PerfilPage> {
       _originalAllergies = profileData?['allergies'] ?? '';
       _originalMedications = profileData?['medications'] ?? '';
       _originalMedicalHistory = profileData?['medicalHistory'] ?? '';
-      _originalProfileImageUrl = profileData?['profileImage'] ?? '';
       
       _resetToOriginalData();
     });
@@ -190,8 +191,8 @@ class _PerfilPageState extends State<PerfilPage> {
 
     String? finalImageUrl = _originalProfileImageUrl;
 
-    // Si la imagen cambió (es una ruta de archivo local), la subimos a Firebase
-    if (_profileImageUrl != null && !_profileImageUrl!.startsWith('http')) {
+    // CÓDIGO CORREGIDO
+    if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty && !_profileImageUrl!.startsWith('http')) {
         File imageFile = File(_profileImageUrl!);
         finalImageUrl = await storageService.uploadProfileImage(user.uid, imageFile);
     }

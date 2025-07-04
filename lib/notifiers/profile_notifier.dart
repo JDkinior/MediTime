@@ -1,3 +1,4 @@
+// lib/notifiers/profile_notifier.dart
 import 'package:flutter/material.dart';
 
 /// Gestiona el estado de los datos del perfil del usuario que pueden ser
