@@ -30,4 +30,9 @@ class ProfileNotifier extends ChangeNotifier {
       notifyListeners(); // Avisa a los widgets que deben reconstruirse.
     }
   }
+    void clearProfile() {
+    _userName = null;
+    _profileImageUrl = null;
+    notifyListeners();
+  }
 }

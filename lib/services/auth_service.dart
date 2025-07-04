@@ -1,6 +1,9 @@
 // lib/services/auth_service.dart
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:meditime/notifiers/profile_notifier.dart';
+import 'package:provider/provider.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -23,8 +26,12 @@ class AuthService {
   }
 
   // Cerrar sesión
-  Future<void> signOut() async {
-    await _googleSignIn.disconnect(); // <-- AÑADE ESTA LÍNEA
+  Future<void> signOut(BuildContext context) async {
+    // Limpiamos los datos del perfil ANTES de cerrar la sesión
+    context.read<ProfileNotifier>().clearProfile();
+    
+    // Procedemos con el cierre de sesión en Google y Firebase
+    await _googleSignIn.disconnect();
     await _auth.signOut();
   }
 

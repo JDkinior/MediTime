@@ -50,7 +50,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _handleLogout() {
-    context.read<AuthService>().signOut();
+    context.read<AuthService>().signOut(context);
   }
 
   void _toggleEditing() {
