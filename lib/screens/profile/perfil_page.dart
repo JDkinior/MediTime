@@ -176,53 +176,71 @@ class _PerfilPageState extends State<PerfilPage> {
     }
   }
 
-  Future<void> _saveProfileData() async {
-    if (!mounted) return;
-    setState(() => _isSaving = true);
+  // En lib/screens/profile/perfil_page.dart
 
-    final authService = context.read<AuthService>();
-    final firestoreService = context.read<FirestoreService>();
-    final storageService = context.read<StorageService>();
-    final user = authService.currentUser;
-    if (user == null) {
-      setState(() => _isSaving = false);
-      return;
-    }
+Future<void> _saveProfileData() async {
+  if (!mounted) return;
+  setState(() => _isSaving = true);
 
-    String? finalImageUrl = _originalProfileImageUrl;
-
-    // CÓDIGO CORREGIDO
-    if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty && !_profileImageUrl!.startsWith('http')) {
-        File imageFile = File(_profileImageUrl!);
-        finalImageUrl = await storageService.uploadProfileImage(user.uid, imageFile);
-    }
-
-    final dataToSave = {
-      'name': _nameController.text, 'phone': _phoneController.text,
-      'dob': _dobController.text, 'bloodType': _bloodTypeController.text,
-      'allergies': _allergiesController.text, 'medications': _medicationsController.text,
-      'medicalHistory': _medicalHistoryController.text,
-      'profileImage': finalImageUrl ?? '',
-    };
-
-    await firestoreService.saveUserProfile(user.uid, dataToSave);
-
-    if (mounted) {
-      // Notificamos a toda la app sobre los nuevos datos del perfil
-      context.read<ProfileNotifier>().updateProfile(
-            newName: _nameController.text,
-            newImageUrl: finalImageUrl,
-          );
-
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cambios guardados')));
-      widget.toggleEditing(); // Salimos del modo edición
-    }
-
-    if (mounted) {
-      setState(() => _isSaving = false);
-    }
+  final authService = context.read<AuthService>();
+  final firestoreService = context.read<FirestoreService>();
+  final storageService = context.read<StorageService>();
+  final user = authService.currentUser;
+  if (user == null) {
+    setState(() => _isSaving = false);
+    return;
   }
 
+  String? finalImageUrl = _originalProfileImageUrl;
+
+  if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty && !_profileImageUrl!.startsWith('http')) {
+      File imageFile = File(_profileImageUrl!);
+      finalImageUrl = await storageService.uploadProfileImage(user.uid, imageFile);
+  }
+
+  final dataToSave = {
+    'name': _nameController.text, 'phone': _phoneController.text,
+    'dob': _dobController.text, 'bloodType': _bloodTypeController.text,
+    'allergies': _allergiesController.text, 'medications': _medicationsController.text,
+    'medicalHistory': _medicalHistoryController.text,
+    'profileImage': finalImageUrl ?? '',
+  };
+
+  await firestoreService.saveUserProfile(user.uid, dataToSave);
+
+  if (mounted) {
+    // Notificamos a toda la app sobre los nuevos datos del perfil
+    context.read<ProfileNotifier>().updateProfile(
+          newName: _nameController.text,
+          newImageUrl: finalImageUrl,
+        );
+    
+    // >>>>>>>>> INICIO DE LA SOLUCIÓN DEFINITIVA <<<<<<<<<<<
+    // Actualizamos el estado local Y los valores "originales".
+    // Esto evita que didUpdateWidget revierta nuestro guardado.
+    setState(() {
+      _originalName = _nameController.text;
+      _originalPhone = _phoneController.text;
+      _originalDob = _dobController.text;
+      _originalBloodType = _bloodTypeController.text;
+      _originalAllergies = _allergiesController.text;
+      _originalMedications = _medicationsController.text;
+      _originalMedicalHistory = _medicalHistoryController.text;
+      _originalProfileImageUrl = finalImageUrl;
+
+      // También reseteamos los controladores a estos nuevos valores originales.
+      _resetToOriginalData();
+    });
+    // >>>>>>>>> FIN DE LA SOLUCIÓN DEFINITIVA <<<<<<<<<<<
+
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cambios guardados')));
+    widget.toggleEditing(); // Ahora esto ya no causará problemas.
+  }
+
+  if (mounted) {
+    setState(() => _isSaving = false);
+  }
+}
   @override
   Widget build(BuildContext context) {
     // El ProfileNotifier se usa para mostrar los datos en el header
