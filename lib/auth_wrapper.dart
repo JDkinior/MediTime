@@ -7,7 +7,7 @@ import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'package:provider/provider.dart';
-
+import 'package:meditime/services/notification_service.dart';
 // Importa el notifier
 import 'package:meditime/notifiers/profile_notifier.dart';
 
@@ -49,23 +49,15 @@ class AuthWrapper extends StatelessWidget {
 
               final profileData = profileSnapshot.data;
 
-              // --- INICIO DE LA CORRECCIÓN ---
-              // Llamamos a updateProfile después de que el frame se haya construido.
-              // Esto evita el error "setState() or markNeedsBuild() called during build".
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                // Es una buena práctica verificar si el widget sigue montado en el árbol
-                // antes de interactuar con su contexto o notifiers.
                 if (context.mounted) {
                   profileNotifier.updateProfile(
                     newName: profileData?['name'] as String?,
                     newImageUrl: profileData?['profileImage'] as String?,
                   );
+                  NotificationService.reactivateAlarmsForUser(user.uid);
                 }
               });
-              // --- FIN DE LA CORRECCIÓN ---
-              
-              // Mientras el notifier se actualiza en el siguiente frame, podemos
-              // mostrar la HomePage inmediatamente sin problemas.
               return const HomePage();
             },
           );

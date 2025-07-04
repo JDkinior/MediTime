@@ -5,6 +5,7 @@ import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:meditime/alarm_callback_handler.dart';
+import 'package:meditime/services/firestore_service.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:flutter/material.dart'; // Para debugPrint
@@ -276,6 +277,44 @@ class NotificationService {
       debugPrint("UNDO: No hay más dosis futuras que programar.");
     }
   }
+
+  static Future<void> reactivateAlarmsForUser(String userId) async {
+  debugPrint("--- Iniciando reactivación de alarmas para el usuario $userId ---");
+  final firestoreService = FirestoreService(); // Instancia local del servicio
+
+  try {
+    final QuerySnapshot treatmentsSnapshot =
+        await firestoreService.getMedicamentosStream(userId).first;
+
+    for (var doc in treatmentsSnapshot.docs) {
+      final tratamiento = doc.data() as Map<String, dynamic>;
+      final alarmId = tratamiento['prescriptionAlarmId'] as int?;
+      final nombreMedicamento = tratamiento['nombreMedicamento'] ?? 'N/A';
+
+      if (alarmId == null) {
+        debugPrint("Saltando tratamiento '$nombreMedicamento' por no tener alarmId.");
+        continue;
+      }
+
+      // Como medida de seguridad, cancelamos cualquier alarma previa con este ID
+      await AndroidAlarmManager.cancel(alarmId);
+
+      // Buscamos la próxima dosis real que debería sonar
+      final DateTime? proximaDosis = await _findNextUpcomingDose(tratamientoData: tratamiento);
+
+      if (proximaDosis != null) {
+        // Si encontramos una dosis futura, la reprogramamos
+        debugPrint("Reactivando alarma para '$nombreMedicamento'. Próxima dosis: $proximaDosis (ID: $alarmId)");
+        await _rescheduleAlarm(proximaDosis, tratamiento, alarmId);
+      } else {
+        debugPrint("No hay dosis futuras que reactivar para '$nombreMedicamento'.");
+      }
+    }
+  } catch (e) {
+    debugPrint("Error catastrófico durante la reactivación de alarmas: $e");
+  }
+  debugPrint("--- Reactivación de alarmas completada ---");
+}
 
   // --- MÉTODOS PRIVADOS AUXILIARES ---
 
