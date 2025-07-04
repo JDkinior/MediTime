@@ -50,8 +50,7 @@ class CalendarioPage extends StatelessWidget {
     );
   }
 
-  // Lógica para procesar los documentos de Firestore y convertirlos en eventos
-  LinkedHashMap<DateTime, List<Map<String, dynamic>>> _procesarEventos(List<QueryDocumentSnapshot> docs) {
+    LinkedHashMap<DateTime, List<Map<String, dynamic>>> _procesarEventos(List<QueryDocumentSnapshot> docs) {
     final events = LinkedHashMap<DateTime, List<Map<String, dynamic>>>(
       equals: isSameDay,
       hashCode: (key) => key.day * 1000000 + key.month * 10000 + key.year,
@@ -64,10 +63,28 @@ class CalendarioPage extends StatelessWidget {
       }
       final startDate = (data['fechaInicioTratamiento'] as Timestamp).toDate();
       final endDate = (data['fechaFinTratamiento'] as Timestamp).toDate();
+      final int intervalo = int.tryParse(data['intervaloDosis'] ?? '0') ?? 0;
+      if (intervalo <= 0) continue;
+
+      // Se itera sobre cada día del tratamiento
       for (var day = startDate; day.isBefore(endDate.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
-        final normalizedDay = DateTime.utc(day.year, day.month, day.day);
-        final dayEvents = events.putIfAbsent(normalizedDay, () => []);
-        dayEvents.add({...data, 'docId': doc.id});
+        int doseCountForDay = 0;
+        DateTime dosisActual = startDate;
+
+        // Se calcula cuántas dosis hay en este 'day' específico
+        while (dosisActual.isBefore(endDate)) {
+          if (isSameDay(dosisActual, day)) {
+            doseCountForDay++;
+          }
+          dosisActual = dosisActual.add(Duration(hours: intervalo));
+        }
+
+        // Solo se agrega el día al calendario si tiene al menos una dosis
+        if (doseCountForDay > 0) {
+          final normalizedDay = DateTime.utc(day.year, day.month, day.day);
+          final dayEvents = events.putIfAbsent(normalizedDay, () => []);
+          dayEvents.add({...data, 'docId': doc.id});
+        }
       }
     }
     return events;

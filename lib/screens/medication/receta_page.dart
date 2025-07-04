@@ -244,6 +244,14 @@ class _RecetaPageState extends State<RecetaPage> {
                   }
                 }
 
+                    if (todasDosis.isEmpty) {
+                      return const EstadoVista(
+                        state: ViewState.empty,
+                        emptyMessage: 'No tienes dosis futuras programadas. ¡Añade una nueva receta o revisa tus tratamientos pasados en el calendario!',
+                        child: SizedBox.shrink(),
+                      );
+                    }
+
                 todasDosis.sort((a, b) => a['horaDosis'].compareTo(b['horaDosis']));
 
                 final dosisAgrupadas = _agruparPorFecha(todasDosis.map((d) => d['horaDosis'] as DateTime).toList());
