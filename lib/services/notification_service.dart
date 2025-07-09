@@ -5,6 +5,7 @@ import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:meditime/alarm_callback_handler.dart';
+import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
@@ -229,22 +230,17 @@ class NotificationService {
   /// **NUEVO MÉTODO**
   /// Omite una dosis y reprograma la siguiente.
   static Future<void> omitDoseAndReschedule({
-    required Map<String, dynamic> tratamiento,
+    required Tratamiento tratamiento,
     required DocumentReference docRef,
   }) async {
-    final int alarmId = tratamiento['prescriptionAlarmId'];
-    debugPrint("OMIT: Cancelando alarma existente con ID de Serie: $alarmId");
-    await AndroidAlarmManager.cancel(alarmId);
+    debugPrint("OMIT: Cancelando alarma existente con ID de Serie: ${tratamiento.prescriptionAlarmId}");
+    await AndroidAlarmManager.cancel(tratamiento.prescriptionAlarmId);
 
-    // La lógica para encontrar la próxima dosis se mantiene, pero ahora vive aquí.
-    final DateTime? proximaDosisReal =
-        await _findNextUpcomingDose(tratamientoData: tratamiento);
+    final DateTime? proximaDosisReal = await _findNextUpcomingDose(tratamiento: tratamiento);
 
     if (proximaDosisReal != null) {
-      debugPrint(
-          "OMIT: Reprogramando la alarma para las $proximaDosisReal con ID de Serie: $alarmId");
-      await _rescheduleAlarm(
-          proximaDosisReal, tratamiento, alarmId);
+      debugPrint("OMIT: Reprogramando la alarma para las $proximaDosisReal con ID de Serie: ${tratamiento.prescriptionAlarmId}");
+      await _rescheduleAlarm(proximaDosisReal, tratamiento);
     } else {
       debugPrint("OMIT: No hay más dosis futuras que programar.");
     }
@@ -253,78 +249,65 @@ class NotificationService {
   /// **NUEVO MÉTODO**
   /// Anula la omisión de una dosis y reprograma la alarma correspondiente.
   static Future<void> undoOmissionAndReschedule({
-    required Map<String, dynamic> tratamiento,
+    required Tratamiento tratamiento,
     required DocumentReference docRef,
   }) async {
-    final int alarmId = tratamiento['prescriptionAlarmId'];
-    debugPrint(
-        "UNDO: Cancelando cualquier alarma existente con ID de Serie: $alarmId para reevaluar.");
-    await AndroidAlarmManager.cancel(alarmId);
+    debugPrint("UNDO: Cancelando cualquier alarma existente con ID de Serie: ${tratamiento.prescriptionAlarmId} para reevaluar.");
+    await AndroidAlarmManager.cancel(tratamiento.prescriptionAlarmId);
 
-    // Al anular la omisión, necesitamos los datos más frescos de Firestore.
     final freshSnapshot = await docRef.get();
-    final freshTratamiento = freshSnapshot.data() as Map<String, dynamic>;
+    // Creamos un nuevo objeto Tratamiento con los datos más recientes de Firestore
+    final freshTratamiento = Tratamiento.fromFirestore(freshSnapshot as DocumentSnapshot<Map<String, dynamic>>);
 
-    final DateTime? proximaDosisReal =
-        await _findNextUpcomingDose(tratamientoData: freshTratamiento);
+    final DateTime? proximaDosisReal = await _findNextUpcomingDose(tratamiento: freshTratamiento);
 
     if (proximaDosisReal != null) {
-      debugPrint(
-          "UNDO: La próxima alarma real es a las $proximaDosisReal. Reprogramando con ID de Serie: $alarmId");
-      await _rescheduleAlarm(
-          proximaDosisReal, freshTratamiento, alarmId);
+      debugPrint("UNDO: La próxima alarma real es a las $proximaDosisReal. Reprogramando con ID de Serie: ${tratamiento.prescriptionAlarmId}");
+      await _rescheduleAlarm(proximaDosisReal, freshTratamiento);
     } else {
       debugPrint("UNDO: No hay más dosis futuras que programar.");
     }
   }
 
+  /// Reactiva todas las alarmas para un usuario, por ejemplo, al iniciar sesión.
   static Future<void> reactivateAlarmsForUser(String userId) async {
-  debugPrint("--- Iniciando reactivación de alarmas para el usuario $userId ---");
-  final firestoreService = FirestoreService(); // Instancia local del servicio
+    debugPrint("--- Iniciando reactivación de alarmas para el usuario $userId ---");
+    final firestoreService = FirestoreService();
 
-  try {
-    final QuerySnapshot treatmentsSnapshot =
-        await firestoreService.getMedicamentosStream(userId).first;
+    try {
+      final List<Tratamiento> todosLosTratamientos = await firestoreService.getMedicamentosStream(userId).first;
 
-    for (var doc in treatmentsSnapshot.docs) {
-      final tratamiento = doc.data() as Map<String, dynamic>;
-      final alarmId = tratamiento['prescriptionAlarmId'] as int?;
-      final nombreMedicamento = tratamiento['nombreMedicamento'] ?? 'N/A';
+      for (var tratamiento in todosLosTratamientos) {
+        if (tratamiento.prescriptionAlarmId == 0) {
+          debugPrint("Saltando tratamiento '${tratamiento.nombreMedicamento}' por no tener alarmId.");
+          continue;
+        }
 
-      if (alarmId == null) {
-        debugPrint("Saltando tratamiento '$nombreMedicamento' por no tener alarmId.");
-        continue;
+        await AndroidAlarmManager.cancel(tratamiento.prescriptionAlarmId);
+
+        final DateTime? proximaDosis = await _findNextUpcomingDose(tratamiento: tratamiento);
+
+        if (proximaDosis != null) {
+          debugPrint("Reactivando alarma para '${tratamiento.nombreMedicamento}'. Próxima dosis: $proximaDosis (ID: ${tratamiento.prescriptionAlarmId})");
+          await _rescheduleAlarm(proximaDosis, tratamiento);
+        } else {
+          debugPrint("No hay dosis futuras que reactivar para '${tratamiento.nombreMedicamento}'.");
+        }
       }
-
-      // Como medida de seguridad, cancelamos cualquier alarma previa con este ID
-      await AndroidAlarmManager.cancel(alarmId);
-
-      // Buscamos la próxima dosis real que debería sonar
-      final DateTime? proximaDosis = await _findNextUpcomingDose(tratamientoData: tratamiento);
-
-      if (proximaDosis != null) {
-        // Si encontramos una dosis futura, la reprogramamos
-        debugPrint("Reactivando alarma para '$nombreMedicamento'. Próxima dosis: $proximaDosis (ID: $alarmId)");
-        await _rescheduleAlarm(proximaDosis, tratamiento, alarmId);
-      } else {
-        debugPrint("No hay dosis futuras que reactivar para '$nombreMedicamento'.");
-      }
+    } catch (e) {
+      debugPrint("Error catastrófico durante la reactivación de alarmas: $e");
     }
-  } catch (e) {
-    debugPrint("Error catastrófico durante la reactivación de alarmas: $e");
+    debugPrint("--- Reactivación de alarmas completada ---");
   }
-  debugPrint("--- Reactivación de alarmas completada ---");
-}
 
   // --- MÉTODOS PRIVADOS AUXILIARES ---
 
   /// **NUEVO MÉTODO PRIVADO**
   /// Lógica centralizada para reprogramar una alarma.
-  static Future<void> _rescheduleAlarm(DateTime scheduleTime,
-      Map<String, dynamic> tratamiento, int alarmId) async {
+  static Future<void> _rescheduleAlarm(DateTime scheduleTime, Tratamiento tratamiento) async {
     await AndroidAlarmManager.oneShotAt(
       scheduleTime,
-      alarmId,
+      tratamiento.prescriptionAlarmId,
       alarmCallbackLogic,
       exact: true,
       wakeup: true,
@@ -332,16 +315,14 @@ class NotificationService {
       rescheduleOnReboot: true,
       allowWhileIdle: true,
       params: _buildAlarmParams(
-        nombreMedicamento: tratamiento['nombreMedicamento'],
-        presentacion: tratamiento['presentacion'],
-        intervaloHoras: int.parse(tratamiento['intervaloDosis']),
-        fechaFinTratamiento:
-            (tratamiento['fechaFinTratamiento'] as Timestamp).toDate(),
-        prescriptionAlarmId: alarmId,
+        nombreMedicamento: tratamiento.nombreMedicamento,
+        presentacion: tratamiento.presentacion,
+        intervaloHoras: int.parse(tratamiento.intervaloDosis),
+        fechaFinTratamiento: tratamiento.fechaFinTratamiento,
+        prescriptionAlarmId: tratamiento.prescriptionAlarmId,
       ),
     );
   }
-
   /// **NUEVO MÉTODO PRIVADO**
   /// Construye el mapa de parámetros para una alarma.
   static Map<String, dynamic> _buildAlarmParams({
@@ -365,12 +346,12 @@ class NotificationService {
   /// Omite la próxima dosis futura de un tratamiento y reprograma la siguiente.
   /// Retorna `true` si se pudo omitir, `false` si no había dosis futuras para omitir.
   static Future<bool> skipNextDoseAndReschedule({
-    required Map<String, dynamic> tratamiento,
+    required Tratamiento tratamiento, // <-- AHORA RECIBE UN OBJETO TRATAMIENTO
     required DocumentReference docRef,
   }) async {
     // 1. Usamos el método privado para encontrar la próxima dosis válida
     final DateTime? proximaDosis =
-        await _findNextUpcomingDose(tratamientoData: tratamiento);
+        await _findNextUpcomingDose(tratamiento: tratamiento); // <-- SE LLAMA CORRECTAMENTE
 
     if (proximaDosis == null) {
       debugPrint("SKIP: No se encontraron dosis futuras para omitir.");
@@ -379,59 +360,48 @@ class NotificationService {
 
     debugPrint("SKIP: Omitiendo la dosis de las $proximaDosis.");
 
-    // 2. Actualizamos Firestore para añadir la dosis a la lista de omitidas
+    // 2. Actualizamos Firestore
     await docRef.update({
       'skippedDoses': FieldValue.arrayUnion([Timestamp.fromDate(proximaDosis)])
     });
 
-    // 3. Cancelamos la serie de alarmas actual para evitar que suene la dosis omitida
-    final int alarmId = tratamiento['prescriptionAlarmId'];
-    await AndroidAlarmManager.cancel(alarmId);
-    debugPrint("SKIP: Alarma existente con ID de Serie $alarmId cancelada.");
+    // 3. Cancelamos la serie de alarmas actual
+    await AndroidAlarmManager.cancel(tratamiento.prescriptionAlarmId);
+    debugPrint("SKIP: Alarma existente con ID de Serie ${tratamiento.prescriptionAlarmId} cancelada.");
 
-    // 4. Obtenemos los datos más recientes de Firestore, que ahora incluyen la dosis omitida
+    // 4. Obtenemos los datos más recientes y creamos un nuevo objeto Tratamiento actualizado
     final freshSnapshot = await docRef.get();
-    final freshTratamiento = freshSnapshot.data() as Map<String, dynamic>;
+    final freshTratamiento = Tratamiento.fromFirestore(freshSnapshot as DocumentSnapshot<Map<String, dynamic>>);
 
     // 5. Buscamos la siguiente dosis válida DESPUÉS de la que acabamos de omitir
     final DateTime? siguienteDosisValida =
-        await _findNextUpcomingDose(tratamientoData: freshTratamiento);
+        await _findNextUpcomingDose(tratamiento: freshTratamiento);
 
     if (siguienteDosisValida != null) {
       // 6. Si existe una siguiente dosis, la reprogramamos
-      debugPrint(
-          "SKIP: Reprogramando la alarma para las $siguienteDosisValida con ID de Serie: $alarmId");
-      await _rescheduleAlarm(siguienteDosisValida, freshTratamiento, alarmId);
+      debugPrint("SKIP: Reprogramando la alarma para las $siguienteDosisValida con ID de Serie: ${freshTratamiento.prescriptionAlarmId}");
+      await _rescheduleAlarm(siguienteDosisValida, freshTratamiento);
     } else {
-      debugPrint(
-          "SKIP: No hay más dosis futuras que programar después de la omisión.");
+      debugPrint("SKIP: No hay más dosis futuras que programar después de la omisión.");
     }
 
-    return true; // La omisión fue exitosa.
+    return true;
   }
-
 
   /// **NUEVO MÉTODO PRIVADO**
   /// Lógica para encontrar la próxima dosis válida.
-  static Future<DateTime?> _findNextUpcomingDose(
-      {required Map<String, dynamic> tratamientoData}) async {
-    final DateTime inicio =
-        (tratamientoData['fechaInicioTratamiento'] as Timestamp).toDate();
-    final DateTime fechaFin =
-        (tratamientoData['fechaFinTratamiento'] as Timestamp).toDate();
-    final int intervalo = int.parse(tratamientoData['intervaloDosis']);
-    final List<DateTime> dosisOmitidas =
-        (tratamientoData['skippedDoses'] as List<dynamic>?)
-                ?.map((ts) => (ts as Timestamp).toDate())
-                .toList() ??
-            [];
+  /// Lógica para encontrar la próxima dosis válida.
+  static Future<DateTime?> _findNextUpcomingDose({required Tratamiento tratamiento}) async {
+    final DateTime inicio = tratamiento.fechaInicioTratamiento;
+    final DateTime fechaFin = tratamiento.fechaFinTratamiento;
+    final int intervalo = int.parse(tratamiento.intervaloDosis);
+    final List<DateTime> dosisOmitidas = tratamiento.skippedDoses;
 
     DateTime dosisActual = inicio;
 
     while (dosisActual.isBefore(fechaFin)) {
       if (dosisActual.isAfter(DateTime.now())) {
-        final esOmitida =
-            dosisOmitidas.any((om) => om.isAtSameMomentAs(dosisActual));
+        final esOmitida = dosisOmitidas.any((om) => om.isAtSameMomentAs(dosisActual));
         if (!esOmitida) {
           return dosisActual;
         }
@@ -440,5 +410,5 @@ class NotificationService {
     }
     return null;
   }
-
+  // ============== FIN DE LA CORRECCIÓN ==============
 }

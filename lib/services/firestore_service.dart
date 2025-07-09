@@ -1,6 +1,7 @@
 // lib/services/firestore_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:meditime/models/tratamiento.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -17,8 +18,20 @@ class FirestoreService {
 
   // --- Medicamentos ---
 
-  Stream<QuerySnapshot> getMedicamentosStream(String userId) {
-    return _db.collection('medicamentos').doc(userId).collection('userMedicamentos').snapshots();
+  Stream<List<Tratamiento>> getMedicamentosStream(String userId) {
+    final stream = _db
+        .collection('medicamentos')
+        .doc(userId)
+        .collection('userMedicamentos')
+        .snapshots();
+
+    // Usamos .map() para transformar el Stream de QuerySnapshot a un Stream de List<Tratamiento>
+    return stream.map((snapshot) {
+      return snapshot.docs.map((doc) {
+        // Por cada documento, usamos nuestro factory constructor para crear un objeto Tratamiento
+        return Tratamiento.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
+      }).toList(); // Convertimos el resultado en una lista
+    });
   }
 
   Future<void> saveMedicamento({

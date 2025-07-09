@@ -3,7 +3,7 @@ import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/screens/medication/dosis_dia_page.dart';
@@ -11,9 +11,8 @@ import 'package:meditime/screens/medication/resumen_tratamiento_page.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'package:meditime/enums/view_state.dart';
+import 'package:meditime/services/tratamiento_service.dart';
 
-// --- CAMBIO 1: El widget principal ahora es más simple ---
-// Ya no maneja el estado del día seleccionado, solo carga los datos.
 class CalendarioPage extends StatelessWidget {
   const CalendarioPage({super.key});
 
@@ -26,7 +25,7 @@ class CalendarioPage extends StatelessWidget {
     return Scaffold(
       body: user == null
           ? const Center(child: Text('Inicia sesión para ver el calendario.'))
-          : StreamBuilder<QuerySnapshot>(
+          : StreamBuilder<List<Tratamiento>>(
               stream: firestoreService.getMedicamentosStream(user.uid),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -40,61 +39,38 @@ class CalendarioPage extends StatelessWidget {
                   );
                 }
 
-                // Procesamos los eventos aquí una sola vez
-                final events = _procesarEventos(snapshot.data?.docs ?? []);
+                final todosLosTratamientos = snapshot.data ?? [];
+                final events = _procesarEventos(todosLosTratamientos);
 
-                // Pasamos los eventos procesados al nuevo widget de contenido
                 return _CalendarioContenido(events: events);
               },
             ),
     );
   }
 
-    LinkedHashMap<DateTime, List<Map<String, dynamic>>> _procesarEventos(List<QueryDocumentSnapshot> docs) {
-    final events = LinkedHashMap<DateTime, List<Map<String, dynamic>>>(
-      equals: isSameDay,
-      hashCode: (key) => key.day * 1000000 + key.month * 10000 + key.year,
-    );
+  LinkedHashMap<DateTime, List<Tratamiento>> _procesarEventos(List<Tratamiento> tratamientos) {
+      final events = LinkedHashMap<DateTime, List<Tratamiento>>(
+        equals: isSameDay,
+        hashCode: (key) => key.day * 1000000 + key.month * 10000 + key.year,
+      );
+      final tratamientoService = TratamientoService(); // Instancia del servicio
+     for (var tratamiento in tratamientos) {
+      // Usamos el servicio para obtener todas las dosis
+      final todasLasDosis = tratamientoService.generarDosisTotales(tratamiento);
+      
+      // Creamos un conjunto de días únicos para evitar duplicados
+      final diasUnicos = todasLasDosis.map((d) => DateTime.utc(d.year, d.month, d.day)).toSet();
 
-    for (var doc in docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      if (data['fechaInicioTratamiento'] == null || data['fechaFinTratamiento'] == null) {
-        continue;
-      }
-      final startDate = (data['fechaInicioTratamiento'] as Timestamp).toDate();
-      final endDate = (data['fechaFinTratamiento'] as Timestamp).toDate();
-      final int intervalo = int.tryParse(data['intervaloDosis'] ?? '0') ?? 0;
-      if (intervalo <= 0) continue;
-
-      // Se itera sobre cada día del tratamiento
-      for (var day = startDate; day.isBefore(endDate.add(const Duration(days: 1))); day = day.add(const Duration(days: 1))) {
-        int doseCountForDay = 0;
-        DateTime dosisActual = startDate;
-
-        // Se calcula cuántas dosis hay en este 'day' específico
-        while (dosisActual.isBefore(endDate)) {
-          if (isSameDay(dosisActual, day)) {
-            doseCountForDay++;
-          }
-          dosisActual = dosisActual.add(Duration(hours: intervalo));
-        }
-
-        // Solo se agrega el día al calendario si tiene al menos una dosis
-        if (doseCountForDay > 0) {
-          final normalizedDay = DateTime.utc(day.year, day.month, day.day);
-          final dayEvents = events.putIfAbsent(normalizedDay, () => []);
-          dayEvents.add({...data, 'docId': doc.id});
-        }
+      for (var dia in diasUnicos) {
+         events.putIfAbsent(dia, () => []).add(tratamiento);
       }
     }
     return events;
   }
 }
 
-// --- CAMBIO 2: Creamos un nuevo StatefulWidget para el contenido ---
-// Este widget SÍ manejará el estado del día seleccionado, el formato, etc.
 class _CalendarioContenido extends StatefulWidget {
-  final LinkedHashMap<DateTime, List<Map<String, dynamic>>> events;
+  final LinkedHashMap<DateTime, List<Tratamiento>> events;
 
   const _CalendarioContenido({required this.events});
 
@@ -113,37 +89,23 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
     _selectedDay = _focusedDay;
   }
 
-  List<Map<String, dynamic>> _getEventsForDay(DateTime day) {
+  List<Tratamiento> _getEventsForDay(DateTime day) {
     final normalizedDay = DateTime.utc(day.year, day.month, day.day);
     return widget.events[normalizedDay] ?? [];
   }
-  
-  int getDoseCountForDay(Map<String, dynamic> tratamiento, DateTime forDay) {
-      final DateTime inicioTratamiento = (tratamiento['fechaInicioTratamiento'] as Timestamp).toDate();
-      final DateTime fechaFin = (tratamiento['fechaFinTratamiento'] as Timestamp).toDate();
-      final int intervalo = int.parse(tratamiento['intervaloDosis']);
-      int count = 0;
-      DateTime dosisActual = inicioTratamiento;
 
-      while (dosisActual.isBefore(fechaFin)) {
-        if (isSameDay(dosisActual, forDay)) {
-          count++;
-        }
-        dosisActual = dosisActual.add(Duration(hours: intervalo));
-      }
-      return count;
-    }
+  int getDoseCountForDay(Tratamiento tratamiento, DateTime forDay) {
+    return TratamientoService().getDosisCountForDay(tratamiento, forDay);
+  }
 
 
   @override
   Widget build(BuildContext context) {
     final selectedDayEvents = _getEventsForDay(_selectedDay!);
 
-    // La UI es la misma, pero ahora vive dentro de este widget más pequeño.
-    // El setState() llamado aquí solo reconstruirá _CalendarioContenido.
     return Column(
       children: [
-        TableCalendar<Map<String, dynamic>>(
+        TableCalendar<Tratamiento>(
           locale: 'es_ES',
           firstDay: DateTime.utc(2022, 1, 1),
           lastDay: DateTime.utc(2030, 12, 31),
@@ -151,10 +113,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
           selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
           calendarFormat: _calendarFormat,
           eventLoader: _getEventsForDay,
-          startingDayOfWeek: StartingDayOfWeek.monday,
           onDaySelected: (selectedDay, focusedDay) {
             if (!isSameDay(_selectedDay, selectedDay)) {
-              // Este setState ahora solo afecta a este widget, no al StreamBuilder
               setState(() {
                 _selectedDay = selectedDay;
                 _focusedDay = focusedDay;
@@ -173,15 +133,13 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
               _focusedDay = focusedDay;
             });
           },
-           calendarBuilders: CalendarBuilders(
+          calendarBuilders: CalendarBuilders(
             defaultBuilder: (context, day, focusedDay) {
               final dayEvents = _getEventsForDay(day);
               if (dayEvents.isNotEmpty) {
                 bool todosTerminados = dayEvents.every((ev) =>
-                    (ev['fechaFinTratamiento'] as Timestamp)
-                        .toDate()
-                        .isBefore(DateTime.now()));
-                
+                    ev.fechaFinTratamiento.isBefore(DateTime.now()));
+
                 return Container(
                   margin: const EdgeInsets.all(4.0),
                   decoration: BoxDecoration(
@@ -189,26 +147,16 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                     shape: BoxShape.circle,
                   ),
                   child: Center(
-                    child: Text(
-                      '${day.day}',
-                      style: const TextStyle(color: Colors.white),
-                    ),
+                    child: Text('${day.day}', style: const TextStyle(color: Colors.white)),
                   ),
                 );
               }
               return null;
             },
-            markerBuilder: (context, day, events) {
-              return const SizedBox.shrink();
-            },
+            markerBuilder: (context, day, events) => const SizedBox.shrink(),
           ),
-          calendarStyle: const CalendarStyle(
-            outsideDaysVisible: false,
-          ),
-          headerStyle: const HeaderStyle(
-            titleCentered: true,
-            formatButtonVisible: false,
-          ),
+          calendarStyle: const CalendarStyle(outsideDaysVisible: false),
+          headerStyle: const HeaderStyle(titleCentered: true, formatButtonVisible: false),
         ),
         const SizedBox(height: 8.0),
         Padding(
@@ -217,11 +165,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
             alignment: Alignment.centerLeft,
             child: Text(
               "Medicamentos del Día",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey.shade800,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey.shade800),
             ),
           ),
         ),
@@ -237,21 +181,15 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                   itemCount: selectedDayEvents.length,
                   itemBuilder: (context, index) {
                     final event = selectedDayEvents[index];
-                    final bool isFinished =
-                        (event['fechaFinTratamiento'] as Timestamp)
-                            .toDate()
-                            .isBefore(DateTime.now());
+                    final bool isFinished = event.fechaFinTratamiento.isBefore(DateTime.now());
 
-                    final int doseCountToday = isFinished
-                        ? 0
-                        : getDoseCountForDay(event, _selectedDay!);
+                    final int doseCountToday = isFinished ? 0 : getDoseCountForDay(event, _selectedDay!);
                     final String subtitleText = isFinished
                         ? 'Tratamiento finalizado'
                         : 'En progreso - $doseCountToday dosis hoy';
 
                     return Container(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12.0, vertical: 4.0),
+                      margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
                       decoration: BoxDecoration(
                         color: Theme.of(context).scaffoldBackgroundColor,
                         borderRadius: BorderRadius.circular(12.0),
@@ -259,28 +197,20 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                       ),
                       child: ListTile(
                         leading: Icon(
-                          isFinished
-                              ? Icons.check_circle_outline
-                              : Icons.timelapse,
-                          color:
-                              isFinished ? Colors.grey : Colors.green.shade600,
+                          isFinished ? Icons.check_circle_outline : Icons.timelapse,
+                          color: isFinished ? Colors.grey : Colors.green.shade600,
                           size: 28,
                         ),
-                        title: Text(
-                          event['nombreMedicamento'] ?? 'Medicamento',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          subtitleText,
-                          style: TextStyle(color: Colors.grey.shade600),
-                        ),
+                        title: Text(event.nombreMedicamento, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(subtitleText, style: TextStyle(color: Colors.grey.shade600)),
                         onTap: () {
                           if (isFinished) {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    ResumenTratamientoPage(tratamiento: event),
+                                // ----- ¡AQUÍ ESTÁ LA CORRECCIÓN! -----
+                                // Pasamos el objeto 'event' directamente, ya que es un Tratamiento.
+                                builder: (context) => ResumenTratamientoPage(tratamiento: event),
                               ),
                             );
                           } else {
@@ -288,7 +218,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => DosisDiaPage(
-                                  tratamientoId: event['docId'],
+                                  tratamiento: event, // <-- CAMBIO: Pasamos el objeto completo
                                   selectedDay: _selectedDay!,
                                 ),
                               ),

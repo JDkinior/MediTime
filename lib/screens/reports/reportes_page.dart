@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:meditime/enums/view_state.dart';
+import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/services/auth_service.dart';
@@ -130,21 +131,26 @@ class _ReportesPageState extends State<ReportesPage> {
                 return;
               }
 
-              final snapshot = await firestoreService.getMedicamentosStream(user!.uid).first;
+               final List<Tratamiento> tratamientos = await firestoreService.getMedicamentosStream(user!.uid).first;
               final dateRangePdf = _getDateRange();
               
               List<Map<String, dynamic>> tratamientosData = [];
               int totalDosisTomadasGlobal = 0;
               int totalDosisOmitidasGlobal = 0;
 
-              for (var doc in snapshot.docs) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final dosisProgramadas = _calcularTotalDosis(data, dateRangePdf);
-                  final List<dynamic> skippedDoses = data['skippedDoses'] ?? [];
+              // CAMBIO: Iteramos sobre la lista de objetos Tratamiento.
+              for (var tratamiento in tratamientos) {
+                  final dataMap = {
+                    'nombreMedicamento': tratamiento.nombreMedicamento,
+                    'fechaInicioTratamiento': Timestamp.fromDate(tratamiento.fechaInicioTratamiento),
+                    'fechaFinTratamiento': Timestamp.fromDate(tratamiento.fechaFinTratamiento),
+                    'intervaloDosis': tratamiento.intervaloDosis,
+                    'skippedDoses': tratamiento.skippedDoses.map((d) => Timestamp.fromDate(d)).toList(),
+                  };
+                  final dosisProgramadas = _calcularTotalDosis(dataMap, dateRangePdf);
                   int dosisOmitidas = 0;
 
-                  for (var timestamp in skippedDoses) {
-                      final skippedDate = (timestamp as Timestamp).toDate();
+                  for (var skippedDate in tratamiento.skippedDoses) {
                       if (skippedDate.isAfter(dateRangePdf['start']!) && skippedDate.isBefore(dateRangePdf['end']!)) {
                           dosisOmitidas++;
                       }
@@ -155,7 +161,7 @@ class _ReportesPageState extends State<ReportesPage> {
                       totalDosisTomadasGlobal += dosisTomadas;
                       totalDosisOmitidasGlobal += dosisOmitidas;
                       tratamientosData.add({
-                          'nombreMedicamento': data['nombreMedicamento'] ?? 'N/A',
+                          'nombreMedicamento': tratamiento.nombreMedicamento,
                           'adherencia': dosisProgramadas > 0 ? (dosisTomadas / dosisProgramadas) * 100 : 0.0,
                           'tomadas': dosisTomadas,
                           'programadas': dosisProgramadas,
@@ -202,7 +208,8 @@ class _ReportesPageState extends State<ReportesPage> {
                   ),
                 ),
                 Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
+                  // CAMBIO: El StreamBuilder ahora espera una List<Tratamiento>
+                  child: StreamBuilder<List<Tratamiento>>(
                     stream: firestoreService.getMedicamentosStream(user.uid),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -216,28 +223,35 @@ class _ReportesPageState extends State<ReportesPage> {
                           child: const SizedBox.shrink(),
                         );
                       }
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
                         return const EstadoVista(
                           state: ViewState.empty,
                           emptyMessage: 'No hay tratamientos para generar un reporte.',
                           child: SizedBox.shrink(),
                         );
                       }
-                      
+
                   return EstadoVista(
                     state: ViewState.success,
                     child: Builder(builder: (context) {
-
                       int totalDosisProgramadas = 0;
                       int totalDosisOmitidas = 0;
-                      final tratamientos = snapshot.data!.docs;
+                      // CAMBIO: Obtenemos la lista de tratamientos directamente.
+                      final todosLosTratamientos = snapshot.data!;
 
-                      for (var doc in tratamientos) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        totalDosisProgramadas += _calcularTotalDosis(data, dateRange);
-                        final List<dynamic> skippedDoses = data['skippedDoses'] ?? [];
-                        for (var timestamp in skippedDoses) {
-                          final skippedDate = (timestamp as Timestamp).toDate();
+                      // CAMBIO: Iteramos sobre la lista de objetos Tratamiento.
+                      for (var tratamiento in todosLosTratamientos) {
+                        // Pasamos el objeto a un Map para mantener la compatibilidad con _calcularTotalDosis
+                        // (Idealmente, también refactorizaríamos esa función).
+                        final dataMap = {
+                          'fechaInicioTratamiento': Timestamp.fromDate(tratamiento.fechaInicioTratamiento),
+                          'fechaFinTratamiento': Timestamp.fromDate(tratamiento.fechaFinTratamiento),
+                          'intervaloDosis': tratamiento.intervaloDosis,
+                          'skippedDoses': tratamiento.skippedDoses.map((d) => Timestamp.fromDate(d)).toList(),
+                        };
+                        totalDosisProgramadas += _calcularTotalDosis(dataMap, dateRange);
+                        
+                        for (var skippedDate in tratamiento.skippedDoses) {
                           if (skippedDate.isAfter(dateRange['start']!) && skippedDate.isBefore(dateRange['end']!)) {
                             totalDosisOmitidas++;
                           }
@@ -253,13 +267,21 @@ class _ReportesPageState extends State<ReportesPage> {
                           const SizedBox(height: 24),
                           const Text("Desglose por Tratamiento", style: kSectionTitleStyle),
                           const SizedBox(height: 12),
-                          ...tratamientos.map((doc) {
-                            return _buildTratamientoCard(doc.data() as Map<String, dynamic>, dateRange);
-                              }).toList(),
-                            ],
-                          );
-                        }),
+                          // CAMBIO: Usamos la lista directamente aquí también.
+                          ...todosLosTratamientos.map((tratamiento) {
+                             final dataMap = {
+                                'nombreMedicamento': tratamiento.nombreMedicamento,
+                                'fechaInicioTratamiento': Timestamp.fromDate(tratamiento.fechaInicioTratamiento),
+                                'fechaFinTratamiento': Timestamp.fromDate(tratamiento.fechaFinTratamiento),
+                                'intervaloDosis': tratamiento.intervaloDosis,
+                                'skippedDoses': tratamiento.skippedDoses.map((d) => Timestamp.fromDate(d)).toList(),
+                            };
+                            return _buildTratamientoCard(dataMap, dateRange);
+                          }).toList(),
+                        ],
                       );
+                    }),
+                  );
                     },
                   ),
                 ),

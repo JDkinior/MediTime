@@ -2,11 +2,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/firestore_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -36,16 +36,16 @@ class AuthService {
 
     if (userId != null) {
       try {
-        final QuerySnapshot treatmentsSnapshot =
+        // CAMBIO: Ahora esperamos una List<Tratamiento>
+        final List<Tratamiento> tratamientos =
             await firestoreService.getMedicamentosStream(userId).first;
 
-        for (var doc in treatmentsSnapshot.docs) {
-          final data = doc.data() as Map<String, dynamic>?;
-          if (data != null && data.containsKey('prescriptionAlarmId')) {
-            final alarmId = data['prescriptionAlarmId'];
-            if (alarmId != null) {
-              await NotificationService.cancelTreatmentAlarms(alarmId as int);
-            }
+        // CAMBIO: Iteramos directamente sobre la lista de objetos
+        for (var tratamiento in tratamientos) {
+          // CAMBIO: Accedemos a la propiedad directamente
+          final alarmId = tratamiento.prescriptionAlarmId;
+          if (alarmId != 0) { // Usamos el valor del objeto
+            await NotificationService.cancelTreatmentAlarms(alarmId);
           }
         }
         await NotificationService.cancelAllFlutterLocalNotifications();

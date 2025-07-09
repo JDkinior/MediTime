@@ -3,125 +3,79 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:meditime/enums/view_state.dart';
-import 'package:meditime/widgets/estado_vista.dart';
-import 'package:table_calendar/table_calendar.dart';
-import 'package:meditime/theme/app_theme.dart';
+import 'package:meditime/models/tratamiento.dart'; // <-- CAMBIO: Importamos el modelo
+import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/notification_service.dart';
-
+import 'package:meditime/theme/app_theme.dart';
+import 'package:provider/provider.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 class DosisDiaPage extends StatelessWidget {
-  final String tratamientoId;
+  // CAMBIO: Recibimos el objeto Tratamiento completo
+  final Tratamiento tratamiento;
   final DateTime selectedDay;
 
   const DosisDiaPage({
     super.key,
-    required this.tratamientoId,
+    required this.tratamiento,
     required this.selectedDay,
   });
 
   @override
   Widget build(BuildContext context) {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    final docRef = FirebaseFirestore.instance
-        .collection('medicamentos')
-        .doc(userId)
-        .collection('userMedicamentos')
-        .doc(tratamientoId);
-
-    return StreamBuilder<DocumentSnapshot>(
-      stream: docRef.snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(body: EstadoVista(state: ViewState.loading, child: SizedBox.shrink()));
-          }
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return Scaffold(
-              appBar: AppBar(title: const Text("Error")),
-              body: const EstadoVista(
-                state: ViewState.empty,
-                emptyMessage: "Parece que este tratamiento ya no existe.",
-                child: SizedBox.shrink(),
-              ),
-            );
-          }
-          if (snapshot.hasError) {
-            return Scaffold(
-              appBar: AppBar(title: const Text("Error")),
-              body: EstadoVista(
-                state: ViewState.error,
-                errorMessage: "No se pudo cargar el detalle del tratamiento.",
-                child: const SizedBox.shrink(),
-              ),
-            );
-          }
-
-    return EstadoVista(
-        state: ViewState.success,
-        child: Builder(builder: (context) {
-
-        final tratamiento = snapshot.data!.data() as Map<String, dynamic>;
-        final String nombreMedicamento = tratamiento['nombreMedicamento'] ?? 'N/A';
-        final DateFormat formatter = DateFormat('d \'de\' MMMM', 'es_ES');
-
-
-        return Scaffold(
-          appBar: AppBar(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(nombreMedicamento),
-                Text(
-                  formatter.format(selectedDay),
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-              ],
+    final DateFormat formatter = DateFormat('d \'de\' MMMM', 'es_ES');
+    // Ya no necesitamos un StreamBuilder, porque tenemos todos los datos.
+    return Scaffold(
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(tratamiento.nombreMedicamento),
+            Text(
+              formatter.format(selectedDay),
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
-            actions: [
-              if (tratamiento['notas'] != null && tratamiento['notas'].isNotEmpty)
-                IconButton(
-                  icon: const Icon(Icons.info_outline),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Notas del Medicamento'),
-                        content: Text(tratamiento['notas']),
-                        actions: [
-                          TextButton(
-                            child: const Text('Cerrar'),
-                            onPressed: () => Navigator.of(context).pop(),
-                          )
-                        ],
-                      ),
-                    );
-                  },
-                )
-            ],
-          ),
-          body: DosisDiaView(
-            tratamiento: tratamiento,
-            selectedDay: selectedDay,
-            docRef: docRef,
-            ),
-          );
-        }),
-      );
-      },
+          ],
+        ),
+        actions: [
+          if (tratamiento.notas.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Notas del Medicamento'),
+                    content: Text(tratamiento.notas),
+                    actions: [
+                      TextButton(
+                        child: const Text('Cerrar'),
+                        onPressed: () => Navigator.of(context).pop(),
+                      )
+                    ],
+                  ),
+                );
+              },
+            )
+        ],
+      ),
+      // El cuerpo ahora es un widget que recibe el tratamiento.
+      body: DosisDiaView(
+        tratamiento: tratamiento,
+        selectedDay: selectedDay,
+      ),
     );
   }
 }
 
 class DosisDiaView extends StatefulWidget {
-  final Map<String, dynamic> tratamiento;
+  final Tratamiento tratamiento;
   final DateTime selectedDay;
-  final DocumentReference docRef;
 
   const DosisDiaView({
     super.key,
     required this.tratamiento,
     required this.selectedDay,
-    required this.docRef,
   });
 
   @override
@@ -130,10 +84,12 @@ class DosisDiaView extends StatefulWidget {
 
 class _DosisDiaViewState extends State<DosisDiaView> {
   Timer? _timer;
+  late Tratamiento _tratamientoState; // Estado local para reflejar cambios
 
   @override
   void initState() {
     super.initState();
+    _tratamientoState = widget.tratamiento;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) setState(() {});
     });
@@ -145,17 +101,14 @@ class _DosisDiaViewState extends State<DosisDiaView> {
     super.dispose();
   }
   
-  // --- Lógica de la pantalla ---
   List<DateTime> _generarDosisDelDia() {
-    final DateTime inicio = (widget.tratamiento['fechaInicioTratamiento'] as Timestamp).toDate();
-    final DateTime fechaFin = (widget.tratamiento['fechaFinTratamiento'] as Timestamp).toDate();
-    final int intervalo = int.parse(widget.tratamiento['intervaloDosis']);
+    final DateTime inicio = _tratamientoState.fechaInicioTratamiento;
+    final DateTime fechaFin = _tratamientoState.fechaFinTratamiento;
+    final int intervalo = int.parse(_tratamientoState.intervaloDosis);
     List<DateTime> dosisGeneradas = [];
     DateTime dosisActual = inicio;
 
-    // CAMBIO CLAVE: El bucle, al igual que en el calendario, recorre todo el tratamiento.
     while (dosisActual.isBefore(fechaFin)) {
-      // Filtramos aquí adentro solo las dosis que corresponden al día seleccionado.
       if (isSameDay(dosisActual, widget.selectedDay)) {
         dosisGeneradas.add(dosisActual);
       }
@@ -171,50 +124,37 @@ class _DosisDiaViewState extends State<DosisDiaView> {
   }
 
   Future<void> _toggleDosisStatus(DateTime dosisTime, bool fueOmitida) async {
+    final firestoreService = context.read<FirestoreService>();
+    final docRef = firestoreService.getMedicamentoDocRef(FirebaseAuth.instance.currentUser!.uid, _tratamientoState.id);
     final timestamp = Timestamp.fromDate(dosisTime);
-
-    // --- REFACTORIZACIÓN PARA OMITIR UNA DOSIS ---
+    
+    // CAMBIO: Pasamos el objeto _tratamientoState directamente al servicio.
+    // Ya no es necesario obtener un Map de la base de datos.
     if (!fueOmitida) {
-      // 1. Actualiza Firestore
-      await widget.docRef.update({
-        'skippedDoses': FieldValue.arrayUnion([timestamp])
+      await docRef.update({'skippedDoses': FieldValue.arrayUnion([timestamp])});
+      // Le pasamos nuestro objeto de estado local.
+      await NotificationService.omitDoseAndReschedule(tratamiento: _tratamientoState, docRef: docRef);
+      setState(() {
+        _tratamientoState.skippedDoses.add(dosisTime);
       });
-
-      // 2. Llama al servicio para que se encargue de la alarma
-      await NotificationService.omitDoseAndReschedule(
-        tratamiento: widget.tratamiento,
-        docRef: widget.docRef,
-      );
-    }
-    // --- REFACTORIZACIÓN PARA ANULAR OMISIÓN ---
-    else {
-      // 1. Actualiza Firestore
-      await widget.docRef.update({
-        'skippedDoses': FieldValue.arrayRemove([timestamp])
+    } else {
+      await docRef.update({'skippedDoses': FieldValue.arrayRemove([timestamp])});
+      // Le pasamos nuestro objeto de estado local.
+      await NotificationService.undoOmissionAndReschedule(tratamiento: _tratamientoState, docRef: docRef);
+      setState(() {
+        _tratamientoState.skippedDoses.removeWhere((d) => d.isAtSameMomentAs(dosisTime));
       });
-
-      // 2. Llama al servicio para que se encargue de la alarma
-      await NotificationService.undoOmissionAndReschedule(
-        tratamiento: widget.tratamiento,
-        docRef: widget.docRef,
-      );
     }
   }
 
-  // --- Widgets de Construcción ---
   @override
   Widget build(BuildContext context) {
     final dosisDelDia = _generarDosisDelDia();
-    final List<DateTime> dosisOmitidas = (widget.tratamiento['skippedDoses'] as List<dynamic>?)
-        ?.map((ts) => (ts as Timestamp).toDate())
-        .toList() ?? [];
+    final List<DateTime> dosisOmitidas = _tratamientoState.skippedDoses;
     
-    int tomadasHoy = 0;
-    dosisDelDia.where((d) => d.isBefore(DateTime.now())).forEach((d) {
-      if (!dosisOmitidas.any((om) => om.isAtSameMomentAs(d))) {
-        tomadasHoy++;
-      }
-    });
+    int tomadasHoy = dosisDelDia
+        .where((d) => d.isBefore(DateTime.now()) && !dosisOmitidas.any((om) => om.isAtSameMomentAs(d)))
+        .length;
 
     final double progress = dosisDelDia.isEmpty ? 0 : tomadasHoy / dosisDelDia.length;
 
@@ -224,11 +164,17 @@ class _DosisDiaViewState extends State<DosisDiaView> {
         children: [
           _buildDailyHeader(dosisDelDia.length, tomadasHoy, progress),
           const SizedBox(height: 20),
-          ...dosisDelDia.map((dosis) {
-            final fueOmitida = dosisOmitidas.any((om) => om.isAtSameMomentAs(dosis));
-            final esPasada = dosis.isBefore(DateTime.now());
-            return _buildDoseCard(dosis, fueOmitida, esPasada);
-          }).toList(),
+          if (dosisDelDia.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(20.0),
+              child: Text("No hay dosis para este día.", textAlign: TextAlign.center),
+            )
+          else
+            ...dosisDelDia.map((dosis) {
+              final fueOmitida = dosisOmitidas.any((om) => om.isAtSameMomentAs(dosis));
+              final esPasada = dosis.isBefore(DateTime.now());
+              return _buildDoseCard(dosis, fueOmitida, esPasada);
+            }).toList(),
         ],
       ),
     );

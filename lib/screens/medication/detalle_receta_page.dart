@@ -1,64 +1,55 @@
-import 'dart:async'; // Importamos 'async' para poder usar el Timer
-import 'package:cloud_firestore/cloud_firestore.dart';
+// lib/screens/medication/detalle_receta_page.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:meditime/models/tratamiento.dart'; // <-- CAMBIO: Importar modelo
 
-// --- PASO 1: CONVERTIR A STATEFULWIDGET ---
+// CAMBIO: Convertimos a StatefulWidget para manejar el temporizador de la cuenta regresiva
 class DetalleRecetaPage extends StatefulWidget {
-  final Map<String, dynamic> receta;
+  // CAMBIO: Recibimos el objeto Tratamiento y la hora específica de la dosis
+  final Tratamiento tratamiento;
+  final DateTime horaDosis;
 
-  const DetalleRecetaPage({super.key, required this.receta});
+  const DetalleRecetaPage({super.key, required this.tratamiento, required this.horaDosis});
 
   @override
   State<DetalleRecetaPage> createState() => _DetalleRecetaPageState();
 }
 
 class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
-  Timer? _timer; // El timer que refrescará la UI
-  late DateTime? _nextUpcomingDose; // Guardaremos la próxima dosis en el estado
+  Timer? _timer;
+  late DateTime? _nextUpcomingDose;
 
-  // --- PASO 2: INICIALIZAR EL TIMER Y EL ESTADO ---
   @override
   void initState() {
     super.initState();
-    // Calculamos la próxima dosis una vez al iniciar
     _nextUpcomingDose = _findNextUpcomingDose();
 
-    // Si hay una próxima dosis, configuramos el timer
     if (_nextUpcomingDose != null) {
-      // El timer se activa cada segundo
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        // Verificamos si la dosis ya pasó
         if (DateTime.now().isAfter(_nextUpcomingDose!)) {
-          // Si ya pasó, recalculamos la próxima y cancelamos este timer
-          // para reconfigurarlo si es necesario.
           setState(() {
             _nextUpcomingDose = _findNextUpcomingDose();
           });
-          timer.cancel(); 
         } else {
-          // Si no ha pasado, simplemente llamamos a setState para redibujar
-          // y actualizar el contador.
           setState(() {});
         }
       });
     }
   }
 
-  // --- PASO 3: CANCELAR EL TIMER AL SALIR DE LA PANTALLA ---
   @override
   void dispose() {
-    _timer?.cancel(); // Muy importante para evitar fugas de memoria
+    _timer?.cancel();
     super.dispose();
   }
 
-  // Lógica para encontrar la próxima dosis (sin cambios)
   DateTime? _findNextUpcomingDose() {
-    final horaInicial = DateFormat('HH:mm').parse(widget.receta['horaPrimeraDosis']);
-    final intervalo = int.parse(widget.receta['intervaloDosis']);
-    final fechaFinTratamiento = (widget.receta['fechaFinTratamiento'] as Timestamp).toDate();
-    final List<dynamic> skippedDosesRaw = widget.receta['skippedDoses'] ?? [];
-    final List<DateTime> dosisOmitidas = skippedDosesRaw.map((ts) => (ts as Timestamp).toDate()).toList();
+    // CAMBIO: Lógica adaptada para usar el objeto Tratamiento
+    final horaInicial = DateFormat('HH:mm').parse(widget.tratamiento.horaPrimeraDosis);
+    final intervalo = int.parse(widget.tratamiento.intervaloDosis);
+    final fechaFinTratamiento = widget.tratamiento.fechaFinTratamiento;
+    final List<DateTime> dosisOmitidas = widget.tratamiento.skippedDoses;
 
     List<DateTime> dosisPotenciales = [];
     DateTime dosisActual = DateTime(
@@ -106,16 +97,17 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     return 'En $minutos minutos';
   }
 
-  @override
+    @override
   Widget build(BuildContext context) {
-    final DateTime selectedDoseTime = widget.receta['horaDosis'];
-    final String duracionTratamiento = widget.receta['duracion'] ?? 'N/A';
-    final DateTime fechaFin = (widget.receta['fechaFinTratamiento'] as Timestamp).toDate();
+    // CAMBIO: Usamos las propiedades directamente desde widget.tratamiento y widget.horaDosis
+    final DateTime selectedDoseTime = widget.horaDosis;
+    final String duracionTratamiento = widget.tratamiento.duracion;
+    final DateTime fechaFin = widget.tratamiento.fechaFinTratamiento;
     final DateFormat formatter = DateFormat('d \'de\' MMMM \'de\' y', 'es_ES');
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.receta['nombreMedicamento']),
+        title: Text(widget.tratamiento.nombreMedicamento),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -129,9 +121,9 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               const SizedBox(height: 32),
               const Divider(),
               const SizedBox(height: 16),
-              _buildDetailRow('Medicamento:', widget.receta['nombreMedicamento']),
-              _buildDetailRow('Presentación:', widget.receta['presentacion']),
-              _buildDetailRow('Frecuencia:', 'Cada ${widget.receta['intervaloDosis']} horas'),
+              _buildDetailRow('Medicamento:', widget.tratamiento.nombreMedicamento),
+              _buildDetailRow('Presentación:', widget.tratamiento.presentacion),
+              _buildDetailRow('Frecuencia:', 'Cada ${widget.tratamiento.intervaloDosis} horas'),
               _buildDetailRow('Duración:', '$duracionTratamiento días'),
               _buildDetailRow('Finaliza el:', formatter.format(fechaFin)),
             ],

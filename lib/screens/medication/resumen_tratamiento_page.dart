@@ -1,20 +1,20 @@
+// lib/screens/medication/resumen_tratamiento_page.dart
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:meditime/models/tratamiento.dart'; // <-- CAMBIO: Importar modelo
 import 'package:meditime/theme/app_theme.dart';
 
 class ResumenTratamientoPage extends StatelessWidget {
-  final Map<String, dynamic> tratamiento;
+  // CAMBIO: El constructor ahora espera un objeto Tratamiento
+  final Tratamiento tratamiento;
 
   const ResumenTratamientoPage({super.key, required this.tratamiento});
 
-  // Función para calcular el total de dosis que debieron tomarse
+  // CAMBIO: La función ahora usa el objeto Tratamiento
   int _calcularTotalDosis() {
-    final DateTime inicio =
-        (tratamiento['fechaInicioTratamiento'] as Timestamp).toDate();
-    final DateTime fin =
-        (tratamiento['fechaFinTratamiento'] as Timestamp).toDate();
-    final int intervaloHoras = int.parse(tratamiento['intervaloDosis']);
+    final DateTime inicio = tratamiento.fechaInicioTratamiento;
+    final DateTime fin = tratamiento.fechaFinTratamiento;
+    final int intervaloHoras = int.parse(tratamiento.intervaloDosis);
 
     if (inicio.isAfter(fin) || intervaloHoras <= 0) {
       return 0;
@@ -32,21 +32,16 @@ class ResumenTratamientoPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String nombreMedicamento = tratamiento['nombreMedicamento'] ?? 'N/A';
-    final DateTime fechaInicio =
-        (tratamiento['fechaInicioTratamiento'] as Timestamp).toDate();
-    final DateTime fechaFin =
-        (tratamiento['fechaFinTratamiento'] as Timestamp).toDate();
-    final List<dynamic> dosisOmitidasRaw = tratamiento['skippedDoses'] ?? [];
-    final List<DateTime> dosisOmitidas =
-        dosisOmitidasRaw.map((ts) => (ts as Timestamp).toDate()).toList();
+    // CAMBIO: Acceso directo y seguro a las propiedades del modelo
+    final String nombreMedicamento = tratamiento.nombreMedicamento;
+    final DateTime fechaInicio = tratamiento.fechaInicioTratamiento;
+    final DateTime fechaFin = tratamiento.fechaFinTratamiento;
+    final List<DateTime> dosisOmitidas = tratamiento.skippedDoses;
 
     final int totalDosis = _calcularTotalDosis();
     final int numOmitidas = dosisOmitidas.length;
-    final int numTomadas =
-        totalDosis > numOmitidas ? totalDosis - numOmitidas : 0;
-    final double cumplimiento =
-        totalDosis > 0 ? (numTomadas / totalDosis) * 100 : 0.0;
+    final int numTomadas = totalDosis > numOmitidas ? totalDosis - numOmitidas : 0;
+    final double cumplimiento = totalDosis > 0 ? (numTomadas / totalDosis) * 100 : 0.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -73,10 +68,8 @@ class ResumenTratamientoPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderCard(
-      String nombreMedicamento, DateTime fechaInicio, DateTime fechaFin) {
+  Widget _buildHeaderCard(String nombreMedicamento, DateTime fechaInicio, DateTime fechaFin) {
     final DateFormat formatter = DateFormat('d MMM y', 'es_ES');
-
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -99,21 +92,14 @@ class ResumenTratamientoPage extends StatelessWidget {
         children: [
           Text(
             nombreMedicamento,
-            style: const TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           const SizedBox(height: 8),
           Chip(
-            label: Text(
-              tratamiento['presentacion'] ?? 'N/A',
-              style: TextStyle(color: Colors.blue.shade800),
-            ),
+            // CAMBIO: Acceso directo
+            label: Text(tratamiento.presentacion, style: TextStyle(color: Colors.blue.shade800)),
             backgroundColor: Colors.white.withOpacity(0.9),
             avatar: Icon(Icons.medication, color: Colors.blue.shade800),
-            // --- ESTA ES LA CORRECCIÓN DEFINITIVA ---
             side: BorderSide.none,
           ),
           const SizedBox(height: 20),
