@@ -4,7 +4,7 @@
   "description": "Automatically updates the application version whenever changes are made to pubspec.yaml or lib/screens/shared/ayuda_page.dart",
   "version": "1",
   "when": {
-    "type": "fileEdited",
+    "type": "userTriggered",
     "patterns": [
       "pubspec.yaml",
       "lib/screens/shared/ayuda_page.dart"
