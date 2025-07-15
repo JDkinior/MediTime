@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "name": "Code Quality Analyzer",
+  "description": "Monitors source code files for changes and analyzes modified code for potential improvements, code smells, design patterns, and best practices to enhance readability, maintainability, and performance.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "lib/**/*.dart",
+      "test/**/*.dart",
+      "*.dart"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Analyze the recently modified Dart code files for potential improvements. Focus on:\n\n1. **Code Smells**: Identify any code smells such as long methods, large classes, duplicate code, or complex conditionals\n2. **Design Patterns**: Suggest appropriate design patterns that could improve the code structure\n3. **Best Practices**: Check adherence to Dart/Flutter best practices and conventions\n4. **Readability**: Suggest improvements for variable naming, method organization, and code clarity\n5. **Maintainability**: Identify areas that could be refactored for easier maintenance\n6. **Performance**: Suggest optimizations that could improve performance without breaking functionality\n\nFor each suggestion, provide:\n- Clear explanation of the issue or improvement opportunity\n- Specific code examples showing the current approach and recommended changes\n- Reasoning for why the change would be beneficial\n- Priority level (High/Medium/Low) based on impact\n\nMaintain the existing functionality while focusing on code quality improvements."
+  }
+}

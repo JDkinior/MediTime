@@ -17,6 +17,15 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
+    lintOptions {
+        disable("ObsoleteSdkInt", "OldTargetApi")
+    }
+
+    // Suprimir warnings de deprecation en compilación
+    tasks.withType<JavaCompile> {
+        options.compilerArgs.addAll(listOf("-Xlint:-deprecation", "-Xlint:-options"))
+    }
+
     kotlinOptions {
         jvmTarget = "17"
     }

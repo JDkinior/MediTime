@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "Dart Documentation Sync",
+  "description": "Listens to Dart source files and configuration files in this Flutter project and automatically updates documentation in README.md when changes are detected",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "lib/**/*.dart",
+      "test/**/*.dart",
+      "pubspec.yaml",
+      "analysis_options.yaml"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "The Dart source files or configuration files in this Flutter project have been modified. Please review the changes and update the README.md file to reflect any new features, API changes, dependencies, or other relevant documentation updates. Focus on keeping the documentation accurate and helpful for developers using this project."
+  }
+}
