@@ -12,53 +12,173 @@ import 'package:meditime/services/preference_service.dart';
 void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
   debugPrint("INICIO alarmCallbackLogic - ID: $id");
 
-  await WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  await NotificationService.initializeCore();
+  try {
+    await WidgetsFlutterBinding.ensureInitialized();
+    
+    // CAMBIO CRÍTICO: Inicializar Firebase con timeout y manejo de errores
+    bool firebaseInitialized = false;
+    try {
+      await Firebase.initializeApp().timeout(Duration(seconds: 5));
+      firebaseInitialized = true;
+      debugPrint("Firebase inicializado correctamente en callback");
+    } catch (e) {
+      debugPrint("ERROR: Firebase no se pudo inicializar en callback: $e");
+      firebaseInitialized = false;
+    }
 
-  final preferenceService = PreferenceService();
-  final firestoreService = FirestoreService();
+    await NotificationService.initializeCore();
 
-  // --- INICIO DE LA MODIFICACIÓN ---
-  // Obtenemos los datos necesarios del payload de la alarma
-  final userId = params['userId'];
-  final docId = params['docId'];
-  final doseTime = DateTime.parse(params['doseTime']);
-  final notificationId = params['currentNotificationId'] ?? Random().nextInt(100000);
+    final preferenceService = PreferenceService();
+    
+    // CAMBIO CRÍTICO: Extraer datos del payload sin depender de Firebase
+    final userId = params['userId'];
+    final docId = params['docId'];
+    final doseTime = DateTime.parse(params['doseTime']);
+    final notificationId = params['currentNotificationId'] ?? Random().nextInt(100000);
+    
+    // NUEVOS PARÁMETROS: Datos del tratamiento incluidos en el payload
+    final nombreMedicamento = params['nombreMedicamento'] ?? 'Medicamento';
+    final presentacion = params['presentacion'] ?? '';
+    final intervaloHoras = params['intervaloHoras'] ?? 8;
+    final fechaFinTratamientoString = params['fechaFinTratamientoString'];
+    final prescriptionAlarmId = params['prescriptionAlarmId'] ?? 0;
 
-  // Obtenemos los datos más recientes del tratamiento desde Firestore
-  final doc = await firestoreService.getMedicamentoDocRef(userId, docId).get();
-  if (!doc.exists) {
-    debugPrint("ERROR en Callback: Tratamiento no encontrado. Cancelando alarma.");
-    await NotificationService.cancelTreatmentAlarms(id);
-    return;
+    // CAMBIO CRÍTICO: Leer preferencias con fallback local
+    bool isModeActive = false;
+    try {
+      isModeActive = await preferenceService.getNotificationMode();
+    } catch (e) {
+      debugPrint("ERROR leyendo preferencias: $e. Usando modo pasivo como default");
+      isModeActive = false;
+    }
+
+    // CAMBIO CRÍTICO: Procesar notificación independientemente del estado de Firebase
+    if (isModeActive) {
+      debugPrint("Modo Activo detectado para: $nombreMedicamento");
+      
+      // Mostrar notificación activa inmediatamente
+      await NotificationService.showActiveNotification(
+        id: notificationId,
+        title: 'Hora de tomar: $nombreMedicamento',
+        body: 'Por favor, confirma si tomaste tu dosis.',
+        payload: 'active_notification|$userId|$docId|${doseTime.toIso8601String()}',
+      );
+
+      // CAMBIO CRÍTICO: Actualizar Firestore solo si está disponible
+      if (firebaseInitialized) {
+        try {
+          final firestoreService = FirestoreService();
+          await firestoreService.updateDoseStatus(userId, docId, doseTime, DoseStatus.notificada)
+              .timeout(Duration(seconds: 3));
+          debugPrint("Estado actualizado en Firestore: notificada");
+        } catch (e) {
+          debugPrint("ERROR actualizando Firestore (modo activo): $e");
+          // La notificación ya se mostró, continuamos
+        }
+      }
+    } else {
+      debugPrint("Modo Pasivo detectado para: $nombreMedicamento");
+      
+      // Mostrar notificación simple inmediatamente
+      await NotificationService.showSimpleNotification(
+        id: notificationId,
+        title: 'Dosis registrada: $nombreMedicamento',
+        body: 'Se ha marcado como tomada. Próxima dosis en $intervaloHoras horas.',
+      );
+
+      // CAMBIO CRÍTICO: Actualizar Firestore y reprogramar solo si está disponible
+      if (firebaseInitialized) {
+        try {
+          final firestoreService = FirestoreService();
+          await firestoreService.updateDoseStatus(userId, docId, doseTime, DoseStatus.tomada)
+              .timeout(Duration(seconds: 3));
+          debugPrint("Estado actualizado en Firestore: tomada");
+
+          // Reprogramar siguiente dosis
+          await _reprogramarSiguienteDosis(params, userId, firestoreService);
+        } catch (e) {
+          debugPrint("ERROR actualizando Firestore (modo pasivo): $e");
+          // FALLBACK: Reprogramar siguiente dosis usando solo parámetros
+          await _reprogramarSiguienteDosisOffline(params);
+        }
+      } else {
+        // FALLBACK: Reprogramar siguiente dosis usando solo parámetros
+        await _reprogramarSiguienteDosisOffline(params);
+      }
+    }
+
+    debugPrint("FIN alarmCallbackLogic - ID: $id - SUCCESS");
+  } catch (e) {
+    debugPrint("ERROR CRÍTICO en alarmCallbackLogic: $e");
+    
+    // FALLBACK DE EMERGENCIA: Mostrar notificación básica
+    try {
+      final notificationId = params['currentNotificationId'] ?? Random().nextInt(100000);
+      final nombreMedicamento = params['nombreMedicamento'] ?? 'Medicamento';
+      
+      await NotificationService.showSimpleNotification(
+        id: notificationId,
+        title: 'Hora de tomar: $nombreMedicamento',
+        body: 'Confirma tu dosis en la aplicación.',
+      );
+      debugPrint("Notificación de emergencia mostrada");
+    } catch (emergencyError) {
+      debugPrint("ERROR CRÍTICO mostrando notificación de emergencia: $emergencyError");
+    }
   }
-  final tratamiento = Tratamiento.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
-  // --- FIN DE LA MODIFICACIÓN ---
+}
 
-  // Leemos la preferencia del usuario en el momento de la ejecución
-  final bool isModeActive = await preferenceService.getNotificationMode();
-
-  if (isModeActive) {
-    debugPrint("Modo Activo detectado para: ${tratamiento.nombreMedicamento}");
-    await firestoreService.updateDoseStatus(userId, docId, doseTime, DoseStatus.notificada);
-    await NotificationService.showActiveNotification(
-      id: notificationId,
-      title: 'Hora de tomar: ${tratamiento.nombreMedicamento}',
-      body: 'Por favor, confirma si tomaste tu dosis.',
-      payload: 'active_notification|$userId|$docId|${doseTime.toIso8601String()}',
-    );
-  } else {
-    debugPrint("Modo Pasivo detectado para: ${tratamiento.nombreMedicamento}");
-    await firestoreService.updateDoseStatus(userId, docId, doseTime, DoseStatus.tomada);
-    await NotificationService.showSimpleNotification(
-      id: notificationId,
-      title: 'Dosis registrada: ${tratamiento.nombreMedicamento}',
-      body: 'Se ha marcado como tomada. Próxima dosis en ${tratamiento.intervaloDosis} horas.',
-    );
-    // En modo pasivo, reprogramamos la siguiente inmediatamente
-    await NotificationService.rescheduleNextPendingDose(tratamiento, userId);
+// NUEVA FUNCIÓN: Reprogramar siguiente dosis con acceso a Firebase
+Future<void> _reprogramarSiguienteDosis(Map<String, dynamic> params, String userId, FirestoreService firestoreService) async {
+  try {
+    final docId = params['docId'];
+    final doc = await firestoreService.getMedicamentoDocRef(userId, docId).get()
+        .timeout(Duration(seconds: 5));
+    
+    if (doc.exists) {
+      final tratamiento = Tratamiento.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
+      await NotificationService.rescheduleNextPendingDose(tratamiento, userId);
+      debugPrint("Siguiente dosis reprogramada con datos de Firebase");
+    }
+  } catch (e) {
+    debugPrint("ERROR reprogramando con Firebase: $e");
+    // Fallback a reprogramación offline
+    await _reprogramarSiguienteDosisOffline(params);
   }
+}
 
-  debugPrint("FIN alarmCallbackLogic - ID: $id");
+// NUEVA FUNCIÓN: Reprogramar siguiente dosis sin Firebase (offline)
+Future<void> _reprogramarSiguienteDosisOffline(Map<String, dynamic> params) async {
+  try {
+    final doseTime = DateTime.parse(params['doseTime']);
+    final intervaloHoras = params['intervaloHoras'] ?? 8;
+    final fechaFinTratamientoString = params['fechaFinTratamientoString'];
+    final prescriptionAlarmId = params['prescriptionAlarmId'] ?? 0;
+    
+    if (fechaFinTratamientoString == null || prescriptionAlarmId == 0) {
+      debugPrint("Datos insuficientes para reprogramación offline");
+      return;
+    }
+
+    final fechaFinTratamiento = DateTime.parse(fechaFinTratamientoString);
+    final siguienteDosis = doseTime.add(Duration(hours: intervaloHoras));
+
+    // Solo reprogramar si no hemos pasado la fecha de fin
+    if (siguienteDosis.isBefore(fechaFinTratamiento)) {
+      await NotificationService.scheduleOfflineAlarm(
+        scheduleTime: siguienteDosis,
+        alarmId: prescriptionAlarmId,
+        params: {
+          ...params,
+          'doseTime': siguienteDosis.toIso8601String(),
+          'currentNotificationId': Random().nextInt(100000),
+        },
+      );
+      debugPrint("Siguiente dosis reprogramada offline para: $siguienteDosis");
+    } else {
+      debugPrint("Tratamiento completado, no se reprograma más");
+    }
+  } catch (e) {
+    debugPrint("ERROR en reprogramación offline: $e");
+  }
 }

@@ -1,4 +1,6 @@
 // lib/services/notification_service.dart
+import 'dart:typed_data';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/models/tratamiento.dart';
@@ -73,49 +75,66 @@ class NotificationService {
 
   static bool _permissionsHaveBeenRequested = false;
 
-  static Future<void> initializeCore() async {
-    if (_isCoreInitialized) {
-      return;
-    }
-
-    tz.initializeTimeZones();
-    try {
-      final String currentTimeZone = await FlutterLocalNotificationsPlugin()
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.getNotificationChannels()
-          .then((channels) => tz.local.name) ?? 'America/Bogota'; // Default
-      tz.setLocalLocation(tz.getLocation(currentTimeZone));
-    } catch (e) {
-      debugPrint("Error obteniendo/configurando zona horaria local: $e. Usando America/Bogota como default.");
-      tz.setLocalLocation(tz.getLocation('America/Bogota')); // Fallback
-    }
-
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-
-    const DarwinInitializationSettings initializationSettingsIOS =
-        DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
-    );
-
-    const InitializationSettings initializationSettings =
-        InitializationSettings(
-            android: initializationSettingsAndroid,
-            iOS: initializationSettingsIOS);
-
-   await _notificationsPlugin.initialize(
-      initializationSettings,
-      // Se ejecuta cuando la app está en primer plano.
-      onDidReceiveNotificationResponse: _handleNotificationAction,
-      // Se ejecuta cuando la app está en segundo plano o terminada.
-      onDidReceiveBackgroundNotificationResponse: _handleNotificationAction,
-    );
-    _isCoreInitialized = true;
-    debugPrint("NotificationService Core Inicializado.");
+static Future<void> initializeCore() async {
+  if (_isCoreInitialized) {
+    return;
   }
+
+  tz.initializeTimeZones();
+  try {
+    final String currentTimeZone = await FlutterLocalNotificationsPlugin()
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.getNotificationChannels()
+        .then((channels) => tz.local.name) ?? 'America/Bogota';
+    tz.setLocalLocation(tz.getLocation(currentTimeZone));
+  } catch (e) {
+    debugPrint("Error obteniendo/configurando zona horaria local: $e. Usando America/Bogota como default.");
+    tz.setLocalLocation(tz.getLocation('America/Bogota'));
+  }
+
+  // CONFIGURACIÓN CRÍTICA: Configuraciones para Android
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  // CONFIGURACIÓN CRÍTICA: Configuraciones para iOS
+  DarwinInitializationSettings initializationSettingsIOS =
+      DarwinInitializationSettings(
+    requestAlertPermission: false,
+    requestBadgePermission: false,
+    requestSoundPermission: false,
+    // NUEVO: Configuraciones adicionales para iOS
+    defaultPresentAlert: true,
+    defaultPresentBadge: true,
+    defaultPresentSound: true,
+    notificationCategories: [
+      DarwinNotificationCategory(
+        'MEDITIME_ALARM',
+        actions: <DarwinNotificationAction>[
+          DarwinNotificationAction.plain('TOMAR_ACTION', 'Tomar'),
+          DarwinNotificationAction.plain('OMITIR_ACTION', 'Omitir'),
+        ],
+      ),
+    ],
+  );
+
+  InitializationSettings initializationSettings =
+      InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS);
+
+  await _notificationsPlugin.initialize(
+    initializationSettings,
+    onDidReceiveNotificationResponse: _handleNotificationAction,
+    onDidReceiveBackgroundNotificationResponse: _handleNotificationAction,
+  );
+
+  // CRÍTICO: Crear canales de notificación con configuraciones específicas
+  await _createNotificationChannels();
+  
+  _isCoreInitialized = true;
+  debugPrint("NotificationService Core Inicializado con configuraciones críticas.");
+}
 
   static Future<void> requestAllNecessaryPermissions() async {
     if (!_isCoreInitialized) {
@@ -173,80 +192,163 @@ class NotificationService {
       }
     }
 
-    // MEJORA: Configuración más agresiva para notificaciones críticas
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+  AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    'meditime_dosis_channel',
+    'MediTime Recordatorios de Dosis',
+    channelDescription: 'Canal para recordatorios de dosis de medicamentos.',
+    importance: Importance.max,
+    priority: Priority.high,
+    enableVibration: true,
+    playSound: true,
+    fullScreenIntent: true,
+    category: AndroidNotificationCategory.alarm,
+    visibility: NotificationVisibility.public,
+    autoCancel: false,
+    ongoing: false,
+    ticker: 'Hora de tomar medicamento',
+    // NUEVO: Configuraciones adicionales para fondo
+    showWhen: true,
+    when: DateTime.now().millisecondsSinceEpoch,
+    usesChronometer: false,
+    channelShowBadge: true,
+    onlyAlertOnce: false,
+    // CRÍTICO: Configurar como alarma del sistema
+    timeoutAfter: null, // Sin timeout
+    silent: false,
+    enableLights: true,
+    ledColor: const Color.fromARGB(255, 255, 0, 0),
+    ledOnMs: 1000,
+    ledOffMs: 500,
+  );
+
+  const DarwinNotificationDetails iOSDetails = DarwinNotificationDetails(
+    presentAlert: true,
+    presentBadge: true,
+    presentSound: true,
+    interruptionLevel: InterruptionLevel.critical,
+    // NUEVO: Configuraciones adicionales para iOS
+    categoryIdentifier: 'MEDITIME_ALARM',
+    threadIdentifier: 'meditime_thread',
+  );
+
+  NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iOSDetails);
+
+  await _notificationsPlugin.show(id, title, body, notificationDetails, payload: payload);
+  debugPrint("Notificación local mostrada - ID: $id, Título: $title, Hora: ${DateTime.now()}");
+}
+static Future<void> _createNotificationChannels() async {
+  final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+      _notificationsPlugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+  if (androidImplementation != null) {
+    // Canal para notificaciones simples
+    const AndroidNotificationChannel simpleChannel = AndroidNotificationChannel(
       'meditime_dosis_channel',
       'MediTime Recordatorios de Dosis',
-      channelDescription: 'Canal para recordatorios de dosis de medicamentos.',
+      description: 'Canal para recordatorios de dosis de medicamentos.',
       importance: Importance.max,
-      priority: Priority.high,
-      enableVibration: true,
       playSound: true,
-     /* sound: RawResourceAndroidNotificationSound('notification_sound'),  Asegúrate de tener este archivo*/
-      fullScreenIntent: true, // NUEVA OPCIÓN: Muestra la notificación en pantalla completa
-      category: AndroidNotificationCategory.alarm, // NUEVA OPCIÓN: Categoriza como alarma
-      visibility: NotificationVisibility.public, // NUEVA OPCIÓN: Visible en pantalla de bloqueo
-      autoCancel: false, // NUEVA OPCIÓN: No se cancela automáticamente
-      ongoing: false, // Puede ser true si quieres que persista
-      ticker: 'Hora de tomar medicamento', // NUEVA OPCIÓN: Texto que aparece en la barra de estado
+      enableVibration: true,
+      enableLights: true,
+      ledColor: Color.fromARGB(255, 255, 0, 0),
+      showBadge: true,
     );
 
-    const DarwinNotificationDetails iOSDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-      interruptionLevel: InterruptionLevel.critical, // NUEVA OPCIÓN: Nivel crítico para iOS
-    );
-
-    const NotificationDetails notificationDetails = NotificationDetails(
-        android: androidDetails,
-        iOS: iOSDetails);
-
-    await _notificationsPlugin.show(id, title, body, notificationDetails, payload: payload);
-    debugPrint("Notificación local mostrada - ID: $id, Título: $title, Hora: ${DateTime.now()}");
-  }
-
-  static Future<void> showActiveNotification({
-    required int id,
-    required String title,
-    required String body,
-    String? payload,
-  }) async {
-    // Leemos la preferencia para obtener la duración del aplazamiento
-    final int snoozeMinutes = await PreferenceService().getSnoozeDuration();
-    final String snoozeLabel = 'Aplazar $snoozeMinutes min';
-
-    // Definimos las acciones con el texto dinámico
-    final List<AndroidNotificationAction> actions = <AndroidNotificationAction>[
-      AndroidNotificationAction('TOMAR_ACTION', 'Tomar', showsUserInterface: true),
-      AndroidNotificationAction('OMITIR_ACTION', 'Omitir', showsUserInterface: true),
-      // Usamos la etiqueta dinámica
-      AndroidNotificationAction('APLAZAR_ACTION', snoozeLabel, showsUserInterface: true),
-    ];
-
-    // Detalles de la notificación para Android con acciones
-    final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'meditime_active_dosis_channel', // Un ID de canal diferente para notificaciones activas
+    // Canal para notificaciones activas
+    const AndroidNotificationChannel activeChannel = AndroidNotificationChannel(
+      'meditime_active_dosis_channel',
       'MediTime Dosis Activas',
-      channelDescription: 'Canal para notificaciones de dosis que requieren acción del usuario.',
+      description: 'Canal para notificaciones de dosis que requieren acción del usuario.',
       importance: Importance.max,
-      priority: Priority.high,
-      enableVibration: true,
       playSound: true,
-      actions: actions, // Añadimos las acciones aquí
-      fullScreenIntent: true,
-      category: AndroidNotificationCategory.alarm,
-      visibility: NotificationVisibility.public,
-      autoCancel: false,
-      ongoing: false, // Hacemos la notificación persistente hasta que el usuario actúe
-      ticker: 'Acción requerida: Hora de tomar medicamento',
+      enableVibration: true,
+      enableLights: true,
+      ledColor: Color.fromARGB(255, 255, 0, 0),
+      showBadge: true,
     );
 
+    // Canal para notificaciones aplazadas
+    const AndroidNotificationChannel snoozeChannel = AndroidNotificationChannel(
+      'meditime_snooze_channel',
+      'MediTime Dosis Aplazadas',
+      description: 'Canal para recordatorios aplazados.',
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+      enableLights: true,
+      ledColor: Color.fromARGB(255, 255, 0, 0),
+      showBadge: true,
+    );
 
-    NotificationDetails notificationDetails = NotificationDetails(android: androidDetails);
-    await _notificationsPlugin.show(id, title, body, notificationDetails, payload: payload);
-    debugPrint("Notificación ACTIVA mostrada - ID: $id, Título: $title");
+    await androidImplementation.createNotificationChannel(simpleChannel);
+    await androidImplementation.createNotificationChannel(activeChannel);
+    await androidImplementation.createNotificationChannel(snoozeChannel);
+    
+    debugPrint("Canales de notificación creados con configuraciones críticas");
   }
+}
+static Future<void> showActiveNotification({
+  required int id,
+  required String title,
+  required String body,
+  String? payload,
+}) async {
+  // Leemos la preferencia para obtener la duración del aplazamiento
+  int snoozeMinutes = 15; // Default fallback
+  try {
+    snoozeMinutes = await PreferenceService().getSnoozeDuration();
+  } catch (e) {
+    debugPrint("Error leyendo duración de aplazamiento: $e");
+  }
+  
+  final String snoozeLabel = 'Aplazar $snoozeMinutes min';
+
+  // Definimos las acciones con el texto dinámico
+  final List<AndroidNotificationAction> actions = <AndroidNotificationAction>[
+    AndroidNotificationAction('TOMAR_ACTION', 'Tomar', showsUserInterface: true),
+    AndroidNotificationAction('OMITIR_ACTION', 'Omitir', showsUserInterface: true),
+    AndroidNotificationAction('APLAZAR_ACTION', snoozeLabel, showsUserInterface: true),
+  ];
+
+  // CONFIGURACIÓN CRÍTICA: Máxima prioridad para notificaciones activas
+  final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    'meditime_active_dosis_channel',
+    'MediTime Dosis Activas',
+    channelDescription: 'Canal para notificaciones de dosis que requieren acción del usuario.',
+    importance: Importance.max,
+    priority: Priority.high,
+    enableVibration: true,
+    playSound: true,
+    actions: actions,
+    fullScreenIntent: true,
+    category: AndroidNotificationCategory.alarm,
+    visibility: NotificationVisibility.public,
+    autoCancel: false,
+    ongoing: true, // CRÍTICO: Mantener visible hasta que el usuario actúe
+    ticker: 'Acción requerida: Hora de tomar medicamento',
+    // NUEVO: Configuraciones adicionales para máxima visibilidad
+    showWhen: true,
+    when: DateTime.now().millisecondsSinceEpoch,
+    usesChronometer: false,
+    channelShowBadge: true,
+    onlyAlertOnce: false,
+    timeoutAfter: null,
+    silent: false,
+    enableLights: true,
+    ledColor: const Color.fromARGB(255, 255, 0, 0),
+    ledOnMs: 1000,
+    ledOffMs: 500,
+    // CRÍTICO: Configurar vibración personalizada
+    vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]),
+  );
+
+  NotificationDetails notificationDetails = NotificationDetails(android: androidDetails);
+  await _notificationsPlugin.show(id, title, body, notificationDetails, payload: payload);
+  debugPrint("Notificación ACTIVA mostrada - ID: $id, Título: $title");
+}
 
   // NUEVO MÉTODO PÚBLICO para reprogramar, que puede ser llamado desde varios lugares
   static Future<void> rescheduleNextPendingDose(Tratamiento tratamiento, String userId) async {
@@ -333,43 +435,46 @@ class NotificationService {
   }
   /// **NUEVO MÉTODO**
   /// Programa la cadena de alarmas para un tratamiento nuevo.
-  static Future<void> scheduleNewTreatment({
-    required String nombreMedicamento,
-    required String presentacion,
-    required int intervaloEnHoras,
-    required DateTime primeraDosisDateTime,
-    required DateTime fechaFinTratamiento,
-    required int prescriptionAlarmManagerId,
-    required String userId,
-    required String docId, // El ID del documento recién creado    
-  }) async {
-    if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
-      debugPrint(
-          "SCHEDULE: Programando primera alarma para $nombreMedicamento a las $primeraDosisDateTime con ID de Serie: $prescriptionAlarmManagerId");
+static Future<void> scheduleNewTreatment({
+  required String nombreMedicamento,
+  required String presentacion,
+  required int intervaloEnHoras,
+  required DateTime primeraDosisDateTime,
+  required DateTime fechaFinTratamiento,
+  required int prescriptionAlarmManagerId,
+  required String userId,
+  required String docId,
+}) async {
+  if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
+    debugPrint(
+        "SCHEDULE: Programando primera alarma para $nombreMedicamento a las $primeraDosisDateTime con ID de Serie: $prescriptionAlarmManagerId");
 
-      await AndroidAlarmManager.oneShotAt(
-        primeraDosisDateTime,
-        prescriptionAlarmManagerId,
-        alarmCallbackLogic,
-        exact: true,
-        wakeup: true,
-        alarmClock: true,
-        rescheduleOnReboot: true,
-        allowWhileIdle: true,
-        params: _buildAlarmParams(
-          nombreMedicamento: nombreMedicamento,
-          presentacion: presentacion,
-          intervaloHoras: intervaloEnHoras,
-          fechaFinTratamiento: fechaFinTratamiento,
-          prescriptionAlarmId: prescriptionAlarmManagerId,
-          userId: userId,
-          docId: docId,
-          doseTime: primeraDosisDateTime,
+    // CAMBIO CRÍTICO: Incluir todos los datos necesarios para funcionamiento offline
+    final Map<String, dynamic> completeParams = {
+      'currentNotificationId': Random().nextInt(100000),
+      'nombreMedicamento': nombreMedicamento,
+      'presentacion': presentacion,
+      'intervaloHoras': intervaloEnHoras,
+      'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
+      'prescriptionAlarmId': prescriptionAlarmManagerId,
+      'userId': userId,
+      'docId': docId,
+      'doseTime': primeraDosisDateTime.toIso8601String(),
+    };
 
-        ),
-      );
-    }
+    await AndroidAlarmManager.oneShotAt(
+      primeraDosisDateTime,
+      prescriptionAlarmManagerId,
+      alarmCallbackLogic,
+      exact: true,
+      wakeup: true,
+      alarmClock: true,
+      rescheduleOnReboot: true,
+      allowWhileIdle: true,
+      params: completeParams,
+    );
   }
+}
 
   /// **NUEVO MÉTODO**
   /// Cancela una serie de alarmas completa. Útil al eliminar un tratamiento.
@@ -450,6 +555,29 @@ class NotificationService {
     debugPrint("--- Reactivación de alarmas completada ---");
   }
 
+
+static Future<void> scheduleOfflineAlarm({
+  required DateTime scheduleTime,
+  required int alarmId,
+  required Map<String, dynamic> params,
+}) async {
+  try {
+    await AndroidAlarmManager.oneShotAt(
+      scheduleTime,
+      alarmId,
+      alarmCallbackLogic,
+      exact: true,
+      wakeup: true,
+      alarmClock: true,
+      rescheduleOnReboot: true,
+      allowWhileIdle: true,
+      params: params,
+    );
+    debugPrint("Alarma offline programada para: $scheduleTime con ID: $alarmId");
+  } catch (e) {
+    debugPrint("ERROR programando alarma offline: $e");
+  }
+}
   
 
   // --- MÉTODOS PRIVADOS AUXILIARES ---
@@ -462,49 +590,55 @@ class NotificationService {
     required int intervaloHoras,
     required DateTime fechaFinTratamiento,
     required int prescriptionAlarmId,
-    // Nuevos parámetros requeridos
     required String userId,
     required String docId,
     required DateTime doseTime,
   }) {
     return {
+      // IDs y configuración básica
       'currentNotificationId': Random().nextInt(100000),
+      'prescriptionAlarmId': prescriptionAlarmId,
+      'userId': userId,
+      'docId': docId,
+      'doseTime': doseTime.toIso8601String(),
+      
+      // Datos del medicamento (CRÍTICO: para funcionamiento offline)
       'nombreMedicamento': nombreMedicamento,
       'presentacion': presentacion,
       'intervaloHoras': intervaloHoras,
       'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
-      'prescriptionAlarmId': prescriptionAlarmId,
-      // Pasamos los nuevos datos
-      'userId': userId,
-      'docId': docId,
-      'doseTime': doseTime.toIso8601String(),
+      
+      // Metadatos adicionales
+      'scheduledAt': DateTime.now().toIso8601String(),
+      'version': '2.0', // Para tracking de versiones del payload
     };
   }
 
+
     /// **NUEVO MÉTODO PRIVADO**
   /// Lógica centralizada para reprogramar una alarma.
-  static Future<void> _rescheduleAlarm(DateTime scheduleTime, Tratamiento tratamiento, String userId) async {
-    await AndroidAlarmManager.oneShotAt(
-      scheduleTime,
-      tratamiento.prescriptionAlarmId,
-      alarmCallbackLogic,
-      exact: true,
-      wakeup: true,
-      alarmClock: true,
-      rescheduleOnReboot: true,
-      allowWhileIdle: true,
-      params: _buildAlarmParams(
-        nombreMedicamento: tratamiento.nombreMedicamento,
-        presentacion: tratamiento.presentacion,
-        intervaloHoras: int.parse(tratamiento.intervaloDosis),
-        fechaFinTratamiento: tratamiento.fechaFinTratamiento,
-        prescriptionAlarmId: tratamiento.prescriptionAlarmId,
-        // Pasamos los nuevos datos
-        userId: userId,
-        docId: tratamiento.id,
-        doseTime: scheduleTime,
-      ),
-    );
+static Future<void> _rescheduleAlarm(DateTime scheduleTime, Tratamiento tratamiento, String userId) async {
+  await AndroidAlarmManager.oneShotAt(
+    scheduleTime,
+    tratamiento.prescriptionAlarmId,
+    alarmCallbackLogic,
+    exact: true,
+    wakeup: true,
+    alarmClock: true,
+    rescheduleOnReboot: true,
+    allowWhileIdle: true,
+    params: _buildAlarmParams(
+      nombreMedicamento: tratamiento.nombreMedicamento,
+      presentacion: tratamiento.presentacion,
+      intervaloHoras: int.parse(tratamiento.intervaloDosis),
+      fechaFinTratamiento: tratamiento.fechaFinTratamiento,
+      prescriptionAlarmId: tratamiento.prescriptionAlarmId,
+      userId: userId,
+      docId: tratamiento.id,
+      doseTime: scheduleTime,
+    ),
+  );
+  debugPrint("Alarma reprogramada para: $scheduleTime con datos completos");
   }
 
   // NUEVO MÉTODO PRIVADO para buscar la siguiente dosis PENDIENTE
