@@ -8,6 +8,7 @@ import 'package:provider/provider.dart'; // CAMBIO: Importar Provider
 // CAMBIO: Importar los servicios
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AgregarRecetaPage extends StatefulWidget {
   const AgregarRecetaPage({super.key});
@@ -93,18 +94,18 @@ Future<void> _saveData() async {
     final DateTime fechaInicioTratamiento = primeraDosisDateTime;
     final DateTime fechaFinTratamiento = fechaInicioTratamiento.add(Duration(days: duracionEnDias));
     
-    await firestoreService.saveMedicamento(
-      userId: user.uid,
-      nombreMedicamento: _nombreMedicamento,
-      presentacion: _presentacion,
-      duracion: _duracion,
-      horaPrimeraDosis: _horaPrimeraDosis,
-      intervaloDosis: _dosis,
-      prescriptionAlarmId: prescriptionAlarmManagerId,
-      fechaInicioTratamiento: fechaInicioTratamiento,
-      fechaFinTratamiento: fechaFinTratamiento,
-      notas: _notas,
-    );
+        final DocumentReference docRef = await firestoreService.saveMedicamento(
+          userId: user.uid,
+          nombreMedicamento: _nombreMedicamento,
+          presentacion: _presentacion,
+          duracion: _duracion,
+          horaPrimeraDosis: _horaPrimeraDosis,
+          intervaloDosis: _dosis,
+          prescriptionAlarmId: prescriptionAlarmManagerId,
+          fechaInicioTratamiento: fechaInicioTratamiento,
+          fechaFinTratamiento: fechaFinTratamiento,
+          notas: _notas,
+        );
 
     // MEJORAS EN LA PROGRAMACIÓN DE ALARMAS
     if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
@@ -125,14 +126,16 @@ Future<void> _saveData() async {
         }
       }
       
-      await NotificationService.scheduleNewTreatment(
-        nombreMedicamento: _nombreMedicamento,
-        presentacion: _presentacion,
-        intervaloEnHoras: intervaloEnHoras,
-        primeraDosisDateTime: primeraDosisDateTime,
-        fechaFinTratamiento: fechaFinTratamiento,
-        prescriptionAlarmManagerId: prescriptionAlarmManagerId,
-      );
+          await NotificationService.scheduleNewTreatment(
+            nombreMedicamento: _nombreMedicamento,
+            presentacion: _presentacion,
+            intervaloEnHoras: intervaloEnHoras,
+            primeraDosisDateTime: primeraDosisDateTime,
+            fechaFinTratamiento: fechaFinTratamiento,
+            prescriptionAlarmManagerId: prescriptionAlarmManagerId,
+            userId: user.uid,   // Pasamos el userId
+            docId: docRef.id, // Pasamos el ID del nuevo documento
+          );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

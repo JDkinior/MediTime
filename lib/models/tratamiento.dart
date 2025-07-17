@@ -1,5 +1,18 @@
 // lib/models/tratamiento.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart'; // Importante para debugPrint
+
+/// Enum para representar el estado de una dosis.
+enum DoseStatus { pendiente, notificada, tomada, omitida, aplazada }
+
+/// Convierte un String a DoseStatus.
+/// Usado al leer datos desde Firestore.
+DoseStatus doseStatusFromString(String status) {
+  return DoseStatus.values.firstWhere(
+    (e) => e.toString().split('.').last == status,
+    orElse: () => DoseStatus.pendiente, // Valor por defecto
+  );
+}
 
 class Tratamiento {
   final String id;
@@ -13,6 +26,7 @@ class Tratamiento {
   final DateTime fechaFinTratamiento;
   final List<DateTime> skippedDoses;
   final String notas;
+  final Map<String, DoseStatus> doseStatus;
 
   Tratamiento({
     required this.id,
@@ -26,6 +40,7 @@ class Tratamiento {
     required this.fechaFinTratamiento,
     this.skippedDoses = const [],
     this.notas = '',
+    this.doseStatus = const {},
   });
 
   /// Factory constructor para crear una instancia de Tratamiento
@@ -33,11 +48,32 @@ class Tratamiento {
   factory Tratamiento.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
 
-    // Manejo seguro de la lista de dosis omitidas
     final List<dynamic> skippedDosesRaw = data['skippedDoses'] ?? [];
     final List<DateTime> skippedDoses = skippedDosesRaw
         .map((ts) => (ts as Timestamp).toDate())
         .toList();
+
+    // --- INICIO DE LA MODIFICACIÓN: Lógica de procesamiento robusta ---
+    final Map<String, dynamic> rawDoseStatus = data['doseStatus'] ?? {};
+    final Map<String, DoseStatus> processedDoseStatus = {};
+
+    // Iteramos de forma segura sobre el mapa
+    rawDoseStatus.forEach((key, value) {
+      // Comprobamos si el valor es del tipo que esperamos (String)
+      if (value is String) {
+        processedDoseStatus[key] = doseStatusFromString(value);
+      } else {
+        // Si no es un String, lo ignoramos y mostramos un mensaje de depuración.
+        // Esto evita que la aplicación se bloquee.
+        debugPrint("Dato de 'doseStatus' inesperado y omitido. Clave: $key, Tipo: ${value.runtimeType}");
+      }
+    });
+    // --- FIN DE LA MODIFICACIÓN ---
+
+    final inicioTimestamp = data['fechaInicioTratamiento'] as Timestamp?;
+    final finTimestamp = data['fechaFinTratamiento'] as Timestamp?;
+    final fechaInicio = inicioTimestamp?.toDate() ?? DateTime.now();
+    final fechaFin = finTimestamp?.toDate() ?? DateTime.now();
 
     return Tratamiento(
       id: doc.id,
@@ -47,10 +83,11 @@ class Tratamiento {
       horaPrimeraDosis: data['horaPrimeraDosis'] ?? '00:00',
       intervaloDosis: data['intervaloDosis'] ?? '0',
       prescriptionAlarmId: data['prescriptionAlarmId'] ?? 0,
-      fechaInicioTratamiento: (data['fechaInicioTratamiento'] as Timestamp).toDate(),
-      fechaFinTratamiento: (data['fechaFinTratamiento'] as Timestamp).toDate(),
+      fechaInicioTratamiento: fechaInicio,
+      fechaFinTratamiento: fechaFin,
       skippedDoses: skippedDoses,
       notas: data['notas'] ?? '',
+      doseStatus: processedDoseStatus, // Usamos el mapa procesado de forma segura
     );
   }
 }

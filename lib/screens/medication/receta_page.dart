@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/models/tratamiento.dart'; // Importamos el modelo Tratamiento
+import 'package:meditime/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/auth_service.dart';
@@ -11,7 +12,7 @@ import 'agregar_receta_page.dart';
 import 'detalle_receta_page.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'package:meditime/enums/view_state.dart';
-import 'package:meditime/services/tratamiento_service.dart';
+
 
 class RecetaPage extends StatefulWidget {
   const RecetaPage({super.key});
@@ -22,102 +23,110 @@ class RecetaPage extends StatefulWidget {
 
 class _RecetaPageState extends State<RecetaPage> {
 
-  // Agrupa una lista de fechas por día para mostrarlas en la UI.
-  Map<String, List<DateTime>> _agruparPorFecha(List<DateTime> dosis) {
-    Map<String, List<DateTime>> agrupadas = {};
+  // --- INICIO DE LA MODIFICACIÓN ---
+  // Esta función ahora agrupa los datos de las dosis, no solo las fechas.
+  Map<String, List<Map<String, dynamic>>> _agruparDosisPorFecha(List<Map<String, dynamic>> dosis) {
+    Map<String, List<Map<String, dynamic>>> agrupadas = {};
     final formatter = DateFormat('EEEE, d MMMM', 'es_ES');
-    for (var hora in dosis) {
-      final fechaKey = formatter.format(hora);
-      agrupadas.putIfAbsent(fechaKey, () => []).add(hora);
+    for (var dosisData in dosis) {
+      final fechaKey = formatter.format(dosisData['doseTime']);
+      agrupadas.putIfAbsent(fechaKey, () => []).add(dosisData);
     }
     return agrupadas;
   }
 
+  // --- INICIO DE LA MODIFICACIÓN: Nueva función para manejar la acción del menú ---
+
   // El diálogo ahora recibe el objeto Tratamiento directamente.
-  void _showDeleteOptionsDialog(BuildContext dialogContext, Tratamiento tratamiento) {
+   void _showDoseOptionsDialog(BuildContext context, Tratamiento tratamiento, DateTime doseTime) {
     final authService = Provider.of<AuthService>(context, listen: false);
     final firestoreService = Provider.of<FirestoreService>(context, listen: false);
     final user = authService.currentUser;
-
     if (user == null) return;
 
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     showDialog(
-      context: dialogContext,
+      context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-          title: const Text('Eliminar'),
-          content: const Text('¿Qué te gustaría hacer con este tratamiento?'),
-          actionsAlignment: MainAxisAlignment.center,
-           actions: <Widget>[
-            TextButton(
-              child: const Text('Omitir próxima toma', style: TextStyle(color: Colors.blue)),
-                onPressed: () async {
-                  final navigator = Navigator.of(context);
-                  final scaffoldMessenger = ScaffoldMessenger.of(context);
-                  final docRef = firestoreService.getMedicamentoDocRef(user.uid, tratamiento.id);
-
-                  // 1. Obtenemos los datos más recientes de Firestore.
-                  final freshSnapshot = await docRef.get();
-                  
-                  // 2. Usamos nuestro factory constructor para convertir el snapshot en un objeto Tratamiento.
-                  final freshTratamiento = Tratamiento.fromFirestore(freshSnapshot as DocumentSnapshot<Map<String, dynamic>>);
-
-                  navigator.pop(); // Cierra el diálogo
-
-                  // 3. Pasamos el objeto 'freshTratamiento' directamente al servicio.
-                  final bool success =
-                      await NotificationService.skipNextDoseAndReschedule(
-                    tratamiento: freshTratamiento,
-                    docRef: docRef,
-                  );
-
-                  if (scaffoldMessenger.mounted) {
-                    if (success) {
-                      scaffoldMessenger.showSnackBar(
-                        const SnackBar(
-                            content: Text('Próxima dosis omitida y reprogramada.')),
-                      );
-                    } else {
-                      scaffoldMessenger.showSnackBar(
-                        const SnackBar(
-                            content: Text('No hay próximas dosis para omitir.')),
-                      );
-                    }
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          title: Text('Opciones de la Dosis', style: TextStyle(fontSize: 22, color: kSecondaryColor, fontWeight: FontWeight.w500)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.alarm_off, color: Colors.orange),
+                title: const Text('Omitir esta dosis'),
+                onTap: () async {
+                  Navigator.of(context).pop(); // Cerrar el diálogo
+                  await firestoreService.updateDoseStatus(user.uid, tratamiento.id, doseTime, DoseStatus.omitida);
+                  final doc = await firestoreService.getMedicamentoDocRef(user.uid, tratamiento.id).get();
+                  if (doc.exists) {
+                    final updatedTratamiento = Tratamiento.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
+                    await NotificationService.rescheduleNextPendingDose(updatedTratamiento, user.uid);
                   }
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(content: Text('Dosis omitida y alarma reprogramada.')),
+                  );
                 },
-            ),
-            TextButton(
-              child: const Text('Eliminar tratamiento', style: TextStyle(color: Colors.red)),
-              onPressed: () async {
-                final navigator = Navigator.of(context);
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-                navigator.pop();
-
-                await NotificationService.cancelTreatmentAlarms(tratamiento.prescriptionAlarmId);
-                await firestoreService.deleteTratamiento(user.uid, tratamiento.id);
-
-                scaffoldMessenger.showSnackBar(
-                  const SnackBar(content: Text('Tratamiento eliminado.')),
-                );
-              },
-            ),
-          ],
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.delete_forever, color: Colors.red),
+                title: const Text('Eliminar tratamiento', style: TextStyle(color: Colors.red)),
+                onTap: () async {
+                  Navigator.of(context).pop(); // Cerrar el diálogo
+                  // Mostrar un diálogo de confirmación adicional si es necesario
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        title: const Text('Confirmar eliminación', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                        content: const Text('¿Estás seguro de que deseas eliminar este tratamiento?'),
+                        actions: <Widget>[
+                          TextButton(
+                            child: const Text('Cancelar'),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                          TextButton(
+                            style: TextButton.styleFrom(foregroundColor: Colors.red),
+                            child: const Text('Eliminar'),
+                            onPressed: () async {
+                              Navigator.of(context).pop(); // Cerrar el diálogo de confirmación
+                              await NotificationService.cancelTreatmentAlarms(tratamiento.prescriptionAlarmId);
+                              await firestoreService.deleteTratamiento(user.uid, tratamiento.id);
+                              scaffoldMessenger.showSnackBar(
+                                const SnackBar(content: Text('Tratamiento eliminado.')),
+                              );
+                            },
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
-  // La tarjeta de la dosis ahora recibe el Tratamiento y la hora específica.
-  Widget _buildDosisCard(Tratamiento tratamiento, DateTime horaDosis, BuildContext context) {
+  // La tarjeta de la dosis ahora recibe el mapa de datos de la dosis
+  Widget _buildDosisCard(Map<String, dynamic> doseData, BuildContext context) {
+    final Tratamiento tratamiento = doseData['tratamiento'];
+    final DateTime horaDosis = doseData['doseTime'];
     final horaFormateada = DateFormat('hh:mm a', 'es_ES').format(horaDosis);
 
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => DetalleRecetaPage(
-          // Pasamos el objeto directamente a la página de detalle.
           tratamiento: tratamiento,
           horaDosis: horaDosis,
         )),
@@ -155,10 +164,18 @@ class _RecetaPageState extends State<RecetaPage> {
                 ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.delete, color: Color.fromARGB(255, 247, 128, 120)),
-              onPressed: () => _showDeleteOptionsDialog(context, tratamiento),
-            ),
+            GestureDetector(
+              onTap: () => _showDoseOptionsDialog(context, tratamiento, horaDosis),
+              // Hacemos que toda el área del contenedor sea sensible al tacto, incluso las partes transparentes.
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                // Un color transparente es necesario para que `behavior` funcione correctamente.
+                color: Colors.transparent,
+                // Añadimos padding para aumentar el área de toque y mover el ícono.
+                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+                child: const Icon(Icons.more_vert, color: Colors.grey),
+              ),
+            )
           ],
         ),
       ),
@@ -174,7 +191,6 @@ class _RecetaPageState extends State<RecetaPage> {
     return Scaffold(
       body: user == null
           ? const Center(child: Text('Inicia sesión para ver tus recetas.'))
-          // El StreamBuilder ahora espera una `List<Tratamiento>`.
           : StreamBuilder<List<Tratamiento>>(
               stream: firestoreService.getMedicamentosStream(user.uid),
               builder: (context, snapshot) {
@@ -182,6 +198,7 @@ class _RecetaPageState extends State<RecetaPage> {
                   return const EstadoVista(state: ViewState.loading, child: SizedBox.shrink());
                 }
                 if (snapshot.hasError) {
+                  // Este es el error que estás viendo.
                   return EstadoVista(
                     state: ViewState.error,
                     errorMessage: 'Ocurrió un error al cargar las recetas.',
@@ -197,23 +214,31 @@ class _RecetaPageState extends State<RecetaPage> {
                   );
                 }
 
-                  return EstadoVista(
-                    state: ViewState.success,
-                    child: Builder(builder: (context) {
-                      final todosLosTratamientos = snapshot.data!;
-                      // Creamos una instancia del servicio aquí
-                      final tratamientoService = TratamientoService();
-                      final Map<DateTime, Tratamiento> mapaDeDosis = {};
+                return EstadoVista(
+                  state: ViewState.success,
+                  child: Builder(builder: (context) {
+                    // --- INICIO DE LA MODIFICACIÓN: Lógica central actualizada ---
+                    final todosLosTratamientos = snapshot.data!;
+                    final List<Map<String, dynamic>> dosisPendientes = [];
 
-                      for (var tratamiento in todosLosTratamientos) {
-                        // Usamos el servicio para generar las dosis
-                        final dosisGeneradas = tratamientoService.generarDosisPendientes(tratamiento);
-                        for (var horaDosis in dosisGeneradas) {
-                          mapaDeDosis[horaDosis] = tratamiento;
+                    // 1. Recorremos los tratamientos y sus mapas de estado
+                    for (var tratamiento in todosLosTratamientos) {
+                      tratamiento.doseStatus.forEach((dateString, status) {
+                        final doseTime = DateTime.parse(dateString);
+                        // 2. Solo nos interesan las dosis futuras que están 'pendientes'
+                        if (status == DoseStatus.pendiente && doseTime.isAfter(DateTime.now())) {
+                          dosisPendientes.add({
+                            'tratamiento': tratamiento,
+                            'doseTime': doseTime,
+                          });
                         }
-                      }
+                      });
+                    }
 
-                    if (mapaDeDosis.isEmpty) {
+                    // 3. Ordenamos todas las dosis cronológicamente
+                    dosisPendientes.sort((a, b) => (a['doseTime'] as DateTime).compareTo(b['doseTime'] as DateTime));
+
+                    if (dosisPendientes.isEmpty) {
                       return const EstadoVista(
                         state: ViewState.empty,
                         emptyMessage: 'No tienes dosis futuras programadas. ¡Añade una nueva receta!',
@@ -221,8 +246,8 @@ class _RecetaPageState extends State<RecetaPage> {
                       );
                     }
 
-                    final todasLasHoras = mapaDeDosis.keys.toList()..sort();
-                    final dosisAgrupadasPorFecha = _agruparPorFecha(todasLasHoras);
+                    // 4. Agrupamos las dosis por día para mostrarlas en la UI
+                    final dosisAgrupadasPorFecha = _agruparDosisPorFecha(dosisPendientes);
 
                     return ListView(
                       children: dosisAgrupadasPorFecha.entries.map((entry) {
@@ -233,14 +258,13 @@ class _RecetaPageState extends State<RecetaPage> {
                               padding: const EdgeInsets.all(12.0),
                               child: Text(entry.key, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[700])),
                             ),
-                            ...entry.value.map((hora) {
-                              final tratamiento = mapaDeDosis[hora]!;
-                              return _buildDosisCard(tratamiento, hora, context);
-                            }),
+                            // Usamos la nueva función _buildDosisCard
+                            ...entry.value.map((doseData) => _buildDosisCard(doseData, context)),
                           ],
                         );
                       }).toList(),
                     );
+                    // --- FIN DE LA MODIFICACIÓN ---
                   }),
                 );
               },
