@@ -7,6 +7,7 @@ import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/preference_service.dart';
+import 'package:meditime/firebase_options.dart';
 
 @pragma('vm:entry-point')
 void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
@@ -14,16 +15,16 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
 
   try {
     await WidgetsFlutterBinding.ensureInitialized();
-    
-    // CAMBIO CRÍTICO: Inicializar Firebase con timeout y manejo de errores
+
     bool firebaseInitialized = false;
     try {
-      await Firebase.initializeApp().timeout(Duration(seconds: 5));
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform, // Opciones críticas
+      ).timeout(const Duration(seconds: 5));
       firebaseInitialized = true;
       debugPrint("Firebase inicializado correctamente en callback");
     } catch (e) {
       debugPrint("ERROR: Firebase no se pudo inicializar en callback: $e");
-      firebaseInitialized = false;
     }
 
     await NotificationService.initializeCore();
