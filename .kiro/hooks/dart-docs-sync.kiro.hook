@@ -4,7 +4,7 @@
   "description": "Listens to Dart source files and configuration files in this Flutter project and automatically updates documentation in README.md when changes are detected",
   "version": "1",
   "when": {
-    "type": "fileEdited",
+    "type": "userTriggered",
     "patterns": [
       "lib/**/*.dart",
       "test/**/*.dart",

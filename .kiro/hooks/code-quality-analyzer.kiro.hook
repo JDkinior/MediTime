@@ -4,7 +4,7 @@
   "description": "Monitors source code files for changes and analyzes modified code for potential improvements, code smells, design patterns, and best practices to enhance readability, maintainability, and performance.",
   "version": "1",
   "when": {
-    "type": "fileEdited",
+    "type": "userTriggered",
     "patterns": [
       "lib/**/*.dart",
       "test/**/*.dart",
