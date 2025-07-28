@@ -35,6 +35,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
     await NotificationService.reactivateAlarmsForUser(user.uid);
     debugPrint("AuthWrapper: Alarmas reactivadas para el usuario ${user.uid}");
 
+    // 1.5. Manejar notificaciones pendientes cuando la app se abre
+    await NotificationService.handlePendingNotificationActions();
+    debugPrint("AuthWrapper: Notificaciones pendientes verificadas");
+    
+    // 1.6. Verificar si hay una notificación que activó la app
+    await NotificationService.checkAppLaunchedFromNotification();
+    debugPrint("🔍 AuthWrapper: Verificación de lanzamiento por notificación completada");
+
     // 2. Cargar el perfil del usuario solo si aún no está en el Notifier.
     if (profileNotifier.userName == null) {
       debugPrint("AuthWrapper: Cargando perfil de usuario...");

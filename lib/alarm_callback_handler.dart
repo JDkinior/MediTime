@@ -12,9 +12,10 @@ import 'package:meditime/firebase_options.dart';
 @pragma('vm:entry-point')
 void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
   debugPrint("INICIO alarmCallbackLogic - ID: $id");
+  debugPrint("Parámetros recibidos: ${params.keys.toList()}");
 
   try {
-    await WidgetsFlutterBinding.ensureInitialized();
+    WidgetsFlutterBinding.ensureInitialized();
 
     bool firebaseInitialized = false;
     try {
@@ -31,10 +32,18 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
 
     final preferenceService = PreferenceService();
     
-    // CAMBIO CRÍTICO: Extraer datos del payload sin depender de Firebase
-    final userId = params['userId'];
-    final docId = params['docId'];
-    final doseTime = DateTime.parse(params['doseTime']);
+    // CAMBIO CRÍTICO: Extraer datos del payload sin depender de Firebase con validaciones null-safe
+    final userId = params['userId'] as String?;
+    final docId = params['docId'] as String?;
+    final doseTimeString = params['doseTime'] as String?;
+    
+    // Validaciones críticas
+    if (userId == null || docId == null || doseTimeString == null) {
+      debugPrint("ERROR: Parámetros críticos son null - userId: $userId, docId: $docId, doseTime: $doseTimeString");
+      return;
+    }
+    
+    final doseTime = DateTime.parse(doseTimeString);
     final notificationId = params['currentNotificationId'] ?? Random().nextInt(100000);
     
     // NUEVOS PARÁMETROS: Datos del tratamiento incluidos en el payload
@@ -114,8 +123,8 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
     
     // FALLBACK DE EMERGENCIA: Mostrar notificación básica
     try {
-      final notificationId = params['currentNotificationId'] ?? Random().nextInt(100000);
-      final nombreMedicamento = params['nombreMedicamento'] ?? 'Medicamento';
+      final notificationId = (params['currentNotificationId'] as int?) ?? Random().nextInt(100000);
+      final nombreMedicamento = (params['nombreMedicamento'] as String?) ?? 'Medicamento';
       
       await NotificationService.showSimpleNotification(
         id: notificationId,
@@ -132,7 +141,12 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
 // NUEVA FUNCIÓN: Reprogramar siguiente dosis con acceso a Firebase
 Future<void> _reprogramarSiguienteDosis(Map<String, dynamic> params, String userId, FirestoreService firestoreService) async {
   try {
-    final docId = params['docId'];
+    final docId = params['docId'] as String?;
+    if (docId == null) {
+      debugPrint("ERROR: docId es null en _reprogramarSiguienteDosis");
+      return;
+    }
+    
     final doc = await firestoreService.getMedicamentoDocRef(userId, docId).get()
         .timeout(Duration(seconds: 5));
     
@@ -151,13 +165,19 @@ Future<void> _reprogramarSiguienteDosis(Map<String, dynamic> params, String user
 // NUEVA FUNCIÓN: Reprogramar siguiente dosis sin Firebase (offline)
 Future<void> _reprogramarSiguienteDosisOffline(Map<String, dynamic> params) async {
   try {
-    final doseTime = DateTime.parse(params['doseTime']);
-    final intervaloHoras = params['intervaloHoras'] ?? 8;
-    final fechaFinTratamientoString = params['fechaFinTratamientoString'];
-    final prescriptionAlarmId = params['prescriptionAlarmId'] ?? 0;
+    final doseTimeString = params['doseTime'] as String?;
+    if (doseTimeString == null) {
+      debugPrint("ERROR: doseTime es null en _reprogramarSiguienteDosisOffline");
+      return;
+    }
+    
+    final doseTime = DateTime.parse(doseTimeString);
+    final intervaloHoras = (params['intervaloHoras'] as int?) ?? 8;
+    final fechaFinTratamientoString = params['fechaFinTratamientoString'] as String?;
+    final prescriptionAlarmId = (params['prescriptionAlarmId'] as int?) ?? 0;
     
     if (fechaFinTratamientoString == null || prescriptionAlarmId == 0) {
-      debugPrint("Datos insuficientes para reprogramación offline");
+      debugPrint("Datos insuficientes para reprogramación offline - fechaFin: $fechaFinTratamientoString, alarmId: $prescriptionAlarmId");
       return;
     }
 

@@ -21,14 +21,15 @@ import 'package:meditime/notifiers/profile_notifier.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await NotificationService.initializeCore();
   await NotificationService.requestAllNecessaryPermissions();
   await AndroidAlarmManager.initialize();
   await initializeDateFormatting('es_ES', null);
+
+  // PRUEBA DE CALLBACKS (comentar después de probar)
+  // await NotificationService.checkNotificationCallbacks();
 
   runApp(const MyApp());
 }
@@ -47,8 +48,8 @@ class MyApp extends StatelessWidget {
         // --- INICIO DEL CAMBIO ---
         // Añade el proveedor para tu nuevo servicio de preferencias
         Provider<PreferenceService>(create: (_) => PreferenceService()),
-        // --- FIN DEL CAMBIO ---
 
+        // --- FIN DEL CAMBIO ---
         ChangeNotifierProvider<ProfileNotifier>(
           create: (_) => ProfileNotifier(),
         ),
@@ -60,13 +61,13 @@ class MyApp extends StatelessWidget {
           // 1. Definimos el esquema de color
           colorScheme: ColorScheme.fromSeed(
             // Usamos nuestro color primario como "semilla"
-            seedColor: kSecondaryColor, 
+            seedColor: kSecondaryColor,
             // Opcional: podemos definir un color de fondo ligeramente diferente si queremos
             background: const Color.fromARGB(255, 241, 241, 241),
           ),
-          
+
           useMaterial3: true,
-          
+
           // 3. Mantenemos las personalizaciones que ya tenías
           scaffoldBackgroundColor: const Color.fromARGB(255, 241, 241, 241),
           appBarTheme: const AppBarTheme(
