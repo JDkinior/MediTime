@@ -18,6 +18,11 @@
     
     <!-- PERMISOS PARA OPTIMIZACIÓN DE BATERÍA -->
     <uses-permission android:name="android.permission.DEVICE_POWER" />
+    
+    <!-- PERMISOS ADICIONALES PARA DESPERTAR PANTALLA -->
+    <uses-permission android:name="android.permission.TURN_SCREEN_ON" />
+    <uses-permission android:name="android.permission.SHOW_WHEN_LOCKED" />
+    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
 
     <application
         android:label="MediTime"
