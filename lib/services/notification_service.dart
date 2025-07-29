@@ -56,6 +56,11 @@ Future<void> _handleNotificationAction(
   }
 }
 
+/// Servicio para gestionar todo lo relacionado con notificaciones y alarmas.
+///
+/// Encapsula la lógica para:
+/// - `flutter_local_notifications`: Mostrar notificaciones en primer plano.
+/// - `android_alarm_manager_plus`: Programar tareas que se ejecutan en segundo plano (alarmas).
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
@@ -64,6 +69,10 @@ class NotificationService {
 
   static bool _permissionsHaveBeenRequested = false;
 
+  /// Inicializa los componentes principales del servicio de notificaciones.
+  ///
+  /// Configura la zona horaria, los ajustes de inicialización para Android/iOS
+  /// y registra los callbacks para manejar las interacciones con las notificaciones.
   static Future<void> initializeCore() async {
     if (_isCoreInitialized) {
       return;
@@ -137,6 +146,8 @@ class NotificationService {
     );
   }
 
+  /// Solicita todos los permisos necesarios para que las notificaciones y alarmas
+  /// funcionen correctamente en Android e iOS.
   static Future<void> requestAllNecessaryPermissions() async {
     if (!_isCoreInitialized) {
       debugPrint(
@@ -184,6 +195,10 @@ class NotificationService {
     debugPrint("Solicitud de permisos completada.");
   }
 
+  /// Muestra una notificación simple (pasiva).
+  ///
+  /// Se utiliza en el "Modo Pasivo", donde la dosis se marca como tomada
+  /// automáticamente y solo se informa al usuario.
   static Future<void> showSimpleNotification({
     required int id,
     required String title,
@@ -320,6 +335,10 @@ class NotificationService {
     }
   }
 
+  /// Muestra una notificación activa con botones de acción (Tomar, Omitir, Aplazar).
+  ///
+  /// Se utiliza en el "Modo Activo", requiriendo la interacción del usuario
+  /// para confirmar el estado de la dosis.
   static Future<void> showActiveNotification({
     required int id,
     required String title,
@@ -411,7 +430,10 @@ class NotificationService {
     debugPrint("Notificación ACTIVA mostrada - ID: $id, Título: $title");
   }
 
-  // NUEVO MÉTODO PÚBLICO para reprogramar, que puede ser llamado desde varios lugares
+  /// Reprograma la siguiente dosis pendiente de un tratamiento.
+  ///
+  /// Cancela cualquier alarma anterior para esta serie y busca la próxima
+  /// dosis con estado 'pendiente' para programar una nueva alarma.
   static Future<void> rescheduleNextPendingDose(
     Tratamiento tratamiento,
     String userId,
@@ -434,7 +456,10 @@ class NotificationService {
     }
   }
 
-  // NUEVO MÉTODO para aplazar una notificación
+  /// Aplaza una notificación por un número determinado de minutos.
+  ///
+  /// Cancela la notificación actual y programa una nueva notificación `zonedSchedule`
+  /// para el futuro.
   static Future<void> snoozeNotification(
     int? notificationId,
     String payload,
@@ -485,6 +510,7 @@ class NotificationService {
     );
   }
 
+  /// Cancela todas las notificaciones locales visibles.
   static Future<void> cancelAllFlutterLocalNotifications() async {
     await _notificationsPlugin.cancelAll();
     debugPrint(
@@ -492,6 +518,7 @@ class NotificationService {
     );
   }
 
+  /// Cancela una notificación local específica por su ID.
   static Future<void> cancelFlutterLocalNotificationById(int id) async {
     await _notificationsPlugin.cancel(id);
     debugPrint(
@@ -499,10 +526,13 @@ class NotificationService {
     );
   }
 
+  /// Verifica si la aplicación tiene permisos para mostrar notificaciones.
   static Future<bool> checkNotificationPermissions() async {
     final androidImplementation =
         _notificationsPlugin
             .resolvePlatformSpecificImplementation<
+              /// Verifica si la aplicación tiene permisos para mostrar notificaciones.
+              ///
               AndroidFlutterLocalNotificationsPlugin
             >();
 
@@ -513,7 +543,7 @@ class NotificationService {
     return false;
   }
 
-  // NUEVA FUNCIÓN: Para verificar si las alarmas exactas están permitidas
+  /// Verifica si la aplicación tiene permisos para programar alarmas exactas en Android.
   static Future<bool> checkExactAlarmPermissions() async {
     final androidImplementation =
         _notificationsPlugin
@@ -529,8 +559,9 @@ class NotificationService {
     return false;
   }
 
-  /// **NUEVO MÉTODO**
-  /// Programa la cadena de alarmas para un tratamiento nuevo.
+  /// Programa la primera alarma para un tratamiento recién creado.
+  ///
+  /// Esta alarma, al ejecutarse, llamará a `alarmCallbackLogic`, que se encargará de reprogramar la siguiente.
   static Future<void> scheduleNewTreatment({
     required String nombreMedicamento,
     required String presentacion,
@@ -573,8 +604,9 @@ class NotificationService {
     }
   }
 
-  /// **NUEVO MÉTODO**
   /// Cancela una serie de alarmas completa. Útil al eliminar un tratamiento.
+  ///
+  /// Utiliza el `prescriptionAlarmId` que es único para cada cadena de alarmas de un tratamiento.
   static Future<void> cancelTreatmentAlarms(int prescriptionAlarmId) async {
     debugPrint(
       "CANCEL: Cancelando serie de alarmas completa con ID: $prescriptionAlarmId",
@@ -582,7 +614,6 @@ class NotificationService {
     await AndroidAlarmManager.cancel(prescriptionAlarmId);
   }
 
-  /// **NUEVO MÉTODO**
   /// Omite una dosis y reprograma la siguiente.
   static Future<void> omitDoseAndReschedule({
     required Tratamiento tratamiento,
@@ -608,8 +639,7 @@ class NotificationService {
     }
   }
 
-  /// **NUEVO MÉTODO**
-  /// Anula la omisión de una dosis y reprograma la alarma correspondiente.
+  /// Revierte la omisión de una dosis y reprograma la alarma correspondiente.
   static Future<void> undoOmissionAndReschedule({
     required Tratamiento tratamiento,
     required DocumentReference docRef,
@@ -640,7 +670,10 @@ class NotificationService {
     }
   }
 
-  /// Reactiva todas las alarmas para un usuario, por ejemplo, al iniciar sesión.
+  /// Reactiva todas las alarmas pendientes para un usuario.
+  ///
+  /// Este método es crucial y se llama al iniciar la aplicación (`AuthWrapper`)
+  /// para asegurar que las alarmas persistan después de que el sistema operativo cierre la app.
   static Future<void> reactivateAlarmsForUser(String userId) async {
     debugPrint(
       "--- Iniciando reactivación de alarmas para el usuario $userId ---",
@@ -676,6 +709,10 @@ class NotificationService {
     debugPrint("--- Reactivación de alarmas completada ---");
   }
 
+  /// Programa una alarma que puede funcionar sin conexión a internet.
+  ///
+  /// Esto es posible porque todos los datos necesarios para la siguiente alarma
+  /// se pasan a través del mapa de `params`.
   static Future<void> scheduleOfflineAlarm({
     required DateTime scheduleTime,
     required int alarmId,
@@ -703,8 +740,7 @@ class NotificationService {
 
   // --- MÉTODOS PRIVADOS AUXILIARES ---
 
-  /// **NUEVO MÉTODO PRIVADO**
-  /// Construye el mapa de parámetros para una alarma.
+  /// Construye el mapa de parámetros completo que se pasará a `alarmCallbackLogic`.
   static Map<String, dynamic> _buildAlarmParams({
     required String nombreMedicamento,
     required String presentacion,
@@ -735,8 +771,7 @@ class NotificationService {
     };
   }
 
-  /// **NUEVO MÉTODO PRIVADO**
-  /// Lógica centralizada para reprogramar una alarma.
+  /// Lógica interna y centralizada para programar una alarma con `AndroidAlarmManager`.
   static Future<void> _rescheduleAlarm(
     DateTime scheduleTime,
     Tratamiento tratamiento,
@@ -765,7 +800,9 @@ class NotificationService {
     debugPrint("Alarma reprogramada para: $scheduleTime con datos completos");
   }
 
-  // NUEVO MÉTODO PRIVADO para buscar la siguiente dosis PENDIENTE
+  /// Busca la próxima dosis futura que tenga el estado `DoseStatus.pendiente`.
+  ///
+  /// Itera sobre el mapa de estados de dosis del tratamiento en orden cronológico.
   static Future<DateTime?> _findNextPendingDose({
     required Tratamiento tratamiento,
   }) async {
@@ -784,8 +821,7 @@ class NotificationService {
     return null; // No se encontraron dosis pendientes futuras
   }
 
-  /// **NUEVO MÉTODO**
-  /// Omite la próxima dosis futura de un tratamiento y reprograma la siguiente.
+  /// Marca la próxima dosis futura como 'omitida' y reprograma la siguiente.
   /// Retorna `true` si se pudo omitir, `false` si no había dosis futuras para omitir.
   static Future<bool> skipNextDoseAndReschedule({
     required Tratamiento tratamiento,
@@ -844,8 +880,7 @@ class NotificationService {
     return true;
   }
 
-  /// **NUEVO MÉTODO**
-  /// Método de respaldo para manejar acciones de notificación cuando Firebase falla
+  /// Maneja una acción de notificación en modo fallback (sin conexión a Firebase).
   static Future<void> handleNotificationActionFallback({
     required String actionId,
     required String userId,
@@ -890,8 +925,7 @@ class NotificationService {
     }
   }
 
-  /// **NUEVO MÉTODO**
-  /// Verifica si Firebase está disponible y lo inicializa si es necesario
+  /// Asegura que Firebase esté inicializado antes de intentar usarlo.
   static Future<bool> ensureFirebaseInitialized() async {
     try {
       // Verificar si Firebase ya está inicializado
@@ -913,8 +947,7 @@ class NotificationService {
     }
   }
 
-  /// **MÉTODO DE PRUEBA**
-  /// Crea una notificación de prueba para verificar que los callbacks funcionan
+  /// Muestra una notificación de prueba para fines de depuración.
   static Future<void> showTestNotification() async {
     debugPrint('=== CREANDO NOTIFICACIÓN DE PRUEBA ===');
     
@@ -928,8 +961,7 @@ class NotificationService {
     debugPrint('Notificación de prueba creada con ID: 99999');
   }
 
-  /// **MÉTODO DE DIAGNÓSTICO**
-  /// Verifica si los callbacks están funcionando
+  /// Muestra una notificación de prueba para diagnosticar el funcionamiento de los callbacks.
   static Future<void> checkNotificationCallbacks() async {
     print('🔍 VERIFICANDO CALLBACKS DE NOTIFICACIÓN');
     
@@ -959,8 +991,7 @@ class NotificationService {
     print('🔍 Notificación de prueba creada - ID: 88888');
   }
 
-  /// **MÉTODO DE RESPALDO**
-  /// Maneja notificaciones cuando la app se abre (fallback para callbacks que no funcionan)
+  /// Verifica si hay notificaciones activas al abrir la app.
   static Future<void> handlePendingNotificationActions() async {
     debugPrint('🔄 Verificando acciones de notificación pendientes...');
     
@@ -984,8 +1015,7 @@ class NotificationService {
     }
   }
 
-  /// **MÉTODO PARA PROCESAR ACCIONES DE NOTIFICACIÓN**
-  /// Maneja la lógica compleja de procesamiento de acciones
+  /// Procesa de forma asíncrona la acción realizada por el usuario en una notificación.
   static Future<void> processNotificationActionAsync({
     required String payload,
     required String actionId,
@@ -1082,8 +1112,7 @@ class NotificationService {
     }
   }
 
-  /// **MÉTODO ADICIONAL**
-  /// Verifica si la app se abrió debido a una acción de notificación
+  /// Verifica si la aplicación fue iniciada por el usuario al tocar una notificación.
   static Future<void> checkAppLaunchedFromNotification() async {
     try {
       final NotificationAppLaunchDetails? launchDetails = 

@@ -4,21 +4,34 @@ import 'package:flutter/material.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/services/tratamiento_service.dart';
 
+/// Servicio para interactuar con la base de datos de Cloud Firestore.
+///
+/// Abstrae todas las operaciones de lectura y escritura (CRUD) para los datos
+/// de la aplicación, como perfiles de usuario y tratamientos.
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // --- Perfil de Usuario ---
 
+  /// Guarda o actualiza los datos del perfil de un usuario.
+  ///
+  /// Utiliza `SetOptions(merge: true)` para no sobrescribir campos existentes
+  /// si solo se actualiza una parte del perfil.
   Future<void> saveUserProfile(String userId, Map<String, dynamic> data) {
     return _db.collection('users').doc(userId).set(data, SetOptions(merge: true));
   }
 
+  /// Obtiene el documento del perfil de un usuario específico.
   Future<DocumentSnapshot> getUserProfile(String userId) {
     return _db.collection('users').doc(userId).get();
   }
 
   // --- Medicamentos ---
 
+  /// Obtiene un `Stream` con la lista de todos los tratamientos de un usuario.
+  ///
+  /// El `Stream` se actualiza automáticamente cuando hay cambios en Firestore.
+  /// Transforma los documentos de Firestore en una lista de objetos `Tratamiento`.
   Stream<List<Tratamiento>> getMedicamentosStream(String userId) {
     final stream = _db
         .collection('medicamentos')
@@ -35,6 +48,7 @@ class FirestoreService {
     });
   }
 
+  /// Guarda un nuevo tratamiento en la base de datos para un usuario específico.
   Future<DocumentReference> saveMedicamento({
     required String userId,
     required String nombreMedicamento,
@@ -82,14 +96,21 @@ class FirestoreService {
     });
   }
 
+  /// Elimina un documento de tratamiento específico.
   Future<void> deleteTratamiento(String userId, String docId) {
     return _db.collection('medicamentos').doc(userId).collection('userMedicamentos').doc(docId).delete();
   }
   
+  /// Obtiene la referencia a un documento de tratamiento específico.
+  /// Útil para realizar actualizaciones o lecturas directas.
   DocumentReference getMedicamentoDocRef(String userId, String docId) {
     return _db.collection('medicamentos').doc(userId).collection('userMedicamentos').doc(docId);
   }
-  // NUEVO MÉTODO para actualizar el estado de una dosis específica
+
+  /// Actualiza el estado de una dosis específica dentro de un tratamiento.
+  ///
+  /// Utiliza una transacción de Firestore para garantizar que la lectura y escritura
+  /// de los datos sea atómica y consistente, evitando condiciones de carrera.
   Future<void> updateDoseStatus(String userId, String docId, DateTime doseTime, DoseStatus newStatus) async {
     final docRef = getMedicamentoDocRef(userId, docId);
     debugPrint("Attempting to robustly update status for doc: ${docRef.path}");

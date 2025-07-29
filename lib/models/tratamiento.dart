@@ -14,6 +14,7 @@ DoseStatus doseStatusFromString(String status) {
   );
 }
 
+/// Representa un tratamiento médico completo.
 class Tratamiento {
   final String id;
   final String nombreMedicamento;
@@ -26,6 +27,9 @@ class Tratamiento {
   final DateTime fechaFinTratamiento;
   final List<DateTime> skippedDoses;
   final String notas;
+
+  /// Un mapa que almacena el estado de cada dosis individual.
+  /// La clave es la fecha de la dosis en formato ISO 8601, y el valor es su [DoseStatus].
   final Map<String, DoseStatus> doseStatus;
 
   Tratamiento({
@@ -43,8 +47,8 @@ class Tratamiento {
     this.doseStatus = const {},
   });
 
-  /// Factory constructor para crear una instancia de Tratamiento
-  /// a partir de un documento de Firestore.
+  /// Crea una instancia de [Tratamiento] a partir de un [DocumentSnapshot] de Firestore.
+  /// Realiza un parseo seguro de los datos para evitar errores en tiempo de ejecución.
   factory Tratamiento.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
 
@@ -52,7 +56,7 @@ class Tratamiento {
     final List<DateTime> skippedDoses = skippedDosesRaw
         .map((ts) => (ts as Timestamp).toDate())
         .toList();
-
+    
     // --- INICIO DE LA MODIFICACIÓN: Lógica de procesamiento robusta ---
     final Map<String, dynamic> rawDoseStatus = data['doseStatus'] ?? {};
     final Map<String, DoseStatus> processedDoseStatus = {};

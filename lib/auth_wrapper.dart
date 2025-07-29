@@ -13,6 +13,12 @@ import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/screens/auth/login_page.dart';
 import 'package:meditime/screens/home/home_page.dart';
 
+/// Un widget "guardián" que controla qué pantalla se muestra al usuario.
+///
+/// Escucha los cambios en el estado de autenticación de Firebase.
+/// - Si el usuario no está autenticado, muestra [LoginPage].
+/// - Si el usuario está autenticado, realiza una configuración inicial
+///   (reactivar alarmas, cargar perfil) y luego muestra [HomePage].
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 

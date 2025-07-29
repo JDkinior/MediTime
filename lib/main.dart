@@ -19,6 +19,7 @@ import 'package:meditime/services/preference_service.dart';
 // --- FIN DEL CAMBIO ---
 import 'package:meditime/notifiers/profile_notifier.dart';
 
+/// Punto de entrada principal de la aplicación.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -34,6 +35,7 @@ void main() async {
   runApp(const MyApp());
 }
 
+/// El widget raíz de la aplicación.
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -41,12 +43,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // Proveedores para los servicios
+        // Proveedores para los servicios de la aplicación, haciéndolos
+        // accesibles en todo el árbol de widgets a través de `context.read<T>()`.
         Provider<AuthService>(create: (_) => AuthService()),
         Provider<FirestoreService>(create: (_) => FirestoreService()),
         Provider<StorageService>(create: (_) => StorageService()),
         // --- INICIO DEL CAMBIO ---
-        // Añade el proveedor para tu nuevo servicio de preferencias
         Provider<PreferenceService>(create: (_) => PreferenceService()),
 
         // --- FIN DEL CAMBIO ---
@@ -56,7 +58,6 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'MediTime',
-        // --- INICIO DE LA MODIFICACIÓN: Tema global completo ---
         theme: ThemeData(
           // 1. Definimos el esquema de color
           colorScheme: ColorScheme.fromSeed(
@@ -74,7 +75,6 @@ class MyApp extends StatelessWidget {
             color: Color.fromARGB(255, 241, 241, 241),
           ),
         ),
-        // --- FIN DE LA MODIFICACIÓN ---
         home: const AuthWrapper(),
       ),
     );

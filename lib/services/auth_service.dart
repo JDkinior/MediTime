@@ -8,27 +8,40 @@ import 'package:provider/provider.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 
+/// Servicio para gestionar la autenticación de usuarios con Firebase.
+///
+/// Centraliza todas las operaciones relacionadas con el inicio de sesión,
+/// registro, cierre de sesión y autenticación con proveedores externos como Google.
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  // Stream para escuchar cambios en el estado de autenticación
+  /// Un stream que notifica sobre los cambios en el estado de autenticación del usuario.
+  ///
+  /// Es ideal para usar en un `StreamBuilder` y reaccionar a inicios o cierres de sesión.
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // Obtener el usuario actual
+  /// Obtiene el objeto `User` de Firebase actualmente autenticado.
+  ///
+  /// Devuelve `null` si no hay ningún usuario con sesión iniciada.
   User? get currentUser => _auth.currentUser;
 
-  // Iniciar sesión con correo y contraseña
+  /// Inicia sesión de un usuario existente usando su correo electrónico y contraseña.
   Future<void> signInWithEmailAndPassword(String email, String password) async {
     await _auth.signInWithEmailAndPassword(email: email, password: password);
   }
 
-  // Registrar un nuevo usuario
+  /// Registra un nuevo usuario en Firebase con su correo electrónico y contraseña.
   Future<void> createUserWithEmailAndPassword(String email, String password) async {
     await _auth.createUserWithEmailAndPassword(email: email, password: password);
   }
 
-  // Cerrar sesión
+  /// Cierra la sesión del usuario actual.
+  ///
+  /// Además de cerrar la sesión en Firebase, este método se encarga de:
+  /// - Cancelar todas las alarmas y notificaciones programadas para el usuario.
+  /// - Limpiar los datos del perfil del `ProfileNotifier`.
+  /// - Desconectar de Google Sign-In si era el método de autenticación.
   Future<void> signOut(BuildContext context) async {
     final profileNotifier = context.read<ProfileNotifier>();
     final firestoreService = context.read<FirestoreService>();
@@ -73,7 +86,7 @@ class AuthService {
     await _auth.signOut();
   }
 
-  // Iniciar sesión con Google
+  /// Inicia el flujo de autenticación usando una cuenta de Google.
   Future<UserCredential> signInWithGoogle() async {
     // Inicia el flujo de inicio de sesión de Google
     final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
