@@ -3,6 +3,7 @@ import 'instrucciones_page.dart';
 import 'guia_optimizacion_page.dart';
 import 'info_page.dart';
 import 'package:meditime/widgets/primary_button.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 // ignore: camel_case_types
 class AyudaPage extends StatelessWidget {
   const AyudaPage({super.key});
@@ -161,26 +162,34 @@ class AyudaPage extends StatelessWidget {
               showDialog(
                 context: context,
                 builder: (BuildContext context) {
-                  const data =
-                      'La aplicación se encuentra actualmente en desarrollo, esta es la versión: 2.24.0 alpha.';
-                  return AlertDialog(
-                    title: Text('Versión de la aplicación',
-                        style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF4092E4))),
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(32.0), // Ajusta el radio aquí
-                    ),
-                    content: SingleChildScrollView(
-                      child: Text(data, style: TextStyle(color: textColor)),
-                    ),
-                    actions: <Widget>[
-                        PrimaryButton(
-                            text: 'Entendido',
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                          ),
-                    ],
+                  return FutureBuilder<PackageInfo>(
+                    future: PackageInfo.fromPlatform(),
+                    builder: (context, snapshot) {
+                      String versionText = 'Cargando versión...';
+                      if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+                        final info = snapshot.data!;
+                        versionText = 'La aplicación se encuentra actualmente en desarrollo, esta es la versión: ${info.version}+${info.buildNumber}.';
+                      }
+                      return AlertDialog(
+                        title: Text('Versión de la aplicación',
+                            style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF4092E4))),
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(32.0), // Ajusta el radio aquí
+                        ),
+                        content: SingleChildScrollView(
+                          child: Text(versionText, style: TextStyle(color: textColor)),
+                        ),
+                        actions: <Widget>[
+                            PrimaryButton(
+                                text: 'Entendido',
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                        ],
+                      );
+                    },
                   );
                 },
               );
