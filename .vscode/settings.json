@@ -1,4 +1,6 @@
 {
     "java.configuration.updateBuildConfiguration": "interactive",
-    "cmake.sourceDirectory": "C:/Users/degkp/OneDrive/Documentos/Flutter Projects/MediTime/windows"
+    "cmake.sourceDirectory": "C:/Users/degkp/OneDrive/Documentos/Flutter Projects/MediTime/windows",
+    "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx4G -Xms100m -Xlog:disable",
+    "CodeGPT.apiKey": "LM Studio"
 }

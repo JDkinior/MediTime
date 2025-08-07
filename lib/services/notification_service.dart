@@ -789,7 +789,7 @@ class NotificationService {
       params: _buildAlarmParams(
         nombreMedicamento: tratamiento.nombreMedicamento,
         presentacion: tratamiento.presentacion,
-        intervaloHoras: int.parse(tratamiento.intervaloDosis),
+        intervaloHoras: tratamiento.intervaloDosis.inHours,
         fechaFinTratamiento: tratamiento.fechaFinTratamiento,
         prescriptionAlarmId: tratamiento.prescriptionAlarmId,
         userId: userId,

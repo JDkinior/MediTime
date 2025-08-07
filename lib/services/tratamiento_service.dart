@@ -8,7 +8,7 @@ class TratamientoService {
   List<DateTime> generarDosisTotales(Tratamiento tratamiento) {
     List<DateTime> dosis = [];
     DateTime dosisActual = tratamiento.fechaInicioTratamiento;
-    final int intervalo = int.tryParse(tratamiento.intervaloDosis) ?? 24;
+    final int intervalo = tratamiento.intervaloDosis.inHours;
 
     while (dosisActual.isBefore(tratamiento.fechaFinTratamiento)) {
       dosis.add(dosisActual);

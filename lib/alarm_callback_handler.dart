@@ -58,10 +58,8 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
     
     // NUEVOS PARÁMETROS: Datos del tratamiento incluidos en el payload
     final nombreMedicamento = params['nombreMedicamento'] ?? 'Medicamento';
-    final presentacion = params['presentacion'] ?? '';
     final intervaloHoras = params['intervaloHoras'] ?? 8;
-    final fechaFinTratamientoString = params['fechaFinTratamientoString'];
-    final prescriptionAlarmId = params['prescriptionAlarmId'] ?? 0;
+    // Note: presentacion, fechaFinTratamientoString, and prescriptionAlarmId are available in params but not currently used
 
     // CAMBIO CRÍTICO: Leer preferencias con fallback local
     bool isModeActive = false;

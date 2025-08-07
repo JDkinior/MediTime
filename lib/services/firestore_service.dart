@@ -55,38 +55,48 @@ class FirestoreService {
     required String presentacion,
     required String duracion,
     required TimeOfDay horaPrimeraDosis,
-    required String intervaloDosis,
+    required Duration intervaloDosis,
     required int prescriptionAlarmId,
     required DateTime fechaInicioTratamiento,
     required DateTime fechaFinTratamiento,
     required String notas,
   }) {
 
-    // Generamos el mapa inicial de dosis con estado 'pendiente'
-    final tratamientoService = TratamientoService();
-    final tempTratamiento = Tratamiento(
-        id: '',
-        nombreMedicamento: nombreMedicamento,
-        presentacion: presentacion,
-        duracion: duracion,
-        horaPrimeraDosis: '${horaPrimeraDosis.hour}:${horaPrimeraDosis.minute}',
-        intervaloDosis: intervaloDosis,
-        prescriptionAlarmId: prescriptionAlarmId,
-        fechaInicioTratamiento: fechaInicioTratamiento,
-        fechaFinTratamiento: fechaFinTratamiento);
+    // Para tratamientos indefinidos o muy largos, no generamos todas las dosis
+    // El sistema lazy se encargará de generarlas bajo demanda
+    final treatmentDuration = fechaFinTratamiento.difference(fechaInicioTratamiento);
+    final isLongTreatment = treatmentDuration.inDays > 365; // Más de 1 año
+    
+    Map<String, String> doseStatusMap = {};
+    
+    if (!isLongTreatment) {
+      // Solo para tratamientos cortos generamos todas las dosis
+      final tratamientoService = TratamientoService();
+      final tempTratamiento = Tratamiento(
+          id: '',
+          nombreMedicamento: nombreMedicamento,
+          presentacion: presentacion,
+          duracion: duracion,
+          horaPrimeraDosis: horaPrimeraDosis,
+          intervaloDosis: intervaloDosis,
+          prescriptionAlarmId: prescriptionAlarmId,
+          fechaInicioTratamiento: fechaInicioTratamiento,
+          fechaFinTratamiento: fechaFinTratamiento);
 
-    final List<DateTime> todasLasDosis = tratamientoService.generarDosisTotales(tempTratamiento);
-    final Map<String, String> doseStatusMap = {
-      for (var dosis in todasLasDosis)
-        dosis.toIso8601String(): DoseStatus.pendiente.toString().split('.').last
-    };
+      final List<DateTime> todasLasDosis = tratamientoService.generarDosisTotales(tempTratamiento);
+      doseStatusMap = {
+        for (var dosis in todasLasDosis)
+          dosis.toIso8601String(): DoseStatus.pendiente.toString().split('.').last
+      };
+    }
+    // Para tratamientos largos, el mapa de dosis se mantiene vacío inicialmente
 
     return _db.collection('medicamentos').doc(userId).collection('userMedicamentos').add({
       'nombreMedicamento': nombreMedicamento,
       'presentacion': presentacion,
       'duracion': duracion,
       'horaPrimeraDosis': '${horaPrimeraDosis.hour}:${horaPrimeraDosis.minute}',
-      'intervaloDosis': intervaloDosis,
+      'intervaloDosis': intervaloDosis.inHours.toString(),
       'prescriptionAlarmId': prescriptionAlarmId,
       'fechaInicioTratamiento': Timestamp.fromDate(fechaInicioTratamiento),
       'fechaFinTratamiento': Timestamp.fromDate(fechaFinTratamiento),
@@ -105,6 +115,19 @@ class FirestoreService {
   /// Útil para realizar actualizaciones o lecturas directas.
   DocumentReference getMedicamentoDocRef(String userId, String docId) {
     return _db.collection('medicamentos').doc(userId).collection('userMedicamentos').doc(docId);
+  }
+
+  /// Actualiza el mapa completo de dosis de un tratamiento
+  Future<void> updateTreatmentDoses(String userId, String docId, Map<String, String> doseStatusMap) async {
+    final docRef = getMedicamentoDocRef(userId, docId);
+    
+    try {
+      await docRef.update({'doseStatus': doseStatusMap});
+      debugPrint("SUCCESS: Treatment doses updated for doc: ${docRef.path}");
+    } catch (e) {
+      debugPrint("ERROR updating treatment doses: $e");
+      rethrow;
+    }
   }
 
   /// Actualiza el estado de una dosis específica dentro de un tratamiento.

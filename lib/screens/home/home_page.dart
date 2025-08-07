@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/services/auth_service.dart';
+import 'package:meditime/notifiers/profile_notifier.dart';
 
 // Pantallas y Widgets
 import 'package:meditime/screens/calendar/calendario_page.dart';
@@ -49,8 +50,19 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _handleLogout() {
-    context.read<AuthService>().signOut(context);
+  void _handleLogout() async {
+    final authService = context.read<AuthService>();
+    final profileNotifier = context.read<ProfileNotifier>();
+    
+    final result = await authService.signOut(
+      profileNotifier: profileNotifier,
+    );
+    
+    if (result.isFailure && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.error ?? 'Error al cerrar sesión')),
+      );
+    }
   }
 
   void _toggleEditing() {

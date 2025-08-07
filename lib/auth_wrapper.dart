@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:meditime/screens/shared/loading_screen.dart';
 import 'package:meditime/services/auth_service.dart';
-import 'package:meditime/services/firestore_service.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/services/notification_service.dart';
-// Importa el notifier
 import 'package:meditime/notifiers/profile_notifier.dart';
+import 'package:meditime/use_cases/load_user_profile_use_case.dart';
 
 // Importar pantallas
 import 'package:meditime/screens/auth/login_page.dart';
@@ -29,50 +28,70 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _initialSetupDone = false;
 
-  Future<void> _performInitialSetup(User user, BuildContext context) async {
+  Future<void> _performInitialSetup(User user) async {
     // Evita que se ejecute múltiples veces
     if (_initialSetupDone) return;
 
+    // Check if widget is still mounted before proceeding
+    if (!mounted) return;
+
     final profileNotifier = context.read<ProfileNotifier>();
-    final firestoreService = context.read<FirestoreService>();
+    final loadUserProfileUseCase = context.read<LoadUserProfileUseCase>();
 
     // 1. Reactivar las alarmas incondicionalmente en cada inicio de sesión.
     // Esto es crucial para restaurar las alarmas si la app fue terminada.
     await NotificationService.reactivateAlarmsForUser(user.uid);
     debugPrint("AuthWrapper: Alarmas reactivadas para el usuario ${user.uid}");
 
+    // Check mounted state after async operation
+    if (!mounted) return;
+
     // 1.5. Manejar notificaciones pendientes cuando la app se abre
     await NotificationService.handlePendingNotificationActions();
     debugPrint("AuthWrapper: Notificaciones pendientes verificadas");
+    
+    // Check mounted state after async operation
+    if (!mounted) return;
     
     // 1.6. Verificar si hay una notificación que activó la app
     await NotificationService.checkAppLaunchedFromNotification();
     debugPrint("🔍 AuthWrapper: Verificación de lanzamiento por notificación completada");
 
+    // Check mounted state after async operation
+    if (!mounted) return;
+
     // 2. Cargar el perfil del usuario solo si aún no está en el Notifier.
     if (profileNotifier.userName == null) {
       debugPrint("AuthWrapper: Cargando perfil de usuario...");
-      try {
-        final doc = await firestoreService.getUserProfile(user.uid);
-        final profileData = doc.data() as Map<String, dynamic>?;
-
-        // Usamos `mounted` para asegurarnos de que el widget todavía está en el árbol.
-        if (mounted) {
-          profileNotifier.updateProfile(
-            newName: profileData?['name'] as String?,
-            newImageUrl: profileData?['profileImage'] as String?,
-          );
-          debugPrint("AuthWrapper: Perfil de usuario cargado.");
-        }
-      } catch (e) {
-        debugPrint("AuthWrapper: Error al cargar el perfil de usuario: $e");
+      
+      final result = await loadUserProfileUseCase.execute(user.uid);
+      
+      // Check mounted state after async operation
+      if (!mounted) return;
+      
+      if (result.isSuccess) {
+        final profileData = result.data;
+        
+        // Update profile without using context across async gap
+        profileNotifier.updateProfile(
+          newName: profileData?['name'] as String?,
+          newImageUrl: profileData?['profileImage'] as String?,
+        );
+        debugPrint("AuthWrapper: Perfil de usuario cargado.");
+      } else {
+        debugPrint("AuthWrapper: Error al cargar el perfil de usuario: ${result.error}");
+        
+        // Check mounted state before showing SnackBar
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Error al cargar los datos del perfil.')),
+            SnackBar(content: Text(result.error ?? 'Error al cargar los datos del perfil.')),
           );
         }
       }
     }
+    
+    // Check mounted state before calling setState
+    if (!mounted) return;
     
     // Marcamos que la configuración inicial ya se realizó.
     setState(() {
@@ -100,7 +119,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           // aún no se ha completado, mostramos un loader mientras se ejecuta.
           if (!_initialSetupDone) {
             return FutureBuilder(
-              future: _performInitialSetup(user, context),
+              future: _performInitialSetup(user),
               builder: (context, setupSnapshot) {
                 // Durante la configuración, seguimos mostrando el loader.
                 if (setupSnapshot.connectionState == ConnectionState.waiting) {

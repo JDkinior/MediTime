@@ -24,7 +24,7 @@ class PerfilPage extends StatefulWidget {
   });
 
   @override
-  _PerfilPageState createState() => _PerfilPageState();
+  State<PerfilPage> createState() => _PerfilPageState();
 }
 
 class _PerfilPageState extends State<PerfilPage> {
@@ -107,25 +107,30 @@ class _PerfilPageState extends State<PerfilPage> {
 
     final profileNotifier = context.read<ProfileNotifier>();
     final doc = await firestoreService.getUserProfile(user.uid);
+    if (!mounted) return; // Verificar mounted después de la operación async
+    
     final profileData = doc.data() as Map<String, dynamic>?;
 
-    setState(() {
-      _originalName = profileNotifier.userName ?? profileData?['name'] ?? '';
-      _originalProfileImageUrl = profileNotifier.profileImageUrl ?? profileData?['profileImage'] ?? '';
-      
-      _originalPhone = profileData?['phone'] ?? '';
-      _originalEmail = user.email ?? '';
-      _originalDob = profileData?['dob'] ?? '';
-      _originalBloodType = profileData?['bloodType'] ?? '';
-      _originalAllergies = profileData?['allergies'] ?? '';
-      _originalMedications = profileData?['medications'] ?? '';
-      _originalMedicalHistory = profileData?['medicalHistory'] ?? '';
-      
-      _resetToOriginalData();
-    });
+    if (mounted) {
+      setState(() {
+        _originalName = profileNotifier.userName ?? profileData?['name'] ?? '';
+        _originalProfileImageUrl = profileNotifier.profileImageUrl ?? profileData?['profileImage'] ?? '';
+        
+        _originalPhone = profileData?['phone'] ?? '';
+        _originalEmail = user.email ?? '';
+        _originalDob = profileData?['dob'] ?? '';
+        _originalBloodType = profileData?['bloodType'] ?? '';
+        _originalAllergies = profileData?['allergies'] ?? '';
+        _originalMedications = profileData?['medications'] ?? '';
+        _originalMedicalHistory = profileData?['medicalHistory'] ?? '';
+        
+        _resetToOriginalData();
+      });
+    }
   }
 
   void _resetToOriginalData() {
+    if (!mounted) return;
     setState(() {
         _nameController.text = _originalName ?? '';
         _phoneController.text = _originalPhone ?? '';
@@ -141,6 +146,7 @@ class _PerfilPageState extends State<PerfilPage> {
   }
 
   void _updateSaveButtonState() {
+    if (!mounted) return;
     final hasChanged = _nameController.text != _originalName ||
           _phoneController.text != _originalPhone ||
           _dobController.text != _originalDob ||
@@ -316,7 +322,7 @@ Future<void> _saveProfileData() async {
                     ? Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.black.withOpacity(0.4),
+                          color: Colors.black.withValues(alpha: 0.4),
                         ),
                         child: Center(
                           child: _isPickingImage

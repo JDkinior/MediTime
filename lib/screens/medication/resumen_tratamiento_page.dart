@@ -14,7 +14,7 @@ class ResumenTratamientoPage extends StatelessWidget {
   int _calcularTotalDosis() {
     final DateTime inicio = tratamiento.fechaInicioTratamiento;
     final DateTime fin = tratamiento.fechaFinTratamiento;
-    final int intervaloHoras = int.parse(tratamiento.intervaloDosis);
+    final int intervaloHoras = tratamiento.intervaloDosis.inHours;
 
     if (inicio.isAfter(fin) || intervaloHoras <= 0) {
       return 0;
@@ -40,8 +40,10 @@ class ResumenTratamientoPage extends StatelessWidget {
 
     final int totalDosis = _calcularTotalDosis();
     final int numOmitidas = dosisOmitidas.length;
-    final int numTomadas = totalDosis > numOmitidas ? totalDosis - numOmitidas : 0;
-    final double cumplimiento = totalDosis > 0 ? (numTomadas / totalDosis) * 100 : 0.0;
+    final int numTomadas =
+        totalDosis > numOmitidas ? totalDosis - numOmitidas : 0;
+    final double cumplimiento =
+        totalDosis > 0 ? (numTomadas / totalDosis) * 100 : 0.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -68,7 +70,11 @@ class ResumenTratamientoPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderCard(String nombreMedicamento, DateTime fechaInicio, DateTime fechaFin) {
+  Widget _buildHeaderCard(
+    String nombreMedicamento,
+    DateTime fechaInicio,
+    DateTime fechaFin,
+  ) {
     final DateFormat formatter = DateFormat('d MMM y', 'es_ES');
     return Container(
       padding: const EdgeInsets.all(20),
@@ -84,7 +90,7 @@ class ResumenTratamientoPage extends StatelessWidget {
             color: Colors.blue.withOpacity(0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -92,12 +98,19 @@ class ResumenTratamientoPage extends StatelessWidget {
         children: [
           Text(
             nombreMedicamento,
-            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 8),
           Chip(
             // CAMBIO: Acceso directo
-            label: Text(tratamiento.presentacion, style: TextStyle(color: Colors.blue.shade800)),
+            label: Text(
+              tratamiento.presentacion,
+              style: TextStyle(color: Colors.blue.shade800),
+            ),
             backgroundColor: Colors.white.withOpacity(0.9),
             avatar: Icon(Icons.medication, color: Colors.blue.shade800),
             side: BorderSide.none,
@@ -109,7 +122,7 @@ class ResumenTratamientoPage extends StatelessWidget {
               _buildDateColumn('Inicio', formatter.format(fechaInicio)),
               _buildDateColumn('Fin', formatter.format(fechaFin)),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -121,10 +134,7 @@ class ResumenTratamientoPage extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.8),
-            fontSize: 14,
-          ),
+          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
         ),
         Text(
           date,
@@ -147,17 +157,33 @@ class ResumenTratamientoPage extends StatelessWidget {
       mainAxisSpacing: 12,
       children: [
         _buildStatCard(
-            'Programadas', total.toString(), Icons.inventory, Colors.blue),
+          'Programadas',
+          total.toString(),
+          Icons.inventory,
+          Colors.blue,
+        ),
         _buildStatCard(
-            'Tomadas', tomadas.toString(), Icons.check_circle, Colors.green),
+          'Tomadas',
+          tomadas.toString(),
+          Icons.check_circle,
+          Colors.green,
+        ),
         _buildStatCard(
-            'Omitidas', omitidas.toString(), Icons.cancel, Colors.red),
+          'Omitidas',
+          omitidas.toString(),
+          Icons.cancel,
+          Colors.red,
+        ),
       ],
     );
   }
 
   Widget _buildStatCard(
-      String label, String value, IconData icon, Color color) {
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -172,7 +198,10 @@ class ResumenTratamientoPage extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-                fontSize: 22, fontWeight: FontWeight.bold, color: color),
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -188,9 +217,12 @@ class ResumenTratamientoPage extends StatelessWidget {
   }
 
   Widget _buildComplianceCard(BuildContext context, double cumplimiento) {
-    final color = cumplimiento >= 80
-        ? Colors.green.shade600
-        : (cumplimiento >= 50 ? Colors.orange.shade600 : Colors.red.shade600);
+    final color =
+        cumplimiento >= 80
+            ? Colors.green.shade600
+            : (cumplimiento >= 50
+                ? Colors.orange.shade600
+                : Colors.red.shade600);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       decoration: BoxDecoration(
@@ -231,9 +263,10 @@ class ResumenTratamientoPage extends StatelessWidget {
             child: Text(
               'Historial de Dosis Omitidas',
               style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black54),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black54,
+              ),
             ),
           ),
         if (skipped.isEmpty)
@@ -248,9 +281,10 @@ class ResumenTratamientoPage extends StatelessWidget {
               children: [
                 Icon(Icons.star_border_purple500_outlined, color: Colors.green),
                 SizedBox(width: 12),
-                Text('¡Tratamiento perfecto!',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                Text(
+                  '¡Tratamiento perfecto!',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
               ],
             ),
           )
@@ -269,8 +303,10 @@ class ResumenTratamientoPage extends StatelessWidget {
                   boxShadow: kCustomBoxShadow,
                 ),
                 child: ListTile(
-                  leading: const Icon(Icons.warning_amber_rounded,
-                      color: Colors.orange),
+                  leading: const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange,
+                  ),
                   title: Text(formatter.format(dt)),
                   trailing: Text(
                     timeFormatter.format(dt),

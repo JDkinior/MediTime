@@ -144,7 +144,7 @@ class _ReportesPageState extends State<ReportesPage> {
                     'nombreMedicamento': tratamiento.nombreMedicamento,
                     'fechaInicioTratamiento': Timestamp.fromDate(tratamiento.fechaInicioTratamiento),
                     'fechaFinTratamiento': Timestamp.fromDate(tratamiento.fechaFinTratamiento),
-                    'intervaloDosis': tratamiento.intervaloDosis,
+                    'intervaloDosis': tratamiento.intervaloDosis.inHours.toString(),
                     'skippedDoses': tratamiento.skippedDoses.map((d) => Timestamp.fromDate(d)).toList(),
                   };
                   final dosisProgramadas = _calcularTotalDosis(dataMap, dateRangePdf);
@@ -246,7 +246,7 @@ class _ReportesPageState extends State<ReportesPage> {
                         final dataMap = {
                           'fechaInicioTratamiento': Timestamp.fromDate(tratamiento.fechaInicioTratamiento),
                           'fechaFinTratamiento': Timestamp.fromDate(tratamiento.fechaFinTratamiento),
-                          'intervaloDosis': tratamiento.intervaloDosis,
+                          'intervaloDosis': tratamiento.intervaloDosis.inHours.toString(),
                           'skippedDoses': tratamiento.skippedDoses.map((d) => Timestamp.fromDate(d)).toList(),
                         };
                         totalDosisProgramadas += _calcularTotalDosis(dataMap, dateRange);
@@ -273,7 +273,7 @@ class _ReportesPageState extends State<ReportesPage> {
                                 'nombreMedicamento': tratamiento.nombreMedicamento,
                                 'fechaInicioTratamiento': Timestamp.fromDate(tratamiento.fechaInicioTratamiento),
                                 'fechaFinTratamiento': Timestamp.fromDate(tratamiento.fechaFinTratamiento),
-                                'intervaloDosis': tratamiento.intervaloDosis,
+                                'intervaloDosis': tratamiento.intervaloDosis.inHours.toString(),
                                 'skippedDoses': tratamiento.skippedDoses.map((d) => Timestamp.fromDate(d)).toList(),
                             };
                             return _buildTratamientoCard(dataMap, dateRange);

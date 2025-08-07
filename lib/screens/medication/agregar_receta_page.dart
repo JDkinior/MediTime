@@ -1,14 +1,12 @@
-// lib/screens/agregar_receta_page.dart
+// lib/screens/medication/agregar_receta_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
-import 'dart:math';
+import 'package:provider/provider.dart';
 import 'package:meditime/screens/shared/guia_optimizacion_page.dart';
-import 'package:meditime/services/notification_service.dart';
-import 'package:provider/provider.dart'; // CAMBIO: Importar Provider
-// CAMBIO: Importar los servicios
-import 'package:meditime/services/auth_service.dart';
-import 'package:meditime/services/firestore_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:meditime/notifiers/treatment_form_notifier.dart';
+import 'package:meditime/widgets/treatment_form/form_field_wrapper.dart';
+import 'package:meditime/widgets/treatment_form/duration_selector.dart';
+import 'package:meditime/widgets/treatment_form/treatment_summary_card.dart';
 
 class AgregarRecetaPage extends StatefulWidget {
   const AgregarRecetaPage({super.key});
@@ -22,325 +20,234 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
   final PageController _pageController = PageController();
   bool _isAnimating = false;
 
-  // Controladores y variables para el formulario (sin cambios)
-  String _nombreMedicamento = '';
-  String _presentacion = '';
-  String _duracion = '';
-  String _dosis = '';
-  TimeOfDay _horaPrimeraDosis = TimeOfDay.now();
-  final TextEditingController _notasController = TextEditingController();
-  String _notas = '';
-  final List<String> _presentaciones = [
-    'Comprimidos', 'Grageas', 'Cápsulas', 'Sobres',
-    'Jarabes', 'Gotas', 'Suspensiones', 'Emulsiones'
-  ];
+  // Controladores de texto
   final TextEditingController _nombreMedicamentoController = TextEditingController();
   final TextEditingController _dosisController = TextEditingController();
-  final TextEditingController _vecesPorDiaController = TextEditingController();
   final TextEditingController _duracionController = TextEditingController();
-
+  final TextEditingController _notasController = TextEditingController();
 
   @override
   void dispose() {
     _nombreMedicamentoController.dispose();
     _dosisController.dispose();
-    _vecesPorDiaController.dispose();
     _duracionController.dispose();
-    _pageController.dispose();
     _notasController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
-  // CAMBIO: La función de guardar ahora usa los servicios
-Future<void> _saveData() async {
-  if (!mounted) return;
+  /// Guarda el tratamiento usando el notifier
+  Future<void> _saveData() async {
+    if (!mounted) return;
 
-  final authService = context.read<AuthService>();
-  final firestoreService = context.read<FirestoreService>();
-  final user = authService.currentUser;
+    final notifier = context.read<TreatmentFormNotifier>();
+    final success = await notifier.saveTreatment();
 
-  if (user == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Error: Usuario no encontrado.'), backgroundColor: Colors.red),
-    );
-    return;
-  }
+    if (!mounted) return;
 
-  try {
-    if (_duracion.isEmpty || _dosis.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, completa la duración y el intervalo de dosis.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    final int prescriptionAlarmManagerId = Random().nextInt(2147483647);
-    final int intervaloEnHoras = int.parse(_dosis);
-    final int duracionEnDias = int.parse(_duracion);
-
-    final now = DateTime.now();
-    DateTime primeraDosisDateTime = DateTime(
-      now.year, now.month, now.day,
-      _horaPrimeraDosis.hour, _horaPrimeraDosis.minute,
-    );
-
-    if (primeraDosisDateTime.isBefore(now)) {
-      primeraDosisDateTime = primeraDosisDateTime.add(const Duration(days: 1));
-    }
-
-    final DateTime fechaInicioTratamiento = primeraDosisDateTime;
-    final DateTime fechaFinTratamiento = fechaInicioTratamiento.add(Duration(days: duracionEnDias));
-    
-        final DocumentReference docRef = await firestoreService.saveMedicamento(
-          userId: user.uid,
-          nombreMedicamento: _nombreMedicamento,
-          presentacion: _presentacion,
-          duracion: _duracion,
-          horaPrimeraDosis: _horaPrimeraDosis,
-          intervaloDosis: _dosis,
-          prescriptionAlarmId: prescriptionAlarmManagerId,
-          fechaInicioTratamiento: fechaInicioTratamiento,
-          fechaFinTratamiento: fechaFinTratamiento,
-          notas: _notas,
-        );
-
-    // MEJORAS EN LA PROGRAMACIÓN DE ALARMAS
-    if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
-      debugPrint(
-          "Programando PRIMERA alarma para $_nombreMedicamento a las $primeraDosisDateTime con ID de Alarma (AlarmManager): $prescriptionAlarmManagerId");
-      
-      // MEJORA 1: Usar allowWhileIdle y verificar permisos antes de programar
-      final hasPermissions = await NotificationService.checkExactAlarmPermissions();
-      if (!hasPermissions) {
-        debugPrint("ADVERTENCIA: No se tienen permisos para alarmas exactas");
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Atención: Es posible que las alarmas se retrasen sin permisos especiales'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-      }
-      
-          await NotificationService.scheduleNewTreatment(
-            nombreMedicamento: _nombreMedicamento,
-            presentacion: _presentacion,
-            intervaloEnHoras: intervaloEnHoras,
-            primeraDosisDateTime: primeraDosisDateTime,
-            fechaFinTratamiento: fechaFinTratamiento,
-            prescriptionAlarmManagerId: prescriptionAlarmManagerId,
-            userId: user.uid,   // Pasamos el userId
-            docId: docRef.id, // Pasamos el ID del nuevo documento
-          );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Recordatorios configurados para $_nombreMedicamento'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-      
-      // OPCIONAL: Mostrar consejos para optimizar las notificaciones
-      if (mounted) {
-        await _showBatteryOptimizationTip();
-      }
-    }
-  } catch (e) {
-    debugPrint('Error al guardar datos o programar alarma: $e');
-    if (mounted) {
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error al configurar recordatorios: $e'),
+          content: Text(
+            'Recordatorios configurados para ${notifier.formData.nombreMedicamento}',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+      // Mostrar consejos para optimizar las notificaciones
+      await _showBatteryOptimizationTip();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(notifier.errorMessage ?? 'Error al guardar el tratamiento'),
           backgroundColor: Colors.red,
         ),
       );
     }
   }
-}
 
-Future<void> _showBatteryOptimizationTip() async {
-  await showDialog(
-    context: context,
-    builder: (BuildContext dialogContext) {
-      return AlertDialog(
-        title: const Text('Optimización de Recordatorios'),
-        content: const Text(
-          'Para asegurar que recibas tus recordatorios a tiempo, es recomendable realizar unos ajustes en tu teléfono.\n\n¿Quieres ver cómo?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Ahora no'),
+  Future<void> _showBatteryOptimizationTip() async {
+    await showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Optimización de Recordatorios'),
+          content: const Text(
+            'Para asegurar que recibas tus recordatorios a tiempo, es recomendable realizar unos ajustes en tu teléfono.\n\n¿Quieres ver cómo?',
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop(); // Cierra el diálogo primero
-              
-              // SOLUCIÓN: Usar el contexto del widget principal y un delay
-              Future.delayed(const Duration(milliseconds: 100), () {
-                if (mounted) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const GuiaOptimizacionPage(),
-                    ),
-                  );
-                }
-              });
-            },
-            child: const Text('Ver guía'),
-          ),
-        ],
-      );
-    },
-  );
-}
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Ahora no'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(); // Cierra el diálogo primero
+
+                // SOLUCIÓN: Usar el contexto del widget principal y un delay
+                Future.delayed(const Duration(milliseconds: 100), () {
+                  if (mounted) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const GuiaOptimizacionPage(),
+                      ),
+                    );
+                  }
+                });
+              },
+              child: const Text('Ver guía'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Agregar Receta'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: 7,
-                onPageChanged: (page) {
-                  setState(() {
-                    _currentStep = page;
-                  });
-                },
-                itemBuilder: (context, index) {
-                  // --- INICIO DE LA OPTIMIZACIÓN ---
-                  return AnimatedBuilder(
-                    animation: _pageController,
-                    // 1. El contenido del paso se construye una sola vez y se pasa como 'child'.
-                    child: _buildStepContent(index),
-                    // 2. El 'builder' recibe el 'child' ya construido.
-                    builder: (context, child) {
-                      double opacity = 1.0;
-                      if (_pageController.position.haveDimensions) {
-                        opacity = (1 - (_pageController.page! - index).abs()).clamp(0.0, 1.0);
-                      }
-                      // 3. Solo reconstruimos el Opacity, que es muy eficiente.
-                      return Opacity(
-                        opacity: opacity,
-                        child: child, // Usamos el 'child'.
+    return Consumer<TreatmentFormNotifier>(
+      builder: (context, notifier, child) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('Agregar Receta')),
+          body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: 7,
+                    onPageChanged: (page) {
+                      setState(() {
+                        _currentStep = page;
+                      });
+                    },
+                    itemBuilder: (context, index) {
+                      return AnimatedBuilder(
+                        animation: _pageController,
+                        child: _buildStepContent(index, notifier),
+                        builder: (context, child) {
+                          double opacity = 1.0;
+                          if (_pageController.position.haveDimensions) {
+                            opacity = (1 - (_pageController.page! - index).abs())
+                                .clamp(0.0, 1.0);
+                          }
+                          return Opacity(
+                            opacity: opacity,
+                            child: child,
+                          );
+                        },
                       );
                     },
-                  );
-                  // --- FIN DE LA OPTIMIZACIÓN ---
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                if (_currentStep > 0)
-                  SizedBox(
-                    width: 70,
-                    height: 70,
-                    child: FloatingActionButton(
-                      onPressed: _isAnimating
-                          ? null // Si está animando, el botón está desactivado
-                          : () async {
-                              setState(() {
-                                _isAnimating = true;
-                              });
-                              // YA NO CAMBIAMOS _currentStep AQUÍ
-                              await _pageController.previousPage(
-                                duration: const Duration(milliseconds: 400),
-                                curve: Curves.easeInOut,
-                              );
-                              // Esperamos a que la animación termine y luego reactivamos el botón
-                              if (mounted) {
-                                setState(() {
-                                  _isAnimating = false;
-                                });
-                              }
-                            },
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      shape: const CircleBorder(),
-                      heroTag: 'botonAnterior',
-                      child: const Icon(Icons.arrow_back),
-                    ),
-                  ),
-                if (_currentStep < 6)
-                  SizedBox(
-                    width: 70,
-                    height: 70,
-                    child: FloatingActionButton(
-                      onPressed: _isStepValid() && !_isAnimating
-                          ? () async {
-                              setState(() {
-                                _isAnimating = true;
-                              });
-                              // YA NO CAMBIAMOS _currentStep AQUÍ
-                              await _pageController.nextPage(
-                                duration: const Duration(milliseconds: 400),
-                                curve: Curves.easeInOut,
-                              );
-                              if (mounted) {
-                                setState(() {
-                                  _isAnimating = false;
-                                });
-                              }
-                            }
-                          : null,
-                      backgroundColor: _isStepValid() ? Colors.blue : Colors.grey,
-                      foregroundColor: Colors.white,
-                      shape: const CircleBorder(),
-                      heroTag: 'botonSiguiente',
-                      child: const Icon(Icons.arrow_forward),
-                    ),
-                  ),
-              if (_currentStep == 6)
-                SizedBox(
-                  width: 70,
-                  height: 70,
-                  child: FloatingActionButton(
-                    backgroundColor: const Color.fromARGB(255, 92, 214, 96),
-                    foregroundColor: Colors.white,
-                    shape: const CircleBorder(),
-                    heroTag: 'botonFinalizar',
-                    // LÓGICA MODIFICADA AQUÍ
-                    onPressed: _isAnimating // <-- 1. Comprueba si ya hay una acción en curso
-                        ? null // <-- 2. Si es así, desactiva el botón
-                        : () async {
-                            setState(() {
-                              _isAnimating = true; // <-- 3. Desactiva inmediatamente el botón
-                            });
-
-                            await _saveData(); // Espera a que los datos se guarden
-
-                            if (mounted) {
-                              Navigator.of(context).pop(); // Cierra la pantalla de forma segura
-                            }
-                            // No es necesario volver a poner _isAnimating en false,
-                            // porque esta página será destruida.
-                          },
-                    child: const Icon(Icons.check),
                   ),
                 ),
+                const SizedBox(height: 16),
+                _buildNavigationButtons(notifier),
+                const SizedBox(height: 16),
               ],
             ),
-             const SizedBox(height: 16), // Espacio adicional en la parte inferior
-          ],
-        ),
-      ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Construye los botones de navegación
+  Widget _buildNavigationButtons(TreatmentFormNotifier notifier) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        if (_currentStep > 0)
+          SizedBox(
+            width: 70,
+            height: 70,
+            child: FloatingActionButton(
+              onPressed: _isAnimating ? null : () async {
+                setState(() {
+                  _isAnimating = true;
+                });
+                await _pageController.previousPage(
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeInOut,
+                );
+                if (mounted) {
+                  setState(() {
+                    _isAnimating = false;
+                  });
+                }
+              },
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              shape: const CircleBorder(),
+              heroTag: 'botonAnterior',
+              child: const Icon(Icons.arrow_back),
+            ),
+          ),
+        if (_currentStep < 6)
+          SizedBox(
+            width: 70,
+            height: 70,
+            child: FloatingActionButton(
+              onPressed: notifier.isStepValid(_currentStep) && !_isAnimating
+                  ? () async {
+                      setState(() {
+                        _isAnimating = true;
+                      });
+                      await _pageController.nextPage(
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeInOut,
+                      );
+                      if (mounted) {
+                        setState(() {
+                          _isAnimating = false;
+                        });
+                      }
+                    }
+                  : null,
+              backgroundColor: notifier.isStepValid(_currentStep) ? Colors.blue : Colors.grey,
+              foregroundColor: Colors.white,
+              shape: const CircleBorder(),
+              heroTag: 'botonSiguiente',
+              child: const Icon(Icons.arrow_forward),
+            ),
+          ),
+        if (_currentStep == 6)
+          SizedBox(
+            width: 70,
+            height: 70,
+            child: FloatingActionButton(
+              backgroundColor: const Color.fromARGB(255, 92, 214, 96),
+              foregroundColor: Colors.white,
+              shape: const CircleBorder(),
+              heroTag: 'botonFinalizar',
+              onPressed: (_isAnimating || notifier.isLoading) ? null : () async {
+                setState(() {
+                  _isAnimating = true;
+                });
+
+                await _saveData();
+
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+              child: notifier.isLoading 
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Icon(Icons.check),
+            ),
+          ),
+      ],
     );
   }
 
@@ -348,7 +255,7 @@ Future<void> _showBatteryOptimizationTip() async {
     return Text(
       text,
       style: const TextStyle(
-        fontSize: 30, // Ajustado para mejor visualización
+        fontSize: 30,
         color: Colors.blue,
         fontWeight: FontWeight.bold,
       ),
@@ -356,51 +263,29 @@ Future<void> _showBatteryOptimizationTip() async {
     );
   }
 
-  bool _isStepValid() {
-    switch (_currentStep) {
-      case 0:
-        return _nombreMedicamentoController.text.isNotEmpty;
-      case 1:
-        return _presentacion.isNotEmpty;
-      case 2:
-        return true; // La hora siempre es válida ya que tiene un valor por defecto
-      case 3:
-        return _dosisController.text.isNotEmpty &&
-            (int.tryParse(_dosisController.text) ?? 0) > 0;
-      case 4:
-        return _duracionController.text.isNotEmpty &&
-            (int.tryParse(_duracionController.text) ?? 0) > 0;
-      case 5: // El nuevo paso para las notas
-        return true; // Las notas son opcionales
-      case 6: // El resumen ahora es el paso 6
-        return true;
-      default:
-        return false;
-    }
-  }
-  Widget _buildStepContent(int step) {
+  Widget _buildStepContent(int step, TreatmentFormNotifier notifier) {
     switch (step) {
-        case 0:
+      case 0: // Nombre del medicamento
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _buildQuestionText('¿Qué medicamento vas a agregar?'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _nombreMedicamentoController,
-              decoration: const InputDecoration(
-                labelText: 'Nombre del medicamento',
+            const SizedBox(height: 24),
+            FormFieldWrapper(
+              label: 'Nombre del medicamento',
+              child: TextFormField(
+                controller: _nombreMedicamentoController,
+                onChanged: notifier.updateNombreMedicamento,
+                decoration: AppInputDecoration.withHint(
+                  'Escribe el nombre del medicamento'
+                ),
               ),
-              onChanged: (value) {
-                setState(() {
-                  _nombreMedicamento = value;
-                });
-              },
             ),
           ],
         );
-      case 1:
+
+      case 1: // Presentación
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -408,23 +293,22 @@ Future<void> _showBatteryOptimizationTip() async {
             _buildQuestionText('¿Cuál es la presentación del medicamento?'),
             const SizedBox(height: 16),
             DropdownButton<String>(
-              value: _presentacion.isEmpty ? null : _presentacion,
+              value: notifier.formData.presentacion.isEmpty 
+                  ? null 
+                  : notifier.formData.presentacion,
               hint: const Text('Selecciona una opción'),
-              items: _presentaciones.map((String value) {
+              items: notifier.presentaciones.map((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
                   child: Text(value),
                 );
               }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _presentacion = value!;
-                });
-              },
+              onChanged: (value) => notifier.updatePresentacion(value!),
             ),
           ],
         );
-      case 2:
+
+      case 2: // Hora primera dosis
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -432,118 +316,163 @@ Future<void> _showBatteryOptimizationTip() async {
             _buildQuestionText('¿Cuándo será la primera dosis?'),
             const SizedBox(height: 16),
             Text(
-              'Hora seleccionada: ${_horaPrimeraDosis.format(context)}',
+              'Hora seleccionada: ${notifier.formData.horaPrimeraDosis.format(context)}',
               style: const TextStyle(fontSize: 16),
             ),
             SizedBox(
               height: 150,
               child: TimePickerSpinner(
-                time: DateTime(2020, 1, 1, _horaPrimeraDosis.hour,
-                    _horaPrimeraDosis.minute),
+                time: DateTime(
+                  2020, 1, 1,
+                  notifier.formData.horaPrimeraDosis.hour,
+                  notifier.formData.horaPrimeraDosis.minute,
+                ),
                 is24HourMode: false,
                 onTimeChange: (time) {
-                  setState(() {
-                    _horaPrimeraDosis =
-                        TimeOfDay(hour: time.hour, minute: time.minute);
-                  });
+                  notifier.updateHoraPrimeraDosis(
+                    TimeOfDay(hour: time.hour, minute: time.minute)
+                  );
                 },
               ),
             ),
           ],
         );
-      case 3:
+
+      case 3: // Intervalo de dosis
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _buildQuestionText('¿Cada cuántas horas debe tomarlo?'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _dosisController,
-              decoration: const InputDecoration(
-                labelText: 'Ej: 8 (cada 8 horas)',
+            const SizedBox(height: 24),
+            FormFieldWrapper(
+              label: 'Intervalo entre dosis',
+              child: TextFormField(
+                controller: _dosisController,
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  final intervalo = int.tryParse(value) ?? 0;
+                  notifier.updateIntervaloDosis(intervalo);
+                },
+                decoration: AppInputDecoration.withHint('Ej: 8 (cada 8 horas)'),
               ),
-              keyboardType: TextInputType.number,
-              onChanged: (value) {
-                setState(() {
-                  _dosis = value;
-                });
-              },
             ),
           ],
         );
-      case 4:
+
+      case 4: // Duración
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildQuestionText('¿Por cuántos días?'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _duracionController, // Usar controlador
-              decoration: const InputDecoration(
-                labelText: 'Duración del tratamiento',
-              ),
-              keyboardType: TextInputType.number,
-              onChanged: (value) {
-                setState(() {
-                  _duracion = value;
-                });
-              },
+            _buildQuestionText('¿Por cuánto tiempo?'),
+            const SizedBox(height: 24),
+            DurationSelector(
+              duracionNumero: notifier.formData.duracionNumero,
+              duracionUnidad: notifier.formData.duracionUnidad,
+              esIndefinido: notifier.formData.esIndefinido,
+              controller: _duracionController,
+              onDuracionNumeroChanged: notifier.updateDuracionNumero,
+              onDuracionUnidadChanged: notifier.updateDuracionUnidad,
+              onEsIndefinidoChanged: notifier.updateEsIndefinido,
             ),
           ],
         );
-            case 5: // <-- NUEVO PASO
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildQuestionText('¿Alguna nota o indicación especial?'),
-          const SizedBox(height: 4),
-          const Text('(Ej: "Tomar con comida", "No conducir")', style: TextStyle(color: Colors.grey)),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _notasController,
-            decoration: const InputDecoration(
-              labelText: 'Notas (Opcional)',
+
+      case 5: // Notas
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildQuestionText('¿Alguna nota o indicación especial?'),
+            const SizedBox(height: 4),
+            const Text(
+              '(Ej: "Tomar con comida", "No conducir")',
+              style: TextStyle(color: Colors.grey),
             ),
-            onChanged: (value) {
-              setState(() {
-                _notas = value;
-              });
-            },
+            const SizedBox(height: 20),
+            FormFieldWrapper(
+              label: 'Notas (Opcional)',
+              child: TextFormField(
+                controller: _notasController,
+                maxLines: null,
+                minLines: 3,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                onChanged: notifier.updateNotas,
+                decoration: AppInputDecoration.withHint(
+                  'Escribe cualquier indicación especial'
+                ),
+              ),
+            ),
+          ],
+        );
+
+      case 6: // Resumen
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Text(
+                  'Resumen de la receta',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Revisa los datos antes de confirmar',
+                  style: TextStyle(fontSize: 15, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 20),
+                
+                TreatmentSummaryCard(
+                  formData: notifier.formData,
+                  summaryInfo: notifier.getSummaryInfo(),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Mensaje de confirmación
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.blue[700],
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Al confirmar, se programarán las alarmas automáticamente para recordarte cada dosis',
+                          style: TextStyle(
+                            color: Colors.blue[700],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
-      );
-      case 6:
-      return SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildQuestionText('Resumen de la receta:'),
-              const SizedBox(height: 24),
-              Text('Medicamento: ${_nombreMedicamentoController.text}', style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 8),
-              Text('Presentación: $_presentacion', style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 8),
-              Text('Hora primera dosis: ${_horaPrimeraDosis.format(context)}', style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 8),
-              Text('Intervalo entre dosis: ${_dosisController.text} horas', style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 8),
-              Text('Duración del tratamiento: ${_duracionController.text} días', style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 8),
-              Text(
-                  'Veces por día: ${(_dosisController.text.isNotEmpty && (int.tryParse(_dosisController.text) ?? 0) > 0) ? (24 / int.parse(_dosisController.text)).round() : "No definido"}',
-                  style: const TextStyle(fontSize: 16)),
-            ],
-          ),
-        ),
-      );
+        );
+
       default:
-      return Container();
+        return Container();
     }
   }
 }

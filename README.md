@@ -10,7 +10,7 @@ MediTime es una aplicación móvil multiplataforma desarrollada con Flutter, dis
 
 La aplicación utiliza Firebase como backend para ofrecer una experiencia de usuario fluida y sincronizada en tiempo real, desde la autenticación hasta el almacenamiento seguro de tus datos de salud, siguiendo una arquitectura de software limpia y escalable.
 
-**Versión actual:** 2.24.0 alpha
+**Versión actual:** 2.25.2 alpha
 
 ## 🔥 Características Principales
 
@@ -302,4 +302,4 @@ Agradecimientos especiales a la **Universidad de Cundinamarca**, seccional Ubat�
 
 ---
 
-**MediTime v2.24.0 alpha** - Tu salud, nuestra prioridad 💊✨
+**MediTime v2.25.2 alpha** - Tu salud, nuestra prioridad 💊✨

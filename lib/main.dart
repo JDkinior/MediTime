@@ -13,11 +13,20 @@ import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/storage_service.dart';
-// --- INICIO DEL CAMBIO ---
-// Importa el nuevo servicio de preferencias
 import 'package:meditime/services/preference_service.dart';
-// --- FIN DEL CAMBIO ---
 import 'package:meditime/notifiers/profile_notifier.dart';
+import 'package:meditime/notifiers/treatment_form_notifier.dart';
+import 'package:meditime/notifiers/calendar_notifier.dart';
+import 'package:meditime/services/treatment_service.dart';
+import 'package:meditime/services/lazy_treatment_service.dart';
+
+// Importa repositorios y casos de uso
+import 'package:meditime/repositories/treatment_repository.dart';
+import 'package:meditime/repositories/firestore_treatment_repository.dart';
+import 'package:meditime/repositories/user_repository.dart';
+import 'package:meditime/repositories/firestore_user_repository.dart';
+import 'package:meditime/use_cases/sign_out_use_case.dart';
+import 'package:meditime/use_cases/load_user_profile_use_case.dart';
 
 /// Punto de entrada principal de la aplicación.
 void main() async {
@@ -43,38 +52,57 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // Proveedores para los servicios de la aplicación, haciéndolos
-        // accesibles en todo el árbol de widgets a través de `context.read<T>()`.
-        Provider<AuthService>(create: (_) => AuthService()),
+        // Repository providers
+        Provider<TreatmentRepository>(
+          create: (_) => FirestoreTreatmentRepository(),
+        ),
+        Provider<UserRepository>(create: (_) => FirestoreUserRepository()),
+
+        // Use case providers
+        Provider<SignOutUseCase>(
+          create:
+              (context) => SignOutUseCase(context.read<TreatmentRepository>()),
+        ),
+        Provider<LoadUserProfileUseCase>(
+          create:
+              (context) =>
+                  LoadUserProfileUseCase(context.read<UserRepository>()),
+        ),
+
+        // Service providers
+        Provider<AuthService>(
+          create: (context) => AuthService(context.read<SignOutUseCase>()),
+        ),
         Provider<FirestoreService>(create: (_) => FirestoreService()),
         Provider<StorageService>(create: (_) => StorageService()),
-        // --- INICIO DEL CAMBIO ---
         Provider<PreferenceService>(create: (_) => PreferenceService()),
+        Provider<TreatmentService>(
+          create: (context) => TreatmentService(context.read<FirestoreService>()),
+        ),
+        Provider<LazyTreatmentService>(
+          create: (context) => LazyTreatmentService(context.read<FirestoreService>()),
+        ),
 
-        // --- FIN DEL CAMBIO ---
+        // Notifier providers
         ChangeNotifierProvider<ProfileNotifier>(
           create: (_) => ProfileNotifier(),
+        ),
+        ChangeNotifierProvider<TreatmentFormNotifier>(
+          create: (context) => TreatmentFormNotifier(
+            context.read<TreatmentService>(),
+            context.read<AuthService>(),
+          ),
+        ),
+        ChangeNotifierProvider<CalendarNotifier>(
+          create: (context) => CalendarNotifier(
+            context.read<LazyTreatmentService>(),
+            context.read<FirestoreService>(),
+          ),
         ),
       ],
       child: MaterialApp(
         title: 'MediTime',
-        theme: ThemeData(
-          // 1. Definimos el esquema de color
-          colorScheme: ColorScheme.fromSeed(
-            // Usamos nuestro color primario como "semilla"
-            seedColor: kSecondaryColor,
-            // Opcional: podemos definir un color de fondo ligeramente diferente si queremos
-            background: const Color.fromARGB(255, 241, 241, 241),
-          ),
-
-          useMaterial3: true,
-
-          // 3. Mantenemos las personalizaciones que ya tenías
-          scaffoldBackgroundColor: const Color.fromARGB(255, 241, 241, 241),
-          appBarTheme: const AppBarTheme(
-            color: Color.fromARGB(255, 241, 241, 241),
-          ),
-        ),
+        theme: AppTheme.lightTheme,
         home: const AuthWrapper(),
       ),
     );

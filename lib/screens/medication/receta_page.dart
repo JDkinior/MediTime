@@ -160,7 +160,7 @@ class _RecetaPageState extends State<RecetaPage> {
                 children: [
                   Text(tratamiento.nombreMedicamento, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue)),
                   const SizedBox(height: 5),
-                  Text('Dosis cada ${tratamiento.intervaloDosis} horas'),
+                  Text('Dosis cada ${tratamiento.intervaloDosis.inHours} horas'),
                 ],
               ),
             ),
@@ -256,7 +256,7 @@ class _RecetaPageState extends State<RecetaPage> {
                           children: [
                             Padding(
                               padding: const EdgeInsets.all(12.0),
-                              child: Text(entry.key, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[700])),
+                              child: Text(entry.key, style: TextStyle(fontSize: 18, fontWeight: FontWeight.normal, color: Colors.grey[700])),
                             ),
                             // Usamos la nueva función _buildDosisCard
                             ...entry.value.map((doseData) => _buildDosisCard(doseData, context)),

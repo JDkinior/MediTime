@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:meditime/notifiers/profile_notifier.dart'; // Importa el Notifier
+import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/screens/shared/ayuda_page.dart';
 import 'package:meditime/screens/shared/opciones_page.dart';
 import 'package:meditime/screens/reports/reportes_page.dart';
+import 'package:meditime/core/utils.dart';
+import 'package:meditime/core/constants.dart';
+import 'package:meditime/theme/app_theme.dart';
 
 class CustomDrawer extends StatelessWidget {
   final VoidCallback onLogout;
@@ -15,10 +18,7 @@ class CustomDrawer extends StatelessWidget {
   });
 
   String _obtenerSaludo() {
-    final horaActual = DateTime.now().hour;
-    if (horaActual >= 6 && horaActual < 12) return 'Buenos días';
-    if (horaActual >= 12 && horaActual < 18) return 'Buenas tardes';
-    return 'Buenas noches';
+    return AppUtils.getTimeBasedGreeting();
   }
 
   @override
@@ -46,12 +46,12 @@ class CustomDrawer extends StatelessWidget {
             child: Row(
               children: [
                 CircleAvatar(
-                  radius: 40,
+                  radius: AppConstants.drawerProfileImageRadius,
                   backgroundImage: profileImagePath != null && profileImagePath.isNotEmpty
                       ? NetworkImage(profileImagePath)
                       : null,
                   child: profileImagePath == null || profileImagePath.isEmpty
-                      ? const Icon(Icons.person, size: 50, color: Colors.white)
+                      ? const Icon(Icons.person, size: 50, color: AppTheme.whiteTextColor)
                       : null,
                 ),
                 const SizedBox(width: 15),
@@ -62,19 +62,12 @@ class CustomDrawer extends StatelessWidget {
                     children: [
                       Text(
                         _obtenerSaludo(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 23,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppTheme.drawerGreetingStyle,
                       ),
                       Text(
                         // Usamos los datos del notifier
-                        nameParts?.take(2).join(' ') ?? 'Usuario',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                        ),
+                        nameParts?.take(2).join(' ') ?? AppConstants.defaultUserName,
+                        style: AppTheme.drawerNameStyle,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],

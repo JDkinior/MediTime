@@ -46,8 +46,8 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
 
   DateTime? _findNextUpcomingDose() {
     // CAMBIO: Lógica adaptada para usar el objeto Tratamiento
-    final horaInicial = DateFormat('HH:mm').parse(widget.tratamiento.horaPrimeraDosis);
-    final intervalo = int.parse(widget.tratamiento.intervaloDosis);
+    final horaInicial = widget.tratamiento.horaPrimeraDosis;
+    final intervalo = widget.tratamiento.intervaloDosis.inHours;
     final fechaFinTratamiento = widget.tratamiento.fechaFinTratamiento;
     final List<DateTime> dosisOmitidas = widget.tratamiento.skippedDoses;
 
@@ -123,7 +123,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               const SizedBox(height: 16),
               _buildDetailRow('Medicamento:', widget.tratamiento.nombreMedicamento),
               _buildDetailRow('Presentación:', widget.tratamiento.presentacion),
-              _buildDetailRow('Frecuencia:', 'Cada ${widget.tratamiento.intervaloDosis} horas'),
+              _buildDetailRow('Frecuencia:', 'Cada ${widget.tratamiento.intervaloDosis.inHours} horas'),
               _buildDetailRow('Duración:', '$duracionTratamiento días'),
               _buildDetailRow('Finaliza el:', formatter.format(fechaFin)),
             ],
