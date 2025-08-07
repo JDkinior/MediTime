@@ -87,7 +87,7 @@ class ResumenTratamientoPage extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withOpacity(0.3),
+            color: Colors.blue.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -111,7 +111,7 @@ class ResumenTratamientoPage extends StatelessWidget {
               tratamiento.presentacion,
               style: TextStyle(color: Colors.blue.shade800),
             ),
-            backgroundColor: Colors.white.withOpacity(0.9),
+            backgroundColor: Colors.white.withValues(alpha: 0.9),
             avatar: Icon(Icons.medication, color: Colors.blue.shade800),
             side: BorderSide.none,
           ),
@@ -134,7 +134,7 @@ class ResumenTratamientoPage extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14),
         ),
         Text(
           date,
@@ -187,7 +187,7 @@ class ResumenTratamientoPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -208,7 +208,7 @@ class ResumenTratamientoPage extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 13,
-              color: Colors.black.withOpacity(0.7),
+              color: Colors.black.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -273,7 +273,7 @@ class ResumenTratamientoPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
+              color: Colors.green.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Row(

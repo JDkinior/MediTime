@@ -419,7 +419,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
     }
 
     return Container(
-      color: Colors.grey.withOpacity(0.05),
+      color: Colors.grey.withValues(alpha: 0.05),
       child: Column(
         children: [
           const Divider(height: 1, indent: 16, endIndent: 16),

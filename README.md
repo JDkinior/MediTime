@@ -10,7 +10,7 @@ MediTime es una aplicación móvil multiplataforma desarrollada con Flutter, dis
 
 La aplicación utiliza Firebase como backend para ofrecer una experiencia de usuario fluida y sincronizada en tiempo real, desde la autenticación hasta el almacenamiento seguro de tus datos de salud, siguiendo una arquitectura de software limpia y escalable.
 
-**Versión actual:** 2.25.2 alpha
+**Versión actual:** 2.26.5
 
 ## 🔥 Características Principales
 
@@ -20,10 +20,12 @@ La aplicación utiliza Firebase como backend para ofrecer una experiencia de usu
 * Gestión segura de sesiones con Firebase Authentication
 
 ### 💊 Gestión Avanzada de Tratamientos
-* **Creación guiada:** Flujo paso a paso para añadir nuevos medicamentos
-* **Configuración flexible:** Especifica nombre, presentación, duración, frecuencia e intervalos
+* **Creación guiada:** Flujo paso a paso para añadir nuevos medicamentos con validación en tiempo real
+* **Configuración flexible:** Especifica nombre, presentación, duración, frecuencia e intervalos con múltiples unidades de tiempo
 * **Seguimiento completo:** Sistema de estados para cada dosis (pendiente, notificada, tomada, omitida, aplazada)
 * **Gestión inteligente:** Capacidad de omitir dosis futuras y deshacer omisiones
+* **Tratamientos indefinidos:** Soporte para medicamentos de uso continuo con generación lazy de dosis
+* **Carga bajo demanda:** Sistema lazy loading para optimizar memoria en tratamientos largos
 
 ### 🔔 Sistema de Notificaciones Inteligentes
 * **Alarmas persistentes:** Funcionan incluso con la app cerrada o después de reiniciar el dispositivo
@@ -41,10 +43,12 @@ La aplicación utiliza Firebase como backend para ofrecer una experiencia de usu
 * Navegación intuitiva entre fechas
 
 ### 📊 Seguimiento y Reportes
-* **Estados detallados:** Visualización del estado de cada dosis
-* **Estadísticas de cumplimiento:** Reportes de adherencia al tratamiento
-* **Exportación PDF:** Genera reportes para compartir con profesionales médicos
+* **Estados detallados:** Visualización del estado de cada dosis con colores distintivos
+* **Estadísticas de cumplimiento:** Reportes de adherencia al tratamiento con porcentajes precisos
+* **Exportación PDF:** Genera reportes detallados para compartir con profesionales médicos
 * **Historial completo:** Consulta tratamientos finalizados con métricas de cumplimiento
+* **Resúmenes de tratamiento:** Tarjetas informativas con toda la información relevante
+* **Cálculo automático:** Total de dosis, fechas de finalización y estadísticas en tiempo real
 
 ### 👤 Perfil de Usuario Completo
 * Gestión de datos personales y médicos
@@ -65,9 +69,11 @@ Este proyecto está construido con un stack moderno y robusto:
 * **Cloud Firestore** - Base de datos NoSQL en tiempo real
 * **Firebase Storage** - Almacenamiento de archivos e imágenes
 
-### Gestión de Estado
+### Gestión de Estado y Arquitectura
 * **Provider** - Inyección de dependencias y gestión de estado
 * **ChangeNotifier** - Estados globales reactivos
+* **Clean Architecture** - Separación clara entre capas (repositories, use cases, services)
+* **Result Pattern** - Manejo consistente de errores sin excepciones
 
 ### Notificaciones y Alarmas
 * **android_alarm_manager_plus** - Alarmas persistentes del sistema
@@ -80,71 +86,120 @@ Este proyecto está construido con un stack moderno y robusto:
 * **fl_chart** - Gráficos y visualizaciones
 
 ### Funcionalidades Adicionales
-* **image_picker** - Selección de imágenes
+* **image_picker & image_cropper** - Selección y edición de imágenes de perfil
 * **shared_preferences** - Almacenamiento local de preferencias
-* **pdf & printing** - Generación y exportación de reportes
+* **pdf & printing** - Generación y exportación de reportes detallados
 * **google_sign_in** - Autenticación con Google
-* **intl** - Internacionalización y formateo de fechas
+* **intl** - Internacionalización y formateo de fechas en español
+* **package_info_plus** - Información de la aplicación y versión
 
 ### Dependencias Principales
 ```yaml
 dependencies:
   flutter:
     sdk: flutter
+  # Firebase & Backend
   cloud_firestore: ^5.6.5
   firebase_core: ^3.12.1
   firebase_auth: ^5.5.1
+  firebase_storage: ^12.4.4
+  
+  # Notificaciones y Alarmas
   android_alarm_manager_plus: any
   flutter_local_notifications: ^19.0.0
+  timezone: ^0.10.0
+  
+  # Estado y Arquitectura
   provider: ^6.1.2
-  shared_preferences: ^2.5.3
+  
+  # UI y Experiencia
   table_calendar: ^3.2.0
+  shimmer: ^3.0.0
+  fl_chart: ^0.68.0
+  flutter_time_picker_spinner: ^2.0.0
+  
+  # Utilidades
+  shared_preferences: ^2.5.3
   google_sign_in: ^6.2.1
   pdf: ^3.10.8
   printing: ^5.12.0
+  image_picker: ^1.1.2
+  image_cropper: ^9.1.0
+  intl: ^0.20.2
+  package_info_plus: ^8.3.0
 ```
 
 ## 📂 Estructura del Proyecto
 
-El código está organizado siguiendo una arquitectura limpia para facilitar su mantenimiento y escalabilidad:
+El código está organizado siguiendo **Clean Architecture** para facilitar su mantenimiento y escalabilidad:
 
 ```
 lib/
-├── models/                    # Modelos de datos
-│   └── tratamiento.dart      # Modelo principal con enum DoseStatus
-├── notifiers/                # Gestores de estado (ChangeNotifier)
-│   └── profile_notifier.dart # Estado global del perfil de usuario
-├── screens/                  # Pantallas de la aplicación
-│   ├── auth/                # Autenticación (login, registro)
-│   ├── calendar/            # Vista de calendario
-│   ├── home/                # Pantalla principal
-│   ├── shared/              # Pantallas compartidas (ayuda, configuración)
-│   └── ...
-├── services/                 # Lógica de negocio y servicios
+├── core/                     # Núcleo de la aplicación
+│   ├── constants.dart       # Constantes globales centralizadas
+│   ├── result.dart          # Patrón Result para manejo de errores
+│   ├── stream_cache.dart    # Cache de streams para optimización
+│   ├── treatment_constants.dart # Constantes específicas de tratamientos
+│   └── utils.dart           # Utilidades generales
+├── models/                   # Modelos de datos
+│   ├── tratamiento.dart     # Modelo principal con enum DoseStatus
+│   ├── treatment_form_data.dart # Datos del formulario de tratamiento
+│   ├── lazy_treatment.dart  # Modelo para carga lazy de dosis
+│   └── usuario.dart         # Modelo de usuario
+├── repositories/             # Capa de acceso a datos (Clean Architecture)
+│   ├── treatment_repository.dart # Interfaz abstracta
+│   ├── firestore_treatment_repository.dart # Implementación Firestore
+│   ├── user_repository.dart # Interfaz de usuario
+│   └── firestore_user_repository.dart # Implementación usuario
+├── use_cases/               # Casos de uso (Clean Architecture)
+│   ├── sign_out_use_case.dart # Lógica de cierre de sesión
+│   └── load_user_profile_use_case.dart # Carga de perfil
+├── services/                # Servicios de la aplicación
 │   ├── auth_service.dart    # Autenticación con Firebase
 │   ├── firestore_service.dart # Operaciones con Firestore
 │   ├── notification_service.dart # Sistema de notificaciones avanzado
 │   ├── preference_service.dart # Gestión de preferencias locales
 │   ├── storage_service.dart # Manejo de Firebase Storage
-│   └── tratamiento_service.dart # Lógica de tratamientos
-├── widgets/                  # Componentes reutilizables
-│   └── primary_button.dart # Botones personalizados
-├── theme/                    # Constantes de diseño
-│   └── app_theme.dart       # Colores y estilos globales
-├── enums/                    # Enumeraciones personalizadas
-├── auth_wrapper.dart         # Wrapper de autenticación con inicialización
-├── main.dart                # Punto de entrada y configuración de providers
-├── alarm_callback_handler.dart # Lógica de callbacks de alarmas
-└── firebase_options.dart    # Configuración de Firebase
+│   ├── treatment_service.dart # Lógica de tratamientos
+│   ├── lazy_treatment_service.dart # Servicio para carga lazy
+│   └── pdf_report_service.dart # Generación de reportes PDF
+├── notifiers/               # Gestores de estado (ChangeNotifier)
+│   ├── profile_notifier.dart # Estado global del perfil
+│   ├── treatment_form_notifier.dart # Estado del formulario
+│   └── calendar_notifier.dart # Estado del calendario
+├── screens/                 # Pantallas de la aplicación
+│   ├── auth/               # Autenticación (login, registro)
+│   ├── calendar/           # Vista de calendario
+│   ├── home/               # Pantalla principal
+│   ├── medication/         # Gestión de medicamentos
+│   ├── profile/            # Perfil de usuario
+│   ├── reports/            # Reportes y estadísticas
+│   └── shared/             # Pantallas compartidas
+├── widgets/                # Componentes reutilizables
+│   ├── treatment_form/     # Componentes del formulario
+│   ├── primary_button.dart # Botones personalizados
+│   ├── drawer_widget.dart  # Drawer personalizado
+│   └── styled_text_field.dart # Campos de texto estilizados
+├── theme/                  # Constantes de diseño
+│   └── app_theme.dart     # Colores y estilos globales
+├── enums/                  # Enumeraciones personalizadas
+│   └── view_state.dart    # Estados de vista
+├── auth_wrapper.dart       # Wrapper de autenticación
+├── main.dart              # Punto de entrada y DI
+├── alarm_callback_handler.dart # Callbacks de alarmas
+└── firebase_options.dart  # Configuración de Firebase
 ```
 
 ### Características Arquitectónicas
 
-* **Separación de responsabilidades:** Cada capa tiene una función específica
+* **Clean Architecture:** Separación clara entre capas (repositories, use cases, services)
+* **Patrón Result:** Manejo consistente de errores sin excepciones usando sealed classes
 * **Inyección de dependencias:** Uso de Provider para gestión de servicios
+* **Lazy Loading:** Carga bajo demanda de dosis para optimizar memoria
 * **Callbacks de alarmas:** Sistema robusto para notificaciones en segundo plano
-* **Manejo de estados:** Estados de dosis con enum para type safety
+* **Type Safety:** Estados de dosis con enum y validación estricta de tipos
 * **Persistencia offline:** Funcionamiento independiente de la conectividad
+* **Cache inteligente:** Sistema de cache con optimización automática de memoria
 
 ## 🚀 Cómo Empezar
 
@@ -221,10 +276,23 @@ La aplicación maneja automáticamente las zonas horarias, con fallback a 'Ameri
 * **Inicialización Firebase:** Configuración automática en callbacks de segundo plano
 * **Transacciones Firestore:** Actualizaciones atómicas del estado de dosis
 
+### Clean Architecture Implementation
+* **Repository Pattern:** Interfaces abstractas con implementaciones concretas
+* **Use Cases:** Lógica de negocio encapsulada en casos de uso específicos
+* **Dependency Injection:** Configuración centralizada en main.dart con Provider
+* **Result Pattern:** Manejo de errores tipado y consistente
+
+### Lazy Loading System
+* **LazyTreatment:** Modelo que genera dosis bajo demanda para tratamientos largos
+* **Cache inteligente:** Almacenamiento temporal con limpieza automática
+* **Optimización de memoria:** Generación de dosis solo cuando se necesitan
+* **Soporte para tratamientos indefinidos:** Medicamentos de uso continuo
+
 ### Arquitectura de Servicios
 * **AuthService:** Gestión completa de autenticación con limpieza de sesión
 * **FirestoreService:** Operaciones CRUD con manejo de transacciones
 * **NotificationService:** Sistema complejo de notificaciones con múltiples modos
+* **LazyTreatmentService:** Servicio especializado para carga bajo demanda
 * **PreferenceService:** Persistencia local con recarga automática para callbacks
 
 ### Gestión de Estados de Dosis
@@ -234,7 +302,25 @@ enum DoseStatus {
   notificada,   // Notificación mostrada (modo activo)
   tomada,       // Confirmada por el usuario
   omitida,      // Marcada como omitida
-  aplazada      // Pospuesta temporalmente
+  aplazada;     // Pospuesta temporalmente
+  
+  // Métodos adicionales para color, texto y conversión
+  Color get color { /* ... */ }
+  String get displayName { /* ... */ }
+  static DoseStatus fromString(String status) { /* ... */ }
+}
+```
+
+### Patrón Result para Manejo de Errores
+```dart
+sealed class Result<T> {
+  const factory Result.success(T data) = Success<T>;
+  const factory Result.failure(String error) = Failure<T>;
+  
+  bool get isSuccess;
+  bool get isFailure;
+  T? get data;
+  String? get error;
 }
 ```
 
@@ -267,11 +353,16 @@ La aplicación requiere varios permisos críticos para funcionar correctamente:
 - Las notificaciones interactivas están optimizadas para Android
 - Requiere conexión a internet para sincronización inicial
 - Los callbacks de alarma pueden tener latencia en dispositivos con optimización agresiva de batería
+- El sistema lazy loading requiere inicialización para tratamientos nuevos
+- La generación de PDF puede ser lenta en dispositivos de gama baja
 
 ### Troubleshooting
 - Si las notificaciones no aparecen, verifica los permisos de la aplicación
 - Para problemas de sincronización, revisa la conexión a Firebase
 - En caso de alarmas perdidas, reinicia la aplicación para reactivar el sistema
+- Si el calendario no muestra dosis, verifica que los tratamientos estén inicializados
+- Para problemas de memoria, usa la función de optimización de cache
+- Si los PDFs no se generan, verifica los permisos de almacenamiento
 
 ## 📄 Licencia
 
@@ -302,4 +393,25 @@ Agradecimientos especiales a la **Universidad de Cundinamarca**, seccional Ubat�
 
 ---
 
-**MediTime v2.25.2 alpha** - Tu salud, nuestra prioridad 💊✨
+**MediTime v2.26.5** - Tu salud, nuestra prioridad 💊✨
+
+### 🆕 Novedades en v2.26.5
+
+#### Arquitectura y Rendimiento
+- **Clean Architecture:** Implementación completa con repositories, use cases y services
+- **Patrón Result:** Manejo de errores tipado y consistente sin excepciones
+- **Lazy Loading:** Sistema de carga bajo demanda para optimizar memoria
+- **Cache inteligente:** Gestión automática de memoria con limpieza periódica
+
+#### Nuevas Funcionalidades
+- **Tratamientos indefinidos:** Soporte para medicamentos de uso continuo
+- **Resúmenes detallados:** Tarjetas informativas con toda la información del tratamiento
+- **Exportación PDF mejorada:** Reportes más detallados y profesionales
+- **Validación en tiempo real:** Formularios con validación instantánea
+- **Optimización de batería:** Mejor gestión de recursos del sistema
+
+#### Mejoras Técnicas
+- **Constantes centralizadas:** Todos los valores mágicos organizados en AppConstants
+- **Type safety mejorado:** Enums con métodos adicionales y validación estricta
+- **Inyección de dependencias:** Configuración centralizada y más mantenible
+- **Manejo de estados robusto:** Estados de dosis con colores y textos descriptivos

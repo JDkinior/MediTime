@@ -77,10 +77,13 @@ class MyApp extends StatelessWidget {
         Provider<StorageService>(create: (_) => StorageService()),
         Provider<PreferenceService>(create: (_) => PreferenceService()),
         Provider<TreatmentService>(
-          create: (context) => TreatmentService(context.read<FirestoreService>()),
+          create:
+              (context) => TreatmentService(context.read<FirestoreService>()),
         ),
         Provider<LazyTreatmentService>(
-          create: (context) => LazyTreatmentService(context.read<FirestoreService>()),
+          create:
+              (context) =>
+                  LazyTreatmentService(context.read<FirestoreService>()),
         ),
 
         // Notifier providers
@@ -88,16 +91,18 @@ class MyApp extends StatelessWidget {
           create: (_) => ProfileNotifier(),
         ),
         ChangeNotifierProvider<TreatmentFormNotifier>(
-          create: (context) => TreatmentFormNotifier(
-            context.read<TreatmentService>(),
-            context.read<AuthService>(),
-          ),
+          create:
+              (context) => TreatmentFormNotifier(
+                context.read<TreatmentService>(),
+                context.read<AuthService>(),
+              ),
         ),
         ChangeNotifierProvider<CalendarNotifier>(
-          create: (context) => CalendarNotifier(
-            context.read<LazyTreatmentService>(),
-            context.read<FirestoreService>(),
-          ),
+          create:
+              (context) => CalendarNotifier(
+                context.read<LazyTreatmentService>(),
+                context.read<FirestoreService>(),
+              ),
         ),
       ],
       child: MaterialApp(

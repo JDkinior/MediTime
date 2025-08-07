@@ -12,10 +12,10 @@ class AgregarRecetaPage extends StatefulWidget {
   const AgregarRecetaPage({super.key});
 
   @override
-  _AgregarRecetaPageState createState() => _AgregarRecetaPageState();
+  AgregarRecetaPageState createState() => AgregarRecetaPageState();
 }
 
-class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
+class AgregarRecetaPageState extends State<AgregarRecetaPage> {
   int _currentStep = 0;
   final PageController _pageController = PageController();
   bool _isAnimating = false;
@@ -53,6 +53,27 @@ class _AgregarRecetaPageState extends State<AgregarRecetaPage> {
           ),
           backgroundColor: Colors.green,
         ),
+      );
+      
+      // Reiniciar el formulario para la próxima dosis
+      notifier.resetForm();
+      
+      // Limpiar los controladores de texto
+      _nombreMedicamentoController.clear();
+      _dosisController.clear();
+      _duracionController.clear();
+      _notasController.clear();
+      
+      // Reiniciar el estado de la página al primer paso
+      setState(() {
+        _currentStep = 0;
+      });
+      
+      // Volver al primer paso visualmente
+      _pageController.animateToPage(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
       );
       
       // Mostrar consejos para optimizar las notificaciones

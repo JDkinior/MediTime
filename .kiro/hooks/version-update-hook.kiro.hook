@@ -1,17 +1,16 @@
 {
   "enabled": true,
   "name": "Version Update Hook",
-  "description": "Automatically updates the application version whenever changes are made to pubspec.yaml or lib/screens/shared/ayuda_page.dart",
+  "description": "Automatically updates the application version whenever changes are made to pubspec.yaml",
   "version": "1",
   "when": {
-    "type": "userTriggered",
+    "type": "fileEdited",
     "patterns": [
-      "pubspec.yaml",
-      "lib/screens/shared/ayuda_page.dart"
+      "pubspec.yaml"
     ]
   },
   "then": {
     "type": "askAgent",
-    "prompt": "Update the version number in pubspec.yaml and ensure the version is also reflected in the ayuda_page.dart file where it displays the current app version. Increment the version appropriately based on the type of changes made."
+    "prompt": "Update the version number in pubspec.yaml where it displays the current app version. Increment the version appropriately based on the type of changes made."
   }
 }
