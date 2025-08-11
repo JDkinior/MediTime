@@ -1,5 +1,6 @@
 // lib/services/notification_service.dart
 import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/intl.dart';
@@ -17,7 +18,7 @@ import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/firebase_options.dart';
 
 @pragma('vm:entry-point')
-Future<void> _handleNotificationAction(
+Future<void> handleNotificationActionBackground(
   NotificationResponse notificationResponse,
 ) async {
   print('🔥🔥🔥 CALLBACK EJECUTÁNDOSE 🔥🔥🔥');
@@ -27,6 +28,11 @@ Future<void> _handleNotificationAction(
   
   // VERSIÓN SIMPLIFICADA PARA EVITAR ERRORES DE INICIALIZACIÓN
   try {
+    // Asegura que los plugins estén registrados en el isolate en segundo plano
+    DartPluginRegistrant.ensureInitialized();
+    WidgetsFlutterBinding.ensureInitialized();
+  // Inicializa el núcleo de notificaciones en este isolate antes de cancelar/mostrar
+  await NotificationService.initializeCore();
     final payload = notificationResponse.payload;
     final actionId = notificationResponse.actionId;
     
@@ -44,7 +50,7 @@ Future<void> _handleNotificationAction(
     }
     
     // Delegar el procesamiento complejo a otro método
-    await NotificationService.processNotificationActionAsync(
+  await NotificationService.processNotificationActionAsync(
       payload: payload,
       actionId: actionId,
       notificationId: notificationResponse.id,
@@ -131,8 +137,8 @@ class NotificationService {
 
     await _notificationsPlugin.initialize(
       initializationSettings,
-      onDidReceiveNotificationResponse: _handleNotificationAction,
-      onDidReceiveBackgroundNotificationResponse: _handleNotificationAction,
+  onDidReceiveNotificationResponse: handleNotificationActionBackground,
+  onDidReceiveBackgroundNotificationResponse: handleNotificationActionBackground,
     );
     
     debugPrint('CRÍTICO: Callbacks de notificación registrados correctamente');
@@ -360,23 +366,23 @@ class NotificationService {
     final String snoozeLabel = 'Aplazar $snoozeMinutes min';
 
     // Definimos las acciones con el texto dinámico
-    final List<AndroidNotificationAction> actions = <AndroidNotificationAction>[
+  final List<AndroidNotificationAction> actions = <AndroidNotificationAction>[
       AndroidNotificationAction(
         'TOMAR_ACTION',
         'Tomar',
-        showsUserInterface: true, // Abre la app para ejecutar callback
+    showsUserInterface: false, // Procesar en segundo plano sin abrir la app
         cancelNotification: false, // NO cancelar automáticamente - lo hace el callback
       ),
       AndroidNotificationAction(
         'OMITIR_ACTION',
         'Omitir',
-        showsUserInterface: true, // Abre la app para ejecutar callback
+    showsUserInterface: false, // Procesar en segundo plano sin abrir la app
         cancelNotification: false, // NO cancelar automáticamente - lo hace el callback
       ),
       AndroidNotificationAction(
         'APLAZAR_ACTION',
         snoozeLabel,
-        showsUserInterface: true, // Abre la app para ejecutar callback
+    showsUserInterface: false, // Procesar en segundo plano sin abrir la app
         cancelNotification: false, // NO cancelar automáticamente - lo hace el callback
       ),
     ];
@@ -491,12 +497,12 @@ class NotificationService {
             AndroidNotificationAction(
               'TOMAR_ACTION',
               'Tomar',
-              showsUserInterface: true,
+              showsUserInterface: false,
             ),
             AndroidNotificationAction(
               'OMITIR_ACTION',
               'Omitir',
-              showsUserInterface: true,
+              showsUserInterface: false,
             ),
           ],
         ),
@@ -1126,7 +1132,7 @@ class NotificationService {
         // Si hay una respuesta de notificación, procesarla
         if (launchDetails.notificationResponse != null) {
           debugPrint('🚀 PROCESANDO ACCIÓN DE LANZAMIENTO');
-          await _handleNotificationAction(launchDetails.notificationResponse!);
+          await handleNotificationActionBackground(launchDetails.notificationResponse!);
         }
       } else {
         debugPrint('🚀 App NO abierta por notificación');

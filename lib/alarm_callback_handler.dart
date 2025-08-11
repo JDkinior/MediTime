@@ -1,4 +1,5 @@
 // lib/alarm_callback_handler.dart
+import 'dart:ui';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -25,7 +26,9 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
   debugPrint("Parámetros recibidos: ${params.keys.toList()}");
 
   try {
-    WidgetsFlutterBinding.ensureInitialized();
+  // Asegura que los plugins estén registrados en el isolate de fondo (Android)
+  DartPluginRegistrant.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
 
     bool firebaseInitialized = false;
     try {

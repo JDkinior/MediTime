@@ -89,6 +89,11 @@
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" 
             android:exported="false" />
 
+        <!-- RECEPTOR PARA ACCIONES DE NOTIFICACIÓN (asegura entrega en background) -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"
+            android:exported="false" />
+
         <!-- RECEPTORES CRÍTICOS: Para alarm manager -->
         <receiver
             android:name="dev.fluttercommunity.plus.androidalarmmanager.AlarmBroadcastReceiver"
