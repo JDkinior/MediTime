@@ -1,5 +1,6 @@
 // lib/screens/calendar/calendario_page.dart
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import 'package:meditime/models/tratamiento.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -44,6 +45,84 @@ class CalendarioPage extends StatelessWidget {
               },
             ),
     );
+  }
+}
+
+// (Custom painter defined at end of file)
+
+// Top-level custom painter to draw dual-segment circular progress
+class _DualProgressPainter extends CustomPainter {
+  final double taken; // 0..1
+  final double omitted; // 0..1
+  final double strokeWidth;
+  final Color backgroundColor;
+  final Color takenColor;
+  final Color omittedColor;
+
+  _DualProgressPainter({
+    required this.taken,
+    required this.omitted,
+    required this.strokeWidth,
+    required this.backgroundColor,
+    required this.takenColor,
+    required this.omittedColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Usar todo el espacio disponible, igual que CircularProgressIndicator
+    final rect = Offset.zero & size;
+
+    final basePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..color = backgroundColor;
+
+    // Track (remaining) circle
+    canvas.drawArc(rect, -math.pi / 2, 2 * math.pi, false, basePaint);
+
+    // Omitted segment (red), starts at top
+    if (omitted > 0) {
+      final omittedPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round
+        ..color = omittedColor;
+      canvas.drawArc(
+        rect,
+        -math.pi / 2,
+        2 * math.pi * omitted,
+        false,
+        omittedPaint,
+      );
+    }
+
+    // Taken segment (blue), starts after omitted
+    if (taken > 0) {
+      final takenPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round
+        ..color = takenColor;
+      canvas.drawArc(
+        rect,
+        -math.pi / 2 + 2 * math.pi * omitted,
+        2 * math.pi * taken,
+        false,
+        takenPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DualProgressPainter oldDelegate) {
+    return taken != oldDelegate.taken ||
+        omitted != oldDelegate.omitted ||
+        strokeWidth != oldDelegate.strokeWidth ||
+        backgroundColor != oldDelegate.backgroundColor ||
+        takenColor != oldDelegate.takenColor ||
+        omittedColor != oldDelegate.omittedColor;
   }
 }
 
@@ -316,12 +395,17 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                 final tratamiento = entry.key;
                 final doses = entry.value;
 
-                final tomadasCount =
-                    doses.where((d) => d['status'] == DoseStatus.tomada).length;
-                final totalCount = doses.length;
-                final progress = totalCount > 0
-                    ? tomadasCount / totalCount
-                    : 0.0;
+        final tomadasCount =
+          doses.where((d) => d['status'] == DoseStatus.tomada).length;
+        final omitidasCount =
+          doses.where((d) => d['status'] == DoseStatus.omitida).length;
+        final totalCount = doses.length;
+        final takenProgress = totalCount > 0
+          ? tomadasCount / totalCount
+          : 0.0;
+        final omittedProgress = totalCount > 0
+          ? omitidasCount / totalCount
+          : 0.0;
 
                 return Container(
                   margin: const EdgeInsets.symmetric(vertical: 6.0),
@@ -334,7 +418,10 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                   child: ExpansionTile(
                     shape: const Border(),
                     collapsedShape: const Border(),
-                    leading: _buildProgressIndicator(progress),
+                    leading: _buildProgressIndicator(
+                      takenProgress: takenProgress,
+                      omittedProgress: omittedProgress,
+                    ),
                     title: Row(
                       children: [
                         Text(tratamiento.nombreMedicamento,
@@ -370,22 +457,38 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
     );
   }
 
-  Widget _buildProgressIndicator(double progress) {
+  Widget _buildProgressIndicator({
+    required double takenProgress,
+    required double omittedProgress,
+  }) {
+    // Clamp values to [0,1] and ensure the sum doesn't exceed 1.0
+    double taken = takenProgress.clamp(0.0, 1.0);
+    double omitted = omittedProgress.clamp(0.0, 1.0);
+    if (taken + omitted > 1.0) {
+      final total = taken + omitted;
+      taken = taken / total;
+      omitted = omitted / total;
+    }
+
     return SizedBox(
       width: 40,
       height: 40,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          CircularProgressIndicator(
-            value: progress,
-            backgroundColor: Colors.grey.shade300,
-            color: kPrimaryColor,
-            strokeWidth: 5,
+          CustomPaint(
+            painter: _DualProgressPainter(
+              taken: taken,
+              omitted: omitted,
+              strokeWidth: 5,
+              backgroundColor: Colors.grey.shade300,
+              takenColor: kPrimaryColor,
+              omittedColor: Colors.red.shade400,
+            ),
           ),
           Center(
             child: Text(
-              '${(progress * 100).toInt()}%',
+              '${(taken * 100).toInt()}%',
               style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
             ),
           )

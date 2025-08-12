@@ -125,7 +125,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               _buildNextDoseInfo(_nextUpcomingDose, selectedDoseTime),
               const SizedBox(height: 32),
               const Divider(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 32),
               TreatmentSummaryCard(
                 formData: formData,
                 summaryInfo: _getSummaryInfo(formData),
