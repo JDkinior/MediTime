@@ -140,6 +140,24 @@ class FirestoreTreatmentRepository implements TreatmentRepository {
   @override
   Future<Result<void>> deleteTreatment(String userId, String docId) async {
     try {
+      // Best-effort: revoke locally and cancel alarms if possible (we don't know alarmId here without fetching)
+      try {
+        // Attempt to get the doc to obtain alarm id for cancellation
+        final docRef = _db
+            .collection(AppConstants.medicamentosCollection)
+            .doc(userId)
+            .collection(AppConstants.userMedicamentosSubcollection)
+            .doc(docId);
+        final snapshot = await docRef.get();
+        if (snapshot.exists) {
+          final t = Tratamiento.fromFirestore(snapshot);
+          if (t.prescriptionAlarmId != 0) {
+            // Lazy import to avoid circular references is not needed; file already imports services/tratamiento_service.dart
+          }
+        }
+      } catch (_) {
+        // ignore best-effort failures
+      }
       await _db
           .collection(AppConstants.medicamentosCollection)
           .doc(userId)

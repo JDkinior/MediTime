@@ -97,7 +97,15 @@ class _RecetaPageState extends State<RecetaPage> {
                             child: const Text('Eliminar'),
                             onPressed: () async {
                               Navigator.of(context).pop(); // Cerrar el diálogo de confirmación
+                              // Revocar localmente para impedir callbacks offline
+                              await NotificationService.revokeTreatmentLocally(user.uid, tratamiento.id);
+                              // Cancelar serie de alarmas de Android para este tratamiento
                               await NotificationService.cancelTreatmentAlarms(tratamiento.prescriptionAlarmId);
+                              // Cancelar notificaciones activas visibles
+                              await NotificationService.cancelAllActiveAndroidNotifications();
+                              // Cancelar también todas las notificaciones programadas (incluye snoozes)
+                              await NotificationService.cancelAllFlutterLocalNotifications();
+                              // Eliminar en Firestore
                               await firestoreService.deleteTratamiento(user.uid, tratamiento.id);
                               scaffoldMessenger.showSnackBar(
                                 const SnackBar(content: Text('Tratamiento eliminado.')),

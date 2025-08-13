@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/use_cases/load_user_profile_use_case.dart';
+import 'package:meditime/services/preference_service.dart';
 
 // Importar pantallas
 import 'package:meditime/screens/auth/login_page.dart';
@@ -38,7 +39,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
     final profileNotifier = context.read<ProfileNotifier>();
     final loadUserProfileUseCase = context.read<LoadUserProfileUseCase>();
 
-    // 1. Reactivar las alarmas incondicionalmente en cada inicio de sesión.
+  // Guardar el usuario actual para filtros en callbacks offline
+  await PreferenceService().saveCurrentUserId(user.uid);
+
+  // 1. Reactivar las alarmas incondicionalmente en cada inicio de sesión.
     // Esto es crucial para restaurar las alarmas si la app fue terminada.
     await NotificationService.reactivateAlarmsForUser(user.uid);
     debugPrint("AuthWrapper: Alarmas reactivadas para el usuario ${user.uid}");
@@ -53,9 +57,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
     // Check mounted state after async operation
     if (!mounted) return;
     
-    // 1.6. Verificar si hay una notificación que activó la app
+  // 1.6. Verificar si hay una notificación que activó la app
     await NotificationService.checkAppLaunchedFromNotification();
     debugPrint("🔍 AuthWrapper: Verificación de lanzamiento por notificación completada");
+
+  // Limpiar lista de tratamientos revocados al iniciar sesión (evitar bloqueos antiguos)
+  await PreferenceService().clearRevokedTreatments();
 
     // Check mounted state after async operation
     if (!mounted) return;

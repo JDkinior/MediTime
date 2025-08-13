@@ -524,6 +524,25 @@ class NotificationService {
     );
   }
 
+  /// Cancela todas las notificaciones actualmente activas en Android (visibles en la bandeja)
+  static Future<void> cancelAllActiveAndroidNotifications() async {
+    try {
+      final androidImpl = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      final List<ActiveNotification>? active = await androidImpl?.getActiveNotifications();
+      if (active != null) {
+        for (final n in active) {
+          if (n.id != null) {
+            await _notificationsPlugin.cancel(n.id!);
+          }
+        }
+        debugPrint("${active.length} notificaciones activas canceladas");
+      }
+    } catch (e) {
+      debugPrint("Error cancelando notificaciones activas: $e");
+    }
+  }
+
   /// Cancela una notificación local específica por su ID.
   static Future<void> cancelFlutterLocalNotificationById(int id) async {
     await _notificationsPlugin.cancel(id);
@@ -618,6 +637,17 @@ class NotificationService {
       "CANCEL: Cancelando serie de alarmas completa con ID: $prescriptionAlarmId",
     );
     await AndroidAlarmManager.cancel(prescriptionAlarmId);
+  }
+
+  /// Marca un tratamiento como revocado localmente (no se mostrarán notificaciones en callbacks offline)
+  static Future<void> revokeTreatmentLocally(String userId, String docId) async {
+    try {
+      await PreferenceService().addRevokedTreatment(userId, docId);
+      // Además, cancelar cualquier notificación activa para minimizar ruido inmediato
+      await cancelAllActiveAndroidNotifications();
+    } catch (e) {
+      debugPrint("Error revocando tratamiento localmente: $e");
+    }
   }
 
   /// Omite una dosis y reprograma la siguiente.
@@ -1030,7 +1060,7 @@ class NotificationService {
     print('🔥 INICIANDO PROCESAMIENTO ASYNC');
     
     try {
-      if (!payload.startsWith('active_notification')) {
+  if (!payload.startsWith('active_notification')) {
         print('🔥 NO ES NOTIFICACIÓN ACTIVA - SALIENDO');
         return;
       }
@@ -1042,10 +1072,26 @@ class NotificationService {
         return;
       }
       
-      final userId = parts[1];
-      final docId = parts[2];
+  final userId = parts[1];
+  final docId = parts[2];
       final doseTime = DateTime.parse(parts[3]);
       
+      // Guard: validar usuario actual y tratamiento no revocado
+      try {
+        final prefs = PreferenceService();
+        final currentUserId = await prefs.getCurrentUserId();
+        final revoked = await prefs.isTreatmentRevoked(userId, docId);
+        if (currentUserId == null || currentUserId != userId || revoked) {
+          print('🔥 GUARD ACTIVADO - Bloqueando acción. currentUserId=$currentUserId revoked=$revoked');
+          if (notificationId != null) {
+            await cancelFlutterLocalNotificationById(notificationId);
+          }
+          return;
+        }
+      } catch (e) {
+        print('🔥 ERROR EN GUARD: $e');
+      }
+
       print('🔥 PROCESANDO ACCIÓN: $actionId para usuario: $userId');
       
       // Inicializar Firebase de forma segura

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:meditime/core/result.dart';
 import 'package:meditime/repositories/treatment_repository.dart';
 import 'package:meditime/services/notification_service.dart';
+import 'package:meditime/services/preference_service.dart';
 
 /// Use case for handling user sign out operations.
 /// 
@@ -23,6 +24,9 @@ class SignOutUseCase {
   Future<Result<void>> execute(String userId) async {
     try {
       debugPrint('SignOutUseCase: Starting sign out process for user $userId');
+  final prefs = PreferenceService();
+  // Persist the current user id before clear, to allow guards to compare
+  await prefs.saveCurrentUserId(userId);
       
       // Get user treatments to cancel their alarms
       final treatmentsResult = await _treatmentRepository.getTreatments(userId);
@@ -46,6 +50,10 @@ class SignOutUseCase {
               // Continue with other treatments even if one fails
             }
           }
+          // Mark each treatment as revoked locally to block offline callbacks
+          try {
+            await NotificationService.revokeTreatmentLocally(userId, tratamiento.id);
+          } catch (_) {}
         }
       }
       
@@ -57,6 +65,12 @@ class SignOutUseCase {
         debugPrint('SignOutUseCase: Error canceling local notifications: $e');
         // Continue with sign out even if notification cancellation fails
       }
+      // Also cancel any active visible notifications
+      await NotificationService.cancelAllActiveAndroidNotifications();
+      // Clear any remembered current user, so future callbacks are blocked by guard
+      await prefs.clearCurrentUserId();
+      // Optionally clear revoked list (not strictly necessary, but keeps it clean)
+      await prefs.clearRevokedTreatments();
       
       debugPrint('SignOutUseCase: Sign out process completed successfully');
       return const Result.success(null);

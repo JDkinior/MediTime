@@ -46,8 +46,8 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
     final preferenceService = PreferenceService();
     
     // CAMBIO CRÍTICO: Extraer datos del payload sin depender de Firebase con validaciones null-safe
-    final userId = params['userId'] as String?;
-    final docId = params['docId'] as String?;
+  final userId = params['userId'] as String?;
+  final docId = params['docId'] as String?;
     final doseTimeString = params['doseTime'] as String?;
     
     // Validaciones críticas
@@ -71,6 +71,45 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
     } catch (e) {
       debugPrint("ERROR leyendo preferencias: $e. Usando modo pasivo como default");
       isModeActive = false;
+    }
+
+    // BLOQUEO CRÍTICO: Evitar notificaciones si el usuario cambió o el tratamiento fue revocado
+    try {
+      final currentUserId = await preferenceService.getCurrentUserId();
+      final isRevoked = await preferenceService.isTreatmentRevoked(userId, docId);
+      final int seriesId = (params['prescriptionAlarmId'] as int?) ?? 0;
+
+      if (currentUserId == null || currentUserId != userId || isRevoked) {
+        debugPrint(
+          "Guard: Bloqueando notificación. currentUserId=$currentUserId, payloadUserId=$userId, revoked=$isRevoked",
+        );
+        if (seriesId != 0) {
+          await NotificationService.cancelTreatmentAlarms(seriesId);
+          debugPrint("Guard: Serie de alarmas cancelada para ID: $seriesId");
+        }
+        return; // No mostrar ni reprogramar nada
+      }
+    } catch (e) {
+      debugPrint("ERROR en guard de usuario/revocado: $e");
+    }
+
+    // Si podemos, verifiquemos que el documento aún exista (para evitar notificaciones de tratamientos eliminados remotamente)
+    try {
+      if (firebaseInitialized) {
+        final firestoreService = FirestoreService();
+        final docRef = firestoreService.getMedicamentoDocRef(userId, docId);
+        final docSnap = await docRef.get().timeout(const Duration(seconds: 3));
+        if (!docSnap.exists) {
+          final int seriesId = (params['prescriptionAlarmId'] as int?) ?? 0;
+          debugPrint("Guard: Documento no existe en Firestore. Cancelando serie $seriesId y saliendo.");
+          if (seriesId != 0) {
+            await NotificationService.cancelTreatmentAlarms(seriesId);
+          }
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint("Advertencia: No se pudo verificar existencia del doc: $e");
     }
 
     // CAMBIO CRÍTICO: Procesar notificación independientemente del estado de Firebase
