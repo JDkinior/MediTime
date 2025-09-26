@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:provider/provider.dart';
 
@@ -29,8 +28,36 @@ class _RegisterPageState extends State<RegisterPage> {
   String _passwordErrorText = '';
 
   Future<void> _register() async {
-    // Limpia errores
+  final email = _emailController.text.trim();
+  final password = _passwordController.text.trim();
+
+    bool emailError = false;
+    String emailErrorText = '';
+    bool passwordError = false;
+    String passwordErrorText = '';
+
+    if (email.isEmpty || !email.contains('@')) {
+      emailError = true;
+      emailErrorText = 'Por favor ingresa un correo válido';
+    }
+    if (password.isEmpty || password.length < 6) {
+      passwordError = true;
+      passwordErrorText = 'La contraseña debe tener al menos 6 caracteres';
+    }
+
+    if (emailError || passwordError) {
+      setState(() {
+        _emailError = emailError;
+        _emailErrorText = emailErrorText;
+        _passwordError = passwordError;
+        _passwordErrorText = passwordErrorText;
+        _errorMessage = '';
+      });
+      return;
+    }
+
     setState(() {
+      _isLoading = true;
       _emailError = false;
       _passwordError = false;
       _emailErrorText = '';
@@ -38,53 +65,65 @@ class _RegisterPageState extends State<RegisterPage> {
       _errorMessage = '';
     });
 
-    // Validaciones
-    bool hasErrors = false;
-    if (_emailController.text.isEmpty || !_emailController.text.contains('@')) {
-      setState(() {
-        _emailError = true;
-        _emailErrorText = 'Por favor ingresa un correo válido';
-        hasErrors = true;
-      });
-    }
-    if (_passwordController.text.isEmpty || _passwordController.text.length < 6) {
-      setState(() {
-        _passwordError = true;
-        _passwordErrorText = 'La contraseña debe tener al menos 6 caracteres';
-        hasErrors = true;
-      });
-    }
-    if (hasErrors) return;
+    final authService = context.read<AuthService>();
+    final result = await authService.createUserWithEmailAndPassword(
+      email,
+      password,
+    );
 
-    setState(() => _isLoading = true);
+    if (!mounted) return;
 
-    try {
-      final authService = context.read<AuthService>();
-      await authService.createUserWithEmailAndPassword(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
-
-      if (mounted) {
-        Navigator.pop(context);
-      }
-    } on FirebaseAuthException catch (e) {
+    if (result.isFailure) {
+      final error = result.error ?? 'No se pudo crear la cuenta';
+      final normalized = error.toLowerCase();
       String message;
-      switch (e.code) {
-        case 'email-already-in-use':
-          message = 'El correo ya está en uso';
-          break;
-        case 'weak-password':
-          message = 'La contraseña es demasiado débil';
-          break;
-        default:
-          message = 'Error: ${e.message}';
+
+      if (normalized.contains('email-already-in-use')) {
+        message = 'El correo ya está en uso';
+      } else if (normalized.contains('weak-password')) {
+        message = 'La contraseña es demasiado débil';
+      } else if (normalized.contains('invalid-email')) {
+        message = 'Formato de correo inválido';
+      } else {
+        message = error;
       }
-      setState(() => _errorMessage = message);
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = message;
+      });
+      return;
+    }
+
+    setState(() => _isLoading = false);
+
+    if (Navigator.canPop(context)) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
+  }
+  
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    final authService = context.read<AuthService>();
+    final result = await authService.signInWithGoogle();
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    if (result.isSuccess) {
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
+    } else {
+      setState(() {
+        _errorMessage = result.error ??
+            'Error al registrarse con Google. Inténtalo de nuevo.';
+      });
     }
   }
   
@@ -166,11 +205,65 @@ class _RegisterPageState extends State<RegisterPage> {
                   onPressed: _register,
                 ),
                 const SizedBox(height: 20),
+                const Row(
+                  children: [
+                    Expanded(
+                      child: Divider(
+                        color: Color.fromARGB(255, 165, 165, 165),
+                        thickness: 1,
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Text(
+                        'o',
+                        style: TextStyle(
+                          color: Color.fromARGB(255, 165, 165, 165),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Divider(
+                        color: Color.fromARGB(255, 165, 165, 165),
+                        thickness: 1,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: ElevatedButton.icon(
+                    icon: Image.asset(
+                      'assets/google_logo.png',
+                      width: 30,
+                      height: 30,
+                    ),
+                    label: const Text('Continuar con Google'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF3F3F3),
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        side: const BorderSide(
+                          color: Color.fromARGB(255, 165, 165, 165),
+                        ),
+                      ),
+                      elevation: 0,
+                    ),
+                    onPressed: _isLoading ? null : _signInWithGoogle,
+                  ),
+                ),
+                const SizedBox(height: 20),
                 Center(
                   child: TextButton(
                     onPressed: () => Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => const LoginPage()),
+                      MaterialPageRoute(
+                        builder: (context) => const LoginPage(openLoginPanel: true),
+                      ),
                     ),
                     child: const Text(
                       '¿Ya tienes cuenta? Inicia sesión aquí',

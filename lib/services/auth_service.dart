@@ -103,6 +103,14 @@ class AuthService {
   /// Inicia el flujo de autenticación usando una cuenta de Google.
   Future<Result<UserCredential>> signInWithGoogle() async {
     try {
+      // Asegura que se muestre el selector de cuenta en cada intento
+      try {
+        await _googleSignIn.signOut();
+      } catch (e, stackTrace) {
+        debugPrint('Error signing out before Google sign-in: $e');
+        debugPrintStack(stackTrace: stackTrace);
+      }
+
       // Inicia el flujo de inicio de sesión de Google
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       

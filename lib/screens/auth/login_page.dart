@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Mantener para FirebaseAuthException
 import 'package:meditime/services/auth_service.dart'; // Importa tu servicio
 import 'package:provider/provider.dart'; // Importa Provider
 import 'register_page.dart';
@@ -7,7 +6,9 @@ import 'package:meditime/widgets/primary_button.dart';
 import 'package:meditime/widgets/styled_text_field.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({super.key, this.openLoginPanel = false});
+
+  final bool openLoginPanel;
 
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -20,7 +21,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
   String _errorMessage = '';
-  final FocusNode _passwordFocusNode = FocusNode();
   bool _emailError = false;
   bool _passwordError = false;
   String _emailErrorText = '';
@@ -33,6 +33,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       vsync: this,
       duration: const Duration(milliseconds: 200),
     );
+
+    if (widget.openLoginPanel) {
+      _showLoginForm = true;
+      _animationController.value = 1.0;
+    }
   }
 
   @override
@@ -40,24 +45,52 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     _animationController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _passwordFocusNode.dispose();
     super.dispose();
   }
 
   void _toggleLoginForm() {
+    final shouldShow = !_showLoginForm;
     setState(() {
-      _showLoginForm = !_showLoginForm;
-      if (_showLoginForm) {
-        _animationController.forward();
-      } else {
-        _animationController.reverse();
-      }
+      _showLoginForm = shouldShow;
     });
+    if (shouldShow) {
+      _animationController.forward();
+    } else {
+      _animationController.reverse();
+    }
   }
 
   Future<void> _login() async {
-    // Limpieza de errores (sin cambios)
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    bool emailError = false;
+    String emailErrorText = '';
+    bool passwordError = false;
+    String passwordErrorText = '';
+
+    if (email.isEmpty) {
+      emailError = true;
+      emailErrorText = 'Por favor ingresa tu correo';
+    }
+    if (password.isEmpty) {
+      passwordError = true;
+      passwordErrorText = 'Por favor ingresa tu contraseña';
+    }
+
+    if (emailError || passwordError) {
+      setState(() {
+        _emailError = emailError;
+        _emailErrorText = emailErrorText;
+        _passwordError = passwordError;
+        _passwordErrorText = passwordErrorText;
+        _errorMessage = '';
+      });
+      return;
+    }
+
     setState(() {
+      _isLoading = true;
       _emailError = false;
       _passwordError = false;
       _emailErrorText = '';
@@ -65,105 +98,107 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       _errorMessage = '';
     });
 
-    // Validaciones (sin cambios)
-    bool hasErrors = false;
-    if (_emailController.text.isEmpty) {
-      setState(() {
-        _emailError = true;
-        _emailErrorText = 'Por favor ingresa tu correo';
-        hasErrors = true;
-      });
-    }
-    if (_passwordController.text.isEmpty) {
-      setState(() {
-        _passwordError = true;
-        _passwordErrorText = 'Por favor ingresa tu contraseña';
-        hasErrors = true;
-      });
-    }
-    if (hasErrors) return;
+    final authService = context.read<AuthService>();
+    final result = await authService.signInWithEmailAndPassword(email, password);
 
-    setState(() => _isLoading = true);
+    if (!mounted) return;
 
-    try {
-      // *** CAMBIO CLAVE: Usa el AuthService a través de Provider ***
-      final authService = context.read<AuthService>();
-      await authService.signInWithEmailAndPassword(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
-      // El AuthWrapper se encargará de navegar a HomePage, por lo que no necesitamos hacer nada aquí.
-    } on FirebaseAuthException catch (e) {
-      switch (e.code) {
-        case 'user-not-found':
-          setState(() {
-            _emailError = true;
-            _emailErrorText = 'Usuario no encontrado';
-          });
-          break;
-        case 'wrong-password':
-          setState(() {
-            _passwordError = true;
-            _passwordErrorText = 'Contraseña incorrecta';
-          });
-          break;
-        case 'invalid-email':
-          setState(() {
-            _emailError = true;
-            _emailErrorText = 'Formato de correo inválido';
-          });
-          break;
-        default:
-          setState(() => _errorMessage = 'Error: ${e.message}');
+    if (result.isFailure) {
+      final error = result.error ?? 'Error al iniciar sesión';
+      bool newEmailError = false;
+      String newEmailErrorText = '';
+      bool newPasswordError = false;
+      String newPasswordErrorText = '';
+      String errorMessage = '';
+
+      final normalizedError = error.toLowerCase();
+      if (normalizedError.contains('user-not-found')) {
+        newEmailError = true;
+        newEmailErrorText = 'Usuario no encontrado';
+      } else if (normalizedError.contains('wrong-password')) {
+        newPasswordError = true;
+        newPasswordErrorText = 'Contraseña incorrecta';
+      } else if (normalizedError.contains('invalid-email')) {
+        newEmailError = true;
+        newEmailErrorText = 'Formato de correo inválido';
+      } else {
+        errorMessage = error;
       }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+
+      setState(() {
+        _isLoading = false;
+        _emailError = newEmailError;
+        _emailErrorText = newEmailErrorText;
+        _passwordError = newPasswordError;
+        _passwordErrorText = newPasswordErrorText;
+        _errorMessage = errorMessage;
+      });
+      return;
+    }
+
+    setState(() => _isLoading = false);
+
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.popUntil((route) => route.isFirst);
     }
   }
 
-    Future<void> _signInWithGoogle() async {
+  Future<void> _signInWithGoogle() async {
     setState(() {
       _isLoading = true;
       _errorMessage = '';
     });
 
-    try {
-      final authService = context.read<AuthService>();
-      await authService.signInWithGoogle();
-      // El AuthWrapper se encargará de la navegación
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'Error al iniciar sesión con Google. Inténtalo de nuevo.';
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    final authService = context.read<AuthService>();
+    final result = await authService.signInWithGoogle();
+
+    if (!mounted) return;
+
+    if (result.isFailure) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Error al iniciar sesión con Google. Inténtalo de nuevo.';
+      });
+      return;
+    }
+
+    setState(() => _isLoading = false);
+
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.popUntil((route) => route.isFirst);
     }
   }
 
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
+    final mediaQuery = MediaQuery.of(context);
+    final screenSize = mediaQuery.size;
+    final screenHeight = screenSize.height;
+    final screenWidth = screenSize.width;
+    final bottomInset = mediaQuery.viewInsets.bottom;
 
-    return GestureDetector(
-      onTap: () {
-        final currentFocus = FocusScope.of(context);
-        if (!currentFocus.hasPrimaryFocus) {
-          currentFocus.unfocus();
-        }
-        if (_showLoginForm) {
+    return PopScope(
+      canPop: !_showLoginForm,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _showLoginForm) {
           _toggleLoginForm();
         }
       },
-      behavior: HitTestBehavior.opaque,
-      child: Scaffold(
+      child: GestureDetector(
+        onTap: () {
+          final currentFocus = FocusScope.of(context);
+          if (!currentFocus.hasPrimaryFocus) {
+            currentFocus.unfocus();
+          }
+          if (_showLoginForm) {
+            _toggleLoginForm();
+          }
+        },
+        behavior: HitTestBehavior.opaque,
+        child: Scaffold(
         resizeToAvoidBottomInset: false,
         body: Stack(
           children: [
@@ -294,7 +329,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     padding: const EdgeInsets.all(30),
                     child: SingleChildScrollView(
                       padding: EdgeInsets.only(
-                        bottom: MediaQuery.of(context).viewInsets.bottom,
+                        bottom: bottomInset,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,6 +435,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               ),
             ),
           ],
+        ),
         ),
       ),
     );
