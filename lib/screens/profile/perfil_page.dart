@@ -131,17 +131,39 @@ class _PerfilPageState extends State<PerfilPage> {
 
   void _resetToOriginalData() {
     if (!mounted) return;
+    // Eliminamos los listeners temporalmente para evitar que cada asignación
+    // de texto dispare _updateSaveButtonState y provoque múltiples rebuilds.
+    _nameController.removeListener(_updateSaveButtonState);
+    _phoneController.removeListener(_updateSaveButtonState);
+    _emailController.removeListener(_updateSaveButtonState);
+    _dobController.removeListener(_updateSaveButtonState);
+    _bloodTypeController.removeListener(_updateSaveButtonState);
+    _allergiesController.removeListener(_updateSaveButtonState);
+    _medicationsController.removeListener(_updateSaveButtonState);
+    _medicalHistoryController.removeListener(_updateSaveButtonState);
+
+    _nameController.text = _originalName ?? '';
+    _phoneController.text = _originalPhone ?? '';
+    _emailController.text = _originalEmail ?? '';
+    _dobController.text = _originalDob ?? '';
+    _bloodTypeController.text = _originalBloodType ?? '';
+    _allergiesController.text = _originalAllergies ?? '';
+    _medicationsController.text = _originalMedications ?? '';
+    _medicalHistoryController.text = _originalMedicalHistory ?? '';
+
+    // Restauramos los listeners antes del setState
+    _nameController.addListener(_updateSaveButtonState);
+    _phoneController.addListener(_updateSaveButtonState);
+    _emailController.addListener(_updateSaveButtonState);
+    _dobController.addListener(_updateSaveButtonState);
+    _bloodTypeController.addListener(_updateSaveButtonState);
+    _allergiesController.addListener(_updateSaveButtonState);
+    _medicationsController.addListener(_updateSaveButtonState);
+    _medicalHistoryController.addListener(_updateSaveButtonState);
+
     setState(() {
-        _nameController.text = _originalName ?? '';
-        _phoneController.text = _originalPhone ?? '';
-        _emailController.text = _originalEmail ?? '';
-        _dobController.text = _originalDob ?? '';
-        _bloodTypeController.text = _originalBloodType ?? '';
-        _allergiesController.text = _originalAllergies ?? '';
-        _medicationsController.text = _originalMedications ?? '';
-        _medicalHistoryController.text = _originalMedicalHistory ?? '';
-        _profileImageUrl = _originalProfileImageUrl;
-        _updateSaveButtonState();
+      _profileImageUrl = _originalProfileImageUrl;
+      _isSaveButtonEnabled = false; // Siempre false al resetear
     });
   }
 
@@ -298,13 +320,29 @@ Future<void> _saveProfileData() async {
 
   Widget _buildProfileHeader(ProfileNotifier profile) {
     // Determina qué imagen mostrar: la nueva seleccionada o la de la red
-    ImageProvider<Object> backgroundImage;
+    ImageProvider<Object>? backgroundImage;
     if (_profileImageUrl != null && _profileImageUrl!.startsWith('http')) {
       backgroundImage = NetworkImage(_profileImageUrl!);
     } else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
       backgroundImage = FileImage(File(_profileImageUrl!));
-    } else {
-      backgroundImage = const AssetImage('assets/profile_picture.png');
+    }
+    // Si no hay imagen, backgroundImage queda null y se muestra el ícono de persona
+
+    Widget? avatarChild;
+    if (widget.isEditing) {
+      avatarChild = Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.black.withValues(alpha: 0.4),
+        ),
+        child: Center(
+          child: _isPickingImage
+              ? const CircularProgressIndicator(color: Colors.white)
+              : const Icon(Icons.camera_alt, color: Colors.white, size: 30),
+        ),
+      );
+    } else if (backgroundImage == null) {
+      avatarChild = Icon(Icons.person, size: 50, color: Colors.grey.shade500);
     }
 
     return Center(
@@ -317,20 +355,9 @@ Future<void> _saveProfileData() async {
               backgroundColor: Colors.white,
               child: CircleAvatar(
                 radius: 52,
+                backgroundColor: Colors.grey.shade200,
                 backgroundImage: backgroundImage,
-                child: widget.isEditing
-                    ? Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black.withValues(alpha: 0.4),
-                        ),
-                        child: Center(
-                          child: _isPickingImage
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : const Icon(Icons.camera_alt, color: Colors.white, size: 30),
-                        ),
-                      )
-                    : null,
+                child: avatarChild,
               ),
             ),
           ),

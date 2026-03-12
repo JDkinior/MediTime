@@ -191,7 +191,7 @@ class AppTheme {
   );
 
   /// Card theme
-  static CardTheme get cardTheme => CardTheme(
+  static CardThemeData get cardTheme => CardThemeData(
     color: cardColor,
     shadowColor: const Color.fromARGB(20, 47, 109, 180),
     elevation: 4,

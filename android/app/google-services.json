@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "426041654351",
+    "project_id": "meditime-dc9b1",
+    "storage_bucket": "meditime-dc9b1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:426041654351:android:8ed9ce3d391321dd87be3a",
+        "android_client_info": {
+          "package_name": "com.example.meditime"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "426041654351-a8g9n4d67ostr4md6abiv9v1fqebii88.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.meditime",
+            "certificate_hash": "e68aea8af4497c2c4d2db6b0262fe6643de8fd57"
+          }
+        },
+        {
+          "client_id": "426041654351-pp5fedt3r7d9ur67hl3ii8posfg0u819.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.meditime",
+            "certificate_hash": "e7e6277f0c0e2ad1009c56b40d8dfaf60c039bb8"
+          }
+        },
+        {
+          "client_id": "426041654351-49ca7oolgevitqmkgg6qjho9opscrh7f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBX9YKJ0ZC502wZjp5IzEGA51jKfJrIsLg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "426041654351-49ca7oolgevitqmkgg6qjho9opscrh7f.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "426041654351-8anam2omnmsqp36eva11r85bhq210c87.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.meditime"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
