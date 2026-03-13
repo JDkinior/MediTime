@@ -7,6 +7,7 @@ class PreferenceService {
   static const String _snoozeDurationKey = 'snooze_duration_minutes';
   static const String _currentUserIdKey = 'current_user_id';
   static const String _revokedTreatmentsKey = 'revoked_treatments'; // String list of "userId|docId"
+  static const String _tutorialShownPrefix = 'tutorial_shown_';
 
   Future<void> saveNotificationMode(bool isActive) async {
     final prefs = await SharedPreferences.getInstance();
@@ -87,6 +88,17 @@ class PreferenceService {
   Future<void> clearRevokedTreatments() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_revokedTreatmentsKey);
+  }
+
+  // --- Tutorial de bienvenida (por usuario) ---
+  Future<bool> hasTutorialBeenShown(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('$_tutorialShownPrefix$userId') ?? false;
+  }
+
+  Future<void> markTutorialShown(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('$_tutorialShownPrefix$userId', true);
   }
 
 }

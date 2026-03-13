@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:meditime/models/tratamiento.dart';
 import 'package:provider/provider.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
@@ -12,7 +13,9 @@ import 'package:meditime/enums/view_state.dart';
 import 'package:intl/intl.dart';
 
 class CalendarioPage extends StatelessWidget {
-  const CalendarioPage({super.key});
+  final GlobalKey? calendarKey;
+
+  const CalendarioPage({super.key, this.calendarKey});
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +44,7 @@ class CalendarioPage extends StatelessWidget {
                 return _CalendarioContenido(
                   tratamientos: todosLosTratamientos,
                   userId: user.uid,
+                  calendarKey: calendarKey,
                 );
               },
             ),
@@ -133,8 +137,13 @@ class _DualProgressPainter extends CustomPainter {
 class _CalendarioContenido extends StatefulWidget {
   final List<Tratamiento> tratamientos;
   final String userId;
+  final GlobalKey? calendarKey;
 
-  const _CalendarioContenido({required this.tratamientos, required this.userId});
+  const _CalendarioContenido({
+    required this.tratamientos,
+    required this.userId,
+    this.calendarKey,
+  });
 
   @override
   State<_CalendarioContenido> createState() => _CalendarioContenidoState();
@@ -254,116 +263,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
 
     return Column(
       children: [
-        TableCalendar<Map<String, dynamic>>(
-          locale: 'es_ES',
-          firstDay: DateTime.utc(2022, 1, 1),
-          lastDay: DateTime.utc(2030, 12, 31),
-          focusedDay: _focusedDay,
-          selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-          calendarFormat: _calendarFormat,
-          // -----------------------------------------------------------------
-          // Use the cached data for event loading – this is now O(1) per day.
-          // -----------------------------------------------------------------
-          eventLoader: (day) =>
-              _getGroupedDosesForDay(day).values.expand((d) => d).toList(),
-          onDaySelected: (selectedDay, focusedDay) {
-            if (!isSameDay(_selectedDay, selectedDay)) {
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-              });
-            }
-          },
-          onFormatChanged: (format) {
-            if (_calendarFormat != format) {
-              setState(() => _calendarFormat = format);
-            }
-          },
-                    onPageChanged: (focusedDay) {
-            _focusedDay = focusedDay;
-            // Efficiently load data for the newly visible month.
-            _populateCacheForMonth(focusedDay);
-          },
-          // -----------------------------------------------------------------
-          // DAY CELL BUILDERS – now use the cache instead of recomputing.
-          // -----------------------------------------------------------------
-          calendarBuilders: CalendarBuilders(
-            markerBuilder: (context, day, events) => const SizedBox.shrink(),
-            defaultBuilder: (context, day, focusedDay) {
-              final dosesForDay = _getGroupedDosesForDay(day);
-              if (dosesForDay.isEmpty) return null;
-
-              final dayColor = _determineDayColor(dosesForDay);
-
-              return AspectRatio(
-                aspectRatio: 1.0,
-                child: Container(
-                  margin: const EdgeInsets.all(4.0),
-                  decoration: BoxDecoration(
-                    color: dayColor,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${day.day}',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-              );
-            },
-            selectedBuilder: (context, day, focusedDay) {
-              return AspectRatio(
-                aspectRatio: 1.0,
-                child: Container(
-                  margin: const EdgeInsets.all(4.0),
-                  decoration: BoxDecoration(
-                    color: kPrimaryColor,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${day.day}',
-                      style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              );
-            },
-            todayBuilder: (context, day, focusedDay) {
-              return AspectRatio(
-                aspectRatio: 1.0,
-                child: Container(
-                  margin: const EdgeInsets.all(4.0),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8.0),
-                    border: Border.all(
-                      color: kSecondaryColor,
-                      width: 2.2,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${day.day}',
-                      style: TextStyle(
-                          color: kSecondaryColor,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-          calendarStyle: const CalendarStyle(outsideDaysVisible: false),
-          headerStyle:
-              const HeaderStyle(titleCentered: true, formatButtonVisible: false),
-        ),
+        _buildCalendar(),
         const SizedBox(height: 8.0),
-        // -----------------------------------------------------------------
-        // The rest of the UI (list of doses for the selected day) remains
-        // unchanged – only the data source is now the cached map.
-        // -----------------------------------------------------------------
         Padding(
           padding:
               const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -455,6 +356,122 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
         ),
       ],
     );
+  }
+
+  Widget _buildCalendar() {
+    final calendar = TableCalendar<Map<String, dynamic>>(
+      locale: 'es_ES',
+      firstDay: DateTime.utc(2022, 1, 1),
+      lastDay: DateTime.utc(2030, 12, 31),
+      focusedDay: _focusedDay,
+      selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+      calendarFormat: _calendarFormat,
+      eventLoader: (day) =>
+          _getGroupedDosesForDay(day).values.expand((d) => d).toList(),
+      onDaySelected: (selectedDay, focusedDay) {
+        if (!isSameDay(_selectedDay, selectedDay)) {
+          setState(() {
+            _selectedDay = selectedDay;
+            _focusedDay = focusedDay;
+          });
+        }
+      },
+      onFormatChanged: (format) {
+        if (_calendarFormat != format) {
+          setState(() => _calendarFormat = format);
+        }
+      },
+      onPageChanged: (focusedDay) {
+        _focusedDay = focusedDay;
+        _populateCacheForMonth(focusedDay);
+      },
+      calendarBuilders: CalendarBuilders(
+        markerBuilder: (context, day, events) => const SizedBox.shrink(),
+        defaultBuilder: (context, day, focusedDay) {
+          final dosesForDay = _getGroupedDosesForDay(day);
+          if (dosesForDay.isEmpty) return null;
+          final dayColor = _determineDayColor(dosesForDay);
+          return AspectRatio(
+            aspectRatio: 1.0,
+            child: Container(
+              margin: const EdgeInsets.all(4.0),
+              decoration: BoxDecoration(
+                color: dayColor,
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: Center(
+                child: Text(
+                  '${day.day}',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
+          );
+        },
+        selectedBuilder: (context, day, focusedDay) {
+          return AspectRatio(
+            aspectRatio: 1.0,
+            child: Container(
+              margin: const EdgeInsets.all(4.0),
+              decoration: BoxDecoration(
+                color: kPrimaryColor,
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: Center(
+                child: Text(
+                  '${day.day}',
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          );
+        },
+        todayBuilder: (context, day, focusedDay) {
+          return AspectRatio(
+            aspectRatio: 1.0,
+            child: Container(
+              margin: const EdgeInsets.all(4.0),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8.0),
+                border: Border.all(
+                  color: kSecondaryColor,
+                  width: 2.2,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  '${day.day}',
+                  style: TextStyle(
+                      color: kSecondaryColor,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+      calendarStyle: const CalendarStyle(outsideDaysVisible: false),
+      headerStyle:
+          const HeaderStyle(titleCentered: true, formatButtonVisible: false),
+    );
+
+    if (widget.calendarKey != null) {
+      return Showcase(
+        key: widget.calendarKey!,
+        title: 'Calendario de dosis',
+        description:
+            'Visualiza el historial de tus medicamentos día a día.\n🔵 Pendiente  🟢 Completado\n🔴 Omitido  🟡 Notificado\n\nToca un día para ver los detalles.',
+        tooltipBackgroundColor: const Color(0xFF2F6DB4),
+        textColor: Colors.white,
+        descTextStyle: const TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
+        targetShapeBorder: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: calendar,
+      );
+    }
+    return calendar;
   }
 
   Widget _buildProgressIndicator({

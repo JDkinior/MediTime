@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 // Widgets, servicios y el notifier
 import 'package:meditime/widgets/primary_button.dart';
@@ -15,12 +16,13 @@ import 'package:meditime/theme/app_theme.dart'; // Se importa el tema para estil
 class PerfilPage extends StatefulWidget {
   final bool isEditing;
   final VoidCallback toggleEditing;
-  // Se eliminan los callbacks onImageChanged y onNameChanged
+  final GlobalKey? profileKey;
 
   const PerfilPage({
     super.key,
     required this.isEditing,
     required this.toggleEditing,
+    this.profileKey,
   });
 
   @override
@@ -319,14 +321,31 @@ Future<void> _saveProfileData() async {
   }
 
   Widget _buildProfileHeader(ProfileNotifier profile) {
-    // Determina qué imagen mostrar: la nueva seleccionada o la de la red
+    return Center(
+      child: Column(
+        children: [
+          _buildAvatarWithShowcase(),
+          const SizedBox(height: 12),
+          Text(
+            widget.isEditing ? _nameController.text : (profile.userName ?? 'Nombre de Usuario'),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF4092E4)),
+          ),
+          Text(
+            _emailController.text,
+            style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatarWithShowcase() {
     ImageProvider<Object>? backgroundImage;
     if (_profileImageUrl != null && _profileImageUrl!.startsWith('http')) {
       backgroundImage = NetworkImage(_profileImageUrl!);
     } else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
       backgroundImage = FileImage(File(_profileImageUrl!));
     }
-    // Si no hay imagen, backgroundImage queda null y se muestra el ícono de persona
 
     Widget? avatarChild;
     if (widget.isEditing) {
@@ -345,35 +364,34 @@ Future<void> _saveProfileData() async {
       avatarChild = Icon(Icons.person, size: 50, color: Colors.grey.shade500);
     }
 
-    return Center(
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: widget.isEditing && !_isPickingImage ? _pickImage : null,
-            child: CircleAvatar(
-              radius: 55,
-              backgroundColor: Colors.white,
-              child: CircleAvatar(
-                radius: 52,
-                backgroundColor: Colors.grey.shade200,
-                backgroundImage: backgroundImage,
-                child: avatarChild,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            // Muestra el nombre del controlador si se está editando, o el del notifier si no
-            widget.isEditing ? _nameController.text : (profile.userName ?? 'Nombre de Usuario'),
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF4092E4)),
-          ),
-          Text(
-            _emailController.text,
-            style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-          ),
-        ],
+    final avatar = GestureDetector(
+      onTap: widget.isEditing && !_isPickingImage ? _pickImage : null,
+      child: CircleAvatar(
+        radius: 55,
+        backgroundColor: Colors.white,
+        child: CircleAvatar(
+          radius: 52,
+          backgroundColor: Colors.grey.shade200,
+          backgroundImage: backgroundImage,
+          child: avatarChild,
+        ),
       ),
     );
+
+    if (widget.profileKey != null) {
+      return Showcase(
+        key: widget.profileKey!,
+        title: 'Tu perfil de salud',
+        description:
+            'Mantén tu información médica actualizada: foto, nombre, tipo de sangre, alergias y más.\nToca el ícono de edición (✏️) en la barra superior para modificar tus datos.',
+        tooltipBackgroundColor: const Color(0xFF2F6DB4),
+        textColor: Colors.white,
+        descTextStyle: const TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
+        targetShapeBorder: const CircleBorder(),
+        child: avatar,
+      );
+    }
+    return avatar;
   }
 
   Widget _buildSectionTitle(String title) {

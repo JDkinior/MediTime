@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'agregar_receta_page.dart';
 import 'detalle_receta_page.dart';
 import 'package:meditime/widgets/estado_vista.dart';
@@ -15,7 +16,9 @@ import 'package:meditime/enums/view_state.dart';
 
 
 class RecetaPage extends StatefulWidget {
-  const RecetaPage({super.key});
+  final GlobalKey? fabKey;
+
+  const RecetaPage({super.key, this.fabKey});
 
   @override
   State<RecetaPage> createState() => _RecetaPageState();
@@ -277,28 +280,46 @@ class _RecetaPageState extends State<RecetaPage> {
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const AgregarRecetaPage()));
-        },
-        tooltip: 'Agregar Medicamento',
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        backgroundColor: Colors.transparent,
-        heroTag: 'uniqueTag1',
-        child: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color.fromARGB(255, 73, 194, 255), Color.fromARGB(255, 47, 109, 180)],
-            ),
+      floatingActionButton: _buildFab(context),
+    );
+  }
+
+  Widget _buildFab(BuildContext context) {
+    final fab = FloatingActionButton(
+      onPressed: () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const AgregarRecetaPage()));
+      },
+      tooltip: 'Agregar Medicamento',
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      backgroundColor: Colors.transparent,
+      heroTag: 'uniqueTag1',
+      child: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color.fromARGB(255, 73, 194, 255), Color.fromARGB(255, 47, 109, 180)],
           ),
-          child: const Icon(Icons.add, color: Colors.white),
         ),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
+
+    if (widget.fabKey != null) {
+      return Showcase(
+        key: widget.fabKey!,
+        title: 'Agregar medicamento',
+        description: 'Toca aquí para añadir un nuevo medicamento. Podrás configurar el horario, intervalo y duración del tratamiento.',
+        tooltipBackgroundColor: const Color(0xFF2F6DB4),
+        textColor: Colors.white,
+        descTextStyle: const TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
+        targetShapeBorder: const CircleBorder(),
+        child: fab,
+      );
+    }
+    return fab;
   }
 }
