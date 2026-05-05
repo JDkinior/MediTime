@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "426041654351-bt1jn5svissbktqdrnu09qr4gtr85tkf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.meditime",
+            "certificate_hash": "50c529586f393f191456137da29e9bc22b2caf7f"
+          }
+        },
+        {
           "client_id": "426041654351-pp5fedt3r7d9ur67hl3ii8posfg0u819.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

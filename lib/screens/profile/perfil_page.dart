@@ -57,6 +57,10 @@ class _PerfilPageState extends State<PerfilPage> {
   String? _originalMedicalHistory;
   String? _originalProfileImageUrl;
 
+  bool _isDeprecatedFirebaseStorageUrl(String? url) {
+    return url != null && url.contains('firebasestorage.googleapis.com');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -112,11 +116,18 @@ class _PerfilPageState extends State<PerfilPage> {
     if (!mounted) return; // Verificar mounted después de la operación async
     
     final profileData = doc.data() as Map<String, dynamic>?;
+    final firestoreProfileImage = profileData?['profileImage'] as String?;
+    final sanitizedProfileImage = _isDeprecatedFirebaseStorageUrl(firestoreProfileImage)
+      ? null
+      : firestoreProfileImage;
 
     if (mounted) {
       setState(() {
         _originalName = profileNotifier.userName ?? profileData?['name'] ?? '';
-        _originalProfileImageUrl = profileNotifier.profileImageUrl ?? profileData?['profileImage'] ?? '';
+      final notifierImage = _isDeprecatedFirebaseStorageUrl(profileNotifier.profileImageUrl)
+        ? null
+        : profileNotifier.profileImageUrl;
+      _originalProfileImageUrl = notifierImage ?? sanitizedProfileImage ?? '';
         
         _originalPhone = profileData?['phone'] ?? '';
         _originalEmail = user.email ?? '';
@@ -341,7 +352,11 @@ Future<void> _saveProfileData() async {
 
   Widget _buildAvatarWithShowcase() {
     ImageProvider<Object>? backgroundImage;
-    if (_profileImageUrl != null && _profileImageUrl!.startsWith('http')) {
+    final canLoadNetworkImage = _profileImageUrl != null &&
+        _profileImageUrl!.startsWith('http') &&
+        !_isDeprecatedFirebaseStorageUrl(_profileImageUrl);
+
+    if (canLoadNetworkImage) {
       backgroundImage = NetworkImage(_profileImageUrl!);
     } else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
       backgroundImage = FileImage(File(_profileImageUrl!));

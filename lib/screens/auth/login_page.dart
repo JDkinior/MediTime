@@ -11,7 +11,7 @@ class LoginPage extends StatefulWidget {
   final bool openLoginPanel;
 
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
@@ -158,7 +158,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     if (result.isFailure) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Error al iniciar sesión con Google. Inténtalo de nuevo.';
+        _errorMessage = result.error ?? 'Error al iniciar sesión con Google. Inténtalo de nuevo.';
       });
       return;
     }

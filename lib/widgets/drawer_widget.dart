@@ -21,12 +21,19 @@ class CustomDrawer extends StatelessWidget {
     return AppUtils.getTimeBasedGreeting();
   }
 
+  bool _isDeprecatedFirebaseStorageUrl(String? url) {
+    return url != null && url.contains('firebasestorage.googleapis.com');
+  }
+
   @override
   Widget build(BuildContext context) {
     // Escuchamos los cambios en el ProfileNotifier
     final profile = context.watch<ProfileNotifier>();
     final nameParts = profile.userName?.split(' ');
     final profileImagePath = profile.profileImageUrl;
+    final canLoadProfileImage = profileImagePath != null &&
+      profileImagePath.isNotEmpty &&
+      !_isDeprecatedFirebaseStorageUrl(profileImagePath);
 
     return Drawer(
       child: ListView(
@@ -47,10 +54,10 @@ class CustomDrawer extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: AppConstants.drawerProfileImageRadius,
-                  backgroundImage: profileImagePath != null && profileImagePath.isNotEmpty
-                      ? NetworkImage(profileImagePath)
-                      : null,
-                  child: profileImagePath == null || profileImagePath.isEmpty
+                  backgroundImage: canLoadProfileImage
+                    ? NetworkImage(profileImagePath)
+                    : null,
+                  child: !canLoadProfileImage
                       ? const Icon(Icons.person, size: 50, color: AppTheme.whiteTextColor)
                       : null,
                 ),

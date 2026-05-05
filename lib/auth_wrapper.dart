@@ -8,6 +8,7 @@ import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/use_cases/load_user_profile_use_case.dart';
 import 'package:meditime/services/preference_service.dart';
+import 'package:meditime/repositories/user_repository.dart';
 
 // Importar pantallas
 import 'package:meditime/screens/auth/login_page.dart';
@@ -29,6 +30,10 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _initialSetupDone = false;
 
+  bool _isDeprecatedFirebaseStorageUrl(String? url) {
+    return url != null && url.contains('firebasestorage.googleapis.com');
+  }
+
   Future<void> _performInitialSetup(User user) async {
     // Evita que se ejecute múltiples veces
     if (_initialSetupDone) return;
@@ -38,6 +43,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     final profileNotifier = context.read<ProfileNotifier>();
     final loadUserProfileUseCase = context.read<LoadUserProfileUseCase>();
+    final userRepository = context.read<UserRepository>();
 
   // Guardar el usuario actual para filtros en callbacks offline
   await PreferenceService().saveCurrentUserId(user.uid);
@@ -79,10 +85,50 @@ class _AuthWrapperState extends State<AuthWrapper> {
       if (result.isSuccess) {
         final profileData = result.data;
         
-        // Update profile without using context across async gap
+        // If profile exists in Firestore, use it. Otherwise, import from
+        // Firebase user (e.g., Google account) when available.
+        String? firestoreImage = profileData?['profileImage'] as String?;
+        String? firestoreName = profileData?['name'] as String?;
+
+        if (_isDeprecatedFirebaseStorageUrl(firestoreImage)) {
+          firestoreImage = null;
+        }
+
+        // If Firestore profile has no image but Firebase user has one (Google),
+        // save it to Firestore and use it.
+        if ((firestoreImage == null || firestoreImage.isEmpty) && (user.photoURL != null && user.photoURL!.isNotEmpty)) {
+          try {
+            final saveResult = await userRepository.saveUserProfile(user.uid, {'profileImage': user.photoURL});
+            if (saveResult.isSuccess) {
+              firestoreImage = user.photoURL;
+              debugPrint('AuthWrapper: Foto de Google importada y guardada en Firestore.');
+            } else {
+              debugPrint('AuthWrapper: Error al guardar foto de Google en Firestore: ${saveResult.error}');
+            }
+          } catch (e) {
+            debugPrint('AuthWrapper: Excepción al intentar guardar foto de Google: $e');
+          }
+        }
+
+        // Also import displayName from Firebase user if Firestore name is missing
+        if ((firestoreName == null || firestoreName.isEmpty) && (user.displayName != null && user.displayName!.isNotEmpty)) {
+          try {
+            final saveResult = await userRepository.saveUserProfile(user.uid, {'name': user.displayName});
+            if (saveResult.isSuccess) {
+              firestoreName = user.displayName;
+              debugPrint('AuthWrapper: Nombre importado desde la cuenta de Google.');
+            } else {
+              debugPrint('AuthWrapper: Error al guardar nombre en Firestore: ${saveResult.error}');
+            }
+          } catch (e) {
+            debugPrint('AuthWrapper: Excepción al intentar guardar nombre de Google: $e');
+          }
+        }
+
+        // Update profile notifier with the final values
         profileNotifier.updateProfile(
-          newName: profileData?['name'] as String?,
-          newImageUrl: profileData?['profileImage'] as String?,
+          newName: firestoreName,
+          newImageUrl: firestoreImage,
         );
         debugPrint("AuthWrapper: Perfil de usuario cargado.");
       } else {

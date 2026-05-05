@@ -1,6 +1,7 @@
 // lib/services/auth_service.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:meditime/core/result.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
@@ -119,17 +120,37 @@ class AuthService {
       }
 
       // Obtiene los detalles de autenticación de la solicitud
-      final GoogleSignInAuthentication? googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      if (googleAuth.idToken == null) {
+        return const Result.failure(
+          'No se pudo obtener el token de Google. Verifica Play Services y configuración OAuth en Firebase.',
+        );
+      }
 
       // Crea una nueva credencial
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth?.accessToken,
-        idToken: googleAuth?.idToken,
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
       );
 
       // Una vez que se inicia sesión, devuelve la credencial del usuario
       final userCredential = await _auth.signInWithCredential(credential);
       return Result.success(userCredential);
+    } on FirebaseAuthException catch (e, stackTrace) {
+      debugPrint('FirebaseAuthException in Google sign-in: ${e.code} - ${e.message}');
+      debugPrintStack(stackTrace: stackTrace);
+      return Result.failure('FirebaseAuth (${e.code}): ${e.message ?? 'Error de autenticación con Google'}');
+    } on PlatformException catch (e, stackTrace) {
+      debugPrint('PlatformException in Google sign-in: ${e.code} - ${e.message}');
+      debugPrintStack(stackTrace: stackTrace);
+      final message = e.message ?? 'Error de plataforma';
+      if (e.code == 'sign_in_failed' && message.contains('ApiException: 10')) {
+        return const Result.failure(
+          'Google Sign-In rechazado (ApiException 10). Configura SHA-1/SHA-256 del keystore en Firebase para el paquete Android y vuelve a descargar google-services.json.',
+        );
+      }
+      return Result.failure('Google Sign-In (${e.code}): $message');
     } catch (e) {
       debugPrint('Error signing in with Google: $e');
       return Result.failure('Error al iniciar sesión con Google: $e');
