@@ -39,6 +39,9 @@ enum DurationUnit {
 class TreatmentFormData {
   String nombreMedicamento;
   String presentacion;
+  int cantidadActual;
+  int cantidadTotalCaja;
+  int dosisPorToma;
   TimeOfDay horaPrimeraDosis;
   int intervaloDosis; // en horas
   int duracionNumero;
@@ -49,6 +52,9 @@ class TreatmentFormData {
   TreatmentFormData({
     this.nombreMedicamento = '',
     this.presentacion = '',
+    this.cantidadActual = 0,
+    this.cantidadTotalCaja = 0,
+    this.dosisPorToma = 1,
     TimeOfDay? horaPrimeraDosis,
     this.intervaloDosis = 8,
     this.duracionNumero = 1,
@@ -118,6 +124,9 @@ class TreatmentFormData {
   bool get isValid {
     return nombreMedicamento.isNotEmpty &&
         presentacion.isNotEmpty &&
+        cantidadActual >= 0 &&
+        cantidadTotalCaja >= 0 &&
+        dosisPorToma > 0 &&
         intervaloDosis > 0 &&
         (esIndefinido || duracionNumero > 0);
   }
@@ -126,6 +135,9 @@ class TreatmentFormData {
   TreatmentFormData copyWith({
     String? nombreMedicamento,
     String? presentacion,
+    int? cantidadActual,
+    int? cantidadTotalCaja,
+    int? dosisPorToma,
     TimeOfDay? horaPrimeraDosis,
     int? intervaloDosis,
     int? duracionNumero,
@@ -136,6 +148,9 @@ class TreatmentFormData {
     return TreatmentFormData(
       nombreMedicamento: nombreMedicamento ?? this.nombreMedicamento,
       presentacion: presentacion ?? this.presentacion,
+      cantidadActual: cantidadActual ?? this.cantidadActual,
+      cantidadTotalCaja: cantidadTotalCaja ?? this.cantidadTotalCaja,
+      dosisPorToma: dosisPorToma ?? this.dosisPorToma,
       horaPrimeraDosis: horaPrimeraDosis ?? this.horaPrimeraDosis,
       intervaloDosis: intervaloDosis ?? this.intervaloDosis,
       duracionNumero: duracionNumero ?? this.duracionNumero,

@@ -46,6 +46,24 @@ class TreatmentFormNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateCantidadActual(int cantidad) {
+    _formData = _formData.copyWith(cantidadActual: cantidad);
+    _clearError();
+    notifyListeners();
+  }
+
+  void updateCantidadTotalCaja(int cantidad) {
+    _formData = _formData.copyWith(cantidadTotalCaja: cantidad);
+    _clearError();
+    notifyListeners();
+  }
+
+  void updateDosisPorToma(int cantidad) {
+    _formData = _formData.copyWith(dosisPorToma: cantidad);
+    _clearError();
+    notifyListeners();
+  }
+
   /// Actualiza la hora de la primera dosis
   void updateHoraPrimeraDosis(TimeOfDay hora) {
     _formData = _formData.copyWith(horaPrimeraDosis: hora);
@@ -98,9 +116,13 @@ class TreatmentFormNotifier extends ChangeNotifier {
         return _formData.intervaloDosis > 0;
       case 4: // Duración
         return _formData.esIndefinido || _formData.duracionNumero > 0;
-      case 5: // Notas
+      case 5: // Inventario
+        return _formData.cantidadActual >= 0 &&
+            _formData.cantidadTotalCaja >= 0 &&
+            _formData.dosisPorToma > 0;
+      case 6: // Notas
         return true; // Siempre válido (opcional)
-      case 6: // Resumen
+      case 7: // Resumen
         return true;
       default:
         return false;
@@ -128,7 +150,7 @@ class TreatmentFormNotifier extends ChangeNotifier {
         userId: user.uid,
         formData: _formData,
       );
-      
+
       _setLoading(false);
       return true;
     } catch (e) {

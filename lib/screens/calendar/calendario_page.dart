@@ -7,6 +7,7 @@ import 'package:showcaseview/showcaseview.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
+import 'package:meditime/screens/shared/localizador_farmacias_page.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'package:meditime/enums/view_state.dart';
@@ -24,30 +25,36 @@ class CalendarioPage extends StatelessWidget {
     final user = authService.currentUser;
 
     return Scaffold(
-      body: user == null
-          ? const Center(child: Text('Inicia sesión para ver el calendario.'))
-          : StreamBuilder<List<Tratamiento>>(
-              stream: firestoreService.getMedicamentosStream(user.uid),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const EstadoVista(state: ViewState.loading, child: SizedBox.shrink());
-                }
-                if (snapshot.hasError) {
-                  return EstadoVista(
-                    state: ViewState.error,
-                    errorMessage: 'No se pudieron cargar los datos.',
-                    child: const SizedBox.shrink(),
-                  );
-                }
+      body:
+          user == null
+              ? const Center(
+                child: Text('Inicia sesión para ver el calendario.'),
+              )
+              : StreamBuilder<List<Tratamiento>>(
+                stream: firestoreService.getMedicamentosStream(user.uid),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const EstadoVista(
+                      state: ViewState.loading,
+                      child: SizedBox.shrink(),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    return EstadoVista(
+                      state: ViewState.error,
+                      errorMessage: 'No se pudieron cargar los datos.',
+                      child: const SizedBox.shrink(),
+                    );
+                  }
 
-                final todosLosTratamientos = snapshot.data ?? [];
-                return _CalendarioContenido(
-                  tratamientos: todosLosTratamientos,
-                  userId: user.uid,
-                  calendarKey: calendarKey,
-                );
-              },
-            ),
+                  final todosLosTratamientos = snapshot.data ?? [];
+                  return _CalendarioContenido(
+                    tratamientos: todosLosTratamientos,
+                    userId: user.uid,
+                    calendarKey: calendarKey,
+                  );
+                },
+              ),
     );
   }
 }
@@ -77,22 +84,24 @@ class _DualProgressPainter extends CustomPainter {
     // Usar todo el espacio disponible, igual que CircularProgressIndicator
     final rect = Offset.zero & size;
 
-    final basePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..color = backgroundColor;
+    final basePaint =
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth
+          ..strokeCap = StrokeCap.round
+          ..color = backgroundColor;
 
     // Track (remaining) circle
     canvas.drawArc(rect, -math.pi / 2, 2 * math.pi, false, basePaint);
 
     // Omitted segment (red), starts at top
     if (omitted > 0) {
-      final omittedPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round
-        ..color = omittedColor;
+      final omittedPaint =
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = strokeWidth
+            ..strokeCap = StrokeCap.round
+            ..color = omittedColor;
       canvas.drawArc(
         rect,
         -math.pi / 2,
@@ -104,11 +113,12 @@ class _DualProgressPainter extends CustomPainter {
 
     // Taken segment (blue), starts after omitted
     if (taken > 0) {
-      final takenPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round
-        ..color = takenColor;
+      final takenPaint =
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = strokeWidth
+            ..strokeCap = StrokeCap.round
+            ..color = takenColor;
       canvas.drawArc(
         rect,
         -math.pi / 2 + 2 * math.pi * omitted,
@@ -155,7 +165,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
   DateTime? _selectedDay;
 
   // Cache to store doses grouped by day.
-  final Map<DateTime, Map<Tratamiento, List<Map<String, dynamic>>>> _dayCache = {};
+  final Map<DateTime, Map<Tratamiento, List<Map<String, dynamic>>>> _dayCache =
+      {};
   // Set to track which months have already had their doses calculated.
   final Set<DateTime> _populatedMonths = {};
 
@@ -196,7 +207,9 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
         final doseTime = DateTime.parse(dateString);
 
         // Only process doses that fall within the target month.
-        if (doseTime.isAfter(firstDayOfMonth.subtract(const Duration(days: 1))) &&
+        if (doseTime.isAfter(
+              firstDayOfMonth.subtract(const Duration(days: 1)),
+            ) &&
             doseTime.isBefore(lastDayOfMonth.add(const Duration(days: 1)))) {
           final dayKey = DateTime(doseTime.year, doseTime.month, doseTime.day);
 
@@ -216,8 +229,11 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
     _dayCache.forEach((day, treatmentMap) {
       if (day.year == month.year && day.month == month.month) {
         for (var doseList in treatmentMap.values) {
-          doseList.sort((a, b) =>
-              (a['doseTime'] as DateTime).compareTo(b['doseTime'] as DateTime));
+          doseList.sort(
+            (a, b) => (a['doseTime'] as DateTime).compareTo(
+              b['doseTime'] as DateTime,
+            ),
+          );
         }
       }
     });
@@ -231,7 +247,9 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
   // -------------------------------------------------------------------------
   // Helper: retrieve grouped doses for a specific day from the cache.
   // -------------------------------------------------------------------------
-  Map<Tratamiento, List<Map<String, dynamic>>> _getGroupedDosesForDay(DateTime day) {
+  Map<Tratamiento, List<Map<String, dynamic>>> _getGroupedDosesForDay(
+    DateTime day,
+  ) {
     final dayKey = DateTime(day.year, day.month, day.day);
     return _dayCache[dayKey] ?? {};
   }
@@ -240,7 +258,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
   // Helper: decide the colour of a day cell based on its doses.
   // -------------------------------------------------------------------------
   Color _determineDayColor(
-      Map<Tratamiento, List<Map<String, dynamic>>> dosesForDay) {
+    Map<Tratamiento, List<Map<String, dynamic>>> dosesForDay,
+  ) {
     if (dosesForDay.isEmpty) return Colors.transparent;
 
     final allDoses = dosesForDay.values.expand((d) => d).toList();
@@ -249,8 +268,9 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
       return Colors.amber.shade600;
     } else if (allDoses.any((d) => d['status'] == DoseStatus.omitida)) {
       return Colors.red.shade400;
-    } else if (dosesForDay.keys
-        .every((t) => t.fechaFinTratamiento.isBefore(DateTime.now()))) {
+    } else if (dosesForDay.keys.every(
+      (t) => t.fechaFinTratamiento.isBefore(DateTime.now()),
+    )) {
       return Colors.green.shade400;
     } else {
       return kSecondaryColor;
@@ -266,93 +286,107 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
         _buildCalendar(),
         const SizedBox(height: 8.0),
         Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Align(
             alignment: Alignment.centerLeft,
             child: Text(
               "Medicamentos del Día",
               style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade800),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade800,
+              ),
             ),
           ),
         ),
         Expanded(
-          child: Builder(builder: (context) {
-            final groupedDoses = _getGroupedDosesForDay(_selectedDay!);
-            if (groupedDoses.isEmpty) {
-              return const EstadoVista(
-                state: ViewState.empty,
-                emptyMessage: 'No hay dosis programadas para este día.',
-                child: SizedBox.shrink(),
-              );
-            }
-
-            return ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0),
-              children: groupedDoses.entries.map((entry) {
-                final tratamiento = entry.key;
-                final doses = entry.value;
-
-        final tomadasCount =
-          doses.where((d) => d['status'] == DoseStatus.tomada).length;
-        final omitidasCount =
-          doses.where((d) => d['status'] == DoseStatus.omitida).length;
-        final totalCount = doses.length;
-        final takenProgress = totalCount > 0
-          ? tomadasCount / totalCount
-          : 0.0;
-        final omittedProgress = totalCount > 0
-          ? omitidasCount / totalCount
-          : 0.0;
-
-                return Container(
-                  margin: const EdgeInsets.symmetric(vertical: 6.0),
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 241, 241, 241),
-                    borderRadius: BorderRadius.circular(15.0),
-                    boxShadow: kCustomBoxShadow,
-                  ),
-                  child: ExpansionTile(
-                    shape: const Border(),
-                    collapsedShape: const Border(),
-                    leading: _buildProgressIndicator(
-                      takenProgress: takenProgress,
-                      omittedProgress: omittedProgress,
-                    ),
-                    title: Row(
-                      children: [
-                        Text(tratamiento.nombreMedicamento,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: kSecondaryColor)),
-                        const SizedBox(width: 8),
-                        if (doses
-                            .any((d) => d['status'] == DoseStatus.notificada))
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: Colors.amber.shade700,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                      ],
-                    ),
-                    subtitle:
-                        Text('$tomadasCount de $totalCount dosis completadas'),
-                    children: doses.map((doseData) {
-                      return _buildDoseListItem(
-                          tratamiento, doseData, firestoreService);
-                    }).toList(),
-                  ),
+          child: Builder(
+            builder: (context) {
+              final groupedDoses = _getGroupedDosesForDay(_selectedDay!);
+              if (groupedDoses.isEmpty) {
+                return const EstadoVista(
+                  state: ViewState.empty,
+                  emptyMessage: 'No hay dosis programadas para este día.',
+                  child: SizedBox.shrink(),
                 );
-              }).toList(),
-            );
-          }),
+              }
+
+              return ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                children:
+                    groupedDoses.entries.map((entry) {
+                      final tratamiento = entry.key;
+                      final doses = entry.value;
+
+                      final tomadasCount =
+                          doses
+                              .where((d) => d['status'] == DoseStatus.tomada)
+                              .length;
+                      final omitidasCount =
+                          doses
+                              .where((d) => d['status'] == DoseStatus.omitida)
+                              .length;
+                      final totalCount = doses.length;
+                      final takenProgress =
+                          totalCount > 0 ? tomadasCount / totalCount : 0.0;
+                      final omittedProgress =
+                          totalCount > 0 ? omitidasCount / totalCount : 0.0;
+
+                      return Container(
+                        margin: const EdgeInsets.symmetric(vertical: 6.0),
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 241, 241, 241),
+                          borderRadius: BorderRadius.circular(15.0),
+                          boxShadow: kCustomBoxShadow,
+                        ),
+                        child: ExpansionTile(
+                          shape: const Border(),
+                          collapsedShape: const Border(),
+                          leading: _buildProgressIndicator(
+                            takenProgress: takenProgress,
+                            omittedProgress: omittedProgress,
+                          ),
+                          title: Row(
+                            children: [
+                              Text(
+                                tratamiento.nombreMedicamento,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: kSecondaryColor,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              if (doses.any(
+                                (d) => d['status'] == DoseStatus.notificada,
+                              ))
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.shade700,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          subtitle: Text(
+                            '$tomadasCount de $totalCount dosis completadas',
+                          ),
+                          children:
+                              doses.map((doseData) {
+                                return _buildDoseListItem(
+                                  tratamiento,
+                                  doseData,
+                                  firestoreService,
+                                );
+                              }).toList(),
+                        ),
+                      );
+                    }).toList(),
+              );
+            },
+          ),
         ),
       ],
     );
@@ -366,8 +400,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
       focusedDay: _focusedDay,
       selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
       calendarFormat: _calendarFormat,
-      eventLoader: (day) =>
-          _getGroupedDosesForDay(day).values.expand((d) => d).toList(),
+      eventLoader:
+          (day) => _getGroupedDosesForDay(day).values.expand((d) => d).toList(),
       onDaySelected: (selectedDay, focusedDay) {
         if (!isSameDay(_selectedDay, selectedDay)) {
           setState(() {
@@ -421,7 +455,9 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                 child: Text(
                   '${day.day}',
                   style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -434,17 +470,15 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
               margin: const EdgeInsets.all(4.0),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8.0),
-                border: Border.all(
-                  color: kSecondaryColor,
-                  width: 2.2,
-                ),
+                border: Border.all(color: kSecondaryColor, width: 2.2),
               ),
               child: Center(
                 child: Text(
                   '${day.day}',
                   style: TextStyle(
-                      color: kSecondaryColor,
-                      fontWeight: FontWeight.bold),
+                    color: kSecondaryColor,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -452,8 +486,10 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
         },
       ),
       calendarStyle: const CalendarStyle(outsideDaysVisible: false),
-      headerStyle:
-          const HeaderStyle(titleCentered: true, formatButtonVisible: false),
+      headerStyle: const HeaderStyle(
+        titleCentered: true,
+        formatButtonVisible: false,
+      ),
     );
 
     if (widget.calendarKey != null) {
@@ -464,7 +500,11 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
             'Visualiza el historial de tus medicamentos día a día.\n🔵 Pendiente  🟢 Completado\n🔴 Omitido  🟡 Notificado\n\nToca un día para ver los detalles.',
         tooltipBackgroundColor: const Color(0xFF2F6DB4),
         textColor: Colors.white,
-        descTextStyle: const TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
+        descTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          height: 1.5,
+        ),
         targetShapeBorder: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -508,13 +548,17 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
               '${(taken * 100).toInt()}%',
               style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
             ),
-          )
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDoseListItem(Tratamiento tratamiento, Map<String, dynamic> doseData, FirestoreService firestoreService) {
+  Widget _buildDoseListItem(
+    Tratamiento tratamiento,
+    Map<String, dynamic> doseData,
+    FirestoreService firestoreService,
+  ) {
     final DateTime doseTime = doseData['doseTime'];
     final DoseStatus status = doseData['status'];
 
@@ -551,7 +595,11 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
             ),
             trailing: Text(
               status.toString().split('.').last.toUpperCase(),
-              style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
+              style: TextStyle(
+                color: statusColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
             ),
           ),
           if (status == DoseStatus.notificada)
@@ -568,8 +616,37 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                       foregroundColor: Colors.green.shade700,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                     ),
-                    onPressed: () {
-                      firestoreService.updateDoseStatus(widget.userId, tratamiento.id, doseTime, DoseStatus.tomada);
+                    onPressed: () async {
+                      final inventoryResult = await firestoreService
+                          .updateDoseStatus(
+                            widget.userId,
+                            tratamiento.id,
+                            doseTime,
+                            DoseStatus.tomada,
+                          );
+                      if (!context.mounted) return;
+
+                      if (inventoryResult?.stockBajo == true) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Stock bajo: te quedan ${inventoryResult!.dosisRestantes} dosis',
+                            ),
+                            action: SnackBarAction(
+                              label: 'Buscar Farmacias',
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) =>
+                                            const LocalizadorFarmaciasPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      }
                     },
                   ),
                   const SizedBox(width: 8),
@@ -582,7 +659,12 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                     ),
                     onPressed: () {
-                      firestoreService.updateDoseStatus(widget.userId, tratamiento.id, doseTime, DoseStatus.omitida);
+                      firestoreService.updateDoseStatus(
+                        widget.userId,
+                        tratamiento.id,
+                        doseTime,
+                        DoseStatus.omitida,
+                      );
                     },
                   ),
                 ],

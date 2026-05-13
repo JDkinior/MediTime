@@ -12,6 +12,7 @@ import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/storage_service.dart';
 import 'package:meditime/notifiers/profile_notifier.dart'; // Se importa el notifier
 import 'package:meditime/theme/app_theme.dart'; // Se importa el tema para estilos consistentes
+import 'package:meditime/screens/shared/localizador_farmacias_page.dart';
 
 class PerfilPage extends StatefulWidget {
   final bool isEditing;
@@ -38,9 +39,11 @@ class _PerfilPageState extends State<PerfilPage> {
   final TextEditingController _bloodTypeController = TextEditingController();
   final TextEditingController _allergiesController = TextEditingController();
   final TextEditingController _medicationsController = TextEditingController();
-  final TextEditingController _medicalHistoryController = TextEditingController();
+  final TextEditingController _medicalHistoryController =
+      TextEditingController();
 
-  String? _profileImageUrl; // Puede ser una URL de red o una ruta de archivo local
+  String?
+  _profileImageUrl; // Puede ser una URL de red o una ruta de archivo local
   final ImagePicker _picker = ImagePicker();
   bool _isSaveButtonEnabled = false;
   bool _isPickingImage = false;
@@ -104,7 +107,7 @@ class _PerfilPageState extends State<PerfilPage> {
     }
   }
 
- Future<void> _loadProfileData() async {
+  Future<void> _loadProfileData() async {
     if (!mounted) return;
     final authService = context.read<AuthService>();
     final firestoreService = context.read<FirestoreService>();
@@ -114,21 +117,23 @@ class _PerfilPageState extends State<PerfilPage> {
     final profileNotifier = context.read<ProfileNotifier>();
     final doc = await firestoreService.getUserProfile(user.uid);
     if (!mounted) return; // Verificar mounted después de la operación async
-    
+
     final profileData = doc.data() as Map<String, dynamic>?;
     final firestoreProfileImage = profileData?['profileImage'] as String?;
-    final sanitizedProfileImage = _isDeprecatedFirebaseStorageUrl(firestoreProfileImage)
-      ? null
-      : firestoreProfileImage;
+    final sanitizedProfileImage =
+        _isDeprecatedFirebaseStorageUrl(firestoreProfileImage)
+            ? null
+            : firestoreProfileImage;
 
     if (mounted) {
       setState(() {
         _originalName = profileNotifier.userName ?? profileData?['name'] ?? '';
-      final notifierImage = _isDeprecatedFirebaseStorageUrl(profileNotifier.profileImageUrl)
-        ? null
-        : profileNotifier.profileImageUrl;
-      _originalProfileImageUrl = notifierImage ?? sanitizedProfileImage ?? '';
-        
+        final notifierImage =
+            _isDeprecatedFirebaseStorageUrl(profileNotifier.profileImageUrl)
+                ? null
+                : profileNotifier.profileImageUrl;
+        _originalProfileImageUrl = notifierImage ?? sanitizedProfileImage ?? '';
+
         _originalPhone = profileData?['phone'] ?? '';
         _originalEmail = user.email ?? '';
         _originalDob = profileData?['dob'] ?? '';
@@ -136,7 +141,7 @@ class _PerfilPageState extends State<PerfilPage> {
         _originalAllergies = profileData?['allergies'] ?? '';
         _originalMedications = profileData?['medications'] ?? '';
         _originalMedicalHistory = profileData?['medicalHistory'] ?? '';
-        
+
         _resetToOriginalData();
       });
     }
@@ -182,14 +187,15 @@ class _PerfilPageState extends State<PerfilPage> {
 
   void _updateSaveButtonState() {
     if (!mounted) return;
-    final hasChanged = _nameController.text != _originalName ||
-          _phoneController.text != _originalPhone ||
-          _dobController.text != _originalDob ||
-          _bloodTypeController.text != _originalBloodType ||
-          _allergiesController.text != _originalAllergies ||
-          _medicationsController.text != _originalMedications ||
-          _medicalHistoryController.text != _originalMedicalHistory ||
-          _profileImageUrl != _originalProfileImageUrl;
+    final hasChanged =
+        _nameController.text != _originalName ||
+        _phoneController.text != _originalPhone ||
+        _dobController.text != _originalDob ||
+        _bloodTypeController.text != _originalBloodType ||
+        _allergiesController.text != _originalAllergies ||
+        _medicationsController.text != _originalMedications ||
+        _medicalHistoryController.text != _originalMedicalHistory ||
+        _profileImageUrl != _originalProfileImageUrl;
 
     setState(() {
       _isSaveButtonEnabled = hasChanged;
@@ -206,12 +212,15 @@ class _PerfilPageState extends State<PerfilPage> {
         // Guardamos la RUTA LOCAL de la imagen temporalmente.
         // La subida a Firebase se hará solo al presionar "Guardar Cambios".
         setState(() {
-            _profileImageUrl = pickedFile.path;
+          _profileImageUrl = pickedFile.path;
         });
         _updateSaveButtonState(); // Habilitamos el botón de guardar
       }
     } catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al seleccionar la imagen: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al seleccionar la imagen: $e')),
+        );
     } finally {
       if (mounted) setState(() => _isPickingImage = false);
     }
@@ -219,75 +228,86 @@ class _PerfilPageState extends State<PerfilPage> {
 
   // En lib/screens/profile/perfil_page.dart
 
-Future<void> _saveProfileData() async {
-  if (!mounted) return;
-  setState(() => _isSaving = true);
+  Future<void> _saveProfileData() async {
+    if (!mounted) return;
+    setState(() => _isSaving = true);
 
-  final authService = context.read<AuthService>();
-  final firestoreService = context.read<FirestoreService>();
-  final storageService = context.read<StorageService>();
-  final user = authService.currentUser;
-  if (user == null) {
-    setState(() => _isSaving = false);
-    return;
-  }
+    final authService = context.read<AuthService>();
+    final firestoreService = context.read<FirestoreService>();
+    final storageService = context.read<StorageService>();
+    final user = authService.currentUser;
+    if (user == null) {
+      setState(() => _isSaving = false);
+      return;
+    }
 
-  String? finalImageUrl = _originalProfileImageUrl;
+    String? finalImageUrl = _originalProfileImageUrl;
 
-  if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty && !_profileImageUrl!.startsWith('http')) {
+    if (_profileImageUrl != null &&
+        _profileImageUrl!.isNotEmpty &&
+        !_profileImageUrl!.startsWith('http')) {
       File imageFile = File(_profileImageUrl!);
-      finalImageUrl = await storageService.uploadProfileImage(user.uid, imageFile);
+      finalImageUrl = await storageService.uploadProfileImage(
+        user.uid,
+        imageFile,
+      );
+    }
+
+    final dataToSave = {
+      'name': _nameController.text,
+      'phone': _phoneController.text,
+      'dob': _dobController.text,
+      'bloodType': _bloodTypeController.text,
+      'allergies': _allergiesController.text,
+      'medications': _medicationsController.text,
+      'medicalHistory': _medicalHistoryController.text,
+      'profileImage': finalImageUrl ?? '',
+    };
+
+    await firestoreService.saveUserProfile(user.uid, dataToSave);
+
+    if (mounted) {
+      // Notificamos a toda la app sobre los nuevos datos del perfil
+      context.read<ProfileNotifier>().updateProfile(
+        newName: _nameController.text,
+        newImageUrl: finalImageUrl,
+      );
+
+      // >>>>>>>>> INICIO DE LA SOLUCIÓN DEFINITIVA <<<<<<<<<<<
+      // Actualizamos el estado local Y los valores "originales".
+      // Esto evita que didUpdateWidget revierta nuestro guardado.
+      setState(() {
+        _originalName = _nameController.text;
+        _originalPhone = _phoneController.text;
+        _originalDob = _dobController.text;
+        _originalBloodType = _bloodTypeController.text;
+        _originalAllergies = _allergiesController.text;
+        _originalMedications = _medicationsController.text;
+        _originalMedicalHistory = _medicalHistoryController.text;
+        _originalProfileImageUrl = finalImageUrl;
+
+        // También reseteamos los controladores a estos nuevos valores originales.
+        _resetToOriginalData();
+      });
+      // >>>>>>>>> FIN DE LA SOLUCIÓN DEFINITIVA <<<<<<<<<<<
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Cambios guardados')));
+      widget.toggleEditing(); // Ahora esto ya no causará problemas.
+    }
+
+    if (mounted) {
+      setState(() => _isSaving = false);
+    }
   }
 
-  final dataToSave = {
-    'name': _nameController.text, 'phone': _phoneController.text,
-    'dob': _dobController.text, 'bloodType': _bloodTypeController.text,
-    'allergies': _allergiesController.text, 'medications': _medicationsController.text,
-    'medicalHistory': _medicalHistoryController.text,
-    'profileImage': finalImageUrl ?? '',
-  };
-
-  await firestoreService.saveUserProfile(user.uid, dataToSave);
-
-  if (mounted) {
-    // Notificamos a toda la app sobre los nuevos datos del perfil
-    context.read<ProfileNotifier>().updateProfile(
-          newName: _nameController.text,
-          newImageUrl: finalImageUrl,
-        );
-    
-    // >>>>>>>>> INICIO DE LA SOLUCIÓN DEFINITIVA <<<<<<<<<<<
-    // Actualizamos el estado local Y los valores "originales".
-    // Esto evita que didUpdateWidget revierta nuestro guardado.
-    setState(() {
-      _originalName = _nameController.text;
-      _originalPhone = _phoneController.text;
-      _originalDob = _dobController.text;
-      _originalBloodType = _bloodTypeController.text;
-      _originalAllergies = _allergiesController.text;
-      _originalMedications = _medicationsController.text;
-      _originalMedicalHistory = _medicalHistoryController.text;
-      _originalProfileImageUrl = finalImageUrl;
-
-      // También reseteamos los controladores a estos nuevos valores originales.
-      _resetToOriginalData();
-    });
-    // >>>>>>>>> FIN DE LA SOLUCIÓN DEFINITIVA <<<<<<<<<<<
-
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cambios guardados')));
-    widget.toggleEditing(); // Ahora esto ya no causará problemas.
-  }
-
-  if (mounted) {
-    setState(() => _isSaving = false);
-  }
-}
   @override
   Widget build(BuildContext context) {
     // El ProfileNotifier se usa para mostrar los datos en el header
     // sin necesidad de pasarlos por el constructor.
     final profile = context.watch<ProfileNotifier>();
-    
+
     return Scaffold(
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -296,27 +316,65 @@ Future<void> _saveProfileData() async {
           children: [
             _buildProfileHeader(profile),
             const SizedBox(height: 24),
-            
+
             _buildSectionTitle('Datos Personales'),
             const SizedBox(height: 12),
-            _buildEditableOrDisplayField(controller: _nameController, labelText: 'Nombre', hintText: 'Tu nombre completo'),
+            _buildEditableOrDisplayField(
+              controller: _nameController,
+              labelText: 'Nombre',
+              hintText: 'Tu nombre completo',
+            ),
             const SizedBox(height: 12),
-            _buildEditableOrDisplayField(controller: _phoneController, labelText: 'Número de Teléfono', hintText: 'Tu número de teléfono', keyboardType: TextInputType.phone),
+            _buildEditableOrDisplayField(
+              controller: _phoneController,
+              labelText: 'Número de Teléfono',
+              hintText: 'Tu número de teléfono',
+              keyboardType: TextInputType.phone,
+            ),
             const SizedBox(height: 12),
-            _buildEditableOrDisplayField(controller: _emailController, labelText: 'Correo', hintText: 'Tu correo', enabled: false),
+            _buildEditableOrDisplayField(
+              controller: _emailController,
+              labelText: 'Correo',
+              hintText: 'Tu correo',
+              enabled: false,
+            ),
             const SizedBox(height: 12),
-            _buildEditableOrDisplayField(controller: _dobController, labelText: 'Fecha de Nacimiento', hintText: 'Ej: 01/01/1990', keyboardType: TextInputType.datetime),
+            _buildEditableOrDisplayField(
+              controller: _dobController,
+              labelText: 'Fecha de Nacimiento',
+              hintText: 'Ej: 01/01/1990',
+              keyboardType: TextInputType.datetime,
+            ),
 
             const SizedBox(height: 24),
             _buildSectionTitle('Datos Médicos'),
             const SizedBox(height: 12),
-            _buildEditableOrDisplayField(controller: _bloodTypeController, labelText: 'Tipo de Sangre', hintText: 'Ej: O+'),
+            _buildEditableOrDisplayField(
+              controller: _bloodTypeController,
+              labelText: 'Tipo de Sangre',
+              hintText: 'Ej: O+',
+            ),
             const SizedBox(height: 12),
-            _buildEditableOrDisplayField(controller: _allergiesController, labelText: 'Alergias', hintText: 'Ej: Penicilina'),
+            _buildEditableOrDisplayField(
+              controller: _allergiesController,
+              labelText: 'Alergias',
+              hintText: 'Ej: Penicilina',
+            ),
             const SizedBox(height: 12),
-            _buildEditableOrDisplayField(controller: _medicationsController, labelText: 'Medicamentos Actuales', hintText: 'Los que tomas regularmente'),
+            _buildEditableOrDisplayField(
+              controller: _medicationsController,
+              labelText: 'Medicamentos Actuales',
+              hintText: 'Los que tomas regularmente',
+            ),
             const SizedBox(height: 12),
-            _buildEditableOrDisplayField(controller: _medicalHistoryController, labelText: 'Historial Médico', hintText: 'Condiciones médicas relevantes'),
+            _buildEditableOrDisplayField(
+              controller: _medicalHistoryController,
+              labelText: 'Historial Médico',
+              hintText: 'Condiciones médicas relevantes',
+            ),
+
+            const SizedBox(height: 20),
+            _buildNearbyPharmaciesOption(),
 
             const SizedBox(height: 30),
             if (widget.isEditing)
@@ -338,8 +396,14 @@ Future<void> _saveProfileData() async {
           _buildAvatarWithShowcase(),
           const SizedBox(height: 12),
           Text(
-            widget.isEditing ? _nameController.text : (profile.userName ?? 'Nombre de Usuario'),
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF4092E4)),
+            widget.isEditing
+                ? _nameController.text
+                : (profile.userName ?? 'Nombre de Usuario'),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF4092E4),
+            ),
           ),
           Text(
             _emailController.text,
@@ -352,7 +416,8 @@ Future<void> _saveProfileData() async {
 
   Widget _buildAvatarWithShowcase() {
     ImageProvider<Object>? backgroundImage;
-    final canLoadNetworkImage = _profileImageUrl != null &&
+    final canLoadNetworkImage =
+        _profileImageUrl != null &&
         _profileImageUrl!.startsWith('http') &&
         !_isDeprecatedFirebaseStorageUrl(_profileImageUrl);
 
@@ -370,9 +435,10 @@ Future<void> _saveProfileData() async {
           color: Colors.black.withValues(alpha: 0.4),
         ),
         child: Center(
-          child: _isPickingImage
-              ? const CircularProgressIndicator(color: Colors.white)
-              : const Icon(Icons.camera_alt, color: Colors.white, size: 30),
+          child:
+              _isPickingImage
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Icon(Icons.camera_alt, color: Colors.white, size: 30),
         ),
       );
     } else if (backgroundImage == null) {
@@ -401,7 +467,11 @@ Future<void> _saveProfileData() async {
             'Mantén tu información médica actualizada: foto, nombre, tipo de sangre, alergias y más.\nToca el ícono de edición (✏️) en la barra superior para modificar tus datos.',
         tooltipBackgroundColor: const Color(0xFF2F6DB4),
         textColor: Colors.white,
-        descTextStyle: const TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
+        descTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          height: 1.5,
+        ),
         targetShapeBorder: const CircleBorder(),
         child: avatar,
       );
@@ -414,11 +484,68 @@ Future<void> _saveProfileData() async {
       padding: const EdgeInsets.only(left: 4.0),
       child: Text(
         title,
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey.shade800),
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey.shade800,
+        ),
       ),
     );
   }
-  
+
+  Widget _buildNearbyPharmaciesOption() {
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const LocalizadorFarmaciasPage(),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF2F6DB4), Color(0xFF49C2FF)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: kCustomBoxShadow,
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.local_pharmacy_outlined, color: Colors.white, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Farmacias Cercanas',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Busca farmacias abiertas cerca de tu ubicación.',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.white),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildEditableOrDisplayField({
     required TextEditingController controller,
     required String labelText,
@@ -458,10 +585,15 @@ Future<void> _saveProfileData() async {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    controller.text.isNotEmpty ? controller.text : 'No especificado',
+                    controller.text.isNotEmpty
+                        ? controller.text
+                        : 'No especificado',
                     style: TextStyle(
                       fontSize: 16,
-                      color: controller.text.isNotEmpty ? Colors.black87 : Colors.grey.shade600,
+                      color:
+                          controller.text.isNotEmpty
+                              ? Colors.black87
+                              : Colors.grey.shade600,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

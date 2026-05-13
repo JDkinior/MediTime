@@ -21,7 +21,13 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
   bool _isAnimating = false;
 
   // Controladores de texto
-  final TextEditingController _nombreMedicamentoController = TextEditingController();
+  final TextEditingController _nombreMedicamentoController =
+      TextEditingController();
+  final TextEditingController _cantidadActualController =
+      TextEditingController();
+  final TextEditingController _cantidadTotalController =
+      TextEditingController();
+  final TextEditingController _dosisPorTomaController = TextEditingController();
   final TextEditingController _dosisController = TextEditingController();
   final TextEditingController _duracionController = TextEditingController();
   final TextEditingController _notasController = TextEditingController();
@@ -29,6 +35,9 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
   @override
   void dispose() {
     _nombreMedicamentoController.dispose();
+    _cantidadActualController.dispose();
+    _cantidadTotalController.dispose();
+    _dosisPorTomaController.dispose();
     _dosisController.dispose();
     _duracionController.dispose();
     _notasController.dispose();
@@ -54,34 +63,39 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
           backgroundColor: Colors.green,
         ),
       );
-      
+
       // Reiniciar el formulario para la próxima dosis
       notifier.resetForm();
-      
+
       // Limpiar los controladores de texto
       _nombreMedicamentoController.clear();
+      _cantidadActualController.clear();
+      _cantidadTotalController.clear();
+      _dosisPorTomaController.clear();
       _dosisController.clear();
       _duracionController.clear();
       _notasController.clear();
-      
+
       // Reiniciar el estado de la página al primer paso
       setState(() {
         _currentStep = 0;
       });
-      
+
       // Volver al primer paso visualmente
       _pageController.animateToPage(
         0,
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
       );
-      
+
       // Mostrar consejos para optimizar las notificaciones
       await _showBatteryOptimizationTip();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(notifier.errorMessage ?? 'Error al guardar el tratamiento'),
+          content: Text(
+            notifier.errorMessage ?? 'Error al guardar el tratamiento',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -125,8 +139,6 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Consumer<TreatmentFormNotifier>(
@@ -141,7 +153,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                   child: PageView.builder(
                     controller: _pageController,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: 7,
+                    itemCount: 8,
                     onPageChanged: (page) {
                       setState(() {
                         _currentStep = page;
@@ -154,13 +166,11 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                         builder: (context, child) {
                           double opacity = 1.0;
                           if (_pageController.position.haveDimensions) {
-                            opacity = (1 - (_pageController.page! - index).abs())
+                            opacity = (1 -
+                                    (_pageController.page! - index).abs())
                                 .clamp(0.0, 1.0);
                           }
-                          return Opacity(
-                            opacity: opacity,
-                            child: child,
-                          );
+                          return Opacity(opacity: opacity, child: child);
                         },
                       );
                     },
@@ -187,20 +197,23 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
             width: 70,
             height: 70,
             child: FloatingActionButton(
-              onPressed: _isAnimating ? null : () async {
-                setState(() {
-                  _isAnimating = true;
-                });
-                await _pageController.previousPage(
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeInOut,
-                );
-                if (mounted) {
-                  setState(() {
-                    _isAnimating = false;
-                  });
-                }
-              },
+              onPressed:
+                  _isAnimating
+                      ? null
+                      : () async {
+                        setState(() {
+                          _isAnimating = true;
+                        });
+                        await _pageController.previousPage(
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.easeInOut,
+                        );
+                        if (mounted) {
+                          setState(() {
+                            _isAnimating = false;
+                          });
+                        }
+                      },
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
               shape: const CircleBorder(),
@@ -208,35 +221,39 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
               child: const Icon(Icons.arrow_back),
             ),
           ),
-        if (_currentStep < 6)
+        if (_currentStep < 7)
           SizedBox(
             width: 70,
             height: 70,
             child: FloatingActionButton(
-              onPressed: notifier.isStepValid(_currentStep) && !_isAnimating
-                  ? () async {
-                      setState(() {
-                        _isAnimating = true;
-                      });
-                      await _pageController.nextPage(
-                        duration: const Duration(milliseconds: 400),
-                        curve: Curves.easeInOut,
-                      );
-                      if (mounted) {
+              onPressed:
+                  notifier.isStepValid(_currentStep) && !_isAnimating
+                      ? () async {
                         setState(() {
-                          _isAnimating = false;
+                          _isAnimating = true;
                         });
+                        await _pageController.nextPage(
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.easeInOut,
+                        );
+                        if (mounted) {
+                          setState(() {
+                            _isAnimating = false;
+                          });
+                        }
                       }
-                    }
-                  : null,
-              backgroundColor: notifier.isStepValid(_currentStep) ? Colors.blue : Colors.grey,
+                      : null,
+              backgroundColor:
+                  notifier.isStepValid(_currentStep)
+                      ? Colors.blue
+                      : Colors.grey,
               foregroundColor: Colors.white,
               shape: const CircleBorder(),
               heroTag: 'botonSiguiente',
               child: const Icon(Icons.arrow_forward),
             ),
           ),
-        if (_currentStep == 6)
+        if (_currentStep == 7)
           SizedBox(
             width: 70,
             height: 70,
@@ -245,27 +262,31 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
               foregroundColor: Colors.white,
               shape: const CircleBorder(),
               heroTag: 'botonFinalizar',
-              onPressed: (_isAnimating || notifier.isLoading) ? null : () async {
-                setState(() {
-                  _isAnimating = true;
-                });
+              onPressed:
+                  (_isAnimating || notifier.isLoading)
+                      ? null
+                      : () async {
+                        setState(() {
+                          _isAnimating = true;
+                        });
 
-                await _saveData();
+                        await _saveData();
 
-                if (mounted) {
-                  Navigator.of(context).pop();
-                }
-              },
-              child: notifier.isLoading 
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Icon(Icons.check),
+                        if (mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      },
+              child:
+                  notifier.isLoading
+                      ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                      : const Icon(Icons.check),
             ),
           ),
       ],
@@ -299,7 +320,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                 controller: _nombreMedicamentoController,
                 onChanged: notifier.updateNombreMedicamento,
                 decoration: AppInputDecoration.withHint(
-                  'Escribe el nombre del medicamento'
+                  'Escribe el nombre del medicamento',
                 ),
               ),
             ),
@@ -314,16 +335,18 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
             _buildQuestionText('¿Cuál es la presentación del medicamento?'),
             const SizedBox(height: 16),
             DropdownButton<String>(
-              value: notifier.formData.presentacion.isEmpty 
-                  ? null 
-                  : notifier.formData.presentacion,
+              value:
+                  notifier.formData.presentacion.isEmpty
+                      ? null
+                      : notifier.formData.presentacion,
               hint: const Text('Selecciona una opción'),
-              items: notifier.presentaciones.map((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
+              items:
+                  notifier.presentaciones.map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
               onChanged: (value) => notifier.updatePresentacion(value!),
             ),
           ],
@@ -344,14 +367,16 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
               height: 150,
               child: TimePickerSpinner(
                 time: DateTime(
-                  2020, 1, 1,
+                  2020,
+                  1,
+                  1,
                   notifier.formData.horaPrimeraDosis.hour,
                   notifier.formData.horaPrimeraDosis.minute,
                 ),
                 is24HourMode: false,
                 onTimeChange: (time) {
                   notifier.updateHoraPrimeraDosis(
-                    TimeOfDay(hour: time.hour, minute: time.minute)
+                    TimeOfDay(hour: time.hour, minute: time.minute),
                   );
                 },
               ),
@@ -400,7 +425,54 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
           ],
         );
 
-      case 5: // Notas
+      case 5: // Inventario
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildQuestionText('¿Cómo quieres registrar tu inventario?'),
+              const SizedBox(height: 20),
+              FormFieldWrapper(
+                label: 'Cantidad actual',
+                child: TextFormField(
+                  controller: _cantidadActualController,
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    notifier.updateCantidadActual(int.tryParse(value) ?? 0);
+                  },
+                  decoration: AppInputDecoration.withHint('Ej: 30'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FormFieldWrapper(
+                label: 'Cantidad total por caja',
+                child: TextFormField(
+                  controller: _cantidadTotalController,
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    notifier.updateCantidadTotalCaja(int.tryParse(value) ?? 0);
+                  },
+                  decoration: AppInputDecoration.withHint('Ej: 60'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FormFieldWrapper(
+                label: 'Dosis por toma',
+                child: TextFormField(
+                  controller: _dosisPorTomaController,
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    notifier.updateDosisPorToma(int.tryParse(value) ?? 1);
+                  },
+                  decoration: AppInputDecoration.withHint('Ej: 1'),
+                ),
+              ),
+            ],
+          ),
+        );
+
+      case 6: // Notas
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -422,17 +494,20 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                 textInputAction: TextInputAction.newline,
                 onChanged: notifier.updateNotas,
                 decoration: AppInputDecoration.withHint(
-                  'Escribe cualquier indicación especial'
+                  'Escribe cualquier indicación especial',
                 ),
               ),
             ),
           ],
         );
 
-      case 6: // Resumen
+      case 7: // Resumen
         return SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 10.0,
+              vertical: 10.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -450,7 +525,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                   style: TextStyle(fontSize: 15, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 20),
-                
+
                 TreatmentSummaryCard(
                   formData: notifier.formData,
                   summaryInfo: notifier.getSummaryInfo(),

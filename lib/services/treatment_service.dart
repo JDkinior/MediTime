@@ -36,7 +36,9 @@ class TreatmentService {
     }
 
     final DateTime fechaInicioTratamiento = primeraDosisDateTime;
-    final DateTime fechaFinTratamiento = formData.calculateEndDate(fechaInicioTratamiento);
+    final DateTime fechaFinTratamiento = formData.calculateEndDate(
+      fechaInicioTratamiento,
+    );
 
     // Guardar en Firestore
     final DocumentReference docRef = await _firestoreService.saveMedicamento(
@@ -44,6 +46,9 @@ class TreatmentService {
       nombreMedicamento: formData.nombreMedicamento,
       presentacion: formData.presentacion,
       duracion: formData.duracionEnDias.toString(),
+      cantidadActual: formData.cantidadActual,
+      cantidadTotalCaja: formData.cantidadTotalCaja,
+      dosisPorToma: formData.dosisPorToma,
       horaPrimeraDosis: formData.horaPrimeraDosis,
       intervaloDosis: Duration(hours: formData.intervaloDosis),
       prescriptionAlarmId: prescriptionAlarmManagerId,
@@ -81,7 +86,8 @@ class TreatmentService {
       );
 
       // Verificar permisos antes de programar
-      final hasPermissions = await NotificationService.checkExactAlarmPermissions();
+      final hasPermissions =
+          await NotificationService.checkExactAlarmPermissions();
       if (!hasPermissions) {
         debugPrint("ADVERTENCIA: No se tienen permisos para alarmas exactas");
       }
@@ -104,15 +110,27 @@ class TreatmentService {
     if (formData.nombreMedicamento.isEmpty) {
       return 'El nombre del medicamento es requerido';
     }
-    
+
     if (formData.presentacion.isEmpty) {
       return 'La presentación es requerida';
     }
-    
+
+    if (formData.cantidadActual < 0) {
+      return 'La cantidad actual no puede ser negativa';
+    }
+
+    if (formData.cantidadTotalCaja < 0) {
+      return 'La cantidad total por caja no puede ser negativa';
+    }
+
+    if (formData.dosisPorToma <= 0) {
+      return 'La dosis por toma debe ser mayor a 0';
+    }
+
     if (formData.intervaloDosis <= 0) {
       return 'El intervalo de dosis debe ser mayor a 0';
     }
-    
+
     if (!formData.esIndefinido && formData.duracionNumero <= 0) {
       return 'La duración debe ser mayor a 0';
     }
@@ -124,11 +142,13 @@ class TreatmentService {
   Map<String, String> calculateSummaryInfo(TreatmentFormData formData) {
     return {
       'dosesPerDay': formData.dosisPerDay.toString(),
-      'totalDoses': formData.esIndefinido ? 'Indefinido' : formData.totalDoses.toString(),
+      'totalDoses':
+          formData.esIndefinido ? 'Indefinido' : formData.totalDoses.toString(),
       'durationText': formData.duracionText,
-      'endDate': formData.esIndefinido 
-          ? 'Sin fecha límite' 
-          : _formatDate(formData.calculateEndDate(DateTime.now())),
+      'endDate':
+          formData.esIndefinido
+              ? 'Sin fecha límite'
+              : _formatDate(formData.calculateEndDate(DateTime.now())),
     };
   }
 

@@ -41,6 +41,9 @@ class AppConstants {
   static const String nombreMedicamentoField = 'nombreMedicamento';
   static const String presentacionField = 'presentacion';
   static const String duracionField = 'duracion';
+  static const String cantidadActualField = 'cantidadActual';
+  static const String cantidadTotalCajaField = 'cantidadTotalCaja';
+  static const String dosisPorTomaField = 'dosisPorToma';
   static const String horaPrimeraDosisField = 'horaPrimeraDosis';
   static const String intervaloDosisField = 'intervaloDosis';
   static const String prescriptionAlarmIdField = 'prescriptionAlarmId';
