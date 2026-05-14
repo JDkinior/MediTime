@@ -2,7 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:meditime/services/notification_service.dart';
+import 'package:meditime/services/gemini_service.dart';
 import 'package:meditime/theme/app_theme.dart';
+import 'package:meditime/views/chat_bot_screen.dart';
 import 'package:provider/provider.dart';
 import 'auth_wrapper.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -85,6 +87,7 @@ class MyApp extends StatelessWidget {
               (context) =>
                   LazyTreatmentService(context.read<FirestoreService>()),
         ),
+        Provider<GeminiService>(create: (_) => GeminiService()),
 
         // Notifier providers
         ChangeNotifierProvider<ProfileNotifier>(
@@ -108,6 +111,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'MediTime',
         theme: AppTheme.lightTheme,
+        routes: {ChatBotScreen.routeName: (_) => const ChatBotScreen()},
         home: const AuthWrapper(),
       ),
     );

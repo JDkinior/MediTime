@@ -7,15 +7,13 @@ import 'package:meditime/screens/reports/reportes_page.dart';
 import 'package:meditime/core/utils.dart';
 import 'package:meditime/core/constants.dart';
 import 'package:meditime/theme/app_theme.dart';
+import 'package:meditime/views/chat_bot_screen.dart';
 
 class CustomDrawer extends StatelessWidget {
   final VoidCallback onLogout;
   // Se eliminan nameParts y profileImagePath del constructor
 
-  const CustomDrawer({
-    super.key,
-    required this.onLogout,
-  });
+  const CustomDrawer({super.key, required this.onLogout});
 
   String _obtenerSaludo() {
     return AppUtils.getTimeBasedGreeting();
@@ -31,9 +29,10 @@ class CustomDrawer extends StatelessWidget {
     final profile = context.watch<ProfileNotifier>();
     final nameParts = profile.userName?.split(' ');
     final profileImagePath = profile.profileImageUrl;
-    final canLoadProfileImage = profileImagePath != null &&
-      profileImagePath.isNotEmpty &&
-      !_isDeprecatedFirebaseStorageUrl(profileImagePath);
+    final canLoadProfileImage =
+        profileImagePath != null &&
+        profileImagePath.isNotEmpty &&
+        !_isDeprecatedFirebaseStorageUrl(profileImagePath);
 
     return Drawer(
       child: ListView(
@@ -44,22 +43,25 @@ class CustomDrawer extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF3FB8EE),
-                  Color(0xFF4092E4),
-                ],
+                colors: [Color(0xFF3FB8EE), Color(0xFF4092E4)],
               ),
             ),
             child: Row(
               children: [
                 CircleAvatar(
                   radius: AppConstants.drawerProfileImageRadius,
-                  backgroundImage: canLoadProfileImage
-                    ? NetworkImage(profileImagePath)
-                    : null,
-                  child: !canLoadProfileImage
-                      ? const Icon(Icons.person, size: 50, color: AppTheme.whiteTextColor)
-                      : null,
+                  backgroundImage:
+                      canLoadProfileImage
+                          ? NetworkImage(profileImagePath)
+                          : null,
+                  child:
+                      !canLoadProfileImage
+                          ? const Icon(
+                            Icons.person,
+                            size: 50,
+                            color: AppTheme.whiteTextColor,
+                          )
+                          : null,
                 ),
                 const SizedBox(width: 15),
                 Expanded(
@@ -73,7 +75,8 @@ class CustomDrawer extends StatelessWidget {
                       ),
                       Text(
                         // Usamos los datos del notifier
-                        nameParts?.take(2).join(' ') ?? AppConstants.defaultUserName,
+                        nameParts?.take(2).join(' ') ??
+                            AppConstants.defaultUserName,
                         style: AppTheme.drawerNameStyle,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -84,7 +87,9 @@ class CustomDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.assessment_outlined), // <-- Ícono para el reporte
+            leading: const Icon(
+              Icons.assessment_outlined,
+            ), // <-- Ícono para el reporte
             title: const Text('Reporte de Adherencia'),
             onTap: () {
               Navigator.pop(context); // Cierra el drawer
@@ -99,7 +104,10 @@ class CustomDrawer extends StatelessWidget {
             title: const Text('Opciones'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const OpcionesPage()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const OpcionesPage()),
+              );
             },
           ),
           ListTile(
@@ -107,7 +115,18 @@ class CustomDrawer extends StatelessWidget {
             title: const Text('Ayuda'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const AyudaPage()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AyudaPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.smart_toy_outlined),
+            title: const Text('Chatbot MediTime'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, ChatBotScreen.routeName);
             },
           ),
           const Divider(),

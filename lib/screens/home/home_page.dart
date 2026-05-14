@@ -10,6 +10,7 @@ import 'package:meditime/screens/calendar/calendario_page.dart';
 import 'package:meditime/screens/profile/perfil_page.dart';
 import 'package:meditime/screens/medication/receta_page.dart';
 import 'package:meditime/screens/shared/ayuda_page.dart';
+import 'package:meditime/views/chat_bot_screen.dart';
 import 'package:meditime/widgets/drawer_widget.dart';
 
 class HomePage extends StatefulWidget {
@@ -84,24 +85,31 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
     _hideSkipButton();
     _skipOverlay = OverlayEntry(
-      builder: (ctx) => Positioned(
-        top: MediaQuery.of(ctx).padding.top + 8,
-        right: 8,
-        child: Material(
-          color: Colors.transparent,
-          child: TextButton(
-            onPressed: _skipTutorial,
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            child: const Text(
-              'Saltar',
-              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+      builder:
+          (ctx) => Positioned(
+            top: MediaQuery.of(ctx).padding.top + 8,
+            right: 8,
+            child: Material(
+              color: Colors.transparent,
+              child: TextButton(
+                onPressed: _skipTutorial,
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                ),
+                child: const Text(
+                  'Saltar',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ),
           ),
-        ),
-      ),
     );
     Overlay.of(context).insert(_skipOverlay!);
   }
@@ -141,28 +149,33 @@ class _HomePageState extends State<HomePage> {
         // En lugar de navegar a InstruccionesPage, pregunta si repetir el tutorial
         showDialog(
           context: context,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            title: const Text('Repetir tutorial'),
-            content: const Text('¿Deseas volver a ver el tutorial interactivo de la aplicación?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 47, 109, 180),
-                  foregroundColor: Colors.white,
+          builder:
+              (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
                 ),
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  _startTutorial();
-                },
-                child: const Text('Sí, ver tutorial'),
+                title: const Text('Repetir tutorial'),
+                content: const Text(
+                  '¿Deseas volver a ver el tutorial interactivo de la aplicación?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancelar'),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 47, 109, 180),
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _startTutorial();
+                    },
+                    child: const Text('Sí, ver tutorial'),
+                  ),
+                ],
               ),
-            ],
-          ),
         );
         break;
       case 1:
@@ -171,17 +184,18 @@ class _HomePageState extends State<HomePage> {
           MaterialPageRoute(builder: (context) => const AyudaPage()),
         );
         break;
+      case 2:
+        Navigator.pushNamed(context, ChatBotScreen.routeName);
+        break;
     }
   }
 
   void _handleLogout() async {
     final authService = context.read<AuthService>();
     final profileNotifier = context.read<ProfileNotifier>();
-    
-    final result = await authService.signOut(
-      profileNotifier: profileNotifier,
-    );
-    
+
+    final result = await authService.signOut(profileNotifier: profileNotifier);
+
     if (result.isFailure && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result.error ?? 'Error al cerrar sesión')),
@@ -286,15 +300,33 @@ class _HomePageState extends State<HomePage> {
                     '¿Tienes dudas? Desde aquí puedes repetir este tutorial en cualquier momento o acceder al soporte.',
                 tooltipBackgroundColor: const Color(0xFF2F6DB4),
                 textColor: Colors.white,
-                descTextStyle: const TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
+                descTextStyle: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  height: 1.5,
+                ),
                 targetShapeBorder: const CircleBorder(),
                 child: PopupMenuButton<int>(
-                  icon: const Icon(Icons.question_mark, color: Color.fromARGB(255, 47, 109, 180)),
+                  icon: const Icon(
+                    Icons.question_mark,
+                    color: Color.fromARGB(255, 47, 109, 180),
+                  ),
                   onSelected: (item) => _onSelectedHelpMenu(ctx, item),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem<int>(value: 0, child: Text('Tutorial')),
-                    const PopupMenuItem<int>(value: 1, child: Text('Ayuda')),
-                  ],
+                  itemBuilder:
+                      (context) => [
+                        const PopupMenuItem<int>(
+                          value: 0,
+                          child: Text('Tutorial'),
+                        ),
+                        const PopupMenuItem<int>(
+                          value: 1,
+                          child: Text('Ayuda'),
+                        ),
+                        const PopupMenuItem<int>(
+                          value: 2,
+                          child: Text('Chatbot MediTime'),
+                        ),
+                      ],
                 ),
               ),
             ],
@@ -305,7 +337,11 @@ class _HomePageState extends State<HomePage> {
                   'Accede al menú lateral para ver reportes de adherencia, ajustar notificaciones y más opciones.',
               tooltipBackgroundColor: const Color(0xFF2F6DB4),
               textColor: Colors.white,
-              descTextStyle: const TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
+              descTextStyle: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                height: 1.5,
+              ),
               targetShapeBorder: const CircleBorder(),
               child: Builder(
                 builder: (BuildContext context) {
@@ -344,7 +380,11 @@ class _HomePageState extends State<HomePage> {
                 'Muévete entre tus Recetas (medicamentos pendientes), el Calendario mensual y tu Perfil de salud.',
             tooltipBackgroundColor: const Color(0xFF2F6DB4),
             textColor: Colors.white,
-            descTextStyle: const TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
+            descTextStyle: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              height: 1.5,
+            ),
             child: BottomNavigationBar(
               onTap: _onTabTapped,
               currentIndex: _currentIndex,
