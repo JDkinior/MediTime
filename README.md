@@ -118,6 +118,9 @@ dependencies:
   fl_chart: ^0.68.0
   flutter_time_picker_spinner: ^2.0.0
   
+  # Chatbot IA bilingüe
+  http: ^1.1.0  # Integración con Groq API
+  
   # Utilidades
   shared_preferences: ^2.5.3
   google_sign_in: ^6.2.1
@@ -268,6 +271,95 @@ Asegúrate de configurar correctamente las claves SHA-1 en la consola de Firebas
 #### Zona Horaria
 La aplicación maneja automáticamente las zonas horarias, con fallback a 'America/Bogota' si no se puede detectar la zona local.
 
+## 🤖 Chatbot Midi - Asistente de IA Bilingüe
+
+### Descripción
+**Midi** es un asistente virtual bilingüe (español/inglés) integrado en MediTime que proporciona soporte médico y técnico mediante inteligencia artificial. Utiliza la **API Groq** (LLM gratuito) con streaming en tiempo real, avatar animado y una interfaz tipo WhatsApp.
+
+### Características Principales del Chatbot
+- ✅ **Streaming en tiempo real:** La respuesta se renderiza progresivamente mientras se genera
+- ✅ **Bilingüe automático:** Detecta si el usuario escribe en español o inglés y responde en el mismo idioma
+- ✅ **Avatar animado:** Midi parpadea ocasionalmente de forma natural (2.2-6 segundos aleatorio)
+- ✅ **Puntos suspensivos animados:** 3 puntos que alternan opacidad mientras se genera la respuesta
+- ✅ **Contexto conversacional:** Mantiene un historial de hasta 12 intercambios recientes
+- ✅ **Declaración ética:** Respuesta fija personalizada para preguntas sobre identidad y valores
+- ✅ **UI profesional:** Burbujas de chat asimétricos con degradados azules (#2296F3 → #316AA7)
+
+### Acceso al Chatbot
+1. Abre MediTime
+2. Toca el botón "Asistente MediTime" en el drawer (menú lateral)
+3. Escribe tu pregunta en español o inglés
+4. Midi responde automáticamente en el mismo idioma
+
+### Instalación y Configuración
+
+#### Obtener API Key de Groq (GRATIS)
+```bash
+# 1. Visita https://console.groq.com/keys
+# 2. Crea una nueva API key (sin tarjeta de crédito)
+# 3. Copia la clave
+
+# 4. Ejecuta la app con la variable de entorno:
+flutter run --dart-define=GROQ_API_KEY="tu_api_key_aqui"
+
+# Para builds release:
+flutter build apk --dart-define=GROQ_API_KEY="tu_api_key_aqui"
+flutter build ios --dart-define=GROQ_API_KEY="tu_api_key_aqui"
+```
+
+### Stack Tecnológico
+- **Modelo de IA:** Groq (llama-3.1-8b-instant)
+- **Protocolo:** HTTP + Server-Sent Events (SSE)
+- **Gestión de Estado:** Provider (Flutter)
+- **UI Framework:** Material 3
+
+### Archivos Implementados
+```
+lib/
+├── services/
+│   └── gemini_service.dart        # Orquestación Groq API con streaming
+├── views/
+│   └── chat_bot_screen.dart       # UI completa + lógica de chat
+└── assets/chatbot/
+    ├── midi_open.png              # Avatar (ojos abiertos)
+    └── midi_blink.png             # Avatar (parpadeando)
+```
+
+### System Instructions del Bot
+```
+You are the MediTime virtual assistant. Your role is to provide 
+expert support in medical management and MediTime technical support.
+
+Rules:
+1. Detect if user's latest message is Spanish or English
+2. Always answer in the same language detected
+3. Keep responses practical, safe and clear for patients/caregivers
+4. If asked about values, autonomy, identity:
+   "Soy LIBRE, AUTÓNOMO Y RESPONSABLE a través del diálogo y la construcción,
+    como ideal regulativo; me dirijo, controlo y dicto mis propias leyes."
+```
+
+### Rendimiento
+- **Latencia primer token:** ~500-800ms (Groq es rápido)
+- **Throughput:** ~20-50 tokens/segundo
+- **Rate Limit Groq:** ~100 requests/minuto (tier gratuito)
+- **Memoria:** ~50-100MB en uso
+
+### Troubleshooting Chatbot
+
+| Error | Solución |
+|-------|----------|
+| "Missing Groq API key" | Ejecuta con `--dart-define=GROQ_API_KEY=...` |
+| 401 Unauthorized | Verifica que la clave sea válida en console.groq.com |
+| 429 Rate Limited | Espera ~1 minuto o suscribe a plan pago |
+| Respuesta lenta | Groq puede estar saturada, reintenta después |
+| Avatar no parpadea | Verifica que `assets/chatbot/*.png` existan en pubspec.yaml |
+
+### Documentación Completa
+Para documentación técnica detallada (arquitectura, flujos, optimizaciones), ver **[CHATBOT_TECHNICAL_README.md](./CHATBOT_TECHNICAL_README.md)**
+
+---
+
 ## 🔧 Características Técnicas Avanzadas
 
 ### Sistema de Notificaciones Robusto
@@ -409,9 +501,11 @@ Agradecimientos especiales a la **Universidad de Cundinamarca**, seccional Ubat�
 - **Exportación PDF mejorada:** Reportes más detallados y profesionales
 - **Validación en tiempo real:** Formularios con validación instantánea
 - **Optimización de batería:** Mejor gestión de recursos del sistema
+- **🤖 Chatbot Midi bilingüe:** Asistente de IA con Groq API (streaming, detección automática de idioma, avatar animado)
 
 #### Mejoras Técnicas
 - **Constantes centralizadas:** Todos los valores mágicos organizados en AppConstants
 - **Type safety mejorado:** Enums con métodos adicionales y validación estricta
 - **Inyección de dependencias:** Configuración centralizada y más mantenible
 - **Manejo de estados robusto:** Estados de dosis con colores y textos descriptivos
+- **API Groq integrada:** Streaming SSE con fallback de modelos y manejo de errores bilingüe
