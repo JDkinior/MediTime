@@ -11,6 +11,7 @@ import 'package:meditime/screens/profile/perfil_page.dart';
 import 'package:meditime/screens/medication/receta_page.dart';
 import 'package:meditime/screens/shared/ayuda_page.dart';
 import 'package:meditime/screens/chat/chat_bot_screen.dart';
+import 'package:meditime/screens/reports/progreso_page.dart';
 import 'package:meditime/widgets/drawer_widget.dart';
 
 class HomePage extends StatefulWidget {
@@ -23,7 +24,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
-  bool _isEditing = false;
   bool _isTutorialRunning = false;
 
   // Showcase keys (un step por funcionalidad clave)
@@ -203,15 +203,9 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _toggleEditing() {
-    setState(() {
-      _isEditing = !_isEditing;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final List<String> titles = ['Medicamentos', 'Calendario', 'Perfil'];
+    final List<String> titles = ['Medicamentos', 'Calendario', 'Mi Progreso'];
 
     return ShowCaseWidget(
       onStart: (index, key) {
@@ -288,11 +282,18 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             actions: [
-              if (_currentIndex == 2)
-                IconButton(
-                  icon: Icon(_isEditing ? Icons.close : Icons.edit),
-                  onPressed: _toggleEditing,
+              IconButton(
+                icon: const Icon(
+                  Icons.account_circle_outlined,
+                  color: Color.fromARGB(255, 47, 109, 180),
                 ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PerfilPage()),
+                  );
+                },
+              ),
               Showcase(
                 key: _helpKey,
                 title: 'Ayuda y Tutorial',
@@ -359,25 +360,20 @@ class _HomePageState extends State<HomePage> {
             controller: _pageController,
             onPageChanged: (index) {
               setState(() {
-                if (_isEditing) _isEditing = false;
                 _currentIndex = index;
               });
             },
             children: [
               RecetaPage(fabKey: _fabKey),
               CalendarioPage(calendarKey: _calendarKey),
-              PerfilPage(
-                isEditing: _isEditing,
-                toggleEditing: _toggleEditing,
-                profileKey: _profileKey,
-              ),
+              const ProgresoPage(),
             ],
           ),
           bottomNavigationBar: Showcase(
             key: _bottomNavKey,
             title: 'Navegación principal',
             description:
-                'Muévete entre tus Recetas (medicamentos pendientes), el Calendario mensual y tu Perfil de salud.',
+                'Muévete entre tus Recetas (medicamentos pendientes), el Calendario mensual y tu Progreso de salud.',
             tooltipBackgroundColor: const Color(0xFF2F6DB4),
             textColor: Colors.white,
             descTextStyle: const TextStyle(
@@ -390,18 +386,31 @@ class _HomePageState extends State<HomePage> {
               currentIndex: _currentIndex,
               selectedItemColor: const Color.fromARGB(255, 16, 162, 235),
               backgroundColor: const Color.fromARGB(255, 241, 241, 241),
-              items: const [
-                BottomNavigationBarItem(
+              items: [
+                const BottomNavigationBarItem(
                   icon: Icon(Icons.medication_rounded),
                   label: 'Receta',
                 ),
-                BottomNavigationBarItem(
+                const BottomNavigationBarItem(
                   icon: Icon(Icons.calendar_today),
                   label: 'Calendario',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.person),
-                  label: 'Perfil',
+                  icon: Showcase(
+                    key: _profileKey,
+                    title: 'Mi Progreso',
+                    description:
+                        'Monitorea tu nivel de adherencia, mira tus estadísticas diarias y mantén tus rachas de toma de medicamentos.',
+                    tooltipBackgroundColor: const Color(0xFF2F6DB4),
+                    textColor: Colors.white,
+                    descTextStyle: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
+                    child: const Icon(Icons.bar_chart_rounded),
+                  ),
+                  label: 'Progreso',
                 ),
               ],
             ),

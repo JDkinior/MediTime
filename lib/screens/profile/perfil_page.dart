@@ -17,14 +17,10 @@ import 'package:meditime/widgets/treatment_form/form_field_wrapper.dart';
 import 'package:meditime/screens/medication/paciente_receta_page.dart';
 
 class PerfilPage extends StatefulWidget {
-  final bool isEditing;
-  final VoidCallback toggleEditing;
   final GlobalKey? profileKey;
 
   const PerfilPage({
     super.key,
-    required this.isEditing,
-    required this.toggleEditing,
     this.profileKey,
   });
 
@@ -43,6 +39,17 @@ class _PerfilPageState extends State<PerfilPage> {
   final TextEditingController _medicationsController = TextEditingController();
   final TextEditingController _medicalHistoryController =
       TextEditingController();
+
+  bool _isEditing = false;
+
+  void _toggleEditing() {
+    setState(() {
+      _isEditing = !_isEditing;
+      if (!_isEditing) {
+        _resetToOriginalData();
+      }
+    });
+  }
 
   String?
   _profileImageUrl; // Puede ser una URL de red o una ruta de archivo local
@@ -105,14 +112,7 @@ class _PerfilPageState extends State<PerfilPage> {
     super.dispose();
   }
 
-  @override
-  void didUpdateWidget(covariant PerfilPage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Si se cancela la edición, se revierten los cambios
-    if (oldWidget.isEditing && !widget.isEditing) {
-      _resetToOriginalData();
-    }
-  }
+
 
   Future<void> _loadProfileData() async {
     if (!mounted) return;
@@ -305,7 +305,9 @@ class _PerfilPageState extends State<PerfilPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Cambios guardados')));
-      widget.toggleEditing(); // Ahora esto ya no causará problemas.
+      setState(() {
+        _isEditing = false;
+      });
     }
 
     if (mounted) {
@@ -320,6 +322,15 @@ class _PerfilPageState extends State<PerfilPage> {
     final profile = context.watch<ProfileNotifier>();
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Perfil'),
+        actions: [
+          IconButton(
+            icon: Icon(_isEditing ? Icons.close : Icons.edit),
+            onPressed: _toggleEditing,
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -391,7 +402,7 @@ class _PerfilPageState extends State<PerfilPage> {
             _buildNearbyPharmaciesOption(),
 
             const SizedBox(height: 30),
-            if (widget.isEditing)
+            if (_isEditing)
               PrimaryButton(
                 text: 'Guardar Cambios',
                 isLoading: _isSaving,
@@ -410,7 +421,7 @@ class _PerfilPageState extends State<PerfilPage> {
           _buildAvatarWithShowcase(),
           const SizedBox(height: 12),
           Text(
-            widget.isEditing
+            _isEditing
                 ? _nameController.text
                 : (profile.userName ?? 'Nombre de Usuario'),
             style: const TextStyle(
@@ -442,7 +453,7 @@ class _PerfilPageState extends State<PerfilPage> {
     }
 
     Widget? avatarChild;
-    if (widget.isEditing) {
+    if (_isEditing) {
       avatarChild = Container(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
@@ -460,7 +471,7 @@ class _PerfilPageState extends State<PerfilPage> {
     }
 
     final avatar = GestureDetector(
-      onTap: widget.isEditing && !_isPickingImage ? _pickImage : null,
+      onTap: _isEditing && !_isPickingImage ? _pickImage : null,
       child: CircleAvatar(
         radius: 55,
         backgroundColor: Colors.white,
@@ -567,7 +578,7 @@ class _PerfilPageState extends State<PerfilPage> {
     TextInputType keyboardType = TextInputType.text,
     bool enabled = true,
   }) {
-    if (widget.isEditing) {
+    if (_isEditing) {
       return StyledTextField(
         controller: controller,
         labelText: labelText,
