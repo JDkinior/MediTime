@@ -7,7 +7,7 @@ import 'package:meditime/screens/reports/reportes_page.dart';
 import 'package:meditime/core/utils.dart';
 import 'package:meditime/core/constants.dart';
 import 'package:meditime/theme/app_theme.dart';
-import 'package:meditime/views/chat_bot_screen.dart';
+import 'package:meditime/screens/chat/chat_bot_screen.dart';
 
 class CustomDrawer extends StatelessWidget {
   final VoidCallback onLogout;

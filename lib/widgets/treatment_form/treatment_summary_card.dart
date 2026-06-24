@@ -169,6 +169,55 @@ class TreatmentSummaryCard extends StatelessWidget {
             ],
           ),
 
+          if (formData.cantidadTotalCaja > 0 || formData.cantidadActual > 0) ...[
+            _buildDivider(),
+            _buildSection(
+              title: 'Inventario y Stock',
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Disponible: ${formData.cantidadActual} de ${formData.cantidadTotalCaja}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Dosis por toma: ${formData.dosisPorToma}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tomas restantes: ${(formData.dosisPorToma > 0) ? (formData.cantidadActual / formData.dosisPorToma).floor() : 0}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: (formData.cantidadActual < 5) ? Colors.red : Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           // Notas (solo si hay)
           if (formData.notas.isNotEmpty) ...[
             _buildDivider(),

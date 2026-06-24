@@ -1,8 +1,12 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:meditime/services/gemini_service.dart';
+import 'package:meditime/services/auth_service.dart';
+import 'package:meditime/services/firestore_service.dart';
+import 'package:meditime/models/tratamiento.dart';
 import 'package:provider/provider.dart';
 
 class ChatBotScreen extends StatefulWidget {
@@ -30,10 +34,12 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   final List<_ChatMessage> _messages = <_ChatMessage>[
     const _ChatMessage(
       text:
-          'Hola, soy tu asistente MediTime. You can ask me in Spanish or English.',
+          '¡Hola! Soy tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?',
       isUser: false,
     ),
   ];
+
+  String? _currentChatId;
 
   bool _isGenerating = false;
   bool _hasText = false;
@@ -101,11 +107,23 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     _scrollToBottom();
 
     final geminiService = context.read<GeminiService>();
+    final authService = context.read<AuthService>();
+    final firestoreService = context.read<FirestoreService>();
+    final user = authService.currentUser;
+
+    List<Tratamiento>? activeTreatments;
+    if (user != null) {
+      try {
+        // Fetch current active treatments list from Firestore
+        activeTreatments = await firestoreService.getMedicamentosStream(user.uid).first;
+      } catch (_) {}
+    }
+
     final botMessageIndex = _messages.length - 1;
 
     try {
       // Stream chunks and progressively paint them in the last assistant bubble.
-      await for (final partialText in geminiService.streamResponse(text)) {
+      await for (final partialText in geminiService.streamResponse(text, activeTreatments: activeTreatments)) {
         if (!mounted) {
           return;
         }
@@ -138,7 +156,74 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         });
         _scrollToBottom();
       }
+      await _saveChatToFirestore();
     }
+  }
+
+  Future<void> _saveChatToFirestore() async {
+    final authService = context.read<AuthService>();
+    final firestoreService = context.read<FirestoreService>();
+    final user = authService.currentUser;
+    if (user == null || _messages.isEmpty) return;
+
+    final userMessages = _messages.where((m) => m.isUser).toList();
+    if (userMessages.isEmpty) return;
+
+    final firstUserMsg = userMessages.first.text;
+    final title = firstUserMsg.length > 30 ? '${firstUserMsg.substring(0, 27)}...' : firstUserMsg;
+
+    _currentChatId ??= FirebaseFirestore.instance.collection('dummy').doc().id;
+
+    final messagesData = _messages
+        .where((m) => !m.isStreaming)
+        .map((m) => {
+              'text': m.text,
+              'isUser': m.isUser,
+            })
+        .toList();
+
+    try {
+      await firestoreService.saveChatSession(
+        user.uid,
+        _currentChatId!,
+        title,
+        messagesData,
+      );
+    } catch (e) {
+      debugPrint("Error saving chat session: $e");
+    }
+  }
+
+  void _loadChatSession(String chatId, String title, List<dynamic> messagesData) {
+    setState(() {
+      _currentChatId = chatId;
+      _messages.clear();
+      for (final m in messagesData) {
+        if (m is Map) {
+          _messages.add(_ChatMessage(
+            text: m['text'] as String? ?? '',
+            isUser: m['isUser'] as bool? ?? false,
+          ));
+        }
+      }
+      _isGenerating = false;
+    });
+    _scrollToBottom();
+  }
+
+  void _startNewChat() {
+    setState(() {
+      _currentChatId = null;
+      _messages.clear();
+      _messages.add(
+        const _ChatMessage(
+          text: '¡Hola! Soy tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?',
+          isUser: false,
+        ),
+      );
+      _isGenerating = false;
+    });
+    _scrollToBottom();
   }
 
   /// Converts provider/API errors into concise user-facing guidance.
@@ -281,13 +366,154 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     );
   }
 
+  Widget _buildHistoryDrawer(BuildContext context) {
+    final authService = context.watch<AuthService>();
+    final firestoreService = context.watch<FirestoreService>();
+    final user = authService.currentUser;
+
+    return Drawer(
+      child: Column(
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: _chatGradient,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.chat_bubble_outline_rounded, size: 48, color: Colors.white),
+                  SizedBox(height: 10),
+                  Text(
+                    'Historial de Chats',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.add, color: Color(0xFF2296F3)),
+            title: const Text(
+              'Nuevo Chat',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2296F3),
+              ),
+            ),
+            onTap: () {
+              _startNewChat();
+              Navigator.of(context).pop();
+            },
+          ),
+          const Divider(),
+          Expanded(
+            child: user == null
+                ? const Center(child: Text('Inicia sesión para ver tu historial.'))
+                : StreamBuilder<QuerySnapshot>(
+                    stream: firestoreService.getChatSessionsStream(user.uid),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'No hay chats anteriores.',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        );
+                      }
+
+                      final docs = snapshot.data!.docs;
+
+                      return ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: docs.length,
+                        itemBuilder: (context, index) {
+                          final doc = docs[index];
+                          final data = doc.data() as Map<String, dynamic>;
+                          final title = data['title'] as String? ?? 'Sin título';
+                          final messages = data['messages'] as List<dynamic>? ?? [];
+                          final isSelected = _currentChatId == doc.id;
+
+                          return ListTile(
+                            leading: Icon(
+                              Icons.chat_rounded,
+                              color: isSelected ? const Color(0xFF2296F3) : Colors.grey,
+                            ),
+                            title: Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                color: isSelected ? const Color(0xFF2296F3) : Colors.black87,
+                              ),
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
+                              onPressed: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Eliminar chat'),
+                                    content: const Text('¿Estás seguro de que quieres eliminar esta conversación?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop(false),
+                                        child: const Text('Cancelar'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop(true),
+                                        child: const Text('Eliminar'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (confirm == true) {
+                                  await firestoreService.deleteChatSession(user.uid, doc.id);
+                                  if (_currentChatId == doc.id) {
+                                    _startNewChat();
+                                  }
+                                }
+                              },
+                            ),
+                            onTap: () {
+                              _loadChatSession(doc.id, title, messages);
+                              Navigator.of(context).pop();
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFEFEFEF),
+      drawer: _buildHistoryDrawer(context),
       appBar: AppBar(
         elevation: 0,
         titleSpacing: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Row(
           children: [
             Container(
@@ -317,6 +543,15 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
             ),
           ],
         ),
+        actions: [
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.history_rounded),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [
@@ -330,10 +565,8 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                   bottomRight: Radius.circular(28),
                 ),
               ),
-              // Eliminamos el ShaderMask y dejamos el ListView directamente
               child: ListView.builder(
                 controller: _scrollController,
-                // Mantenemos un padding para que el primer y último mensaje no toquen los bordes
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
                 itemCount: _messages.length,
                 itemBuilder: (context, index) {
@@ -431,7 +664,6 @@ class _AnimatedTypingDotsState extends State<_AnimatedTypingDots> {
   @override
   void initState() {
     super.initState();
-    // Cycles opacity across 3 dots to mimic an animated ellipsis typing state.
     _timer = Timer.periodic(const Duration(milliseconds: 260), (_) {
       if (!mounted) {
         return;

@@ -21,6 +21,9 @@ class _OpcionesPageState extends State<OpcionesPage> {
   // Estado para la duración del aplazamiento
   int _snoozeDuration = 10;
   final List<int> _snoozeOptions = [1, 5, 10, 15, 20, 30]; // Opciones en minutos
+  
+  // Estado para el diseño de calendario
+  String _calendarFormatStr = 'weekly';
   // --- FIN DE LA MODIFICACIÓN ---
 
   @override
@@ -35,10 +38,11 @@ class _OpcionesPageState extends State<OpcionesPage> {
     if (!mounted) return;
     final preferenceService = context.read<PreferenceService>();
     
-    // Cargamos ambas preferencias en paralelo
+    // Cargamos preferencias en paralelo
     final results = await Future.wait([
       preferenceService.getNotificationMode(),
       preferenceService.getSnoozeDuration(),
+      preferenceService.getCalendarFormat(),
     ]);
 
     if (mounted) {
@@ -46,9 +50,30 @@ class _OpcionesPageState extends State<OpcionesPage> {
         // CORRECCIÓN: Hacemos un 'cast' explícito al tipo de dato correcto
         _notificacionesActivas = results[0] as bool;
         _snoozeDuration = results[1] as int;
+        _calendarFormatStr = results[2] as String;
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _onCalendarFormatChanged(String? newValue) async {
+    if (newValue == null) return;
+    
+    setState(() {
+      _calendarFormatStr = newValue;
+    });
+    
+    final preferenceService = context.read<PreferenceService>();
+    await preferenceService.saveCalendarFormat(newValue);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Diseño de calendario guardado.'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
   // --- FIN DE LA MODIFICACIÓN ---
 
@@ -96,6 +121,7 @@ class _OpcionesPageState extends State<OpcionesPage> {
     final preferenceService = context.read<PreferenceService>();
     await preferenceService.saveSnoozeDuration(newDuration);
 
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Tiempo de aplazamiento guardado.'),
@@ -116,16 +142,105 @@ class _OpcionesPageState extends State<OpcionesPage> {
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
-                SwitchListTile(
-                  title: const Text('Notificaciones Activas'),
-                  subtitle: Text(
-                    _notificacionesActivas
-                        ? 'Recibirás notificaciones con acciones.'
-                        : 'Las dosis se marcarán como tomadas automáticamente.',
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.notifications_active_outlined, color: Colors.grey),
+                          const SizedBox(width: 16),
+                          Text(
+                            'Modo de Notificación',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          _buildNotificationOptionCard(
+                            activeMode: true,
+                            title: 'Modo Activo',
+                            subtitle: 'Recibe alertas y toma acciones',
+                            preview: Builder(
+                              builder: (context) {
+                                final primaryColor = const Color(0xFF2296F3);
+                                final isSelected = _notificacionesActivas == true;
+                                return Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.notifications_active, size: 14, color: isSelected ? primaryColor : Colors.grey),
+                                        const SizedBox(width: 4),
+                                        Container(width: 35, height: 4, color: Colors.grey.shade300),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                      children: [
+                                        Container(
+                                          width: 32,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            color: isSelected ? primaryColor.withOpacity(0.15) : Colors.grey.shade200,
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Center(child: Container(width: 16, height: 2, color: isSelected ? primaryColor : Colors.grey)),
+                                        ),
+                                        Container(
+                                          width: 32,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            color: isSelected ? primaryColor.withOpacity(0.15) : Colors.grey.shade200,
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Center(child: Container(width: 16, height: 2, color: isSelected ? primaryColor : Colors.grey)),
+                                        ),
+                                      ],
+                                    )
+                                  ],
+                                );
+                              }
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          _buildNotificationOptionCard(
+                            activeMode: false,
+                            title: 'Modo Automático',
+                            subtitle: 'Se marcan como tomadas',
+                            preview: Builder(
+                              builder: (context) {
+                                final primaryColor = const Color(0xFF2296F3);
+                                final isSelected = _notificacionesActivas == false;
+                                return Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.check_circle, size: 16, color: isSelected ? primaryColor : Colors.grey),
+                                        const SizedBox(width: 6),
+                                        Container(width: 35, height: 4, color: Colors.grey.shade300),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Container(width: 50, height: 3, color: Colors.grey.shade200),
+                                  ],
+                                );
+                              }
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  value: _notificacionesActivas,
-                  onChanged: _isRescheduling ? null : _onNotificationModeChanged,
-                  secondary: const Icon(Icons.notifications_active_outlined),
                 ),
                 const Divider(),
                 // --- INICIO DE LA MODIFICACIÓN ---
@@ -144,9 +259,213 @@ class _OpcionesPageState extends State<OpcionesPage> {
                     onChanged: _onSnoozeDurationChanged,
                   ),
                 ),
+                const Divider(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_month_outlined, color: Colors.grey),
+                          const SizedBox(width: 16),
+                          Text(
+                            'Diseño de Calendario',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          _buildCalendarOptionCard(
+                            id: 'weekly',
+                            title: 'Semanal',
+                            subtitle: '1 fila',
+                            previewRows: 1,
+                          ),
+                          const SizedBox(width: 10),
+                          _buildCalendarOptionCard(
+                            id: 'biweekly',
+                            title: 'Quincenal',
+                            subtitle: '2 filas',
+                            previewRows: 2,
+                          ),
+                          const SizedBox(width: 10),
+                          _buildCalendarOptionCard(
+                            id: 'monthly',
+                            title: 'Mensual',
+                            subtitle: 'Completo',
+                            previewRows: 4,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
                 // --- FIN DE LA MODIFICACIÓN ---
               ],
             ),
+    );
+  }
+
+  Widget _buildCalendarOptionCard({
+    required String id,
+    required String title,
+    required String subtitle,
+    required int previewRows,
+  }) {
+    final isSelected = _calendarFormatStr == id;
+    final primaryColor = const Color(0xFF2296F3);
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _onCalendarFormatChanged(id),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isSelected ? primaryColor.withOpacity(0.05) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? primaryColor : Colors.grey.shade300,
+              width: isSelected ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Mini Preview representation
+              Container(
+                height: 48,
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(previewRows, (r) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: List.generate(7, (c) {
+                        final isToday = r == 0 && c == 3; // Highlight one dot as today
+                        return Container(
+                          width: 5,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isToday
+                                ? primaryColor
+                                : (isSelected ? primaryColor.withOpacity(0.3) : Colors.grey.shade300),
+                          ),
+                        );
+                      }),
+                    );
+                  }),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: isSelected ? primaryColor : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationOptionCard({
+    required bool activeMode,
+    required String title,
+    required String subtitle,
+    required Widget preview,
+  }) {
+    final isSelected = _notificacionesActivas == activeMode;
+    final primaryColor = const Color(0xFF2296F3);
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: _isRescheduling ? null : () => _onNotificationModeChanged(activeMode),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isSelected ? primaryColor.withOpacity(0.05) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? primaryColor : Colors.grey.shade300,
+              width: isSelected ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Preview representation
+              Container(
+                height: 54,
+                width: double.infinity,
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: preview,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: isSelected ? primaryColor : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

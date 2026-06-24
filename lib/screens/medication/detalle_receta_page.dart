@@ -267,6 +267,9 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     return TreatmentFormData(
       nombreMedicamento: widget.tratamiento.nombreMedicamento,
       presentacion: widget.tratamiento.presentacion,
+      cantidadActual: widget.tratamiento.cantidadActual,
+      cantidadTotalCaja: widget.tratamiento.cantidadTotalCaja,
+      dosisPorToma: widget.tratamiento.dosisPorToma,
       horaPrimeraDosis: widget.tratamiento.horaPrimeraDosis,
       intervaloDosis: widget.tratamiento.intervaloDosis.inHours,
       duracionNumero: duracionNumero,

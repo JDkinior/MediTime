@@ -8,6 +8,18 @@ class PreferenceService {
   static const String _currentUserIdKey = 'current_user_id';
   static const String _revokedTreatmentsKey = 'revoked_treatments'; // String list of "userId|docId"
   static const String _tutorialShownPrefix = 'tutorial_shown_';
+  static const String _calendarFormatKey = 'calendar_format_string';
+
+  Future<void> saveCalendarFormat(String format) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_calendarFormatKey, format);
+  }
+
+  Future<String> getCalendarFormat() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getString(_calendarFormatKey) ?? 'weekly';
+  }
 
   Future<void> saveNotificationMode(bool isActive) async {
     final prefs = await SharedPreferences.getInstance();

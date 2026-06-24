@@ -13,6 +13,8 @@ import 'package:meditime/services/storage_service.dart';
 import 'package:meditime/notifiers/profile_notifier.dart'; // Se importa el notifier
 import 'package:meditime/theme/app_theme.dart'; // Se importa el tema para estilos consistentes
 import 'package:meditime/screens/shared/localizador_farmacias_page.dart';
+import 'package:meditime/widgets/treatment_form/form_field_wrapper.dart';
+import 'package:meditime/screens/medication/paciente_receta_page.dart';
 
 class PerfilPage extends StatefulWidget {
   final bool isEditing;
@@ -49,7 +51,6 @@ class _PerfilPageState extends State<PerfilPage> {
   bool _isPickingImage = false;
   bool _isSaving = false;
 
-  // Variables para guardar el estado original y poder cancelar la edición
   String? _originalName;
   String? _originalPhone;
   String? _originalEmail;
@@ -59,6 +60,11 @@ class _PerfilPageState extends State<PerfilPage> {
   String? _originalMedications;
   String? _originalMedicalHistory;
   String? _originalProfileImageUrl;
+
+  String? _patientEmail;
+  String? _patientUid;
+  String? _caregiverUid;
+  final TextEditingController _caregiverPatientEmailController = TextEditingController();
 
   bool _isDeprecatedFirebaseStorageUrl(String? url) {
     return url != null && url.contains('firebasestorage.googleapis.com');
@@ -95,6 +101,7 @@ class _PerfilPageState extends State<PerfilPage> {
     _allergiesController.dispose();
     _medicationsController.dispose();
     _medicalHistoryController.dispose();
+    _caregiverPatientEmailController.dispose();
     super.dispose();
   }
 
@@ -141,6 +148,10 @@ class _PerfilPageState extends State<PerfilPage> {
         _originalAllergies = profileData?['allergies'] ?? '';
         _originalMedications = profileData?['medications'] ?? '';
         _originalMedicalHistory = profileData?['medicalHistory'] ?? '';
+        
+        _patientEmail = profileData?['patientEmail'];
+        _patientUid = profileData?['patientUid'];
+        _caregiverUid = profileData?['caregiverUid'];
 
         _resetToOriginalData();
       });
@@ -374,6 +385,9 @@ class _PerfilPageState extends State<PerfilPage> {
             ),
 
             const SizedBox(height: 20),
+            _buildCaregiverSection(),
+
+            const SizedBox(height: 20),
             _buildNearbyPharmaciesOption(),
 
             const SizedBox(height: 30),
@@ -604,5 +618,136 @@ class _PerfilPageState extends State<PerfilPage> {
         ),
       );
     }
+  }
+
+  Widget _buildCaregiverSection() {
+    final firestoreService = context.read<FirestoreService>();
+    final authService = context.read<AuthService>();
+    final user = authService.currentUser;
+
+    if (user == null) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Modo Cuidador'),
+        const SizedBox(height: 12),
+        if (_caregiverUid != null) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.security, color: Colors.blue),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Tu cuenta está siendo supervisada por tu cuidador asignado.',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (_patientEmail != null) ...[
+          Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            color: Colors.green.withValues(alpha: 0.1),
+            child: ListTile(
+              leading: const Icon(Icons.favorite, color: Colors.green),
+              title: Text('Paciente: $_patientEmail'),
+              subtitle: const Text('Puedes supervisar sus tratamientos activos.'),
+              trailing: PopupMenuButton<int>(
+                onSelected: (val) async {
+                  if (val == 0) {
+                    if (_patientUid != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PacienteRecetaPage(
+                            patientUid: _patientUid!,
+                            patientEmail: _patientEmail!,
+                          ),
+                        ),
+                      );
+                    }
+                  } else if (val == 1) {
+                    try {
+                      setState(() => _isSaving = true);
+                      await firestoreService.unlinkPatient(user.uid);
+                      await _loadProfileData();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Paciente desvinculado con éxito.')),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                      );
+                    } finally {
+                      setState(() => _isSaving = false);
+                    }
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 0, child: Text('Ver Recetas')),
+                  const PopupMenuItem(value: 1, child: Text('Desvincular', style: TextStyle(color: Colors.red))),
+                ],
+              ),
+            ),
+          ),
+        ] else ...[
+          const Text(
+            'Si eres cuidador de un familiar, ingresa su correo electrónico para supervisar su cumplimiento de dosis en tiempo real.',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _caregiverPatientEmailController,
+                  decoration: AppInputDecoration.withHint('Correo del paciente'),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: _isSaving ? null : () async {
+                  final email = _caregiverPatientEmailController.text.trim();
+                  if (email.isEmpty) return;
+                  try {
+                    setState(() => _isSaving = true);
+                    await firestoreService.linkPatient(user.uid, email);
+                    _caregiverPatientEmailController.clear();
+                    await _loadProfileData();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Paciente vinculado con éxito.')),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                    );
+                  } finally {
+                    setState(() => _isSaving = false);
+                  }
+                },
+                child: const Text('Vincular'),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
   }
 }

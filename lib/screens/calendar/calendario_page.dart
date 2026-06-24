@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:meditime/models/tratamiento.dart';
 import 'package:provider/provider.dart';
+import 'package:meditime/services/preference_service.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:meditime/services/auth_service.dart';
@@ -31,9 +32,10 @@ class CalendarioPage extends StatelessWidget {
                 child: Text('Inicia sesión para ver el calendario.'),
               )
               : StreamBuilder<List<Tratamiento>>(
+                initialData: firestoreService.getCachedMedicamentos(user.uid),
                 stream: firestoreService.getMedicamentosStream(user.uid),
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+                  if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                     return const EstadoVista(
                       state: ViewState.loading,
                       child: SizedBox.shrink(),
@@ -160,9 +162,10 @@ class _CalendarioContenido extends StatefulWidget {
 }
 
 class _CalendarioContenidoState extends State<_CalendarioContenido> {
-  CalendarFormat _calendarFormat = CalendarFormat.month;
+  CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+  Animation<double>? _secondaryAnimation;
 
   // Cache to store doses grouped by day.
   final Map<DateTime, Map<Tratamiento, List<Map<String, dynamic>>>> _dayCache =
@@ -176,6 +179,47 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
     _selectedDay = _focusedDay;
     // Initially populate the cache for the current month.
     _populateCacheForMonth(_focusedDay);
+    _loadCalendarFormatSetting();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final newAnim = ModalRoute.of(context)?.secondaryAnimation;
+    if (newAnim != _secondaryAnimation) {
+      _secondaryAnimation?.removeStatusListener(_onAnimationStatusChanged);
+      _secondaryAnimation = newAnim;
+      _secondaryAnimation?.addStatusListener(_onAnimationStatusChanged);
+    }
+  }
+
+  void _onAnimationStatusChanged(AnimationStatus status) {
+    if (status == AnimationStatus.dismissed) {
+      // Returned to this screen! Reload settings.
+      _loadCalendarFormatSetting();
+    }
+  }
+
+  @override
+  void dispose() {
+    _secondaryAnimation?.removeStatusListener(_onAnimationStatusChanged);
+    super.dispose();
+  }
+
+  Future<void> _loadCalendarFormatSetting() async {
+    final preferenceService = context.read<PreferenceService>();
+    final formatStr = await preferenceService.getCalendarFormat();
+    if (mounted) {
+      setState(() {
+        if (formatStr == 'weekly') {
+          _calendarFormat = CalendarFormat.week;
+        } else if (formatStr == 'biweekly') {
+          _calendarFormat = CalendarFormat.twoWeeks;
+        } else if (formatStr == 'monthly') {
+          _calendarFormat = CalendarFormat.month;
+        }
+      });
+    }
   }
 
   @override

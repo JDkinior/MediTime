@@ -10,7 +10,7 @@ import 'package:meditime/screens/calendar/calendario_page.dart';
 import 'package:meditime/screens/profile/perfil_page.dart';
 import 'package:meditime/screens/medication/receta_page.dart';
 import 'package:meditime/screens/shared/ayuda_page.dart';
-import 'package:meditime/views/chat_bot_screen.dart';
+import 'package:meditime/screens/chat/chat_bot_screen.dart';
 import 'package:meditime/widgets/drawer_widget.dart';
 
 class HomePage extends StatefulWidget {

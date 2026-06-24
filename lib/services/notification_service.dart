@@ -17,6 +17,9 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/firebase_options.dart';
 
+import 'package:meditime/core/navigator_key.dart';
+import 'package:meditime/screens/medication/detalle_receta_page.dart';
+
 @pragma('vm:entry-point')
 Future<void> handleNotificationActionBackground(
   NotificationResponse notificationResponse,
@@ -26,31 +29,40 @@ Future<void> handleNotificationActionBackground(
   print('🔥 ID: ${notificationResponse.id ?? "NULL"}');
   print('🔥 PAYLOAD: ${notificationResponse.payload ?? "NULL"}');
   
-  // VERSIÓN SIMPLIFICADA PARA EVITAR ERRORES DE INICIALIZACIÓN
   try {
-    // Asegura que los plugins estén registrados en el isolate en segundo plano
     DartPluginRegistrant.ensureInitialized();
     WidgetsFlutterBinding.ensureInitialized();
-  // Inicializa el núcleo de notificaciones en este isolate antes de cancelar/mostrar
-  await NotificationService.initializeCore();
+    await NotificationService.initializeCore();
     final payload = notificationResponse.payload;
     final actionId = notificationResponse.actionId;
     
-    if (payload == null || actionId == null) {
-      print('🔥 DATOS INVÁLIDOS - SALIENDO');
+    if (payload == null) {
+      print('🔥 PAYLOAD NULO - SALIENDO');
+      return;
+    }
+    
+    // Si el usuario toca el cuerpo de la notificación (no los botones de acción)
+    if (actionId == null) {
+      print('🔥 DEEP LINKING: El usuario pulsó la notificación.');
+      final parts = payload.split('|');
+      if (parts.length >= 3) {
+        final userId = parts[1];
+        final docId = parts[2];
+        final dateTimeStr = parts.length >= 4 ? parts[3] : null;
+        
+        NotificationService._navigateToDetail(userId, docId, dateTimeStr);
+      }
       return;
     }
     
     print('🔥 PROCESANDO ACCIÓN: $actionId');
     
-    // Cancelar la notificación inmediatamente
     if (notificationResponse.id != null) {
       await NotificationService.cancelFlutterLocalNotificationById(notificationResponse.id!);
       print('🔥 NOTIFICACIÓN CANCELADA');
     }
     
-    // Delegar el procesamiento complejo a otro método
-  await NotificationService.processNotificationActionAsync(
+    await NotificationService.processNotificationActionAsync(
       payload: payload,
       actionId: actionId,
       notificationId: notificationResponse.id,
@@ -1185,6 +1197,27 @@ class NotificationService {
       }
     } catch (e) {
       debugPrint('ERROR verificando lanzamiento por notificación: $e');
+    }
+  }
+
+  static void _navigateToDetail(String userId, String docId, String? dateTimeStr) async {
+    try {
+      final doc = await FirestoreService().getMedicamentoDocRef(userId, docId).get();
+      if (doc.exists) {
+        final tratamiento = Tratamiento.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
+        final date = dateTimeStr != null ? DateTime.tryParse(dateTimeStr) ?? DateTime.now() : DateTime.now();
+        
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => DetalleRecetaPage(
+              tratamiento: tratamiento,
+              horaDosis: date,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error en Deep Linking de notificación: $e');
     }
   }
 }

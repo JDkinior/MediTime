@@ -203,9 +203,10 @@ class _RecetaPageState extends State<RecetaPage> {
       body: user == null
           ? const Center(child: Text('Inicia sesión para ver tus recetas.'))
           : StreamBuilder<List<Tratamiento>>(
+              initialData: firestoreService.getCachedMedicamentos(user.uid),
               stream: firestoreService.getMedicamentosStream(user.uid),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                   return const EstadoVista(state: ViewState.loading, child: SizedBox.shrink());
                 }
                 if (snapshot.hasError) {

@@ -1,9 +1,14 @@
 // lib/screens/medication/agregar_receta_page.dart
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:meditime/services/gemini_service.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/screens/shared/guia_optimizacion_page.dart';
 import 'package:meditime/notifiers/treatment_form_notifier.dart';
+import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/widgets/treatment_form/form_field_wrapper.dart';
 import 'package:meditime/widgets/treatment_form/duration_selector.dart';
 import 'package:meditime/widgets/treatment_form/treatment_summary_card.dart';
@@ -20,6 +25,9 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
   final PageController _pageController = PageController();
   bool _isAnimating = false;
 
+  Timer? _timeUpdateTimer;
+  bool _userInteractedWithTime = false;
+
   // Controladores de texto
   final TextEditingController _nombreMedicamentoController =
       TextEditingController();
@@ -33,7 +41,28 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
   final TextEditingController _notasController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _startPeriodicTimeUpdater();
+  }
+
+  void _startPeriodicTimeUpdater() {
+    _timeUpdateTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (!mounted) return;
+      if (!_userInteractedWithTime) {
+        final notifier = context.read<TreatmentFormNotifier>();
+        final now = TimeOfDay.now();
+        if (notifier.formData.horaPrimeraDosis.hour != now.hour ||
+            notifier.formData.horaPrimeraDosis.minute != now.minute) {
+          notifier.updateHoraPrimeraDosis(now);
+        }
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _timeUpdateTimer?.cancel();
     _nombreMedicamentoController.dispose();
     _cantidadActualController.dispose();
     _cantidadTotalController.dispose();
@@ -79,6 +108,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
       // Reiniciar el estado de la página al primer paso
       setState(() {
         _currentStep = 0;
+        _userInteractedWithTime = false;
       });
 
       // Volver al primer paso visualmente
@@ -139,12 +169,175 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
     );
   }
 
+  String _normalizePresentacion(String rawValue) {
+    final clean = rawValue.trim().toLowerCase();
+    if (clean.contains('comprimido') || clean.contains('pastilla') || clean.contains('tableta')) {
+      return 'Comprimidos';
+    } else if (clean.contains('gragea')) {
+      return 'Grageas';
+    } else if (clean.contains('cápsula') || clean.contains('capsula')) {
+      return 'Cápsulas';
+    } else if (clean.contains('sobre')) {
+      return 'Sobres';
+    } else if (clean.contains('jarabe')) {
+      return 'Jarabes';
+    } else if (clean.contains('gota')) {
+      return 'Gotas';
+    } else if (clean.contains('suspension') || clean.contains('suspensión')) {
+      return 'Suspensiones';
+    } else if (clean.contains('emulsion') || clean.contains('emulsión')) {
+      return 'Emulsiones';
+    }
+    return 'Comprimidos';
+  }
+
+  void _parseAndSetDuracion(String durString, TreatmentFormNotifier notifier) {
+    final clean = durString.toLowerCase();
+    if (clean.contains('continuo') || clean.contains('indefinido')) {
+      notifier.updateEsIndefinido(true);
+      return;
+    }
+    final regExp = RegExp(r'\d+');
+    final match = regExp.firstMatch(clean);
+    if (match != null) {
+      final number = int.tryParse(match.group(0)!);
+      if (number != null) {
+        notifier.updateDuracionNumero(number);
+        _duracionController.text = number.toString();
+        if (clean.contains('mes') || clean.contains('month')) {
+          notifier.updateDuracionUnidad(DurationUnit.months);
+        } else if (clean.contains('año') || clean.contains('year')) {
+          notifier.updateDuracionUnidad(DurationUnit.years);
+        } else {
+          notifier.updateDuracionUnidad(DurationUnit.days);
+        }
+      }
+    }
+  }
+
+  Future<void> _scanPrescriptionWithAI(TreatmentFormNotifier notifier) async {
+    final picker = ImagePicker();
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Cámara'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Galería'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    final image = await picker.pickImage(source: source);
+    if (image == null) return;
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Expanded(child: Text('Analizando receta con IA de Groq...')),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final bytes = await image.readAsBytes();
+      final base64Image = base64Encode(bytes);
+      final extension = image.path.split('.').last.toLowerCase();
+      final mimeType = extension == 'png' ? 'image/png' : 'image/jpeg';
+
+      final geminiService = context.read<GeminiService>();
+      final result = await geminiService.analyzePrescriptionImage(base64Image, mimeType);
+
+      if (result != null && mounted) {
+        Navigator.pop(context); // Close loading dialog
+
+        if (result['nombreMedicamento'] != null) {
+          notifier.updateNombreMedicamento(result['nombreMedicamento']);
+          _nombreMedicamentoController.text = result['nombreMedicamento'];
+        }
+        if (result['presentacion'] != null) {
+          final normalized = _normalizePresentacion(result['presentacion']);
+          notifier.updatePresentacion(normalized);
+        }
+        if (result['notas'] != null) {
+          notifier.updateNotas(result['notas']);
+          _notasController.text = result['notas'];
+        }
+        if (result['intervaloDosis'] != null) {
+          final intVal = int.tryParse(result['intervaloDosis'].toString());
+          if (intVal != null) {
+            notifier.updateIntervaloDosis(intVal);
+            _dosisController.text = intVal.toString();
+          }
+        }
+        if (result['dosisPorToma'] != null) {
+          final intVal = int.tryParse(result['dosisPorToma'].toString());
+          if (intVal != null) {
+            notifier.updateDosisPorToma(intVal);
+            _dosisPorTomaController.text = intVal.toString();
+          }
+        }
+        if (result['duracion'] != null) {
+          _parseAndSetDuracion(result['duracion'].toString(), notifier);
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Receta analizada con éxito. Formulario completado.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        if (mounted) Navigator.pop(context);
+        throw Exception('No se pudo extraer información de la receta.');
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al analizar la receta: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<TreatmentFormNotifier>(
       builder: (context, notifier, child) {
         return Scaffold(
-          appBar: AppBar(title: const Text('Agregar Receta')),
+          appBar: AppBar(
+            title: const Text('Agregar Receta'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.document_scanner),
+                tooltip: 'Escanear receta con IA',
+                onPressed: () => _scanPrescriptionWithAI(notifier),
+              ),
+            ],
+          ),
           body: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -375,9 +568,14 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                 ),
                 is24HourMode: false,
                 onTimeChange: (time) {
-                  notifier.updateHoraPrimeraDosis(
-                    TimeOfDay(hour: time.hour, minute: time.minute),
-                  );
+                  final selectedTime = TimeOfDay(hour: time.hour, minute: time.minute);
+                  if (selectedTime.hour != notifier.formData.horaPrimeraDosis.hour ||
+                      selectedTime.minute != notifier.formData.horaPrimeraDosis.minute) {
+                    setState(() {
+                      _userInteractedWithTime = true;
+                    });
+                    notifier.updateHoraPrimeraDosis(selectedTime);
+                  }
                 },
               ),
             ),

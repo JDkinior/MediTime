@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/services/tratamiento_service.dart';
+import 'package:meditime/core/stream_cache.dart';
 
 /// Servicio para interactuar con la base de datos de Cloud Firestore.
 ///
@@ -10,6 +11,14 @@ import 'package:meditime/services/tratamiento_service.dart';
 /// de la aplicación, como perfiles de usuario y tratamientos.
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final StreamCache<String, List<Tratamiento>> _medicamentosCache = StreamCache<String, List<Tratamiento>>();
+
+  FirestoreService() {
+    _db.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+  }
 
   // --- Perfil de Usuario ---
 
@@ -36,22 +45,25 @@ class FirestoreService {
   /// El `Stream` se actualiza automáticamente cuando hay cambios en Firestore.
   /// Transforma los documentos de Firestore en una lista de objetos `Tratamiento`.
   Stream<List<Tratamiento>> getMedicamentosStream(String userId) {
-    final stream =
-        _db
-            .collection('medicamentos')
-            .doc(userId)
-            .collection('userMedicamentos')
-            .snapshots();
-
-    // Usamos .map() para transformar el Stream de QuerySnapshot a un Stream de List<Tratamiento>
-    return stream.map((snapshot) {
-      return snapshot.docs.map((doc) {
-        // Por cada documento, usamos nuestro factory constructor para crear un objeto Tratamiento
-        return Tratamiento.fromFirestore(
-          doc as DocumentSnapshot<Map<String, dynamic>>,
-        );
-      }).toList(); // Convertimos el resultado en una lista
+    return _medicamentosCache.getStream(userId, () {
+      return _db
+          .collection('medicamentos')
+          .doc(userId)
+          .collection('userMedicamentos')
+          .snapshots()
+          .map((snapshot) {
+        return snapshot.docs.map((doc) {
+          return Tratamiento.fromFirestore(
+            doc as DocumentSnapshot<Map<String, dynamic>>,
+          );
+        }).toList();
+      });
     });
+  }
+
+  /// Obtiene los medicamentos de la cache de forma sincrónica.
+  List<Tratamiento>? getCachedMedicamentos(String userId) {
+    return _medicamentosCache.getLastValue(userId);
   }
 
   /// Guarda un nuevo tratamiento en la base de datos para un usuario específico.
@@ -235,5 +247,72 @@ class FirestoreService {
       debugPrint("Firebase transaction error during updateDoseStatus: $e");
       return null;
     }
+  }
+
+  /// Vincula un paciente al cuidador actual usando su correo electrónico
+  Future<void> linkPatient(String userId, String patientEmail) async {
+    final query = await _db.collection('users').where('email', isEqualTo: patientEmail).get();
+    if (query.docs.isEmpty) {
+      throw Exception('No se encontró ningún usuario con ese correo electrónico.');
+    }
+    final patientId = query.docs.first.id;
+    // Guardar en el perfil del cuidador el UID y email del paciente
+    await saveUserProfile(userId, {'patientUid': patientId, 'patientEmail': patientEmail});
+    // Guardar en el perfil del paciente el UID del cuidador
+    await saveUserProfile(patientId, {'caregiverUid': userId});
+  }
+
+  /// Desvincula el paciente del cuidador
+  Future<void> unlinkPatient(String userId) async {
+    final doc = await getUserProfile(userId);
+    if (doc.exists) {
+      final data = doc.data() as Map<String, dynamic>?;
+      final patientId = data?['patientUid'] as String?;
+      if (patientId != null) {
+        await saveUserProfile(patientId, {'caregiverUid': null});
+      }
+    }
+    await saveUserProfile(userId, {'patientUid': null, 'patientEmail': null});
+  }
+
+  // --- Historial de Chat con IA ---
+
+  /// Obtiene la lista de chats ordenados por fecha de actualización
+  Stream<QuerySnapshot> getChatSessionsStream(String userId) {
+    return _db
+        .collection('users')
+        .doc(userId)
+        .collection('chats')
+        .orderBy('lastUpdated', descending: true)
+        .snapshots();
+  }
+
+  /// Guarda una sesión de chat (crea o actualiza)
+  Future<void> saveChatSession(
+    String userId,
+    String chatId,
+    String title,
+    List<Map<String, dynamic>> messages,
+  ) {
+    return _db
+        .collection('users')
+        .doc(userId)
+        .collection('chats')
+        .doc(chatId)
+        .set({
+      'title': title,
+      'lastUpdated': FieldValue.serverTimestamp(),
+      'messages': messages,
+    }, SetOptions(merge: true));
+  }
+
+  /// Elimina una sesión de chat
+  Future<void> deleteChatSession(String userId, String chatId) {
+    return _db
+        .collection('users')
+        .doc(userId)
+        .collection('chats')
+        .doc(chatId)
+        .delete();
   }
 }
