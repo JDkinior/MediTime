@@ -184,29 +184,7 @@ class _ReportesPageState extends State<ReportesPage> {
           ? const Center(child: Text('Inicia sesión para ver tus reportes.'))
           : Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: SegmentedButton<ReportInterval>(
-                    segments: const [
-                      ButtonSegment(value: ReportInterval.semana, label: Text('Semana')),
-                      ButtonSegment(value: ReportInterval.mes, label: Text('Mes')),
-                      ButtonSegment(value: ReportInterval.anio, label: Text('Año')),
-                      ButtonSegment(value: ReportInterval.todo, label: Text('Todo')),
-                    ],
-                    selected: {_selectedInterval},
-                    onSelectionChanged: (Set<ReportInterval> newSelection) {
-                      setState(() {
-                        _selectedInterval = newSelection.first;
-                      });
-                    },
-                    selectedIcon: const SizedBox.shrink(),
-                    style: SegmentedButton.styleFrom(
-                      foregroundColor: Colors.grey.shade600,
-                      selectedForegroundColor: Colors.white,
-                      selectedBackgroundColor: const Color(0xFF4092E4),
-                    ),
-                  ),
-                ),
+          _buildIntervalSelector(),
                 Expanded(
                   // CAMBIO: El StreamBuilder ahora espera una List<Tratamiento>
                   child: StreamBuilder<List<Tratamiento>>(
@@ -269,7 +247,8 @@ class _ReportesPageState extends State<ReportesPage> {
 
   Widget _buildOverallAdherenceCard(int tomadas, int omitidas) {
     final int total = tomadas + omitidas;
-    final double adherencia = total > 0 ? (tomadas / total) * 100 : 0.0;
+    final bool hasData = total > 0;
+    final double adherencia = hasData ? (tomadas / total) * 100 : 0.0;
 
     return RepaintBoundary(
       key: _chartKey,
@@ -296,11 +275,11 @@ class _ReportesPageState extends State<ReportesPage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  "${adherencia.toStringAsFixed(1)}%",
-                  style: const TextStyle(
+                  hasData ? "${adherencia.toStringAsFixed(1)}%" : "N/A",
+                  style: TextStyle(
                     fontSize: 48,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF2F71B6),
+                    color: hasData ? const Color(0xFF2F71B6) : Colors.grey.shade400,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -313,10 +292,17 @@ class _ReportesPageState extends State<ReportesPage> {
             const SizedBox(height: 24),
             SizedBox(
               height: 200,
-              child: AdherenceBarChart(
-                tomadas: tomadas.toDouble(),
-                omitidas: omitidas.toDouble(),
-              ),
+              child: hasData
+                  ? AdherenceBarChart(
+                      tomadas: tomadas.toDouble(),
+                      omitidas: omitidas.toDouble(),
+                    )
+                  : Center(
+                      child: Text(
+                        "Sin datos de tomas en este período",
+                        style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                      ),
+                    ),
             ),
             const Divider(height: 32),
             Row(
@@ -356,9 +342,14 @@ class _ReportesPageState extends State<ReportesPage> {
     final int dosisProgramadas = stats['programadasPasadas']!;
     final int dosisTomadas = stats['tomadas']!;
 
-    final double adherencia = dosisProgramadas > 0
+    final bool tieneDosis = dosisProgramadas > 0;
+    final double adherencia = tieneDosis
         ? (dosisTomadas / dosisProgramadas) * 100
-        : 100.0;
+        : 0.0;
+
+    final progressColor = !tieneDosis
+        ? Colors.grey.shade400
+        : (adherencia > 80 ? kSuccessColor : kErrorColor);
 
     return Card(
       elevation: 2,
@@ -378,22 +369,113 @@ class _ReportesPageState extends State<ReportesPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text("Cumplimiento", style: kBodyTextStyle),
-                Text("${adherencia.toStringAsFixed(1)}%",
-                    style: kPageTitleStyle.copyWith(fontSize: 20)),
+                Text(tieneDosis ? "${adherencia.toStringAsFixed(1)}%" : "N/A",
+                    style: kPageTitleStyle.copyWith(
+                      fontSize: 20,
+                      color: progressColor,
+                    )),
               ],
             ),
             const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: adherencia / 100,
-              backgroundColor: Colors.grey.shade300,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                  adherencia > 80 ? kSuccessColor : kErrorColor),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: tieneDosis ? adherencia / 100 : 0.0,
+                backgroundColor: Colors.grey.shade200,
+                valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+              ),
             ),
             const SizedBox(height: 8),
-            Text("Tomadas: $dosisTomadas / Programadas: $dosisProgramadas",
-                style: kSubtitleTextStyle),
+            Text(
+              tieneDosis
+                  ? "Tomadas: $dosisTomadas / Programadas: $dosisProgramadas"
+                  : "Sin dosis programadas en este período",
+              style: kSubtitleTextStyle,
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildIntervalSelector() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEF2F6), // Slate / light grey
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: ReportInterval.values.map((interval) {
+          final isSelected = _selectedInterval == interval;
+          String text = '';
+          switch (interval) {
+            case ReportInterval.semana:
+              text = 'Semana';
+              break;
+            case ReportInterval.mes:
+              text = 'Mes';
+              break;
+            case ReportInterval.anio:
+              text = 'Año';
+              break;
+            case ReportInterval.todo:
+              text = 'Todo';
+              break;
+          }
+
+          return Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedInterval = interval;
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: isSelected
+                      ? const LinearGradient(
+                          colors: [
+                            Color(0xFF1E3C72),
+                            Color(0xFF2A5298),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  color: isSelected ? null : Colors.transparent,
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF1E3C72).withOpacity(0.2),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      text,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.grey.shade600,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

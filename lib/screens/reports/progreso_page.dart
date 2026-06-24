@@ -169,10 +169,13 @@ class _ProgresoPageState extends State<ProgresoPage> {
     return list;
   }
 
-  Widget _buildAdherenceRingCard(double percentage, int tomadas, int omitidas) {
-    final color = percentage >= 90
-        ? kEmeraldColor
-        : (percentage >= 70 ? Colors.orange : Colors.red);
+  Widget _buildAdherenceRingCard(double? percentage, int tomadas, int omitidas) {
+    final hasData = percentage != null;
+    final color = !hasData
+        ? Colors.grey.shade400
+        : (percentage >= 90
+            ? kEmeraldColor
+            : (percentage >= 70 ? Colors.orange : Colors.red));
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -203,7 +206,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
                 width: 90,
                 height: 90,
                 child: CircularProgressIndicator(
-                  value: percentage / 100,
+                  value: hasData ? percentage / 100 : 0.0,
                   strokeWidth: 10,
                   backgroundColor: Colors.white.withOpacity(0.15),
                   valueColor: AlwaysStoppedAnimation<Color>(color),
@@ -213,7 +216,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    "${percentage.toStringAsFixed(0)}%",
+                    hasData ? "${percentage.toStringAsFixed(0)}%" : "N/A",
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -288,12 +291,16 @@ class _ProgresoPageState extends State<ProgresoPage> {
     );
   }
 
-  Widget _buildStreakAndInsightCard(int racha, double percentage) {
+  Widget _buildStreakAndInsightCard(int racha, double? percentage) {
     String insightText = "";
     Color insightColor = Colors.blue;
     IconData insightIcon = Icons.info_outline;
 
-    if (percentage >= 90) {
+    if (percentage == null) {
+      insightText = "No hay dosis programadas en este período. Registra o activa tus medicamentos para ver tu progreso.";
+      insightColor = Colors.grey.shade500;
+      insightIcon = Icons.info_outline;
+    } else if (percentage >= 90) {
       insightText = "¡Excelente nivel! Tu constancia es la clave para la efectividad de tus tratamientos.";
       insightColor = kEmeraldColor;
       insightIcon = Icons.stars_rounded;
@@ -530,13 +537,16 @@ class _ProgresoPageState extends State<ProgresoPage> {
     final int dosisProgramadas = stats['programadasPasadas']!;
     final int dosisTomadas = stats['tomadas']!;
 
-    final double adherencia = dosisProgramadas > 0
+    final bool tieneDosis = dosisProgramadas > 0;
+    final double adherencia = tieneDosis
         ? (dosisTomadas / dosisProgramadas) * 100
-        : 100.0;
+        : 0.0;
 
-    final progressColor = adherencia >= 90
-        ? kEmeraldColor
-        : (adherencia >= 70 ? Colors.orange : Colors.redAccent);
+    final progressColor = !tieneDosis
+        ? Colors.grey.shade400
+        : (adherencia >= 90
+            ? kEmeraldColor
+            : (adherencia >= 70 ? Colors.orange : Colors.redAccent));
 
     return Card(
       elevation: 0,
@@ -571,7 +581,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    "${adherencia.toStringAsFixed(0)}%",
+                    tieneDosis ? "${adherencia.toStringAsFixed(0)}%" : "N/A",
                     style: TextStyle(
                       color: progressColor,
                       fontWeight: FontWeight.bold,
@@ -585,7 +595,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
-                value: adherencia / 100,
+                value: tieneDosis ? adherencia / 100 : 0.0,
                 minHeight: 8,
                 backgroundColor: Colors.grey.shade100,
                 valueColor: AlwaysStoppedAnimation<Color>(progressColor),
@@ -596,7 +606,9 @@ class _ProgresoPageState extends State<ProgresoPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Dosis: $dosisTomadas de $dosisProgramadas tomadas",
+                  tieneDosis
+                      ? "Dosis: $dosisTomadas de $dosisProgramadas tomadas"
+                      : "Sin dosis programadas en este período",
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade500,
@@ -611,6 +623,88 @@ class _ProgresoPageState extends State<ProgresoPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildIntervalSelector() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEF2F6), // Slate / light grey
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: ProgresoInterval.values.map((interval) {
+          final isSelected = _selectedInterval == interval;
+          String text = '';
+          switch (interval) {
+            case ProgresoInterval.semana:
+              text = 'Semana';
+              break;
+            case ProgresoInterval.mes:
+              text = 'Mes';
+              break;
+            case ProgresoInterval.anio:
+              text = 'Año';
+              break;
+            case ProgresoInterval.todo:
+              text = 'Todo';
+              break;
+          }
+
+          return Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedInterval = interval;
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: isSelected
+                      ? const LinearGradient(
+                          colors: [
+                            Color(0xFF1E3C72),
+                            Color(0xFF2A5298),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  color: isSelected ? null : Colors.transparent,
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF1E3C72).withOpacity(0.2),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      text,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.grey.shade600,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -632,29 +726,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
       backgroundColor: const Color(0xFFF8F9FD),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-            child: SegmentedButton<ProgresoInterval>(
-              segments: const [
-                ButtonSegment(value: ProgresoInterval.semana, label: Text('Semana')),
-                ButtonSegment(value: ProgresoInterval.mes, label: Text('Mes')),
-                ButtonSegment(value: ProgresoInterval.anio, label: Text('Año')),
-                ButtonSegment(value: ProgresoInterval.todo, label: Text('Todo')),
-              ],
-              selected: {_selectedInterval},
-              onSelectionChanged: (Set<ProgresoInterval> newSelection) {
-                setState(() {
-                  _selectedInterval = newSelection.first;
-                });
-              },
-              selectedIcon: const SizedBox.shrink(),
-              style: SegmentedButton.styleFrom(
-                foregroundColor: Colors.grey.shade600,
-                selectedForegroundColor: Colors.white,
-                selectedBackgroundColor: const Color(0xFF4092E4),
-              ),
-            ),
-          ),
+          _buildIntervalSelector(),
           Expanded(
             child: StreamBuilder<List<Tratamiento>>(
               initialData: firestoreService.getCachedMedicamentos(user.uid),
@@ -691,9 +763,9 @@ class _ProgresoPageState extends State<ProgresoPage> {
                   totalDosisTomadas += stats['tomadas']!;
                 }
 
-                final double adherencia = totalDosisProgramadas > 0
+                final double? adherencia = totalDosisProgramadas > 0
                     ? (totalDosisTomadas / totalDosisProgramadas) * 100
-                    : 100.0;
+                    : null;
 
                 final racha = _calcularRacha(todosLosTratamientos);
                 final dosisDeHoy = _obtenerDosisDeHoy(todosLosTratamientos);
