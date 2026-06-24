@@ -11,9 +11,13 @@ import 'package:meditime/screens/chat/chat_bot_screen.dart';
 
 class CustomDrawer extends StatelessWidget {
   final VoidCallback onLogout;
-  // Se eliminan nameParts y profileImagePath del constructor
+  final VoidCallback? onStartTutorial;
 
-  const CustomDrawer({super.key, required this.onLogout});
+  const CustomDrawer({
+    super.key,
+    required this.onLogout,
+    this.onStartTutorial,
+  });
 
   String _obtenerSaludo() {
     return AppUtils.getTimeBasedGreeting();
@@ -35,16 +39,18 @@ class CustomDrawer extends StatelessWidget {
         !_isDeprecatedFirebaseStorageUrl(profileImagePath);
 
     return Drawer(
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topRight: Radius.circular(16),
+          bottomRight: Radius.circular(16),
+        ),
+      ),
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
           DrawerHeader(
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF3FB8EE), Color(0xFF4092E4)],
-              ),
+              gradient: AppTheme.primaryGradient,
             ),
             child: Row(
               children: [
@@ -119,6 +125,16 @@ class CustomDrawer extends StatelessWidget {
                 context,
                 MaterialPageRoute(builder: (context) => const AyudaPage()),
               );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.school_outlined),
+            title: const Text('Tutorial'),
+            onTap: () {
+              Navigator.pop(context);
+              if (onStartTutorial != null) {
+                onStartTutorial!();
+              }
             },
           ),
           ListTile(

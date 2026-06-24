@@ -1,3 +1,4 @@
+// lib/screens/reports/progreso_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/models/tratamiento.dart';
@@ -8,8 +9,7 @@ import 'package:meditime/enums/view_state.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'adherencia_chart.dart';
 import 'package:meditime/services/tratamiento_service.dart';
-
-const Color kEmeraldColor = Color(0xFF10B981);
+import 'package:intl/intl.dart';
 
 enum ProgresoInterval { semana, mes, anio, todo }
 
@@ -106,6 +106,74 @@ class _ProgresoPageState extends State<ProgresoPage> {
     };
   }
 
+  Map<String, int> _calcularEstadisticasCompletasDelDia(Tratamiento tratamiento, Map<String, DateTime> dateRange) {
+    int tomadas = 0;
+    int totalProgramadas = 0;
+
+    final start = dateRange['start']!;
+    final end = dateRange['end']!;
+
+    if (tratamiento.doseStatus.isEmpty) {
+      final todasLasDosis = TratamientoService().generarDosisTotales(tratamiento);
+      for (var doseTime in todasLasDosis) {
+        if (!doseTime.isBefore(start) && !doseTime.isAfter(end)) {
+          totalProgramadas++;
+        }
+      }
+    } else {
+      tratamiento.doseStatus.forEach((key, status) {
+        final doseTime = DateTime.parse(key);
+        if (!doseTime.isBefore(start) && !doseTime.isAfter(end)) {
+          totalProgramadas++;
+          if (status == DoseStatus.tomada) {
+            tomadas++;
+          }
+        }
+      });
+    }
+
+    return {
+      'tomadas': tomadas,
+      'totalProgramadas': totalProgramadas,
+    };
+  }
+
+  List<double> _calcularCumplimientoSemanal(List<Tratamiento> tratamientos) {
+    final now = DateTime.now();
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final startOfWeek = DateTime(monday.year, monday.month, monday.day);
+
+    List<double> porcentajes = [];
+
+    for (int i = 0; i < 7; i++) {
+      final day = startOfWeek.add(Duration(days: i));
+      final dayStart = DateTime(day.year, day.month, day.day, 0, 0, 0);
+      final dayEnd = DateTime(day.year, day.month, day.day, 23, 59, 59);
+
+      int tomadas = 0;
+      int programadas = 0;
+
+      for (var t in tratamientos) {
+        final range = {'start': dayStart, 'end': dayEnd};
+        final stats = _calcularEstadisticasCompletasDelDia(t, range);
+        tomadas += stats['tomadas']!;
+        programadas += stats['totalProgramadas']!;
+      }
+
+      if (programadas > 0) {
+        porcentajes.add((tomadas / programadas) * 100);
+      } else {
+        if (day.isAfter(now)) {
+          porcentajes.add(0.0);
+        } else {
+          porcentajes.add(100.0);
+        }
+      }
+    }
+
+    return porcentajes;
+  }
+
   int _calcularRacha(List<Tratamiento> tratamientos) {
     if (tratamientos.isEmpty) return 0;
     int racha = 0;
@@ -174,117 +242,138 @@ class _ProgresoPageState extends State<ProgresoPage> {
     final color = !hasData
         ? Colors.grey.shade400
         : (percentage >= 80
-            ? kEmeraldColor
-            : (percentage >= 50 ? Colors.orange : Colors.red));
+            ? AppTheme.successColor
+            : (percentage >= 50 ? Colors.orange : AppTheme.errorColor));
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF1E3C72),
-            const Color(0xFF2A5298),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1E3C72).withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+        boxShadow: AppTheme.cardShadow,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            alignment: Alignment.center,
+          const Text(
+            "Tu desempeño general",
+            style: TextStyle(
+              color: AppTheme.primaryTextColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
             children: [
-              SizedBox(
-                width: 90,
-                height: 90,
-                child: CircularProgressIndicator(
-                  value: hasData ? percentage / 100 : 0.0,
-                  strokeWidth: 10,
-                  backgroundColor: Colors.white.withOpacity(0.15),
-                  valueColor: AlwaysStoppedAnimation<Color>(color),
-                ),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
+              const Spacer(flex: 1),
+              Stack(
+                alignment: Alignment.center,
                 children: [
-                  Text(
-                    hasData ? "${percentage.toStringAsFixed(0)}%" : "N/A",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  SizedBox(
+                    width: 100,
+                    height: 100,
+                    child: CircularProgressIndicator(
+                      value: hasData ? percentage / 100 : 0.0,
+                      strokeWidth: 12,
+                      strokeCap: StrokeCap.round,
+                      backgroundColor: AppTheme.surfaceColor,
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
                     ),
                   ),
-                  const Text(
-                    "Adherencia",
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 9,
-                    ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        hasData ? "${percentage.toStringAsFixed(0)}%" : "N/A",
+                        style: const TextStyle(
+                          color: AppTheme.primaryTextColor,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Text(
+                        "Adherencia",
+                        style: TextStyle(
+                          color: AppTheme.secondaryTextColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-          const SizedBox(width: 24),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Tu Desempeño General",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+              const Spacer(flex: 2),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Tomadas",
+                    style: TextStyle(
+                      color: AppTheme.secondaryTextColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: kEmeraldColor,
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.successColor,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Tomadas: $tomadas",
-                      style: const TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.redAccent,
+                      const SizedBox(width: 8),
+                      Text(
+                        "$tomadas",
+                        style: const TextStyle(
+                          color: AppTheme.primaryTextColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Omitidas",
+                    style: TextStyle(
+                      color: AppTheme.secondaryTextColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Omitidas: $omitidas",
-                      style: const TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.errorColor,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "$omitidas",
+                        style: const TextStyle(
+                          color: AppTheme.primaryTextColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const Spacer(flex: 2),
+            ],
           ),
         ],
       ),
@@ -292,138 +381,135 @@ class _ProgresoPageState extends State<ProgresoPage> {
   }
 
   Widget _buildStreakAndInsightCard(int racha, double? percentage) {
+    String insightTitle = "Info";
     String insightText = "";
-    Color insightColor = Colors.blue;
+    Color insightColor = AppTheme.primaryColor;
     IconData insightIcon = Icons.info_outline;
 
     if (percentage == null) {
-      insightText = "No hay dosis programadas en este período. Registra o activa tus medicamentos para ver tu progreso.";
-      insightColor = Colors.grey.shade500;
+      insightTitle = "Sin datos";
+      insightText = "No hay dosis programadas. Agrega medicamentos para ver tu progreso.";
+      insightColor = Colors.grey;
       insightIcon = Icons.info_outline;
     } else if (percentage >= 80) {
-      insightText = "¡Excelente nivel! Tu constancia es la clave para la efectividad de tus tratamientos.";
-      insightColor = kEmeraldColor;
-      insightIcon = Icons.stars_rounded;
+      insightTitle = "¡Buen ritmo!";
+      insightText = "Pequeños hábitos, grandes resultados. ¡Sigue así!";
+      insightColor = AppTheme.successColor;
+      insightIcon = Icons.lightbulb_outline;
     } else if (percentage >= 50) {
-      insightText = "Buen ritmo, pero has tenido algunas omisiones. ¿Te vendrían bien recordatorios extras?";
-      insightColor = Colors.amber.shade700;
+      insightTitle = "Atención";
+      insightText = "Buen ritmo, pero has tenido algunas omisiones.";
+      insightColor = Colors.orange;
       insightIcon = Icons.lightbulb_outline;
     } else {
-      insightText = "¡Alerta! Tu nivel de adherencia es bajo. Te recomendamos activar las alertas en modo Activo.";
-      insightColor = Colors.redAccent;
+      insightTitle = "¡Alerta!";
+      insightText = "Tu nivel de adherencia actual es bajo. Revisa tus alarmas.";
+      insightColor = AppTheme.errorColor;
       insightIcon = Icons.warning_amber_rounded;
     }
 
-    return Row(
-      children: [
-        // Streak Card
-        Expanded(
-          flex: 4,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.orange.shade100),
-              boxShadow: kCustomBoxShadow,
-            ),
-            child: Row(
-              children: [
-                ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    colors: [Colors.orange, Colors.redAccent],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ).createShader(bounds),
-                  child: const Icon(
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Streak Card
+          Expanded(
+            flex: 5,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+                boxShadow: AppTheme.cardShadow,
+              ),
+              child: Row(
+                children: [
+                  const Icon(
                     Icons.local_fire_department_rounded,
-                    size: 32,
-                    color: Colors.white,
+                    size: 28,
+                    color: Color(0xFFFF6B00),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "$racha ${racha == 1 ? 'Día' : 'Días'}",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange.shade900,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "$racha ${racha == 1 ? 'día' : 'días'}",
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryTextColor,
+                          ),
                         ),
-                      ),
-                      const Text(
-                        "Racha Activa",
-                        style: TextStyle(fontSize: 11, color: Colors.black54),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        // Insight Card
-        Expanded(
-          flex: 6,
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: insightColor.withOpacity(0.2)),
-              boxShadow: kCustomBoxShadow,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(insightIcon, color: insightColor, size: 22),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    insightText,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Colors.black87,
-                      height: 1.4,
+                        const Text(
+                          "Racha activa",
+                          style: TextStyle(fontSize: 11, color: AppTheme.secondaryTextColor),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: 12),
+          // Insight Card
+          Expanded(
+            flex: 5,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+                boxShadow: AppTheme.cardShadow,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(insightIcon, color: insightColor, size: 24),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          insightTitle,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          insightText,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: AppTheme.secondaryTextColor,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildTodayTimeline(List<TodayDose> doses) {
-    if (doses.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: kCustomBoxShadow,
-        ),
-        child: const Center(
-          child: Text(
-            "No tienes dosis programadas para hoy.",
-            style: TextStyle(color: Colors.grey, fontSize: 13),
-          ),
-        ),
-      );
-    }
-
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: kCustomBoxShadow,
+        border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+        boxShadow: AppTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -432,208 +518,176 @@ class _ProgresoPageState extends State<ProgresoPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                "Cronograma de Hoy",
+                "Resumen de hoy",
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
-                  color: Colors.black87,
+                  color: AppTheme.primaryTextColor,
                 ),
               ),
               Text(
-                "${doses.length} ${doses.length == 1 ? 'dosis' : 'dosis'}",
-                style: const TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.w600),
+                "${doses.length} ${doses.length == 1 ? 'dosis programada' : 'dosis programadas'}",
+                style: const TextStyle(color: AppTheme.primaryColor, fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: doses.length,
-            itemBuilder: (context, index) {
-              final dose = doses[index];
-              final timeStr =
-                  "${dose.hora.hour.toString().padLeft(2, '0')}:${dose.hora.minute.toString().padLeft(2, '0')}";
+          const SizedBox(height: 20),
+          if (doses.isEmpty)
+            const Center(
+              child: Text(
+                "No tienes dosis programadas para hoy.",
+                style: TextStyle(color: AppTheme.secondaryTextColor, fontSize: 13),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: doses.length,
+              itemBuilder: (context, index) {
+                final dose = doses[index];
+                final timeStr = DateFormat('hh:mm a', 'es_ES').format(dose.hora);
+                final isLast = index == doses.length - 1;
 
-              IconData icon = Icons.circle_outlined;
-              Color color = Colors.grey;
-
-              if (dose.status == DoseStatus.tomada) {
-                icon = Icons.check_circle_rounded;
-                color = kEmeraldColor;
-              } else if (dose.status == DoseStatus.omitida) {
-                icon = Icons.cancel_rounded;
-                color = Colors.redAccent;
-              } else if (dose.status == DoseStatus.aplazada) {
-                icon = Icons.watch_later_rounded;
-                color = Colors.orange;
-              } else if (dose.status == DoseStatus.notificada) {
-                icon = Icons.notifications_active_rounded;
-                color = Colors.blue;
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Column(
-                    children: [
-                      Icon(icon, color: color, size: 20),
-                      if (index != doses.length - 1)
-                        Container(
-                          width: 2,
-                          height: 35,
-                          color: Colors.grey.shade200,
-                        ),
-                    ],
+                // Estilo según estado
+                Color nodeColor = const Color(0xFFC3C6D7);
+                Widget nodeWidget = Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    border: Border.all(color: nodeColor, width: 2),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                );
+                String displayStatus = 'Programada';
+
+                final isPast = dose.hora.isBefore(DateTime.now());
+
+                if (dose.status == DoseStatus.tomada) {
+                  nodeColor = AppTheme.successColor;
+                  nodeWidget = Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: nodeColor),
+                    child: const Icon(Icons.check, color: Colors.white, size: 12),
+                  );
+                  displayStatus = 'Tomada';
+                } else if (dose.status == DoseStatus.omitida) {
+                  nodeColor = AppTheme.errorColor;
+                  nodeWidget = Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: nodeColor),
+                    child: const Icon(Icons.close, color: Colors.white, size: 12),
+                  );
+                  displayStatus = 'Omitida';
+                } else if (dose.status == DoseStatus.aplazada) {
+                  nodeColor = Colors.orange;
+                  nodeWidget = Container(
+                    width: 18,
+                    height: 18,
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.orange),
+                    child: const Icon(Icons.watch_later_outlined, color: Colors.white, size: 12),
+                  );
+                  displayStatus = 'Aplazada';
+                } else if (dose.status == DoseStatus.notificada || (dose.status == DoseStatus.pendiente && isPast)) {
+                  nodeColor = Colors.amber;
+                  nodeWidget = Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: nodeColor),
+                    child: const Icon(Icons.notifications, color: Colors.white, size: 12),
+                  );
+                  displayStatus = 'Notificada';
+                }
+
+                return IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        child: Column(
                           children: [
-                            Text(
-                              dose.nombreMedicamento,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.black87,
+                            const SizedBox(height: 4),
+                            nodeWidget,
+                            if (!isLast)
+                              Expanded(
+                                child: Container(
+                                  width: 2,
+                                  color: const Color(0xFFC3C6D7).withOpacity(0.4),
+                                ),
                               ),
-                            ),
-                            Text(
-                              timeStr,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
                           ],
                         ),
-                        Text(
-                          "${dose.presentacion} • ${dose.status.displayName}",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade500,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    dose.nombreMedicamento,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: AppTheme.primaryTextColor,
+                                    ),
+                                  ),
+                                  Text(
+                                    timeStr,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: AppTheme.primaryColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                "${dose.presentacion} • $displayStatus",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppTheme.secondaryTextColor,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 12),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              );
-            },
-          ),
+                );
+              },
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildTratamientoCard(Tratamiento tratamiento, Map<String, DateTime> dateRange) {
-    final stats = _calcularEstadisticas(tratamiento, dateRange);
-    final int dosisProgramadas = stats['programadasPasadas']!;
-    final int dosisTomadas = stats['tomadas']!;
-
-    final bool tieneDosis = dosisProgramadas > 0;
-    final double adherencia = tieneDosis
-        ? (dosisTomadas / dosisProgramadas) * 100
-        : 0.0;
-
-    final progressColor = !tieneDosis
-        ? Colors.grey.shade400
-        : (adherencia >= 80
-            ? kEmeraldColor
-            : (adherencia >= 50 ? Colors.orange : Colors.redAccent));
-
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.shade100),
-      ),
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    tratamiento.nombreMedicamento,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: progressColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    tieneDosis ? "${adherencia.toStringAsFixed(0)}%" : "N/A",
-                    style: TextStyle(
-                      color: progressColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: tieneDosis ? (adherencia == 0 ? 0.05 : adherencia / 100) : 0.0,
-                minHeight: 8,
-                backgroundColor: progressColor.withValues(alpha: 0.12),
-                valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  tieneDosis
-                      ? "Dosis: $dosisTomadas de $dosisProgramadas tomadas"
-                      : "Sin dosis programadas en este período",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 12,
-                  color: Colors.grey.shade400,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildIntervalSelector() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEF2F6), // Slate / light grey
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: ProgresoInterval.values.map((interval) {
@@ -666,22 +720,12 @@ class _ProgresoPageState extends State<ProgresoPage> {
                 curve: Curves.easeInOut,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  gradient: isSelected
-                      ? const LinearGradient(
-                          colors: [
-                            Color(0xFF1E3C72),
-                            Color(0xFF2A5298),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        )
-                      : null,
-                  color: isSelected ? null : Colors.transparent,
+                  borderRadius: BorderRadius.circular(24),
+                  color: isSelected ? AppTheme.primaryColor : Colors.transparent,
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF1E3C72).withOpacity(0.2),
+                            color: AppTheme.primaryColor.withOpacity(0.2),
                             blurRadius: 6,
                             offset: const Offset(0, 3),
                           ),
@@ -694,9 +738,9 @@ class _ProgresoPageState extends State<ProgresoPage> {
                     child: Text(
                       text,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.grey.shade600,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                        fontSize: 13,
+                        color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 14,
                       ),
                     ),
                   ),
@@ -723,7 +767,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
     }
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppTheme.backgroundColor,
       body: Column(
         children: [
           _buildIntervalSelector(),
@@ -779,47 +823,47 @@ class _ProgresoPageState extends State<ProgresoPage> {
                     const SizedBox(height: 20),
                     _buildTodayTimeline(dosisDeHoy),
                     const SizedBox(height: 24),
-                    const Text(
-                      "Gráfico de Cumplimiento",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.black87,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Gráfico de cumplimiento",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: AppTheme.primaryTextColor,
+                          ),
+                        ),
+                        Text(
+                          adherencia != null ? "${adherencia.round()}%" : "0%",
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.secondaryTextColor,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: kCustomBoxShadow,
+                        border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+                        boxShadow: AppTheme.cardShadow,
                       ),
                       child: Column(
                         children: [
                           SizedBox(
                             height: 180,
-                            child: AdherenceBarChart(
-                              tomadas: totalDosisTomadas.toDouble(),
-                              omitidas: totalDosisOmitidas.toDouble(),
+                            child: WeeklyComplianceChart(
+                              values: _calcularCumplimientoSemanal(todosLosTratamientos),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      "Desglose por Medicamento",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ...todosLosTratamientos.map((tratamiento) {
-                      return _buildTratamientoCard(tratamiento, dateRange);
-                    }),
                     const SizedBox(height: 20),
                   ],
                 );

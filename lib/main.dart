@@ -1,5 +1,6 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/gemini_service.dart';
@@ -114,6 +115,15 @@ class MyApp extends StatelessWidget {
         title: 'MediTime',
         navigatorKey: navigatorKey,
         theme: AppTheme.lightTheme,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('es', 'ES'),
+        ],
+        locale: const Locale('es', 'ES'),
         routes: {ChatBotScreen.routeName: (_) => const ChatBotScreen()},
         home: const AuthWrapper(),
       ),

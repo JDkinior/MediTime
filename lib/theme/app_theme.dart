@@ -13,31 +13,31 @@ class AppTheme {
   // Color Palette
   // -------------------
 
-  /// Primary color for gradients and active elements (light blue).
-  static const Color primaryColor = Color(0xFF3FB8EE);
+  /// Primary color for active elements.
+  static const Color primaryColor = Color(0xFF004AC6);
 
-  /// Secondary color for important texts and gradients (dark blue).
-  static const Color secondaryColor = Color(0xFF4092E4);
+  /// Secondary color for secondary active elements.
+  static const Color secondaryColor = Color(0xFF006C49);
 
   /// Main background color for most screens.
-  static const Color backgroundColor = Color(0xFFF3F3F3);
+  static const Color backgroundColor = Color(0xFFF8F9FF);
 
   /// Color for success states (green).
-  static const Color successColor = Colors.green;
+  static const Color successColor = Color(0xFF10B981);
 
   /// Color for error/warning states (red).
-  static const Color errorColor = Colors.red;
+  static const Color errorColor = Color(0xFFBA1A1A);
 
-  /// Color for informational elements (blue).
-  static const Color infoColor = Colors.blue;
+  /// Color for informational elements.
+  static const Color infoColor = Color(0xFF2563EB);
 
   /// Text colors
-  static const Color primaryTextColor = Colors.black87;
-  static const Color secondaryTextColor = Color.fromARGB(255, 55, 55, 55);
+  static const Color primaryTextColor = Color(0xFF0B1C30);
+  static const Color secondaryTextColor = Color(0xFF434655);
   static const Color whiteTextColor = Colors.white;
 
   /// Surface colors
-  static const Color surfaceColor = Color(0xFFF3F3F3);
+  static const Color surfaceColor = Color(0xFFEFF4FF);
   static const Color cardColor = Colors.white;
 
   // -------------------
@@ -48,7 +48,7 @@ class AppTheme {
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [primaryColor, secondaryColor],
+    colors: [primaryColor, Color(0xFF2563EB)],
   );
 
   /// Header gradient for app bars and headers
@@ -56,8 +56,8 @@ class AppTheme {
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
     colors: [
-      Color.fromARGB(255, 73, 194, 255),
-      Color.fromARGB(255, 47, 109, 180),
+      Color(0xFF004AC6),
+      Color(0xFF2563EB),
     ],
   );
 
@@ -68,9 +68,9 @@ class AppTheme {
   /// Standard card shadow used throughout the application.
   static const List<BoxShadow> cardShadow = [
     BoxShadow(
-      color: Color.fromARGB(20, 47, 109, 180),
-      blurRadius: 6,
-      spreadRadius: 3,
+      color: Color(0x0A000000), // ~4% Black
+      blurRadius: 15,
+      spreadRadius: 0,
       offset: Offset(0, 4),
     ),
   ];
@@ -78,9 +78,9 @@ class AppTheme {
   /// Light shadow for subtle elevation
   static const List<BoxShadow> lightShadow = [
     BoxShadow(
-      color: Color.fromARGB(10, 0, 0, 0),
-      blurRadius: 4,
-      spreadRadius: 1,
+      color: Color(0x05000000), // ~2% Black
+      blurRadius: 6,
+      spreadRadius: 0,
       offset: Offset(0, 2),
     ),
   ];
@@ -221,10 +221,14 @@ class AppTheme {
   static ThemeData get lightTheme => ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: secondaryColor,
+      seedColor: primaryColor,
       surface: backgroundColor,
     ),
     scaffoldBackgroundColor: backgroundColor,
+    dialogTheme: const DialogThemeData(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+    ),
     appBarTheme: appBarTheme,
     inputDecorationTheme: inputDecorationTheme,
     elevatedButtonTheme: elevatedButtonTheme,

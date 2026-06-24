@@ -13,6 +13,7 @@ import 'package:meditime/screens/shared/ayuda_page.dart';
 import 'package:meditime/screens/chat/chat_bot_screen.dart';
 import 'package:meditime/screens/reports/progreso_page.dart';
 import 'package:meditime/widgets/drawer_widget.dart';
+import 'package:meditime/theme/app_theme.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -241,52 +242,37 @@ class _HomePageState extends State<HomePage> {
         // para poder llamar startShowCase / dismiss desde métodos externos.
         _showcaseContext = ctx;
 
+        final profile = ctx.watch<ProfileNotifier>();
+        final profileImagePath = profile.profileImageUrl;
+        final canLoadProfileImage = profileImagePath != null &&
+            profileImagePath.isNotEmpty &&
+            !profileImagePath.contains('firebasestorage.googleapis.com');
+
         return Scaffold(
           appBar: AppBar(
-            titleSpacing: 0,
+            centerTitle: true,
             title: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: SizedBox(
-                  height: 28,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      ShaderMask(
-                        shaderCallback: (Rect bounds) {
-                          return const LinearGradient(
-                            colors: [
-                              Color.fromARGB(255, 73, 194, 255),
-                              Color.fromARGB(255, 47, 109, 180),
-                            ],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ).createShader(bounds);
-                        },
-                        child: Text(
-                          titles[_currentIndex],
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                            height: 1.2,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ],
-                  ),
+              child: Text(
+                titles[_currentIndex],
+                style: const TextStyle(
+                  color: AppTheme.primaryTextColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
                 ),
               ),
             ),
             actions: [
               IconButton(
-                icon: const Icon(
-                  Icons.account_circle_outlined,
-                  color: Color.fromARGB(255, 47, 109, 180),
-                ),
+                icon: canLoadProfileImage
+                    ? CircleAvatar(
+                        radius: 12,
+                        backgroundImage: NetworkImage(profileImagePath),
+                      )
+                    : const Icon(
+                        Icons.account_circle_outlined,
+                        color: AppTheme.secondaryTextColor,
+                      ),
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -294,49 +280,13 @@ class _HomePageState extends State<HomePage> {
                   );
                 },
               ),
-              Showcase(
-                key: _helpKey,
-                title: 'Ayuda y Tutorial',
-                description:
-                    '¿Tienes dudas? Desde aquí puedes repetir este tutorial en cualquier momento o acceder al soporte.',
-                tooltipBackgroundColor: const Color(0xFF2F6DB4),
-                textColor: Colors.white,
-                descTextStyle: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  height: 1.5,
-                ),
-                targetShapeBorder: const CircleBorder(),
-                child: PopupMenuButton<int>(
-                  icon: const Icon(
-                    Icons.question_mark,
-                    color: Color.fromARGB(255, 47, 109, 180),
-                  ),
-                  onSelected: (item) => _onSelectedHelpMenu(ctx, item),
-                  itemBuilder:
-                      (context) => [
-                        const PopupMenuItem<int>(
-                          value: 0,
-                          child: Text('Tutorial'),
-                        ),
-                        const PopupMenuItem<int>(
-                          value: 1,
-                          child: Text('Ayuda'),
-                        ),
-                        const PopupMenuItem<int>(
-                          value: 2,
-                          child: Text('Chatbot MediTime'),
-                        ),
-                      ],
-                ),
-              ),
             ],
             leading: Showcase(
               key: _menuKey,
               title: 'Menú principal',
               description:
                   'Accede al menú lateral para ver reportes de adherencia, ajustar notificaciones y más opciones.',
-              tooltipBackgroundColor: const Color(0xFF2F6DB4),
+              tooltipBackgroundColor: AppTheme.primaryColor,
               textColor: Colors.white,
               descTextStyle: const TextStyle(
                 color: Colors.white,
@@ -349,13 +299,16 @@ class _HomePageState extends State<HomePage> {
                   return IconButton(
                     icon: const Icon(Icons.menu_outlined),
                     onPressed: () => Scaffold.of(context).openDrawer(),
-                    color: const Color.fromARGB(255, 73, 194, 255),
+                    color: AppTheme.secondaryTextColor,
                   );
                 },
               ),
             ),
           ),
-          drawer: CustomDrawer(onLogout: _handleLogout),
+          drawer: CustomDrawer(
+            onLogout: _handleLogout,
+            onStartTutorial: _startTutorial,
+          ),
           body: PageView(
             controller: _pageController,
             onPageChanged: (index) {
@@ -374,45 +327,58 @@ class _HomePageState extends State<HomePage> {
             title: 'Navegación principal',
             description:
                 'Muévete entre tus Recetas (medicamentos pendientes), el Calendario mensual y tu Progreso de salud.',
-            tooltipBackgroundColor: const Color(0xFF2F6DB4),
+            tooltipBackgroundColor: AppTheme.primaryColor,
             textColor: Colors.white,
             descTextStyle: const TextStyle(
               color: Colors.white,
               fontSize: 13,
               height: 1.5,
             ),
-            child: BottomNavigationBar(
-              onTap: _onTabTapped,
-              currentIndex: _currentIndex,
-              selectedItemColor: const Color.fromARGB(255, 16, 162, 235),
-              backgroundColor: const Color.fromARGB(255, 241, 241, 241),
-              items: [
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.medication_rounded),
-                  label: 'Receta',
-                ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.calendar_today),
-                  label: 'Calendario',
-                ),
-                BottomNavigationBarItem(
-                  icon: Showcase(
-                    key: _profileKey,
-                    title: 'Mi Progreso',
-                    description:
-                        'Monitorea tu nivel de adherencia, mira tus estadísticas diarias y mantén tus rachas de toma de medicamentos.',
-                    tooltipBackgroundColor: const Color(0xFF2F6DB4),
-                    textColor: Colors.white,
-                    descTextStyle: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      height: 1.5,
-                    ),
-                    child: const Icon(Icons.bar_chart_rounded),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppTheme.backgroundColor,
+                border: Border(
+                  top: BorderSide(
+                    color: const Color(0xFFC3C6D7).withOpacity(0.3),
+                    width: 1,
                   ),
-                  label: 'Progreso',
                 ),
-              ],
+              ),
+              child: BottomNavigationBar(
+                onTap: _onTabTapped,
+                currentIndex: _currentIndex,
+                selectedItemColor: AppTheme.primaryColor,
+                unselectedItemColor: AppTheme.secondaryTextColor.withOpacity(0.6),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                items: [
+                  const BottomNavigationBarItem(
+                    icon: Icon(Icons.medication_rounded),
+                    label: 'Receta',
+                  ),
+                  const BottomNavigationBarItem(
+                    icon: Icon(Icons.calendar_today),
+                    label: 'Calendario',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Showcase(
+                      key: _profileKey,
+                      title: 'Mi Progreso',
+                      description:
+                          'Monitorea tu nivel de adherencia, mira tus estadísticas diarias y mantén tus rachas de toma de medicamentos.',
+                      tooltipBackgroundColor: AppTheme.primaryColor,
+                      textColor: Colors.white,
+                      descTextStyle: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                      child: const Icon(Icons.bar_chart_rounded),
+                    ),
+                    label: 'Progreso',
+                  ),
+                ],
+              ),
             ),
           ),
         );

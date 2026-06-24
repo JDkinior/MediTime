@@ -88,3 +88,102 @@ class AdherenceBarChart extends StatelessWidget {
     );
   }
 }
+
+class WeeklyComplianceChart extends StatelessWidget {
+  final List<double> values;
+
+  const WeeklyComplianceChart({
+    super.key,
+    required this.values,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Asegurarse de tener exactamente 7 valores
+    final chartValues = values.length == 7 ? values : List.filled(7, 0.0);
+    
+    // Obtener el día actual de la semana (1 = Lunes, 7 = Domingo)
+    final int currentDayOfWeek = DateTime.now().weekday;
+
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: 100,
+        gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: false),
+        barTouchData: BarTouchData(
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipColor: (_) => AppTheme.primaryColor,
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              return BarTooltipItem(
+                '${rod.toY.toInt()}%',
+                const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            },
+          ),
+        ),
+        titlesData: FlTitlesData(
+          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                const style = TextStyle(
+                  color: AppTheme.secondaryTextColor,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                );
+                String text = '';
+                switch (value.toInt()) {
+                  case 0: text = 'L'; break;
+                  case 1: text = 'M'; break;
+                  case 2: text = 'M'; break;
+                  case 3: text = 'J'; break;
+                  case 4: text = 'V'; break;
+                  case 5: text = 'S'; break;
+                  case 6: text = 'D'; break;
+                }
+                return SideTitleWidget(
+                  axisSide: meta.axisSide,
+                  space: 8,
+                  child: Text(text, style: style),
+                );
+              },
+              reservedSize: 28,
+            ),
+          ),
+        ),
+        barGroups: List.generate(7, (index) {
+          final val = chartValues[index];
+          // El color principal se aplica al día actual de la semana
+          final isToday = (index + 1) == currentDayOfWeek;
+
+          return BarChartGroupData(
+            x: index,
+            barRods: [
+              BarChartRodData(
+                toY: val,
+                // Color corporativo clínico para hoy, o un tono azul claro pastel para otros días
+                color: isToday 
+                    ? AppTheme.primaryColor 
+                    : const Color(0xFFB4C6FF),
+                width: 14,
+                borderRadius: BorderRadius.circular(10), // Totalmente redondeado/cápsula
+                backDrawRodData: BackgroundBarChartRodData(
+                  show: true,
+                  toY: 100,
+                  color: const Color(0xFFEFF4FF).withOpacity(0.5),
+                ),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+}

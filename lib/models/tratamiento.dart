@@ -43,7 +43,7 @@ enum DoseStatus {
       case DoseStatus.pendiente:
         return Colors.grey;
       case DoseStatus.notificada:
-        return Colors.blue;
+        return Colors.amber;
       case DoseStatus.tomada:
         return Colors.green;
       case DoseStatus.omitida:
