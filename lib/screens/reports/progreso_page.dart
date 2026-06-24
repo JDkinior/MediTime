@@ -173,9 +173,9 @@ class _ProgresoPageState extends State<ProgresoPage> {
     final hasData = percentage != null;
     final color = !hasData
         ? Colors.grey.shade400
-        : (percentage >= 90
+        : (percentage >= 80
             ? kEmeraldColor
-            : (percentage >= 70 ? Colors.orange : Colors.red));
+            : (percentage >= 50 ? Colors.orange : Colors.red));
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -300,11 +300,11 @@ class _ProgresoPageState extends State<ProgresoPage> {
       insightText = "No hay dosis programadas en este período. Registra o activa tus medicamentos para ver tu progreso.";
       insightColor = Colors.grey.shade500;
       insightIcon = Icons.info_outline;
-    } else if (percentage >= 90) {
+    } else if (percentage >= 80) {
       insightText = "¡Excelente nivel! Tu constancia es la clave para la efectividad de tus tratamientos.";
       insightColor = kEmeraldColor;
       insightIcon = Icons.stars_rounded;
-    } else if (percentage >= 70) {
+    } else if (percentage >= 50) {
       insightText = "Buen ritmo, pero has tenido algunas omisiones. ¿Te vendrían bien recordatorios extras?";
       insightColor = Colors.amber.shade700;
       insightIcon = Icons.lightbulb_outline;
@@ -544,9 +544,9 @@ class _ProgresoPageState extends State<ProgresoPage> {
 
     final progressColor = !tieneDosis
         ? Colors.grey.shade400
-        : (adherencia >= 90
+        : (adherencia >= 80
             ? kEmeraldColor
-            : (adherencia >= 70 ? Colors.orange : Colors.redAccent));
+            : (adherencia >= 50 ? Colors.orange : Colors.redAccent));
 
     return Card(
       elevation: 0,
@@ -577,7 +577,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: progressColor.withOpacity(0.1),
+                    color: progressColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -595,9 +595,9 @@ class _ProgresoPageState extends State<ProgresoPage> {
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
-                value: tieneDosis ? adherencia / 100 : 0.0,
+                value: tieneDosis ? (adherencia == 0 ? 0.05 : adherencia / 100) : 0.0,
                 minHeight: 8,
-                backgroundColor: Colors.grey.shade100,
+                backgroundColor: progressColor.withValues(alpha: 0.12),
                 valueColor: AlwaysStoppedAnimation<Color>(progressColor),
               ),
             ),

@@ -349,7 +349,9 @@ class _ReportesPageState extends State<ReportesPage> {
 
     final progressColor = !tieneDosis
         ? Colors.grey.shade400
-        : (adherencia > 80 ? kSuccessColor : kErrorColor);
+        : (adherencia >= 80
+            ? kSuccessColor
+            : (adherencia >= 50 ? Colors.orange : kErrorColor));
 
     return Card(
       elevation: 2,
@@ -380,8 +382,8 @@ class _ReportesPageState extends State<ReportesPage> {
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
-                value: tieneDosis ? adherencia / 100 : 0.0,
-                backgroundColor: Colors.grey.shade200,
+                value: tieneDosis ? (adherencia == 0 ? 0.05 : adherencia / 100) : 0.0,
+                backgroundColor: progressColor.withValues(alpha: 0.12),
                 valueColor: AlwaysStoppedAnimation<Color>(progressColor),
               ),
             ),

@@ -385,6 +385,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                           boxShadow: kCustomBoxShadow,
                         ),
                         child: ExpansionTile(
+                          initiallyExpanded: true,
                           shape: const Border(),
                           collapsedShape: const Border(),
                           leading: _buildProgressIndicator(
