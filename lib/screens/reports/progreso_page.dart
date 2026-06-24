@@ -9,7 +9,25 @@ import 'package:meditime/enums/view_state.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'adherencia_chart.dart';
 
+const Color kEmeraldColor = Color(0xFF10B981);
+
 enum ProgresoInterval { semana, mes, anio, todo }
+
+class TodayDose {
+  final String idTratamiento;
+  final String nombreMedicamento;
+  final String presentacion;
+  final DateTime hora;
+  final DoseStatus status;
+
+  TodayDose({
+    required this.idTratamiento,
+    required this.nombreMedicamento,
+    required this.presentacion,
+    required this.hora,
+    required this.status,
+  });
+}
 
 class ProgresoPage extends StatefulWidget {
   const ProgresoPage({super.key});
@@ -70,6 +88,522 @@ class _ProgresoPageState extends State<ProgresoPage> {
     return totalDosis;
   }
 
+  int _calcularRacha(List<Tratamiento> tratamientos) {
+    if (tratamientos.isEmpty) return 0;
+    int racha = 0;
+    final now = DateTime.now();
+
+    for (int i = 0; i < 30; i++) {
+      final dateToCheck = now.subtract(Duration(days: i));
+      final dateStr =
+          "${dateToCheck.year}-${dateToCheck.month.toString().padLeft(2, '0')}-${dateToCheck.day.toString().padLeft(2, '0')}";
+
+      bool perfectDay = true;
+      bool hasDosesOnDay = false;
+
+      for (var t in tratamientos) {
+        t.doseStatus.forEach((key, status) {
+          if (key.startsWith(dateStr)) {
+            hasDosesOnDay = true;
+            final doseTime = DateTime.parse(key);
+            if (doseTime.isBefore(now)) {
+              if (status != DoseStatus.tomada) {
+                perfectDay = false;
+              }
+            }
+          }
+        });
+      }
+
+      if (hasDosesOnDay) {
+        if (perfectDay) {
+          racha++;
+        } else {
+          break;
+        }
+      }
+    }
+    return racha;
+  }
+
+  List<TodayDose> _obtenerDosisDeHoy(List<Tratamiento> tratamientos) {
+    final List<TodayDose> list = [];
+    final now = DateTime.now();
+    final todayStr =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
+    for (var t in tratamientos) {
+      t.doseStatus.forEach((key, status) {
+        if (key.startsWith(todayStr)) {
+          final doseTime = DateTime.parse(key);
+          list.add(TodayDose(
+            idTratamiento: t.id,
+            nombreMedicamento: t.nombreMedicamento,
+            presentacion: t.presentacion,
+            hora: doseTime,
+            status: status,
+          ));
+        }
+      });
+    }
+
+    list.sort((a, b) => a.hora.compareTo(b.hora));
+    return list;
+  }
+
+  Widget _buildAdherenceRingCard(double percentage, int tomadas, int omitidas) {
+    final color = percentage >= 90
+        ? kEmeraldColor
+        : (percentage >= 70 ? Colors.orange : Colors.red);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF1E3C72),
+            const Color(0xFF2A5298),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1E3C72).withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 90,
+                height: 90,
+                child: CircularProgressIndicator(
+                  value: percentage / 100,
+                  strokeWidth: 10,
+                  backgroundColor: Colors.white.withOpacity(0.15),
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "${percentage.toStringAsFixed(0)}%",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Text(
+                    "Adherencia",
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(width: 24),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Tu Desempeño General",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: kEmeraldColor,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Tomadas: $tomadas",
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Omitidas: $omitidas",
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStreakAndInsightCard(int racha, double percentage) {
+    String insightText = "";
+    Color insightColor = Colors.blue;
+    IconData insightIcon = Icons.info_outline;
+
+    if (percentage >= 90) {
+      insightText = "¡Excelente nivel! Tu constancia es la clave para la efectividad de tus tratamientos.";
+      insightColor = kEmeraldColor;
+      insightIcon = Icons.stars_rounded;
+    } else if (percentage >= 70) {
+      insightText = "Buen ritmo, pero has tenido algunas omisiones. ¿Te vendrían bien recordatorios extras?";
+      insightColor = Colors.amber.shade700;
+      insightIcon = Icons.lightbulb_outline;
+    } else {
+      insightText = "¡Alerta! Tu nivel de adherencia es bajo. Te recomendamos activar las alertas en modo Activo.";
+      insightColor = Colors.redAccent;
+      insightIcon = Icons.warning_amber_rounded;
+    }
+
+    return Row(
+      children: [
+        // Streak Card
+        Expanded(
+          flex: 4,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.orange.shade100),
+              boxShadow: kCustomBoxShadow,
+            ),
+            child: Row(
+              children: [
+                ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    colors: [Colors.orange, Colors.redAccent],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ).createShader(bounds),
+                  child: const Icon(
+                    Icons.local_fire_department_rounded,
+                    size: 32,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "$racha ${racha == 1 ? 'Día' : 'Días'}",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange.shade900,
+                        ),
+                      ),
+                      const Text(
+                        "Racha Activa",
+                        style: TextStyle(fontSize: 11, color: Colors.black54),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Insight Card
+        Expanded(
+          flex: 6,
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: insightColor.withOpacity(0.2)),
+              boxShadow: kCustomBoxShadow,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(insightIcon, color: insightColor, size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    insightText,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Colors.black87,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTodayTimeline(List<TodayDose> doses) {
+    if (doses.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: kCustomBoxShadow,
+        ),
+        child: const Center(
+          child: Text(
+            "No tienes dosis programadas para hoy.",
+            style: TextStyle(color: Colors.grey, fontSize: 13),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: kCustomBoxShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Cronograma de Hoy",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                "${doses.length} ${doses.length == 1 ? 'dosis' : 'dosis'}",
+                style: const TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: doses.length,
+            itemBuilder: (context, index) {
+              final dose = doses[index];
+              final timeStr =
+                  "${dose.hora.hour.toString().padLeft(2, '0')}:${dose.hora.minute.toString().padLeft(2, '0')}";
+
+              IconData icon = Icons.circle_outlined;
+              Color color = Colors.grey;
+
+              if (dose.status == DoseStatus.tomada) {
+                icon = Icons.check_circle_rounded;
+                color = kEmeraldColor;
+              } else if (dose.status == DoseStatus.omitida) {
+                icon = Icons.cancel_rounded;
+                color = Colors.redAccent;
+              } else if (dose.status == DoseStatus.aplazada) {
+                icon = Icons.watch_later_rounded;
+                color = Colors.orange;
+              } else if (dose.status == DoseStatus.notificada) {
+                icon = Icons.notifications_active_rounded;
+                color = Colors.blue;
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    children: [
+                      Icon(icon, color: color, size: 20),
+                      if (index != doses.length - 1)
+                        Container(
+                          width: 2,
+                          height: 35,
+                          color: Colors.grey.shade200,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              dose.nombreMedicamento,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              timeStr,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          "${dose.presentacion} • ${dose.status.displayName}",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTratamientoCard(Map<String, dynamic> tratamiento, Map<String, DateTime> dateRange) {
+    final int dosisProgramadas = _calcularTotalDosis(tratamiento, dateRange);
+    if (dosisProgramadas == 0) return const SizedBox.shrink();
+
+    final List<dynamic> skippedDoses = tratamiento['skippedDoses'] ?? [];
+    int dosisOmitidas = 0;
+    for (var timestamp in skippedDoses) {
+      final skippedDate = (timestamp as Timestamp).toDate();
+      if (skippedDate.isAfter(dateRange['start']!) && skippedDate.isBefore(dateRange['end']!)) {
+        dosisOmitidas++;
+      }
+    }
+    final int dosisTomadas = dosisProgramadas - dosisOmitidas;
+    final double adherencia =
+        dosisProgramadas > 0 ? (dosisTomadas / dosisProgramadas) * 100 : 0.0;
+
+    final progressColor = adherencia >= 90
+        ? kEmeraldColor
+        : (adherencia >= 70 ? Colors.orange : Colors.redAccent);
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade100),
+      ),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    tratamiento['nombreMedicamento'] ?? 'N/A',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: progressColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    "${adherencia.toStringAsFixed(0)}%",
+                    style: TextStyle(
+                      color: progressColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: adherencia / 100,
+                minHeight: 8,
+                backgroundColor: Colors.grey.shade100,
+                valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Dosis: $dosisTomadas de $dosisProgramadas tomadas",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 12,
+                  color: Colors.grey.shade400,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
@@ -84,6 +618,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
     }
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FD),
       body: Column(
         children: [
           Padding(
@@ -154,13 +689,59 @@ class _ProgresoPageState extends State<ProgresoPage> {
                 }
 
                 final int totalDosisTomadas = totalDosisProgramadas - totalDosisOmitidas;
+                final double adherencia = totalDosisProgramadas > 0
+                    ? (totalDosisTomadas / totalDosisProgramadas) * 100
+                    : 0.0;
+
+                final racha = _calcularRacha(todosLosTratamientos);
+                final dosisDeHoy = _obtenerDosisDeHoy(todosLosTratamientos);
 
                 return ListView(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   children: [
-                    _buildOverallAdherenceCard(totalDosisTomadas, totalDosisOmitidas),
+                    _buildAdherenceRingCard(adherencia, totalDosisTomadas, totalDosisOmitidas),
+                    const SizedBox(height: 16),
+                    _buildStreakAndInsightCard(racha, adherencia),
+                    const SizedBox(height: 20),
+                    _buildTodayTimeline(dosisDeHoy),
                     const SizedBox(height: 24),
-                    const Text("Desglose por Tratamiento", style: kSectionTitleStyle),
+                    const Text(
+                      "Gráfico de Cumplimiento",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: kCustomBoxShadow,
+                      ),
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            height: 180,
+                            child: AdherenceBarChart(
+                              tomadas: totalDosisTomadas.toDouble(),
+                              omitidas: totalDosisOmitidas.toDouble(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      "Desglose por Medicamento",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.black87,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     ...todosLosTratamientos.map((tratamiento) {
                       final dataMap = {
@@ -172,148 +753,13 @@ class _ProgresoPageState extends State<ProgresoPage> {
                       };
                       return _buildTratamientoCard(dataMap, dateRange);
                     }),
+                    const SizedBox(height: 20),
                   ],
                 );
               },
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildOverallAdherenceCard(int tomadas, int omitidas) {
-    final int total = tomadas + omitidas;
-    final double adherencia = total > 0 ? (tomadas / total) * 100 : 0.0;
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: kCustomBoxShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "RESUMEN GENERAL",
-            style: TextStyle(
-              color: Colors.grey.shade500,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                "${adherencia.toStringAsFixed(1)}%",
-                style: const TextStyle(
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2F71B6),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                "Tasa de Adherencia",
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
-              )
-            ],
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 200,
-            child: AdherenceBarChart(
-              tomadas: tomadas.toDouble(),
-              omitidas: omitidas.toDouble(),
-            ),
-          ),
-          const Divider(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildBottomStat("Dosis Totales", total.toString()),
-              _buildBottomStat("Completadas", tomadas.toString()),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomStat(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF2F71B6),
-          ),
-        )
-      ],
-    );
-  }
-
-  Widget _buildTratamientoCard(Map<String, dynamic> tratamiento, Map<String, DateTime> dateRange) {
-    final int dosisProgramadas = _calcularTotalDosis(tratamiento, dateRange);
-    if (dosisProgramadas == 0) return const SizedBox.shrink();
-
-    final List<dynamic> skippedDoses = tratamiento['skippedDoses'] ?? [];
-    int dosisOmitidas = 0;
-    for (var timestamp in skippedDoses) {
-      final skippedDate = (timestamp as Timestamp).toDate();
-      if (skippedDate.isAfter(dateRange['start']!) && skippedDate.isBefore(dateRange['end']!)) {
-        dosisOmitidas++;
-      }
-    }
-    final int dosisTomadas = dosisProgramadas - dosisOmitidas;
-    final double adherencia =
-        dosisProgramadas > 0 ? (dosisTomadas / dosisProgramadas) * 100 : 0.0;
-
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      shadowColor: const Color.fromARGB(20, 47, 109, 180),
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(tratamiento['nombreMedicamento'] ?? 'N/A',
-                style: kSectionTitleStyle.copyWith(color: kSecondaryColor)),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Cumplimiento", style: kBodyTextStyle),
-                Text("${adherencia.toStringAsFixed(1)}%",
-                    style: kPageTitleStyle.copyWith(fontSize: 20)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: adherencia / 100,
-              backgroundColor: Colors.grey.shade300,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                  adherencia > 80 ? kSuccessColor : kErrorColor),
-            ),
-            const SizedBox(height: 8),
-            Text("Tomadas: $dosisTomadas / Programadas: $dosisProgramadas",
-                style: kSubtitleTextStyle),
-          ],
-        ),
       ),
     );
   }
