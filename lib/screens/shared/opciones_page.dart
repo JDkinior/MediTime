@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/notification_service.dart';
+import 'package:meditime/services/firestore_service.dart';
+import 'package:meditime/models/tratamiento.dart';
 
 class OpcionesPage extends StatefulWidget {
   const OpcionesPage({super.key});
@@ -129,6 +131,88 @@ class _OpcionesPageState extends State<OpcionesPage> {
           duration: Duration(seconds: 2),
         ),
       );
+  }
+
+  Future<void> _clearMedicationHistory() async {
+    final authService = context.read<AuthService>();
+    final firestoreService = context.read<FirestoreService>();
+    final user = authService.currentUser;
+
+    if (user == null) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // 1. Eliminar medicamentos de Firestore y recuperar la lista
+      final eliminados = await firestoreService.clearAllMedicamentos(user.uid);
+
+      // 2. Cancelar alarmas asociadas
+      for (Tratamiento t in eliminados) {
+        await NotificationService.cancelTreatmentAlarms(t.prescriptionAlarmId);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Historial de medicamentos eliminado con éxito.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al eliminar historial: $e'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _confirmClearHistory(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+              SizedBox(width: 8),
+              Text('¿Eliminar historial?'),
+            ],
+          ),
+          content: const Text(
+            'Esta acción eliminará de forma permanente todos tus medicamentos registrados y sus recordatorios. Esta acción no se puede deshacer.\n\n¿Deseas continuar?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _clearMedicationHistory();
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+              child: const Text('Eliminar Todo'),
+            ),
+          ],
+        );
+      },
+    );
   }
   // --- FIN DE LA MODIFICACIÓN ---
 
@@ -304,6 +388,16 @@ class _OpcionesPageState extends State<OpcionesPage> {
                       ),
                     ],
                   ),
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.delete_forever_outlined, color: Colors.redAccent),
+                  title: const Text(
+                    'Eliminar historial de medicamentos',
+                    style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: const Text('Borra todos los tratamientos y sus alarmas'),
+                  onTap: () => _confirmClearHistory(context),
                 ),
                 // --- FIN DE LA MODIFICACIÓN ---
               ],

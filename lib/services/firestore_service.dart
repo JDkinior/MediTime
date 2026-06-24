@@ -152,6 +152,31 @@ class FirestoreService {
         .delete();
   }
 
+  /// Elimina todos los tratamientos de un usuario de la base de datos y
+  /// retorna la lista de tratamientos eliminados para poder cancelar sus alarmas.
+  Future<List<Tratamiento>> clearAllMedicamentos(String userId) async {
+    final snapshot = await _db
+        .collection('medicamentos')
+        .doc(userId)
+        .collection('userMedicamentos')
+        .get();
+
+    final List<Tratamiento> tratamientos = [];
+    final batch = _db.batch();
+
+    for (var doc in snapshot.docs) {
+      final tratamiento = Tratamiento.fromFirestore(
+        doc as DocumentSnapshot<Map<String, dynamic>>,
+      );
+      tratamientos.add(tratamiento);
+      batch.delete(doc.reference);
+    }
+
+    await batch.commit();
+    _medicamentosCache.clearKey(userId);
+    return tratamientos;
+  }
+
   /// Obtiene la referencia a un documento de tratamiento específico.
   /// Útil para realizar actualizaciones o lecturas directas.
   DocumentReference getMedicamentoDocRef(String userId, String docId) {
