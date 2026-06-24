@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
@@ -8,6 +7,7 @@ import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/enums/view_state.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'adherencia_chart.dart';
+import 'package:meditime/services/tratamiento_service.dart';
 
 const Color kEmeraldColor = Color(0xFF10B981);
 
@@ -62,30 +62,48 @@ class _ProgresoPageState extends State<ProgresoPage> {
     };
   }
 
-  int _calcularTotalDosis(Map<String, dynamic> tratamiento, Map<String, DateTime> dateRange) {
-    DateTime inicioTratamiento = (tratamiento['fechaInicioTratamiento'] as Timestamp).toDate();
-    DateTime finTratamiento = (tratamiento['fechaFinTratamiento'] as Timestamp).toDate();
-    final int intervaloHoras = int.tryParse(tratamiento['intervaloDosis'] ?? '0') ?? 0;
+  Map<String, int> _calcularEstadisticas(Tratamiento tratamiento, Map<String, DateTime> dateRange) {
+    int tomadas = 0;
+    int omitidas = 0;
+    int programadasPasadas = 0;
 
-    DateTime effectiveStart = inicioTratamiento.isAfter(dateRange['start']!)
-        ? inicioTratamiento
-        : dateRange['start']!;
-    DateTime effectiveEnd = finTratamiento.isBefore(dateRange['end']!)
-        ? finTratamiento
-        : dateRange['end']!;
+    final now = DateTime.now();
+    final start = dateRange['start']!;
+    final end = dateRange['end']!;
 
-    if (effectiveStart.isAfter(effectiveEnd) || intervaloHoras <= 0) return 0;
-
-    int totalDosis = 0;
-    DateTime dosisActual = inicioTratamiento;
-
-    while (dosisActual.isBefore(finTratamiento)) {
-      if (!dosisActual.isBefore(effectiveStart) && !dosisActual.isAfter(effectiveEnd)) {
-        totalDosis++;
+    if (tratamiento.doseStatus.isEmpty) {
+      final todasLasDosis = TratamientoService().generarDosisTotales(tratamiento);
+      for (var doseTime in todasLasDosis) {
+        if (!doseTime.isBefore(start) && !doseTime.isAfter(end)) {
+          if (doseTime.isBefore(now)) {
+            programadasPasadas++;
+            omitidas++;
+          }
+        }
       }
-      dosisActual = dosisActual.add(Duration(hours: intervaloHoras));
+    } else {
+      tratamiento.doseStatus.forEach((key, status) {
+        final doseTime = DateTime.parse(key);
+        if (!doseTime.isBefore(start) && !doseTime.isAfter(end)) {
+          if (doseTime.isBefore(now)) {
+            programadasPasadas++;
+            if (status == DoseStatus.tomada) {
+              tomadas++;
+            } else if (status == DoseStatus.omitida) {
+              omitidas++;
+            } else {
+              omitidas++;
+            }
+          }
+        }
+      });
     }
-    return totalDosis;
+
+    return {
+      'tomadas': tomadas,
+      'omitidas': omitidas,
+      'programadasPasadas': programadasPasadas,
+    };
   }
 
   int _calcularRacha(List<Tratamiento> tratamientos) {
@@ -507,21 +525,14 @@ class _ProgresoPageState extends State<ProgresoPage> {
     );
   }
 
-  Widget _buildTratamientoCard(Map<String, dynamic> tratamiento, Map<String, DateTime> dateRange) {
-    final int dosisProgramadas = _calcularTotalDosis(tratamiento, dateRange);
-    if (dosisProgramadas == 0) return const SizedBox.shrink();
+  Widget _buildTratamientoCard(Tratamiento tratamiento, Map<String, DateTime> dateRange) {
+    final stats = _calcularEstadisticas(tratamiento, dateRange);
+    final int dosisProgramadas = stats['programadasPasadas']!;
+    final int dosisTomadas = stats['tomadas']!;
 
-    final List<dynamic> skippedDoses = tratamiento['skippedDoses'] ?? [];
-    int dosisOmitidas = 0;
-    for (var timestamp in skippedDoses) {
-      final skippedDate = (timestamp as Timestamp).toDate();
-      if (skippedDate.isAfter(dateRange['start']!) && skippedDate.isBefore(dateRange['end']!)) {
-        dosisOmitidas++;
-      }
-    }
-    final int dosisTomadas = dosisProgramadas - dosisOmitidas;
-    final double adherencia =
-        dosisProgramadas > 0 ? (dosisTomadas / dosisProgramadas) * 100 : 0.0;
+    final double adherencia = dosisProgramadas > 0
+        ? (dosisTomadas / dosisProgramadas) * 100
+        : 100.0;
 
     final progressColor = adherencia >= 90
         ? kEmeraldColor
@@ -545,7 +556,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
               children: [
                 Expanded(
                   child: Text(
-                    tratamiento['nombreMedicamento'] ?? 'N/A',
+                    tratamiento.nombreMedicamento,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -670,28 +681,19 @@ class _ProgresoPageState extends State<ProgresoPage> {
 
                 int totalDosisProgramadas = 0;
                 int totalDosisOmitidas = 0;
+                int totalDosisTomadas = 0;
                 final todosLosTratamientos = snapshot.data!;
 
                 for (var tratamiento in todosLosTratamientos) {
-                  final dataMap = {
-                    'fechaInicioTratamiento': Timestamp.fromDate(tratamiento.fechaInicioTratamiento),
-                    'fechaFinTratamiento': Timestamp.fromDate(tratamiento.fechaFinTratamiento),
-                    'intervaloDosis': tratamiento.intervaloDosis.inHours.toString(),
-                    'skippedDoses': tratamiento.skippedDoses.map((d) => Timestamp.fromDate(d)).toList(),
-                  };
-                  totalDosisProgramadas += _calcularTotalDosis(dataMap, dateRange);
-
-                  for (var skippedDate in tratamiento.skippedDoses) {
-                    if (skippedDate.isAfter(dateRange['start']!) && skippedDate.isBefore(dateRange['end']!)) {
-                      totalDosisOmitidas++;
-                    }
-                  }
+                  final stats = _calcularEstadisticas(tratamiento, dateRange);
+                  totalDosisProgramadas += stats['programadasPasadas']!;
+                  totalDosisOmitidas += stats['omitidas']!;
+                  totalDosisTomadas += stats['tomadas']!;
                 }
 
-                final int totalDosisTomadas = totalDosisProgramadas - totalDosisOmitidas;
                 final double adherencia = totalDosisProgramadas > 0
                     ? (totalDosisTomadas / totalDosisProgramadas) * 100
-                    : 0.0;
+                    : 100.0;
 
                 final racha = _calcularRacha(todosLosTratamientos);
                 final dosisDeHoy = _obtenerDosisDeHoy(todosLosTratamientos);
@@ -744,14 +746,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
                     ),
                     const SizedBox(height: 12),
                     ...todosLosTratamientos.map((tratamiento) {
-                      final dataMap = {
-                        'nombreMedicamento': tratamiento.nombreMedicamento,
-                        'fechaInicioTratamiento': Timestamp.fromDate(tratamiento.fechaInicioTratamiento),
-                        'fechaFinTratamiento': Timestamp.fromDate(tratamiento.fechaFinTratamiento),
-                        'intervaloDosis': tratamiento.intervaloDosis.inHours.toString(),
-                        'skippedDoses': tratamiento.skippedDoses.map((d) => Timestamp.fromDate(d)).toList(),
-                      };
-                      return _buildTratamientoCard(dataMap, dateRange);
+                      return _buildTratamientoCard(tratamiento, dateRange);
                     }),
                     const SizedBox(height: 20),
                   ],
