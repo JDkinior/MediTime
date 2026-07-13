@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard - MediCare</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "outline": "#737686",
+                      "on-tertiary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "tertiary-fixed-dim": "#ffb95f",
+                      "on-surface-variant": "#434655",
+                      "on-secondary-fixed-variant": "#005236",
+                      "outline-variant": "#c3c6d7",
+                      "on-secondary": "#ffffff",
+                      "secondary-fixed": "#6ffbbe",
+                      "surface": "#f8f9ff",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-bright": "#f8f9ff",
+                      "tertiary-container": "#996100",
+                      "surface-tint": "#0053db",
+                      "primary-container": "#2563eb",
+                      "secondary-container": "#6cf8bb",
+                      "surface-container-highest": "#d3e4fe",
+                      "background": "#f8f9ff",
+                      "error": "#ba1a1a",
+                      "surface-container-high": "#dce9ff",
+                      "on-tertiary-fixed": "#2a1700",
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-secondary-container": "#00714d",
+                      "tertiary": "#784b00",
+                      "on-primary-container": "#eeefff",
+                      "on-primary": "#ffffff",
+                      "primary-fixed": "#dbe1ff",
+                      "error-container": "#ffdad6",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "on-error": "#ffffff",
+                      "inverse-primary": "#b4c5ff",
+                      "secondary-fixed-dim": "#4edea3",
+                      "on-primary-fixed": "#00174b",
+                      "surface-container": "#e5eeff",
+                      "surface-container-low": "#eff4ff",
+                      "secondary": "#006c49",
+                      "inverse-surface": "#213145",
+                      "on-surface": "#0b1c30",
+                      "on-secondary-fixed": "#002113",
+                      "on-background": "#0b1c30",
+                      "on-tertiary-fixed-variant": "#653e00",
+                      "surface-variant": "#d3e4fe",
+                      "tertiary-fixed": "#ffddb8",
+                      "primary": "#004ac6",
+                      "surface-dim": "#cbdbf5",
+                      "on-primary-fixed-variant": "#003ea8",
+                      "on-tertiary-container": "#ffeedd"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "20px",
+                      "base": "4px",
+                      "sm": "8px",
+                      "lg": "24px",
+                      "xl": "32px",
+                      "md": "16px",
+                      "gutter": "16px",
+                      "margin-desktop": "40px",
+                      "xs": "4px"
+              },
+              "fontFamily": {
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "30px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "28px",
+                              {
+                                      "lineHeight": "34px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-sm": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Subtle scrollbar for better UX if needed */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(115, 118, 134, 0.2); 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(115, 118, 134, 0.4); 
+        }
+      </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen pb-24 selection:bg-primary/20">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md shadow-sm dark:shadow-none flex justify-between items-center px-margin-mobile md:px-margin-desktop h-16 transition-colors">
+<button aria-label="Menu" class="p-2 -ml-2 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors active:scale-95 duration-100">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<!-- Hiding headline as per mockup, showing icons instead -->
+<div class="font-headline-md text-headline-md-mobile md:font-headline-md md:text-headline-md text-primary hidden">
+            MediCare
+        </div>
+<button aria-label="User Profile" class="p-2 -mr-2 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors active:scale-95 duration-100">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</header>
+<!-- NavigationDrawer (Hidden on Mobile by default, for Desktop structure) -->
+<aside class="hidden md:flex fixed inset-y-0 left-0 z-[60] flex-col py-6 bg-surface-container-low dark:bg-surface-container-lowest shadow-2xl h-full w-80 rounded-r-xl transform -translate-x-full transition-transform duration-300" id="drawer">
+<div class="px-6 mb-8 flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl">person</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Clinical User</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Patient ID: #4421</p>
+<span class="inline-block mt-1 px-2 py-0.5 bg-secondary-container/50 text-on-secondary-container rounded-full text-[10px] font-semibold uppercase tracking-wider">Active Plan</span>
+</div>
+</div>
+<nav class="flex-1 flex flex-col gap-2 px-4">
+<a class="flex items-center gap-3 px-4 py-3 mx-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md">My Profile</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 mx-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-md text-label-md">History</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 mx-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">local_pharmacy</span>
+<span class="font-label-md text-label-md">Pharmacy Finder</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 mx-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 mx-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md text-label-md">Help</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Canvas -->
+<main class="pt-20 px-margin-mobile md:px-margin-desktop max-w-3xl mx-auto flex flex-col gap-lg">
+<!-- Header Section -->
+<section class="flex flex-col gap-sm">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface">Hola, María</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Aquí está tu plan para hoy</p>
+<div class="mt-2 inline-flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-full w-max text-on-surface-variant border border-outline-variant/30 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+<span class="font-label-md text-label-md">Martes, 24 de junio</span>
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+</div>
+</section>
+<!-- Summary Card -->
+<section class="bg-primary text-on-primary rounded-[20px] p-6 shadow-[0_8px_24px_rgba(37,99,235,0.2)] relative overflow-hidden">
+<!-- Subtle background decoration -->
+<div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+<div class="absolute bottom-0 left-0 w-24 h-24 bg-black/5 rounded-full blur-xl -ml-8 -mb-8 pointer-events-none"></div>
+<h2 class="font-headline-sm text-headline-sm text-on-primary/90 mb-6 relative z-10">Resumen de hoy</h2>
+<div class="flex justify-between items-end relative z-10">
+<div class="flex flex-col items-center">
+<span class="text-3xl font-bold tracking-tight mb-1">2</span>
+<span class="text-[11px] font-medium text-on-primary/80 uppercase tracking-wide">Pendientes</span>
+</div>
+<div class="flex flex-col items-center">
+<span class="text-3xl font-bold tracking-tight mb-1">1</span>
+<span class="text-[11px] font-medium text-on-primary/80 uppercase tracking-wide">Tomadas</span>
+</div>
+<div class="flex flex-col items-center">
+<span class="text-3xl font-bold tracking-tight mb-1">100%</span>
+<span class="text-[11px] font-medium text-on-primary/80 uppercase tracking-wide">Adherencia</span>
+</div>
+</div>
+</section>
+<!-- Timeline Section -->
+<section class="flex flex-col gap-md mt-4">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Próximas dosis</h3>
+<div class="relative pl-8 flex flex-col gap-4 before:content-[''] before:absolute before:left-[11px] before:top-4 before:bottom-8 before:w-[2px] before:bg-outline-variant/40">
+<!-- Pending Item -->
+<article class="relative bg-surface-container-lowest rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.04)] border border-outline-variant/20 flex justify-between items-center group hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] transition-shadow">
+<!-- Timeline Node -->
+<div class="absolute -left-8 w-6 h-6 rounded-full bg-surface-container-lowest border-2 border-outline-variant/80 flex items-center justify-center z-10">
+<div class="w-2 h-2 rounded-full bg-transparent"></div>
+</div>
+<div class="flex flex-col gap-1">
+<div class="font-headline-sm text-headline-sm text-on-surface">18:22</div>
+<div class="font-body-md text-body-md text-on-surface font-medium">Acetaminofén</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Sobres · Cada 8 h</div>
+</div>
+<div class="px-3 py-1 rounded-full border border-primary/30 text-primary bg-primary/5 font-label-md text-label-md">
+                        Pendiente
+                    </div>
+</article>
+<!-- Taken Item -->
+<article class="relative bg-surface-container-lowest rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.04)] border border-outline-variant/20 flex justify-between items-center">
+<!-- Timeline Node -->
+<div class="absolute -left-8 w-6 h-6 rounded-full bg-secondary text-on-secondary flex items-center justify-center z-10 shadow-sm shadow-secondary/30">
+<span class="material-symbols-outlined text-[14px] font-bold">check</span>
+</div>
+<div class="flex flex-col gap-1 opacity-80">
+<div class="font-headline-sm text-headline-sm text-on-surface line-through decoration-on-surface-variant/40">20:52</div>
+<div class="font-body-md text-body-md text-on-surface font-medium">Amoxicilina + Ácido Clavulánico</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Comprimidos · Cada 8 h</div>
+</div>
+<div class="px-3 py-1 rounded-full border border-secondary/30 text-secondary bg-secondary/5 font-label-md text-label-md">
+                        Tomada
+                    </div>
+</article>
+<!-- Scheduled Item -->
+<article class="relative bg-surface-container-lowest rounded-xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.04)] border border-outline-variant/20 flex justify-between items-center opacity-70">
+<!-- Timeline Node -->
+<div class="absolute -left-8 w-6 h-6 rounded-full bg-surface-container-lowest border-2 border-outline-variant/50 flex items-center justify-center z-10">
+</div>
+<div class="flex flex-col gap-1">
+<div class="font-headline-sm text-headline-sm text-on-surface">02:22</div>
+<div class="font-body-md text-body-md text-on-surface font-medium">Acetaminofén</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Sobres · Cada 8 h</div>
+</div>
+<div class="px-3 py-1 rounded-full border border-outline-variant text-on-surface-variant bg-surface-container-low font-label-md text-label-md">
+                        Programada
+                    </div>
+</article>
+</div>
+</section>
+</main>
+<!-- Floating Action Button (FAB) Contextual to Receta/Dashboard -->
+<button aria-label="Add Medication" class="fixed bottom-28 right-margin-mobile md:right-margin-desktop w-14 h-14 bg-primary text-on-primary rounded-full shadow-[0_8px_20px_rgba(37,99,235,0.3)] flex items-center justify-center hover:bg-primary/90 active:scale-95 transition-all z-40">
+<span class="material-symbols-outlined text-3xl font-light">add</span>
+</button>
+<!-- BottomNavBar (Visible on Mobile, hidden on md) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 rounded-t-xl bg-surface dark:bg-surface-container-lowest shadow-[0_-4px_15px_rgba(0,0,0,0.04)] flex justify-around items-center h-20 px-4 pb-safe">
+<!-- Active Tab: Receta -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim font-bold bg-primary-container/20 rounded-xl px-4 py-1 hover:bg-surface-container dark:hover:bg-surface-container-high active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined icon-fill mb-1">medication</span>
+<span class="font-label-md text-label-md">Receta</span>
+</a>
+<!-- Inactive Tab: Calendario -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-surface-container-high active:scale-90 transition-transform duration-200 px-4 py-1 rounded-xl" href="#">
+<span class="material-symbols-outlined mb-1">calendar_month</span>
+<span class="font-label-md text-label-md font-normal">Calendario</span>
+</a>
+<!-- Inactive Tab: Progreso -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:bg-surface-container dark:hover:bg-surface-container-high active:scale-90 transition-transform duration-200 px-4 py-1 rounded-xl" href="#">
+<span class="material-symbols-outlined mb-1">monitoring</span>
+<span class="font-label-md text-label-md font-normal">Progreso</span>
+</a>
+</nav>
+<!-- Drawer Logic Script -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const menuBtn = document.querySelector('header button[aria-label="Menu"]');
+            const drawer = document.getElementById('drawer');
+            
+            if(menuBtn && drawer) {
+                menuBtn.addEventListener('click', () => {
+                    // Simple toggle for desktop demonstration
+                    if(drawer.classList.contains('-translate-x-full')) {
+                        drawer.classList.remove('-translate-x-full');
+                        drawer.classList.add('translate-x-0');
+                    } else {
+                        drawer.classList.add('-translate-x-full');
+                        drawer.classList.remove('translate-x-0');
+                    }
+                });
+            }
+        });
+    </script>
+</body></html>

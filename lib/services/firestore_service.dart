@@ -340,4 +340,19 @@ class FirestoreService {
         .doc(chatId)
         .delete();
   }
+
+  /// Elimina todas las sesiones de chat de un usuario
+  Future<void> clearAllChatSessions(String userId) async {
+    final query = await _db
+        .collection('users')
+        .doc(userId)
+        .collection('chats')
+        .get();
+    
+    final batch = _db.batch();
+    for (final doc in query.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
 }

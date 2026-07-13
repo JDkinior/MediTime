@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/models/tratamiento.dart'; // <-- CAMBIO: Importar modelo
 import 'package:meditime/models/treatment_form_data.dart';
+import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/treatment_form/treatment_summary_card.dart';
+
 
 // CAMBIO: Convertimos a StatefulWidget para manejar el temporizador de la cuenta regresiva
 class DetalleRecetaPage extends StatefulWidget {
@@ -142,11 +144,11 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
   Widget _buildSelectedDoseDisplay(DateTime doseTime) {
     return Column(
       children: [
-        const Text(
+        Text(
           'Hora de esta toma',
           style: TextStyle(
             fontSize: 18,
-            color: Colors.black54,
+            color: AppTheme.secondaryTextColor,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -161,7 +163,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
         ),
         Text(
           DateFormat('EEEE, d MMMM', 'es_ES').format(doseTime),
-          style: const TextStyle(fontSize: 18, color: Colors.black54),
+          style: TextStyle(fontSize: 18, color: AppTheme.secondaryTextColor),
         ),
       ],
     );
@@ -226,9 +228,9 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
-                    color: Colors.black87,
+                    color: AppTheme.primaryTextColor,
                     height: 1.4,
                   ),
                 ),

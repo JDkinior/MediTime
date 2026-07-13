@@ -19,15 +19,17 @@ class TreatmentSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 10,
             offset: const Offset(0, 2),
@@ -49,16 +51,16 @@ class TreatmentSummaryCard extends StatelessWidget {
                     children: [
                       Text(
                         formData.nombreMedicamento,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: AppTheme.primaryTextColor,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Presentación: ${formData.presentacion}',
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 16, color: AppTheme.secondaryTextColor),
                       ),
                     ],
                   ),
@@ -79,9 +81,9 @@ class TreatmentSummaryCard extends StatelessWidget {
               ),
             ],
           ),
-
+ 
           _buildDivider(),
-
+ 
           // Sección Horarios y Duración
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,7 +98,7 @@ class TreatmentSummaryCard extends StatelessWidget {
                   ),
                 ),
               ),
-
+ 
               // Duración
               Expanded(
                 child: _buildSection(
@@ -106,10 +108,10 @@ class TreatmentSummaryCard extends StatelessWidget {
                     children: [
                       Text(
                         summaryInfo['durationText'] ?? '',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black,
+                          color: AppTheme.primaryTextColor,
                         ),
                       ),
                       if (!formData.esIndefinido) ...[
@@ -118,7 +120,7 @@ class TreatmentSummaryCard extends StatelessWidget {
                           '(${formData.duracionEnDias} días)',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color: AppTheme.secondaryTextColor,
                           ),
                         ),
                       ],
@@ -127,17 +129,17 @@ class TreatmentSummaryCard extends StatelessWidget {
                         'Frecuencia',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.grey[600],
+                          color: AppTheme.secondaryTextColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Cada ${formData.intervaloDosis} horas',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black,
+                          color: AppTheme.primaryTextColor,
                         ),
                       ),
                     ],
@@ -146,9 +148,9 @@ class TreatmentSummaryCard extends StatelessWidget {
               ),
             ],
           ),
-
+ 
           const SizedBox(height: 20),
-
+ 
           // Información adicional
           Row(
             children: [
@@ -157,18 +159,18 @@ class TreatmentSummaryCard extends StatelessWidget {
                   formData.esIndefinido
                       ? '• Dosis generadas automáticamente'
                       : '• Total ${summaryInfo['totalDoses']} dosis',
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 14, color: AppTheme.secondaryTextColor),
                 ),
               ),
               Expanded(
                 child: Text(
                   '• Hasta ${summaryInfo['endDate']}',
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 14, color: AppTheme.secondaryTextColor),
                 ),
               ),
             ],
           ),
-
+ 
           if (formData.cantidadTotalCaja > 0 || formData.cantidadActual > 0) ...[
             _buildDivider(),
             _buildSection(
@@ -181,10 +183,10 @@ class TreatmentSummaryCard extends StatelessWidget {
                       children: [
                         Text(
                           'Disponible: ${formData.cantidadActual} de ${formData.cantidadTotalCaja}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black,
+                            color: AppTheme.primaryTextColor,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -192,7 +194,7 @@ class TreatmentSummaryCard extends StatelessWidget {
                           'Dosis por toma: ${formData.dosisPorToma}',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color: AppTheme.secondaryTextColor,
                           ),
                         ),
                       ],
@@ -217,7 +219,7 @@ class TreatmentSummaryCard extends StatelessWidget {
               ),
             ),
           ],
-
+ 
           // Notas (solo si hay)
           if (formData.notas.isNotEmpty) ...[
             _buildDivider(),
@@ -225,7 +227,7 @@ class TreatmentSummaryCard extends StatelessWidget {
               title: 'Notas',
               child: Text(
                 '• ${formData.notas}',
-                style: const TextStyle(fontSize: 16, color: Colors.black),
+                style: TextStyle(fontSize: 16, color: AppTheme.primaryTextColor),
               ),
             ),
           ] else ...[
@@ -234,7 +236,7 @@ class TreatmentSummaryCard extends StatelessWidget {
               title: 'Notas',
               child: Text(
                 '• Ninguna',
-                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 16, color: AppTheme.secondaryTextColor),
               ),
             ),
           ],
@@ -242,7 +244,7 @@ class TreatmentSummaryCard extends StatelessWidget {
       ),
     );
   }
-
+ 
   Widget _buildSection({required String title, required Widget child}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,7 +253,7 @@ class TreatmentSummaryCard extends StatelessWidget {
           title,
           style: TextStyle(
             fontSize: 16,
-            color: Colors.grey[600],
+            color: AppTheme.secondaryTextColor,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -260,39 +262,39 @@ class TreatmentSummaryCard extends StatelessWidget {
       ],
     );
   }
-
+ 
   Widget _buildDivider() {
     return Column(
       children: [
         const SizedBox(height: 24),
-        Divider(color: Colors.grey[300]),
+        Divider(color: AppTheme.borderColor),
         const SizedBox(height: 24),
       ],
     );
   }
-
+ 
   List<Widget> _generateScheduleTimes(BuildContext context) {
     final schedule = formData.generateDailySchedule();
-
+ 
     if (schedule.isEmpty) {
       return [
         Text(
           '• No definido',
-          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 16, color: AppTheme.secondaryTextColor),
         ),
       ];
     }
-
+ 
     return schedule
         .map(
           (time) => Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Text(
               '• ${time.format(context)}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
-                color: Colors.black,
+                color: AppTheme.primaryTextColor,
               ),
             ),
           ),

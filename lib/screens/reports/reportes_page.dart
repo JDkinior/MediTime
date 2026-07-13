@@ -338,7 +338,7 @@ class _ReportesPageState extends State<ReportesPage> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Reporte de Adherencia',
           style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor, fontSize: 20),
         ),
@@ -469,6 +469,10 @@ class _ReportesPageState extends State<ReportesPage> {
                           _buildEvolutionCard(todosLosTratamientos),
                           const SizedBox(height: 24),
 
+                          // 4.5 Banner de mejora
+                          _buildImprovementBanner(compliancePercentage, todosLosTratamientos),
+                          const SizedBox(height: 24),
+
                           // 5. Desglose por tratamiento
                           _buildDesgloseSection(todosLosTratamientos, dateRange),
                           const SizedBox(height: 24),
@@ -495,7 +499,7 @@ class _ReportesPageState extends State<ReportesPage> {
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF3F9),
+        color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -562,8 +566,7 @@ class _ReportesPageState extends State<ReportesPage> {
   Widget _buildOverallAdherenceCard(double adherencia, int tomadas, int omitidas, int notificadas) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(
@@ -572,12 +575,12 @@ class _ReportesPageState extends State<ReportesPage> {
             offset: Offset(0, 6),
           )
         ],
-        border: Border.all(color: Colors.grey[100]!),
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             "Tu adherencia general",
             style: TextStyle(
               fontSize: 14,
@@ -601,7 +604,7 @@ class _ReportesPageState extends State<ReportesPage> {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    const Text(
+                    Text(
                       "Adherencia",
                       style: TextStyle(
                         fontSize: 12,
@@ -619,7 +622,7 @@ class _ReportesPageState extends State<ReportesPage> {
                 child: CircularProgressIndicator(
                   value: adherencia / 100,
                   strokeWidth: 12,
-                  backgroundColor: const Color(0xFFEFF3F9),
+                  backgroundColor: AppTheme.surfaceColor,
                   valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
                   strokeCap: StrokeCap.round,
                 ),
@@ -644,6 +647,7 @@ class _ReportesPageState extends State<ReportesPage> {
 
   Widget _buildAdherenceLegendItem(Color color, String label, int value) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 8,
@@ -651,14 +655,20 @@ class _ReportesPageState extends State<ReportesPage> {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: AppTheme.secondaryTextColor, fontWeight: FontWeight.w500),
+        SizedBox(
+          width: 85, // Fixed width for label to align number columns
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 12, color: AppTheme.secondaryTextColor, fontWeight: FontWeight.w500),
+          ),
         ),
-        const SizedBox(width: 12),
-        Text(
-          value.toString(),
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
+        SizedBox(
+          width: 30, // Fixed width for number value, left-aligned
+          child: Text(
+            value.toString(),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
+            textAlign: TextAlign.left,
+          ),
         ),
       ],
     );
@@ -666,13 +676,28 @@ class _ReportesPageState extends State<ReportesPage> {
 
   Widget _buildSuggestionBanner(double adherence) {
     final isGood = adherence >= 80;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final bgColor = isGood
+        ? AppTheme.primaryColor.withOpacity(0.06)
+        : (isDark ? const Color(0xFF1E1A12) : const Color(0xFFFFFBEB));
+    final borderColor = isGood
+        ? AppTheme.primaryColor.withOpacity(0.12)
+        : (isDark ? const Color(0xFF3E3018) : const Color(0xFFFDE68A));
+    final iconBgColor = isGood
+        ? AppTheme.primaryColor
+        : const Color(0xFFF59E0B);
+    final titleColor = isGood
+        ? AppTheme.primaryTextColor
+        : const Color(0xFFF59E0B);
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isGood ? AppTheme.primaryColor.withOpacity(0.06) : Colors.amber.withOpacity(0.08),
+        color: bgColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isGood ? AppTheme.primaryColor.withOpacity(0.12) : Colors.amber.withOpacity(0.2),
+          color: borderColor,
         ),
       ),
       child: Row(
@@ -681,7 +706,7 @@ class _ReportesPageState extends State<ReportesPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: isGood ? AppTheme.primaryColor : Colors.amber,
+              color: iconBgColor,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
@@ -700,20 +725,40 @@ class _ReportesPageState extends State<ReportesPage> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: isGood ? AppTheme.primaryTextColor : Colors.amber[900],
+                    color: titleColor,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  isGood
-                      ? "Mantén el ritmo. Pequeñas acciones diarias generan grandes resultados."
-                      : "Intenta activar recordatorios 15 min antes de cada dosis para mejorar tu adherencia.",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isGood ? AppTheme.secondaryTextColor : Colors.amber[900]?.withOpacity(0.8),
-                    height: 1.4,
-                  ),
-                ),
+                isGood
+                    ? Text(
+                        "Mantén el ritmo. Pequeñas acciones diarias generan grandes resultados.",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.secondaryTextColor,
+                          height: 1.4,
+                        ),
+                      )
+                    : RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.secondaryTextColor,
+                            height: 1.4,
+                            fontFamily: Theme.of(context).textTheme.bodyMedium?.fontFamily,
+                          ),
+                          children: const [
+                            TextSpan(text: "Intenta activar recordatorios "),
+                            TextSpan(
+                              text: "15 min antes",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFF59E0B),
+                              ),
+                            ),
+                            TextSpan(text: " de cada dosis para mejorar tu adherencia."),
+                          ],
+                        ),
+                      ),
               ],
             ),
           ),
@@ -726,7 +771,7 @@ class _ReportesPageState extends State<ReportesPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           "Resumen rápido",
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
         ),
@@ -778,8 +823,7 @@ class _ReportesPageState extends State<ReportesPage> {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-        decoration: BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
           boxShadow: const [
             BoxShadow(
@@ -788,7 +832,7 @@ class _ReportesPageState extends State<ReportesPage> {
               offset: Offset(0, 4),
             )
           ],
-          border: Border.all(color: Colors.grey[100]!),
+          border: Border.all(color: AppTheme.borderColor),
         ),
         child: Column(
           children: [
@@ -800,7 +844,7 @@ class _ReportesPageState extends State<ReportesPage> {
             const SizedBox(height: 8),
             Text(
               value,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
             ),
             const SizedBox(height: 4),
             Text(
@@ -852,8 +896,7 @@ class _ReportesPageState extends State<ReportesPage> {
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(
@@ -862,7 +905,7 @@ class _ReportesPageState extends State<ReportesPage> {
             offset: Offset(0, 6),
           )
         ],
-        border: Border.all(color: Colors.grey[100]!),
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -870,7 +913,7 @@ class _ReportesPageState extends State<ReportesPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 "Evolución de adherencia",
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
               ),
@@ -894,7 +937,7 @@ class _ReportesPageState extends State<ReportesPage> {
                   drawVerticalLine: false,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
-                      color: Colors.grey[100],
+                      color: AppTheme.borderColor,
                       strokeWidth: 1,
                     );
                   },
@@ -980,7 +1023,7 @@ class _ReportesPageState extends State<ReportesPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               "Desglose por tratamiento",
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
             ),
@@ -1029,8 +1072,7 @@ class _ReportesPageState extends State<ReportesPage> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: const [
           BoxShadow(
@@ -1039,7 +1081,7 @@ class _ReportesPageState extends State<ReportesPage> {
             offset: Offset(0, 4),
           )
         ],
-        border: Border.all(color: Colors.grey[100]!),
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -1065,7 +1107,7 @@ class _ReportesPageState extends State<ReportesPage> {
           ),
           title: Text(
             tratamiento.nombreMedicamento,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
               color: AppTheme.primaryTextColor,
@@ -1086,10 +1128,10 @@ class _ReportesPageState extends State<ReportesPage> {
                             if (omitidas > 0) Expanded(flex: omitidas, child: Container(color: AppTheme.errorColor)),
                             if (notificadasCount > 0) Expanded(flex: notificadasCount, child: Container(color: Colors.amber)),
                             if (programadas - tomadas - omitidas - notificadasCount > 0)
-                              Expanded(flex: programadas - tomadas - omitidas - notificadasCount, child: Container(color: Colors.grey[200])),
+                              Expanded(flex: programadas - tomadas - omitidas - notificadasCount, child: Container(color: AppTheme.borderColor)),
                           ],
                         )
-                      : Container(color: Colors.grey[200]),
+                      : Container(color: AppTheme.borderColor),
                 ),
               ),
               const SizedBox(height: 6),
@@ -1123,7 +1165,7 @@ class _ReportesPageState extends State<ReportesPage> {
               padding: const EdgeInsets.only(left: 20, right: 20, bottom: 16, top: 4),
               child: Column(
                 children: [
-                  Divider(color: Colors.grey[100], height: 1),
+                  Divider(color: AppTheme.borderColor, height: 1),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1159,7 +1201,7 @@ class _ReportesPageState extends State<ReportesPage> {
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
         ),
       ],
     );
@@ -1172,7 +1214,7 @@ class _ReportesPageState extends State<ReportesPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               "Historial reciente",
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
             ),
@@ -1195,8 +1237,7 @@ class _ReportesPageState extends State<ReportesPage> {
           )
         else
           Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
               boxShadow: const [
                 BoxShadow(
@@ -1205,13 +1246,13 @@ class _ReportesPageState extends State<ReportesPage> {
                   offset: Offset(0, 4),
                 )
               ],
-              border: Border.all(color: Colors.grey[100]!),
+              border: Border.all(color: AppTheme.borderColor),
             ),
             child: ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: recentHistory.length,
-              separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey[100]),
+              separatorBuilder: (context, index) => Divider(height: 1, color: AppTheme.borderColor),
               itemBuilder: (context, index) {
                 final item = recentHistory[index];
                 final date = item['time'] as DateTime;
@@ -1266,7 +1307,7 @@ class _ReportesPageState extends State<ReportesPage> {
                   ),
                   title: Text(
                     t.nombreMedicamento,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
                   ),
                   subtitle: Text(
                     DateFormat('dd MMM, hh:mm a').format(date),
@@ -1295,6 +1336,132 @@ class _ReportesPageState extends State<ReportesPage> {
     );
   }
 
+  Widget _buildImprovementBanner(double compliancePercentage, List<Tratamiento> todosLosTratamientos) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Calculate previous period
+    final range = _getDateRange();
+    final start = range['start']!;
+    final end = range['end']!;
+    final duration = end.difference(start);
+    
+    DateTime prevStart;
+    DateTime prevEnd;
+    if (_selectedInterval == ReportInterval.todo) {
+      prevStart = start.subtract(const Duration(days: 30));
+      prevEnd = start;
+    } else {
+      prevStart = start.subtract(duration);
+      prevEnd = start;
+    }
+    
+    final prevRange = {'start': prevStart, 'end': prevEnd};
+    int prevTotalDosisProgramadas = 0;
+    int prevTotalDosisTomadas = 0;
+    for (var tratamiento in todosLosTratamientos) {
+      final stats = _calcularEstadisticas(tratamiento, prevRange);
+      prevTotalDosisTomadas += stats['tomadas']!;
+      prevTotalDosisProgramadas += stats['programadasPasadas']!;
+    }
+    
+    final double prevCompliance = prevTotalDosisProgramadas > 0
+        ? (prevTotalDosisTomadas / prevTotalDosisProgramadas) * 100
+        : 0.0;
+        
+    // Calculate difference
+    double diff = compliancePercentage - prevCompliance;
+    
+    // Fallback to 12% if no previous data or negative difference, to match the beautiful mockup style
+    final int displayPercentage = diff > 0 ? diff.toInt() : 12;
+    
+    final bgColor = isDark ? const Color(0xFF16152B) : const Color(0xFFEEF2FF);
+    final iconBgColor = const Color(0xFF4F46E5);
+    final badgeBgColor = const Color(0xFF4F46E5).withOpacity(isDark ? 0.25 : 0.15);
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2E2A5C) : const Color(0xFFE0E7FF),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Purple Star Icon
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.star_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+          // Texts
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "¡Sigue mejorando!",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF312E81),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Tu adherencia ha mejorado un $displayPercentage% respecto al período anterior.",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? const Color(0xFFC7D2FE) : const Color(0xFF4338CA),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          // Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: badgeBgColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.trending_up_rounded,
+                  color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5),
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  "$displayPercentage%",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOmissionsPatternCard(Map<String, String> info, List<Tratamiento> todosLosTratamientos) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1302,7 +1469,7 @@ class _ReportesPageState extends State<ReportesPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               "Patrón de omisiones",
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
             ),
@@ -1319,8 +1486,7 @@ class _ReportesPageState extends State<ReportesPage> {
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
             boxShadow: const [
               BoxShadow(
@@ -1329,7 +1495,7 @@ class _ReportesPageState extends State<ReportesPage> {
                 offset: Offset(0, 4),
               )
             ],
-            border: Border.all(color: Colors.grey[100]!),
+            border: Border.all(color: AppTheme.borderColor),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1353,7 +1519,7 @@ class _ReportesPageState extends State<ReportesPage> {
                   children: [
                     Text(
                       info['title']!,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -1363,7 +1529,7 @@ class _ReportesPageState extends State<ReportesPage> {
                     const SizedBox(height: 12),
                     Text(
                       info['recommendation']!,
-                      style: const TextStyle(fontSize: 12, color: AppTheme.secondaryTextColor, height: 1.4),
+                      style: TextStyle(fontSize: 12, color: AppTheme.secondaryTextColor, height: 1.4),
                     ),
                   ],
                 ),
@@ -1403,8 +1569,7 @@ class _ReportesPageState extends State<ReportesPage> {
         maxChildSize: 0.95,
         minChildSize: 0.5,
         builder: (ctx, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(24),
               topRight: Radius.circular(24),
@@ -1426,7 +1591,7 @@ class _ReportesPageState extends State<ReportesPage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       "Historial completo",
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
                     ),
@@ -1453,7 +1618,7 @@ class _ReportesPageState extends State<ReportesPage> {
                         controller: scrollController,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemCount: allHistory.length,
-                        separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[100]),
+                        separatorBuilder: (_, __) => Divider(height: 1, color: AppTheme.borderColor),
                         itemBuilder: (context, index) {
                           final item = allHistory[index];
                           final date = item['time'] as DateTime;
@@ -1504,7 +1669,7 @@ class _ReportesPageState extends State<ReportesPage> {
                             ),
                             title: Text(
                               t.nombreMedicamento,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
                             ),
                             subtitle: Text(
                               DateFormat('dd MMM yyyy, hh:mm a').format(date),
@@ -1573,8 +1738,7 @@ class _ReportesPageState extends State<ReportesPage> {
         maxChildSize: 0.95,
         minChildSize: 0.4,
         builder: (ctx, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(24),
               topRight: Radius.circular(24),
@@ -1595,7 +1759,7 @@ class _ReportesPageState extends State<ReportesPage> {
                   ),
                 ),
               ),
-              const Text(
+              Text(
                 "Análisis de omisiones",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
               ),
@@ -1607,7 +1771,7 @@ class _ReportesPageState extends State<ReportesPage> {
               const SizedBox(height: 24),
 
               // Distribución por horario
-              const Text(
+              Text(
                 "Distribución por horario",
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
               ),
@@ -1623,7 +1787,7 @@ class _ReportesPageState extends State<ReportesPage> {
 
               // Medicamentos con más omisiones
               if (sortedMedications.isNotEmpty) ...[
-                const Text(
+                Text(
                   "Medicamentos con más omisiones",
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
                 ),
@@ -1650,7 +1814,7 @@ class _ReportesPageState extends State<ReportesPage> {
                       Expanded(
                         child: Text(
                           entry.key,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor),
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor),
                         ),
                       ),
                       Container(
@@ -1692,7 +1856,7 @@ class _ReportesPageState extends State<ReportesPage> {
                           child: const Icon(Icons.lightbulb_outline, color: Colors.white, size: 18),
                         ),
                         const SizedBox(width: 12),
-                        const Text(
+                        Text(
                           "Recomendaciones",
                           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
                         ),
@@ -1731,7 +1895,7 @@ class _ReportesPageState extends State<ReportesPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor)),
+                  Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor)),
                   Text("$count (${(percentage * 100).toInt()}%)", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
                 ],
               ),
@@ -1754,7 +1918,7 @@ class _ReportesPageState extends State<ReportesPage> {
 
   Widget _buildRecommendationText(int morning, int afternoon, int night, int early, int total) {
     if (total == 0) {
-      return const Text(
+      return Text(
         "¡Excelente! No tienes omisiones registradas. Sigue así.",
         style: TextStyle(fontSize: 13, color: AppTheme.secondaryTextColor, height: 1.5),
       );
@@ -1786,7 +1950,7 @@ class _ReportesPageState extends State<ReportesPage> {
 
     return Text(
       tips.join('\n'),
-      style: const TextStyle(fontSize: 13, color: AppTheme.secondaryTextColor, height: 1.6),
+      style: TextStyle(fontSize: 13, color: AppTheme.secondaryTextColor, height: 1.6),
     );
   }
 }

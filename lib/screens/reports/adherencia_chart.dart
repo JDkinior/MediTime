@@ -133,7 +133,7 @@ class WeeklyComplianceChart extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               getTitlesWidget: (value, meta) {
-                const style = TextStyle(
+                final style = TextStyle(
                   color: AppTheme.secondaryTextColor,
                   fontWeight: FontWeight.w600,
                   fontSize: 13,

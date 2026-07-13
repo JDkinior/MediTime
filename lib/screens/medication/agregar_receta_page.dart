@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
+import 'package:meditime/theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:meditime/services/gemini_service.dart';
 import 'package:provider/provider.dart';
@@ -567,6 +568,15 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                   notifier.formData.horaPrimeraDosis.minute,
                 ),
                 is24HourMode: false,
+                normalTextStyle: TextStyle(
+                  fontSize: 24,
+                  color: AppTheme.secondaryTextColor.withValues(alpha: 0.4),
+                ),
+                highlightedTextStyle: TextStyle(
+                  fontSize: 24,
+                  color: AppTheme.primaryTextColor,
+                  fontWeight: FontWeight.bold,
+                ),
                 onTimeChange: (time) {
                   final selectedTime = TimeOfDay(hour: time.hour, minute: time.minute);
                   if (selectedTime.hour != notifier.formData.horaPrimeraDosis.hour ||

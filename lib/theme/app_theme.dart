@@ -20,7 +20,7 @@ class AppTheme {
   static const Color secondaryColor = Color(0xFF006C49);
 
   /// Main background color for most screens.
-  static const Color backgroundColor = Color(0xFFF8F9FF);
+  static Color backgroundColor = const Color(0xFFF8F9FF);
 
   /// Color for success states (green).
   static const Color successColor = Color(0xFF10B981);
@@ -32,13 +32,24 @@ class AppTheme {
   static const Color infoColor = Color(0xFF2563EB);
 
   /// Text colors
-  static const Color primaryTextColor = Color(0xFF0B1C30);
-  static const Color secondaryTextColor = Color(0xFF434655);
+  static Color primaryTextColor = const Color(0xFF0B1C30);
+  static Color secondaryTextColor = const Color(0xFF434655);
   static const Color whiteTextColor = Colors.white;
 
   /// Surface colors
-  static const Color surfaceColor = Color(0xFFEFF4FF);
-  static const Color cardColor = Colors.white;
+  static Color surfaceColor = const Color(0xFFEFF4FF);
+  static Color cardColor = Colors.white;
+  static Color borderColor = const Color(0xFFEFF3F9);
+
+  /// Updates static colors to match light or dark mode.
+  static void updateThemeColors(bool isDark) {
+    backgroundColor = isDark ? const Color(0xFF111318) : const Color(0xFFF8F9FF);
+    primaryTextColor = isDark ? const Color(0xFFE2E2E9) : const Color(0xFF0B1C30);
+    secondaryTextColor = isDark ? const Color(0xFF9093A5) : const Color(0xFF434655);
+    surfaceColor = isDark ? const Color(0xFF1D2027) : const Color(0xFFEFF4FF);
+    cardColor = isDark ? const Color(0xFF1A1C23) : Colors.white;
+    borderColor = isDark ? const Color(0xFF2A2D3C) : const Color(0xFFEFF3F9);
+  }
 
   // -------------------
   // Gradients
@@ -104,19 +115,17 @@ class AppTheme {
   static const TextStyle sectionTitleStyle = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.bold,
-    color: primaryTextColor,
+    color: primaryColor,
   );
 
   /// Body text style
   static const TextStyle bodyTextStyle = TextStyle(
     fontSize: 16,
-    color: primaryTextColor,
   );
 
   /// Subtitle text style
   static const TextStyle subtitleTextStyle = TextStyle(
     fontSize: 14,
-    color: secondaryTextColor,
   );
 
   /// Button text style
@@ -129,7 +138,6 @@ class AppTheme {
   /// Caption text style
   static const TextStyle captionTextStyle = TextStyle(
     fontSize: 12,
-    color: secondaryTextColor,
   );
 
   /// Drawer header text styles
@@ -201,13 +209,11 @@ class AppTheme {
   );
 
   /// App bar theme
-  static AppBarTheme get appBarTheme => const AppBarTheme(
+  static AppBarTheme get appBarTheme => AppBarTheme(
     backgroundColor: backgroundColor,
-    foregroundColor: primaryTextColor,
     elevation: 0,
     centerTitle: false,
-    titleTextStyle: TextStyle(
-      color: primaryTextColor,
+    titleTextStyle: const TextStyle(
       fontSize: 20,
       fontWeight: FontWeight.bold,
     ),
@@ -220,16 +226,54 @@ class AppTheme {
   /// Light theme configuration
   static ThemeData get lightTheme => ThemeData(
     useMaterial3: true,
+    brightness: Brightness.light,
     colorScheme: ColorScheme.fromSeed(
       seedColor: primaryColor,
       surface: backgroundColor,
+      brightness: Brightness.light,
     ),
     scaffoldBackgroundColor: backgroundColor,
     dialogTheme: const DialogThemeData(
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
     ),
-    appBarTheme: appBarTheme,
+    appBarTheme: appBarTheme.copyWith(
+      backgroundColor: backgroundColor,
+      foregroundColor: primaryTextColor,
+      titleTextStyle: TextStyle(color: primaryTextColor, fontSize: 20, fontWeight: FontWeight.bold),
+    ),
+    inputDecorationTheme: inputDecorationTheme,
+    elevatedButtonTheme: elevatedButtonTheme,
+    cardTheme: cardTheme,
+    textTheme: const TextTheme(
+      headlineLarge: pageTitleStyle,
+      headlineMedium: sectionTitleStyle,
+      bodyLarge: bodyTextStyle,
+      bodyMedium: subtitleTextStyle,
+      labelLarge: buttonTextStyle,
+      bodySmall: captionTextStyle,
+    ),
+  );
+
+  /// Dark theme configuration
+  static ThemeData get darkTheme => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: primaryColor,
+      surface: backgroundColor,
+      brightness: Brightness.dark,
+    ),
+    scaffoldBackgroundColor: backgroundColor,
+    dialogTheme: const DialogThemeData(
+      backgroundColor: Color(0xFF1E2027),
+      surfaceTintColor: Colors.transparent,
+    ),
+    appBarTheme: appBarTheme.copyWith(
+      backgroundColor: backgroundColor,
+      foregroundColor: primaryTextColor,
+      titleTextStyle: TextStyle(color: primaryTextColor, fontSize: 20, fontWeight: FontWeight.bold),
+    ),
     inputDecorationTheme: inputDecorationTheme,
     elevatedButtonTheme: elevatedButtonTheme,
     cardTheme: cardTheme,
@@ -255,7 +299,7 @@ const kPrimaryColor = AppTheme.primaryColor;
 const kSecondaryColor = AppTheme.secondaryColor;
 
 /// @deprecated Use AppTheme.backgroundColor instead
-const kBackgroundColor = AppTheme.backgroundColor;
+final kBackgroundColor = AppTheme.backgroundColor;
 
 /// @deprecated Use AppTheme.successColor instead
 const kSuccessColor = AppTheme.successColor;
@@ -267,16 +311,16 @@ const kErrorColor = AppTheme.errorColor;
 const kInfoColor = AppTheme.infoColor;
 
 /// @deprecated Use AppTheme.cardShadow instead
-const kCustomBoxShadow = AppTheme.cardShadow;
+final kCustomBoxShadow = AppTheme.cardShadow;
 
 /// @deprecated Use AppTheme.pageTitleStyle instead
-const kPageTitleStyle = AppTheme.pageTitleStyle;
+final kPageTitleStyle = AppTheme.pageTitleStyle;
 
 /// @deprecated Use AppTheme.sectionTitleStyle instead
-const kSectionTitleStyle = AppTheme.sectionTitleStyle;
+final kSectionTitleStyle = AppTheme.sectionTitleStyle;
 
 /// @deprecated Use AppTheme.bodyTextStyle instead
-const kBodyTextStyle = AppTheme.bodyTextStyle;
+final kBodyTextStyle = AppTheme.bodyTextStyle;
 
 /// @deprecated Use AppTheme.subtitleTextStyle instead
-const kSubtitleTextStyle = AppTheme.subtitleTextStyle;
+final kSubtitleTextStyle = AppTheme.subtitleTextStyle;

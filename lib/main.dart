@@ -20,6 +20,7 @@ import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/storage_service.dart';
 import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/notifiers/treatment_form_notifier.dart';
 import 'package:meditime/notifiers/calendar_notifier.dart';
 import 'package:meditime/services/treatment_service.dart';
@@ -96,6 +97,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<ProfileNotifier>(
           create: (_) => ProfileNotifier(),
         ),
+        ChangeNotifierProvider<PreferenceNotifier>(
+          create: (context) => PreferenceNotifier(context.read<PreferenceService>()),
+        ),
         ChangeNotifierProvider<TreatmentFormNotifier>(
           create:
               (context) => TreatmentFormNotifier(
@@ -111,21 +115,33 @@ class MyApp extends StatelessWidget {
               ),
         ),
       ],
-      child: MaterialApp(
-        title: 'MediTime',
-        navigatorKey: navigatorKey,
-        theme: AppTheme.lightTheme,
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [
-          Locale('es', 'ES'),
-        ],
-        locale: const Locale('es', 'ES'),
-        routes: {ChatBotScreen.routeName: (_) => const ChatBotScreen()},
-        home: const AuthWrapper(),
+      child: Consumer<PreferenceNotifier>(
+        builder: (context, preferenceNotifier, child) {
+          final themeModeStr = preferenceNotifier.themeMode;
+          final isDark = themeModeStr == 'dark' ||
+              (themeModeStr == 'system' &&
+                  MediaQuery.platformBrightnessOf(context) == Brightness.dark);
+          AppTheme.updateThemeColors(isDark);
+
+          return MaterialApp(
+            title: 'MediTime',
+            navigatorKey: navigatorKey,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: preferenceNotifier.themeModeEnum,
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('es', 'ES'),
+            ],
+            locale: const Locale('es', 'ES'),
+            routes: {ChatBotScreen.routeName: (_) => const ChatBotScreen()},
+            home: const AuthWrapper(),
+          );
+        },
       ),
     );
   }

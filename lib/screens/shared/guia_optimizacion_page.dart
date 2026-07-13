@@ -23,17 +23,17 @@ class GuiaOptimizacionPage extends StatelessWidget {
           children: [
             _buildHeader(),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               '¿Por qué es importante?',
               style: kSectionTitleStyle,
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Los fabricantes de teléfonos (especialmente Xiaomi, Huawei, y OnePlus) implementan medidas muy agresivas de ahorro de batería. Estas pueden "congelar" o cerrar aplicaciones en segundo plano, causando que los recordatorios de MediTime no lleguen a la hora exacta.',
               style: kBodyTextStyle,
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'Pasos recomendados',
               style: kSectionTitleStyle,
             ),

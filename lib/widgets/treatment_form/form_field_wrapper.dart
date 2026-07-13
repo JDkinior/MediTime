@@ -1,5 +1,6 @@
 // lib/widgets/treatment_form/form_field_wrapper.dart
 import 'package:flutter/material.dart';
+import 'package:meditime/theme/app_theme.dart';
 
 /// Widget wrapper para campos de formulario con estilo consistente
 class FormFieldWrapper extends StatelessWidget {
@@ -23,9 +24,9 @@ class FormFieldWrapper extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 8.0),
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: Colors.black87,
+              color: AppTheme.primaryTextColor,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -37,7 +38,7 @@ class FormFieldWrapper extends StatelessWidget {
             helperText!,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[600],
+              color: AppTheme.secondaryTextColor,
             ),
           ),
         ],
@@ -49,7 +50,7 @@ class FormFieldWrapper extends StatelessWidget {
 /// Input decoration consistente para todos los campos
 class AppInputDecoration {
   static InputDecoration get standard => InputDecoration(
-    fillColor: Colors.white,
+    fillColor: AppTheme.cardColor,
     filled: true,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(20),
@@ -75,7 +76,7 @@ class AppInputDecoration {
     disabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(20),
       borderSide: BorderSide(
-        color: Colors.grey[300]!,
+        color: AppTheme.borderColor,
         width: 1,
       ),
     ),
@@ -87,6 +88,6 @@ class AppInputDecoration {
 
   static InputDecoration withHint(String hint) => standard.copyWith(
     hintText: hint,
-    hintStyle: TextStyle(color: Colors.grey[400]),
+    hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withValues(alpha: 0.6)),
   );
 }

@@ -11,16 +11,25 @@ import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'agregar_receta_page.dart';
 import 'detalle_receta_page.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'package:meditime/enums/view_state.dart';
+import 'package:meditime/widgets/tutorial_tooltip.dart';
 
 class RecetaPage extends StatefulWidget {
   final GlobalKey? fabKey;
+  final GlobalKey? summaryKey;
+  final GlobalKey? dateKey;
 
-  const RecetaPage({super.key, this.fabKey});
+  const RecetaPage({
+    super.key,
+    this.fabKey,
+    this.summaryKey,
+    this.dateKey,
+  });
 
   @override
   State<RecetaPage> createState() => _RecetaPageState();
@@ -109,8 +118,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           padding: EdgeInsets.only(
@@ -155,7 +163,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Opciones de la Dosis',
                           style: TextStyle(
                             fontSize: 18,
@@ -166,7 +174,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                         const SizedBox(height: 4),
                         Text(
                           '${tratamiento.nombreMedicamento} • ${DateFormat('hh:mm a').format(doseTime)}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             color: AppTheme.secondaryTextColor,
                             fontWeight: FontWeight.w500,
@@ -221,8 +229,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                           child: const Icon(Icons.check, color: Colors.white, size: 20),
                         ),
                         const SizedBox(width: 16),
-                        const Expanded(
-                          child: Column(
+                        Expanded(child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
@@ -254,9 +261,9 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
               // Section 2: Rescheduling & Timing Options
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: AppTheme.surfaceColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey[200]!),
+                  border: Border.all(color: AppTheme.borderColor),
                 ),
                 child: Column(
                   children: [
@@ -267,11 +274,11 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                           backgroundColor: Colors.orange.withOpacity(0.1),
                           child: const Icon(Icons.alarm_off, color: Colors.orange, size: 20),
                         ),
-                        title: const Text(
+                        title: Text(
                           'Omitir esta dosis',
                           style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor),
                         ),
-                        subtitle: const Text(
+                        subtitle: Text(
                           'Saltar esta toma sin registrarla',
                           style: TextStyle(fontSize: 11, color: AppTheme.secondaryTextColor),
                         ),
@@ -288,7 +295,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                           );
                         },
                       ),
-                      Divider(height: 1, color: Colors.grey[200]),
+                      Divider(height: 1, color: AppTheme.borderColor),
                     ],
                     ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -296,11 +303,11 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                         backgroundColor: Colors.amber.withOpacity(0.1),
                         child: const Icon(Icons.snooze, color: Colors.amber, size: 20),
                       ),
-                      title: const Text(
+                      title: Text(
                         'Aplazar dosis',
                         style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor),
                       ),
-                      subtitle: const Text(
+                      subtitle: Text(
                         'Postergar la toma por unos minutos',
                         style: TextStyle(fontSize: 11, color: AppTheme.secondaryTextColor),
                       ),
@@ -310,8 +317,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                           context: context,
                           backgroundColor: Colors.transparent,
                           builder: (ctx) => Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
+                            decoration: BoxDecoration(color: Theme.of(context).cardColor,
                               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                             ),
                             padding: EdgeInsets.only(
@@ -329,12 +335,12 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                                   decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
                                   margin: const EdgeInsets.only(bottom: 16),
                                 ),
-                                const Text(
+                                Text(
                                   'Aplazar Dosis',
                                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
                                 ),
                                 const SizedBox(height: 8),
-                                const Text(
+                                Text(
                                   '¿Cuánto tiempo deseas aplazar esta dosis?',
                                   style: TextStyle(color: AppTheme.secondaryTextColor),
                                   textAlign: TextAlign.center,
@@ -385,18 +391,18 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                         }
                       },
                     ),
-                    Divider(height: 1, color: Colors.grey[200]),
+                    Divider(height: 1, color: AppTheme.borderColor),
                     ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       leading: CircleAvatar(
                         backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
                         child: const Icon(Icons.edit_calendar_outlined, color: AppTheme.primaryColor, size: 20),
                       ),
-                      title: const Text(
+                      title: Text(
                         'Editar hora de la dosis',
                         style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor),
                       ),
-                      subtitle: const Text(
+                      subtitle: Text(
                         'Cambiar la hora programada para esta dosis',
                         style: TextStyle(fontSize: 11, color: AppTheme.secondaryTextColor),
                       ),
@@ -511,6 +517,8 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
     final authService = context.watch<AuthService>();
     final firestoreService = context.watch<FirestoreService>();
     final profile = context.watch<ProfileNotifier>();
+    final preferenceNotifier = context.watch<PreferenceNotifier>();
+    final isModern = preferenceNotifier.interfaceStyle == 'modern';
     final user = authService.currentUser;
 
     if (user == null) {
@@ -563,6 +571,128 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
           final divisorAdherencia = dosisPasadasHoy > tomadasHoy ? dosisPasadasHoy : tomadasHoy;
           final adherenciaHoy = divisorAdherencia > 0 ? (tomadasHoy / divisorAdherencia) * 100 : 0.0;
 
+          // Date Pill widget (Clickable)
+          Widget datePill = GestureDetector(
+            onTap: () async {
+              final DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: _selectedDate,
+                firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+                locale: const Locale('es', 'ES'),
+                builder: (context, child) {
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      colorScheme: isDark
+                          ? ColorScheme.dark(
+                              primary: AppTheme.primaryColor,
+                              onPrimary: Colors.white,
+                              surface: Theme.of(context).cardColor,
+                              onSurface: AppTheme.primaryTextColor,
+                            )
+                          : ColorScheme.light(
+                              primary: AppTheme.primaryColor,
+                              onPrimary: Colors.white,
+                              surface: Theme.of(context).cardColor,
+                              onSurface: AppTheme.primaryTextColor,
+                            ),
+                      dialogBackgroundColor: Theme.of(context).cardColor,
+                    ),
+                    child: child!,
+                  );
+                },
+              );
+              if (picked != null && picked != _selectedDate) {
+                setState(() {
+                  _selectedDate = picked;
+                });
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    formattedDate,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.secondaryTextColor,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.calendar_today_outlined,
+                    size: 14,
+                    color: AppTheme.secondaryTextColor,
+                  ),
+                ],
+              ),
+            ),
+          );
+
+          // Summary Card widget
+          Widget summaryCard = Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x22004AC6),
+                  blurRadius: 15,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: AnimatedBuilder(
+                    animation: _waveController,
+                    builder: (context, child) {
+                      return CustomPaint(
+                        painter: WavePainter(animationValue: _waveController.value),
+                      );
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _esHoy(_selectedDate) ? 'Resumen de hoy' : 'Resumen del día',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildSummaryItem(pendientesHoy.toString(), 'PENDIENTES'),
+                          _buildSummaryItem(tomadasHoy.toString(), 'TOMADAS'),
+                          _buildSummaryItem('${adherenciaHoy.toStringAsFixed(0)}%', 'ADHERENCIA'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
             children: [
@@ -572,7 +702,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                 children: [
                   Text(
                     'Hola, $firstName',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
                       color: AppTheme.primaryTextColor,
@@ -581,132 +711,62 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                   const SizedBox(height: 4),
                   Text(
                     _esHoy(_selectedDate) ? 'Aquí está tu plan para hoy' : 'Aquí está tu plan para este día',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       color: AppTheme.secondaryTextColor,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  // Date Pill (Clickable)
-                  GestureDetector(
-                    onTap: () async {
-                      final DateTime? picked = await showDatePicker(
-                        context: context,
-                        initialDate: _selectedDate,
-                        firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                        locale: const Locale('es', 'ES'),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: const ColorScheme.light(
-                                primary: AppTheme.primaryColor,
-                                onPrimary: Colors.white,
-                                onSurface: AppTheme.primaryTextColor,
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        },
-                      );
-                      if (picked != null && picked != _selectedDate) {
-                        setState(() {
-                          _selectedDate = picked;
-                        });
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceColor,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            formattedDate,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.secondaryTextColor,
-                            ),
+                  // Date Pill (Clickable) wrapped with Showcase
+                  widget.dateKey != null
+                      ? Showcase.withWidget(
+                          key: widget.dateKey!,
+                          height: 160,
+                          width: 320,
+                          disableDefaultTargetGestures: true,
+                          container: const TutorialTooltip(
+                            icon: Icons.date_range_rounded,
+                            title: 'Selector de fecha',
+                            description: 'Navega en el tiempo: toca la fecha para planificar o registrar medicamentos de días anteriores o futuros.',
+                            stepNumber: 4,
                           ),
-                          const SizedBox(width: 6),
-                          const Icon(
-                            Icons.calendar_today_outlined,
-                            size: 14,
-                            color: AppTheme.secondaryTextColor,
+                          targetShapeBorder: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
+                          targetPadding: const EdgeInsets.all(4),
+                          child: datePill,
+                        )
+                      : datePill,
                 ],
               ),
               const SizedBox(height: 24),
 
-              // Resumen de hoy Card
-              Container(
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  gradient: AppTheme.primaryGradient,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x22004AC6),
-                      blurRadius: 15,
-                      offset: Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: AnimatedBuilder(
-                        animation: _waveController,
-                        builder: (context, child) {
-                          return CustomPaint(
-                            painter: WavePainter(animationValue: _waveController.value),
-                          );
-                        },
+              // Resumen de hoy Card wrapped with Showcase
+              widget.summaryKey != null
+                  ? Showcase.withWidget(
+                      key: widget.summaryKey!,
+                      height: 160,
+                      width: 320,
+                      disableDefaultTargetGestures: true,
+                      container: const TutorialTooltip(
+                        icon: Icons.assessment_rounded,
+                        title: 'Resumen Diario',
+                        description: 'Monitorea tu nivel de adherencia hoy y visualiza de un vistazo las dosis pendientes y tomadas del día.',
+                        stepNumber: 3,
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _esHoy(_selectedDate) ? 'Resumen de hoy' : 'Resumen del día',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white.withValues(alpha: 0.9),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              _buildSummaryItem(pendientesHoy.toString(), 'PENDIENTES'),
-                              _buildSummaryItem(tomadasHoy.toString(), 'TOMADAS'),
-                              _buildSummaryItem('${adherenciaHoy.toStringAsFixed(0)}%', 'ADHERENCIA'),
-                            ],
-                          ),
-                        ],
+                      targetShapeBorder: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                    ),
-                  ],
-                ),
-              ),
+                      targetPadding: const EdgeInsets.all(4),
+                      child: summaryCard,
+                    )
+                  : summaryCard,
               const SizedBox(height: 32),
 
               // Timeline Title
               Text(
                 _esHoy(_selectedDate) ? 'Próximas dosis' : 'Dosis del día',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.primaryTextColor,
@@ -723,7 +783,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                       _esHoy(_selectedDate)
                           ? 'No tienes dosis programadas para hoy.'
                           : 'No tienes dosis programadas para este día.',
-                      style: const TextStyle(color: AppTheme.secondaryTextColor),
+                      style: TextStyle(color: AppTheme.secondaryTextColor),
                     ),
                   ),
                 )
@@ -740,7 +800,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
           );
         },
       ),
-      floatingActionButton: _buildFab(context),
+      floatingActionButton: isModern ? null : _buildFab(context),
     );
   }
 
@@ -900,8 +960,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                 ),
                 child: Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
                     boxShadow: AppTheme.cardShadow,
@@ -944,7 +1003,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                             const SizedBox(height: 8),
                             Text(
                               tratamiento.nombreMedicamento,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: AppTheme.primaryTextColor,
@@ -953,7 +1012,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                             const SizedBox(height: 4),
                             Text(
                               '${tratamiento.presentacion} · Cada ${tratamiento.intervaloDosis.inHours} horas',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 color: AppTheme.secondaryTextColor,
                               ),
@@ -967,7 +1026,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                         behavior: HitTestBehavior.opaque,
                         child: Container(
                           padding: const EdgeInsets.all(8.0),
-                          child: const Icon(Icons.more_vert, color: AppTheme.secondaryTextColor),
+                          child: Icon(Icons.more_vert, color: AppTheme.secondaryTextColor),
                         ),
                       )
                     ],
@@ -994,14 +1053,19 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
     );
 
     if (widget.fabKey != null) {
-      return Showcase(
+      return Showcase.withWidget(
         key: widget.fabKey!,
-        title: 'Agregar medicamento',
-        description: 'Toca aquí para añadir un nuevo medicamento. Podrás configurar el horario, intervalo y duración del tratamiento.',
-        tooltipBackgroundColor: AppTheme.primaryColor,
-        textColor: Colors.white,
-        descTextStyle: const TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
+        height: 160,
+        width: 320,
+        disableDefaultTargetGestures: true,
+        container: const TutorialTooltip(
+          icon: Icons.add_circle_outline_rounded,
+          title: 'Agregar medicamento',
+          description: 'Toca aquí para añadir un nuevo medicamento. Podrás configurar el horario, intervalo y duración del tratamiento.',
+          stepNumber: 5,
+        ),
         targetShapeBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        targetPadding: const EdgeInsets.all(4),
         child: fab,
       );
     }

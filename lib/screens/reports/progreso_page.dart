@@ -247,8 +247,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
         boxShadow: AppTheme.cardShadow,
@@ -256,7 +255,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             "Tu desempeño general",
             style: TextStyle(
               color: AppTheme.primaryTextColor,
@@ -287,13 +286,13 @@ class _ProgresoPageState extends State<ProgresoPage> {
                     children: [
                       Text(
                         hasData ? "${percentage.toStringAsFixed(0)}%" : "N/A",
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppTheme.primaryTextColor,
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Text(
+                      Text(
                         "Adherencia",
                         style: TextStyle(
                           color: AppTheme.secondaryTextColor,
@@ -309,7 +308,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     "Tomadas",
                     style: TextStyle(
                       color: AppTheme.secondaryTextColor,
@@ -331,7 +330,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
                       const SizedBox(width: 8),
                       Text(
                         "$tomadas",
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppTheme.primaryTextColor,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -340,7 +339,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     "Omitidas",
                     style: TextStyle(
                       color: AppTheme.secondaryTextColor,
@@ -362,7 +361,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
                       const SizedBox(width: 8),
                       Text(
                         "$omitidas",
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppTheme.primaryTextColor,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -417,8 +416,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
             flex: 5,
             child: Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
                 boxShadow: AppTheme.cardShadow,
@@ -438,13 +436,13 @@ class _ProgresoPageState extends State<ProgresoPage> {
                       children: [
                         Text(
                           "$racha ${racha == 1 ? 'día' : 'días'}",
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: AppTheme.primaryTextColor,
                           ),
                         ),
-                        const Text(
+                        Text(
                           "Racha activa",
                           style: TextStyle(fontSize: 11, color: AppTheme.secondaryTextColor),
                         ),
@@ -461,8 +459,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
             flex: 5,
             child: Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
                 boxShadow: AppTheme.cardShadow,
@@ -479,12 +476,12 @@ class _ProgresoPageState extends State<ProgresoPage> {
                       children: [
                         Text(
                           insightTitle,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           insightText,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
                             color: AppTheme.secondaryTextColor,
                             height: 1.3,
@@ -505,8 +502,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
   Widget _buildTodayTimeline(List<TodayDose> doses) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
         boxShadow: AppTheme.cardShadow,
@@ -517,7 +513,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 "Resumen de hoy",
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
@@ -533,7 +529,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
           ),
           const SizedBox(height: 20),
           if (doses.isEmpty)
-            const Center(
+            Center(
               child: Text(
                 "No tienes dosis programadas para hoy.",
                 style: TextStyle(color: AppTheme.secondaryTextColor, fontSize: 13),
@@ -634,7 +630,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
                                 children: [
                                   Text(
                                     dose.nombreMedicamento,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
                                       color: AppTheme.primaryTextColor,
@@ -653,7 +649,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
                               const SizedBox(height: 2),
                               Text(
                                 "${dose.presentacion} • $displayStatus",
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   color: AppTheme.secondaryTextColor,
                                 ),
@@ -677,8 +673,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       padding: const EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.3)),
         boxShadow: [
@@ -826,7 +821,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           "Gráfico de cumplimiento",
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
@@ -836,7 +831,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
                         ),
                         Text(
                           adherencia != null ? "${adherencia.round()}%" : "0%",
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: AppTheme.secondaryTextColor,
@@ -847,8 +842,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
                         boxShadow: AppTheme.cardShadow,

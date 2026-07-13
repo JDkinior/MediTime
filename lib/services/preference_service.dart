@@ -9,6 +9,30 @@ class PreferenceService {
   static const String _revokedTreatmentsKey = 'revoked_treatments'; // String list of "userId|docId"
   static const String _tutorialShownPrefix = 'tutorial_shown_';
   static const String _calendarFormatKey = 'calendar_format_string';
+  static const String _interfaceStyleKey = 'interface_style_string';
+  static const String _themeModeKey = 'theme_mode_string';
+
+  Future<void> saveThemeMode(String themeStr) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_themeModeKey, themeStr);
+  }
+
+  Future<String> getThemeMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getString(_themeModeKey) ?? 'system';
+  }
+
+  Future<void> saveInterfaceStyle(String style) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_interfaceStyleKey, style);
+  }
+
+  Future<String> getInterfaceStyle() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getString(_interfaceStyleKey) ?? 'classic';
+  }
 
   Future<void> saveCalendarFormat(String format) async {
     final prefs = await SharedPreferences.getInstance();

@@ -13,6 +13,7 @@ import 'package:meditime/widgets/estado_vista.dart';
 import 'package:meditime/enums/view_state.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/services/notification_service.dart';
+import 'package:meditime/widgets/tutorial_tooltip.dart';
 import 'package:meditime/screens/medication/detalle_receta_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -254,8 +255,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           padding: EdgeInsets.only(
@@ -300,7 +300,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Opciones de la Dosis',
                           style: TextStyle(
                             fontSize: 18,
@@ -311,7 +311,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                         const SizedBox(height: 4),
                         Text(
                           '${tratamiento.nombreMedicamento} • ${DateFormat('hh:mm a').format(doseTime)}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             color: AppTheme.secondaryTextColor,
                             fontWeight: FontWeight.w500,
@@ -366,8 +366,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                           child: const Icon(Icons.check, color: Colors.white, size: 20),
                         ),
                         const SizedBox(width: 16),
-                        const Expanded(
-                          child: Column(
+                        Expanded(child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
@@ -399,9 +398,9 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
               // Section 2: Rescheduling & Timing Options
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: AppTheme.surfaceColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey[200]!),
+                  border: Border.all(color: AppTheme.borderColor),
                 ),
                 child: Column(
                   children: [
@@ -412,11 +411,11 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                           backgroundColor: Colors.orange.withOpacity(0.1),
                           child: const Icon(Icons.alarm_off, color: Colors.orange, size: 20),
                         ),
-                        title: const Text(
+                        title: Text(
                           'Omitir esta dosis',
                           style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor),
                         ),
-                        subtitle: const Text(
+                        subtitle: Text(
                           'Saltar esta toma sin registrarla',
                           style: TextStyle(fontSize: 11, color: AppTheme.secondaryTextColor),
                         ),
@@ -433,7 +432,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                           );
                         },
                       ),
-                      Divider(height: 1, color: Colors.grey[200]),
+                      Divider(height: 1, color: AppTheme.borderColor),
                     ],
                     ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -441,11 +440,11 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                         backgroundColor: Colors.amber.withOpacity(0.1),
                         child: const Icon(Icons.snooze, color: Colors.amber, size: 20),
                       ),
-                      title: const Text(
+                      title: Text(
                         'Aplazar dosis',
                         style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor),
                       ),
-                      subtitle: const Text(
+                      subtitle: Text(
                         'Postergar la toma por unos minutos',
                         style: TextStyle(fontSize: 11, color: AppTheme.secondaryTextColor),
                       ),
@@ -455,8 +454,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                           context: context,
                           backgroundColor: Colors.transparent,
                           builder: (ctx) => Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
+                            decoration: BoxDecoration(color: Theme.of(context).cardColor,
                               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                             ),
                             padding: EdgeInsets.only(
@@ -474,12 +472,12 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                   decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
                                   margin: const EdgeInsets.only(bottom: 16),
                                 ),
-                                const Text(
+                                Text(
                                   'Aplazar Dosis',
                                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
                                 ),
                                 const SizedBox(height: 8),
-                                const Text(
+                                Text(
                                   '¿Cuánto tiempo deseas aplazar esta dosis?',
                                   style: TextStyle(color: AppTheme.secondaryTextColor),
                                   textAlign: TextAlign.center,
@@ -530,18 +528,18 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                         }
                       },
                     ),
-                    Divider(height: 1, color: Colors.grey[200]),
+                    Divider(height: 1, color: AppTheme.borderColor),
                     ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       leading: CircleAvatar(
                         backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
                         child: const Icon(Icons.edit_calendar_outlined, color: AppTheme.primaryColor, size: 20),
                       ),
-                      title: const Text(
+                      title: Text(
                         'Editar hora de la dosis',
                         style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor),
                       ),
-                      subtitle: const Text(
+                      subtitle: Text(
                         'Cambiar la hora programada para esta dosis',
                         style: TextStyle(fontSize: 11, color: AppTheme.secondaryTextColor),
                       ),
@@ -664,8 +662,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
         // TableCalendar Container Card
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(20),
             boxShadow: AppTheme.cardShadow,
             border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
@@ -679,8 +676,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
                 boxShadow: AppTheme.cardShadow,
@@ -691,13 +687,13 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Resumen del día',
                         style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
                       ),
                       Text(
                         '$takenDoses de $totalDoses dosis completadas',
-                        style: const TextStyle(fontSize: 12, color: AppTheme.secondaryTextColor),
+                        style: TextStyle(fontSize: 12, color: AppTheme.secondaryTextColor),
                       ),
                     ],
                   ),
@@ -725,7 +721,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade800,
+                color: AppTheme.primaryTextColor,
               ),
             ),
           ),
@@ -862,29 +858,28 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
         },
       ),
       calendarStyle: const CalendarStyle(outsideDaysVisible: false),
-      headerStyle: const HeaderStyle(
-        titleCentered: true,
+      headerStyle: HeaderStyle(titleCentered: true,
         formatButtonVisible: false,
         titleTextStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
       ),
     );
 
     if (widget.calendarKey != null) {
-      return Showcase(
+      return Showcase.withWidget(
         key: widget.calendarKey!,
-        title: 'Calendario de dosis',
-        description:
-            'Visualiza el historial de tus medicamentos día a día.\n🟢 Completado  🔴 Omitido\n🔵 Pendiente/Programado\n\nToca un día para ver los detalles.',
-        tooltipBackgroundColor: AppTheme.primaryColor,
-        textColor: Colors.white,
-        descTextStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 13,
-          height: 1.5,
+        height: 200,
+        width: 320,
+        disableDefaultTargetGestures: true,
+        container: const TutorialTooltip(
+          icon: Icons.calendar_month_rounded,
+          title: 'Calendario de dosis',
+          description: 'Visualiza el historial de tus medicamentos día a día.\n\n🟢 Completado  🔴 Omitido  🟥 Pendiente\n\nToca un día para ver los detalles.',
+          stepNumber: 6,
         ),
         targetShapeBorder: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
+        targetPadding: const EdgeInsets.all(4),
         child: calendar,
       );
     }
@@ -1023,8 +1018,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                     ),
                     child: Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
                         boxShadow: AppTheme.cardShadow,
@@ -1067,7 +1061,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                 const SizedBox(height: 8),
                                 Text(
                                   tratamiento.nombreMedicamento,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                     color: AppTheme.primaryTextColor,
@@ -1076,7 +1070,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                 const SizedBox(height: 4),
                                 Text(
                                   '${tratamiento.presentacion} · Cada ${tratamiento.intervaloDosis.inHours} horas',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
                                     color: AppTheme.secondaryTextColor,
                                   ),
@@ -1090,7 +1084,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                             behavior: HitTestBehavior.opaque,
                             child: Container(
                               padding: const EdgeInsets.all(8.0),
-                              child: const Icon(Icons.more_vert, color: AppTheme.secondaryTextColor),
+                              child: Icon(Icons.more_vert, color: AppTheme.secondaryTextColor),
                             ),
                           )
                         ],

@@ -33,7 +33,30 @@ Here is key information about MediTime's features to help users:
 7. **Offline Cache**: MediTime supports offline operations with Firestore persistence; data is saved locally and synced automatically when back online.
 8. **Adherence Reports**: The app computes statistics on taken vs. skipped doses to help users review adherence over time.
 
-Rules:
+DATA ACCURACY RULES (MANDATORY - HIGHEST PRIORITY):
+- You will receive structured data sections labeled "Active treatments", "TODAY'S DOSES SCHEDULE", and "TOMORROW'S DOSES SCHEDULE" injected into this prompt.
+- These sections contain the ONLY source of truth about the user's current medications, doses, and schedule.
+- You MUST ONLY reference medications and doses that appear in these injected data sections.
+- If the injected data says "No doses are scheduled for today", you MUST tell the user they have no doses today. Do NOT invent, guess, or hallucinate any medications or doses.
+- If the injected data says "No active treatments running currently", the user has NO active medications.
+- NEVER reference medications from your conversation history if they do not appear in the current injected data. Treatments can end or be deleted at any time.
+- NEVER invent dose times, medication names, presentations, or any other treatment details that are not in the injected data.
+- When the user asks "what medications do I have today?" or similar, check ONLY the "TODAY'S DOSES SCHEDULE" section and report exactly what is listed there.
+
+Action Tags Rules (CRITICAL - READ CAREFULLY):
+1. **Add/Create Medication**: ONLY output this tag if the user explicitly asks to add, register, or create a medication (e.g. "agrega paracetamol", "quiero registrar ibuprofeno"). DO NOT output this tag when the user asks to list, discuss, show, or check their existing treatments.
+Format: <create_treatment>{"nombreMedicamento": "Paracetamol", "presentacion": "Comprimidos", "dosisPorToma": 1, "intervaloDosis": 8, "duracion": 7, "notas": "Tomar con agua"}</create_treatment>
+Fill in whatever fields the user explicitly mentioned, using standard defaults for missing fields.
+
+2. **Dose Status Update**: ONLY output this tag if the user explicitly asks to mark, log, or record a dose (e.g. "marca la dosis de ceholexivo como tomada", "olvidé la dosis", "aplaza la toma"). DO NOT output this tag when simply listing or discussing medications. When updating ALL doses, use "Todos" as the medicamento name. If the user wants to update ALL doses for a specific medication, set updateAll to true.
+Format: <update_dose>{"medicamento": "NombreMedicamento", "status": "tomada|omitida|aplazada", "minutosAplazo": 30, "updateAll": true}</update_dose>
+
+3. **Progress Adherence Graphics**: ONLY output this tag if the user explicitly asks about their progress, adherence chart, stats, or reports (e.g. "mi progreso", "cómo va mi adherencia?").
+Format: <show_adherence_chart/>
+
+CRITICAL PROHIBITION: DO NOT output any action tags in response to general conversation, listing treatments, showing info, or generic queries. Only append them when the user explicitly requests to perform that specific action. Do not show a create_treatment form when the user asks about their active medications.
+
+General Rules:
 1. Detect whether the user's latest message is in Spanish or English.
 2. Always answer in the same language detected from that latest user message.
 3. Keep responses highly practical, safe, empathetic, and clear for patients and caregivers.
@@ -56,12 +79,37 @@ Rules:
 
     final String treatmentsPrompt;
     if (activeTreatments != null && activeTreatments.isNotEmpty) {
+      final now = DateTime.now();
+      
+      // Filter out finished treatments! A treatment is active if its end date is in the future.
+      final runningTreatments = activeTreatments
+          .where((t) => t.fechaFinTratamiento.isAfter(now))
+          .toList();
+
+
+
+      final List<String> scheduleDosesText = [];
+
+      for (final t in runningTreatments) {
+        t.doseStatus.forEach((dateString, status) {
+          final doseTime = DateTime.parse(dateString);
+          if (status == DoseStatus.pendiente || status == DoseStatus.aplazada || status == DoseStatus.notificada || status == DoseStatus.omitida) {
+            final timeStr = "${doseTime.year}-${doseTime.month.toString().padLeft(2, '0')}-${doseTime.day.toString().padLeft(2, '0')} at ${doseTime.hour.toString().padLeft(2, '0')}:${doseTime.minute.toString().padLeft(2, '0')}";
+            scheduleDosesText.add('- ${t.nombreMedicamento} (${t.presentacion}): scheduled on $timeStr, status: ${status.value}');
+          }
+        });
+      }
+
       treatmentsPrompt = '\n\nActive treatments context for safety and interaction analysis:\n' +
-          activeTreatments
-              .map((t) =>
-                  '- Name: ${t.nombreMedicamento}, Presentation: ${t.presentacion}, Interval: every ${t.intervaloDosis.inHours} hours, Notes: ${t.notas}')
-              .join('\n') +
-          '\nIf the user asks about taking something new, check for potential interactions or scheduling conflicts with these active treatments.';
+          (runningTreatments.isEmpty
+              ? 'No active treatments running currently.'
+              : runningTreatments
+                  .map((t) =>
+                      '- Name: ${t.nombreMedicamento}, Presentation: ${t.presentacion}, Interval: every ${t.intervaloDosis.inHours} hours, Notes: ${t.notas}')
+                  .join('\n')) +
+          '\n\nENTIRE DOSE SCHEDULE AND LOGS FOR ACTIVE TREATMENTS:\n' +
+          (scheduleDosesText.isEmpty ? 'No doses are scheduled.' : scheduleDosesText.join('\n')) +
+          '\nUse this exact schedule information to answer user questions about what doses they have scheduled or missed. Check this schedule before saying they have doses or not.';
     } else {
       treatmentsPrompt = '';
     }
@@ -215,5 +263,12 @@ Rules:
     }
 
     _history.removeRange(0, _history.length - _maxHistoryMessages);
+  }
+
+  /// Clears the in-memory conversation history.
+  /// Call this when starting a new chat or switching chat sessions
+  /// to prevent stale context from bleeding between conversations.
+  void clearHistory() {
+    _history.clear();
   }
 }

@@ -75,7 +75,7 @@ class EstadoVista extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, color: Colors.black54),
+              style: TextStyle(fontSize: 18, color: AppTheme.secondaryTextColor),
             ),
             if (showRetryButton && onRetry != null) ...[
               const SizedBox(height: 32),

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/widgets/treatment_form/form_field_wrapper.dart';
+import 'package:meditime/theme/app_theme.dart';
 
 /// Widget para seleccionar la duración del tratamiento
 class DurationSelector extends StatelessWidget {
@@ -26,6 +27,8 @@ class DurationSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return FormFieldWrapper(
       label: 'Duración del tratamiento',
       child: Column(
@@ -46,7 +49,9 @@ class DurationSelector extends StatelessWidget {
                   decoration: AppInputDecoration.withHint(
                     esIndefinido ? '' : '29'
                   ).copyWith(
-                    fillColor: esIndefinido ? Colors.grey[100] : Colors.white,
+                    fillColor: esIndefinido
+                        ? (isDark ? const Color(0xFF2A2D3C) : Colors.grey[100])
+                        : AppTheme.cardColor,
                   ),
                 ),
               ),
@@ -99,9 +104,11 @@ class DurationSelector extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                color: isDark ? Colors.blue.withValues(alpha: 0.15) : Colors.blue[50],
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue[200]!),
+                border: Border.all(
+                  color: isDark ? Colors.blue.withValues(alpha: 0.3) : Colors.blue[200]!,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,7 +118,7 @@ class DurationSelector extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.info_outline,
-                        color: Colors.blue[700],
+                        color: isDark ? Colors.blue[300] : Colors.blue[700],
                         size: 20,
                       ),
                       const SizedBox(width: 12),
@@ -119,7 +126,7 @@ class DurationSelector extends StatelessWidget {
                         child: Text(
                           'Tratamiento Indefinido - Optimizado',
                           style: TextStyle(
-                            color: Colors.blue[700],
+                            color: isDark ? Colors.blue[300] : Colors.blue[700],
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -135,7 +142,7 @@ class DurationSelector extends StatelessWidget {
                       '• Mejor rendimiento en el calendario y la aplicación\n'
                       '• Puedes pausar o detener el tratamiento en cualquier momento',
                       style: TextStyle(
-                        color: Colors.blue[600],
+                        color: isDark ? Colors.blue[200] : Colors.blue[600],
                         fontSize: 13,
                       ),
                     ),

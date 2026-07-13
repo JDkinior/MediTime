@@ -8,6 +8,7 @@ import 'package:meditime/core/utils.dart';
 import 'package:meditime/core/constants.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/chat/chat_bot_screen.dart';
+import 'package:meditime/screens/profile/perfil_page.dart';
 
 class CustomDrawer extends StatelessWidget {
   final VoidCallback onLogout;
@@ -91,6 +92,17 @@ class CustomDrawer extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.person_outline_rounded),
+            title: const Text('Mi Perfil'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PerfilPage()),
+              );
+            },
           ),
           ListTile(
             leading: const Icon(

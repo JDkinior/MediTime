@@ -1,11 +1,12 @@
 // lib/screens/shared/opciones_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/models/tratamiento.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
+import 'package:meditime/theme/app_theme.dart';
 
 class OpcionesPage extends StatefulWidget {
   const OpcionesPage({super.key});
@@ -15,58 +16,16 @@ class OpcionesPage extends StatefulWidget {
 }
 
 class _OpcionesPageState extends State<OpcionesPage> {
-  bool _notificacionesActivas = false;
-  bool _isLoading = true;
+  bool _isLoading = false; // Local loading indicator for operations like clearing history
   bool _isRescheduling = false;
 
-  // --- INICIO DE LA MODIFICACIÓN ---
-  // Estado para la duración del aplazamiento
-  int _snoozeDuration = 10;
-  final List<int> _snoozeOptions = [1, 5, 10, 15, 20, 30]; // Opciones en minutos
-  
-  // Estado para el diseño de calendario
-  String _calendarFormatStr = 'weekly';
-  // --- FIN DE LA MODIFICACIÓN ---
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPreferences();
-  }
-
-  // --- INICIO DE LA MODIFICACIÓN ---
-  // Ahora carga ambas preferencias
-  Future<void> _loadPreferences() async {
-    if (!mounted) return;
-    final preferenceService = context.read<PreferenceService>();
-    
-    // Cargamos preferencias en paralelo
-    final results = await Future.wait([
-      preferenceService.getNotificationMode(),
-      preferenceService.getSnoozeDuration(),
-      preferenceService.getCalendarFormat(),
-    ]);
-
-    if (mounted) {
-      setState(() {
-        // CORRECCIÓN: Hacemos un 'cast' explícito al tipo de dato correcto
-        _notificacionesActivas = results[0] as bool;
-        _snoozeDuration = results[1] as int;
-        _calendarFormatStr = results[2] as String;
-        _isLoading = false;
-      });
-    }
-  }
+  final List<int> _snoozeOptions = [1, 5, 10, 15, 20, 30]; // Options in minutes
 
   Future<void> _onCalendarFormatChanged(String? newValue) async {
     if (newValue == null) return;
     
-    setState(() {
-      _calendarFormatStr = newValue;
-    });
-    
-    final preferenceService = context.read<PreferenceService>();
-    await preferenceService.saveCalendarFormat(newValue);
+    final preferenceNotifier = context.read<PreferenceNotifier>();
+    await preferenceNotifier.setCalendarFormat(newValue);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -77,19 +36,33 @@ class _OpcionesPageState extends State<OpcionesPage> {
       ),
     );
   }
-  // --- FIN DE LA MODIFICACIÓN ---
+
+  Future<void> _onInterfaceStyleChanged(String? newValue) async {
+    if (newValue == null) return;
+    
+    final preferenceNotifier = context.read<PreferenceNotifier>();
+    await preferenceNotifier.setInterfaceStyle(newValue);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Diseño de interfaz guardado.'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
 
   Future<void> _onNotificationModeChanged(bool value) async {
     setState(() {
-      _notificacionesActivas = value;
       _isRescheduling = true;
     });
 
-    final preferenceService = context.read<PreferenceService>();
+    final preferenceNotifier = context.read<PreferenceNotifier>();
     final authService = context.read<AuthService>();
     final user = authService.currentUser;
 
-    await preferenceService.saveNotificationMode(value);
+    await preferenceNotifier.setNotificationModeActive(value);
 
     if (user != null) {
       debugPrint("Preferencia cambiada. Reactivando alarmas...");
@@ -111,26 +84,89 @@ class _OpcionesPageState extends State<OpcionesPage> {
     }
   }
 
-  // --- INICIO DE LA MODIFICACIÓN ---
-  // Nueva función para guardar la duración del aplazamiento
   Future<void> _onSnoozeDurationChanged(int? newDuration) async {
     if (newDuration == null) return;
     
-    setState(() {
-      _snoozeDuration = newDuration;
-    });
-    
-    final preferenceService = context.read<PreferenceService>();
-    await preferenceService.saveSnoozeDuration(newDuration);
+    final preferenceNotifier = context.read<PreferenceNotifier>();
+    await preferenceNotifier.setSnoozeDuration(newDuration);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tiempo de aplazamiento guardado.'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      const SnackBar(
+        content: Text('Tiempo de aplazamiento guardado.'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showCustomSnoozeDialog(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: Theme.of(context).cardColor,
+          title: Text(
+            'Tiempo personalizado',
+            style: TextStyle(color: AppTheme.primaryTextColor, fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Ingresa el tiempo de aplazamiento en minutos:',
+                style: TextStyle(color: AppTheme.secondaryTextColor, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                style: TextStyle(color: AppTheme.primaryTextColor),
+                decoration: InputDecoration(
+                  hintText: 'Ej. 8',
+                  hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.5)),
+                  suffixText: 'min',
+                  suffixStyle: TextStyle(color: AppTheme.secondaryTextColor),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: AppTheme.borderColor),
+                  ),
+                  focusedBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(color: AppTheme.primaryColor),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                final text = controller.text.trim();
+                final val = int.tryParse(text);
+                if (val != null && val > 0) {
+                  Navigator.pop(dialogContext);
+                  _onSnoozeDurationChanged(val);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Por favor ingresa un número de minutos válido (mayor a 0).'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _clearMedicationHistory() async {
@@ -214,194 +250,582 @@ class _OpcionesPageState extends State<OpcionesPage> {
       },
     );
   }
-  // --- FIN DE LA MODIFICACIÓN ---
+
+    Future<void> _clearChatHistory() async {
+    final authService = context.read<AuthService>();
+    final firestoreService = context.read<FirestoreService>();
+    final user = authService.currentUser;
+
+    if (user == null) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await firestoreService.clearAllChatSessions(user.uid);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Historial de chats con Midi eliminado con éxito.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al eliminar chats: $e'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _confirmClearChatHistory(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: Theme.of(context).cardColor,
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+              SizedBox(width: 8),
+              Text('¿Eliminar chats con Midi?'),
+            ],
+          ),
+          content: const Text(
+            'Esta acción eliminará de forma permanente todo tu historial de conversaciones con el chat bot Midi. Esta acción no se puede deshacer.\n\n¿Deseas continuar?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _clearChatHistory();
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+              child: const Text('Eliminar Todo'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final preferenceNotifier = context.watch<PreferenceNotifier>();
+
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Opciones'),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppTheme.primaryTextColor,
       ),
-      body: _isLoading
+      body: (preferenceNotifier.isLoading || _isLoading)
           ? const Center(child: CircularProgressIndicator())
           : ListView(
+              padding: const EdgeInsets.all(16),
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                // 1. Section: Diseño y Apariencia
+                _buildSectionHeader(
+                  'Diseño y Apariencia',
+                  Icons.palette_outlined,
+                  subtitle: 'Personaliza la apariencia de la app a tu gusto.',
+                ),
+                const SizedBox(height: 12),
+                
+                _buildOptionCardWrapper(
+                  title: 'Modo de pantalla',
+                  subtitle: 'Elige cómo se verá la aplicación.',
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.notifications_active_outlined, color: Colors.grey),
-                          const SizedBox(width: 16),
-                          Text(
-                            'Modo de Notificación',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                        ],
+                      _buildThemeOptionCard(
+                        id: 'light',
+                        title: 'Claro',
+                        subtitle: 'Modo diurno',
+                        preview: const Icon(Icons.light_mode_rounded, color: Colors.orange, size: 28),
                       ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          _buildNotificationOptionCard(
-                            activeMode: true,
-                            title: 'Modo Activo',
-                            subtitle: 'Recibe alertas y toma acciones',
-                            preview: Builder(
-                              builder: (context) {
-                                final primaryColor = const Color(0xFF2296F3);
-                                final isSelected = _notificacionesActivas == true;
-                                return Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.notifications_active, size: 14, color: isSelected ? primaryColor : Colors.grey),
-                                        const SizedBox(width: 4),
-                                        Container(width: 35, height: 4, color: Colors.grey.shade300),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                      children: [
-                                        Container(
-                                          width: 32,
-                                          height: 10,
-                                          decoration: BoxDecoration(
-                                            color: isSelected ? primaryColor.withOpacity(0.15) : Colors.grey.shade200,
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Center(child: Container(width: 16, height: 2, color: isSelected ? primaryColor : Colors.grey)),
-                                        ),
-                                        Container(
-                                          width: 32,
-                                          height: 10,
-                                          decoration: BoxDecoration(
-                                            color: isSelected ? primaryColor.withOpacity(0.15) : Colors.grey.shade200,
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Center(child: Container(width: 16, height: 2, color: isSelected ? primaryColor : Colors.grey)),
-                                        ),
-                                      ],
-                                    )
-                                  ],
-                                );
-                              }
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          _buildNotificationOptionCard(
-                            activeMode: false,
-                            title: 'Modo Automático',
-                            subtitle: 'Se marcan como tomadas',
-                            preview: Builder(
-                              builder: (context) {
-                                final primaryColor = const Color(0xFF2296F3);
-                                final isSelected = _notificacionesActivas == false;
-                                return Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.check_circle, size: 16, color: isSelected ? primaryColor : Colors.grey),
-                                        const SizedBox(width: 6),
-                                        Container(width: 35, height: 4, color: Colors.grey.shade300),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Container(width: 50, height: 3, color: Colors.grey.shade200),
-                                  ],
-                                );
-                              }
-                            ),
-                          ),
-                        ],
+                      const SizedBox(width: 10),
+                      _buildThemeOptionCard(
+                        id: 'dark',
+                        title: 'Oscuro',
+                        subtitle: 'Modo nocturno',
+                        preview: const Icon(Icons.dark_mode_rounded, color: Colors.amber, size: 28),
+                      ),
+                      const SizedBox(width: 10),
+                      _buildThemeOptionCard(
+                        id: 'system',
+                        title: 'Sistema',
+                        subtitle: 'Auto (sistema)',
+                        preview: const Icon(Icons.settings_brightness_rounded, color: Colors.blue, size: 28),
                       ),
                     ],
                   ),
                 ),
-                const Divider(),
-                // --- INICIO DE LA MODIFICACIÓN ---
-                // Nuevo widget para seleccionar el tiempo de aplazamiento
-                ListTile(
-                  leading: const Icon(Icons.snooze_outlined),
-                  title: const Text('Tiempo para aplazar la alarma'),
-                  trailing: DropdownButton<int>(
-                    value: _snoozeDuration,
-                    items: _snoozeOptions.map<DropdownMenuItem<int>>((int value) {
-                      return DropdownMenuItem<int>(
-                        value: value,
-                        child: Text('$value min'),
-                      );
-                    }).toList(),
-                    onChanged: _onSnoozeDurationChanged,
-                  ),
-                ),
-                const Divider(),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+
+                _buildOptionCardWrapper(
+                  title: 'Estilo de navegación',
+                  subtitle: 'Selecciona el estilo de tu barra de navegación.',
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.calendar_month_outlined, color: Colors.grey),
-                          const SizedBox(width: 16),
-                          Text(
-                            'Diseño de Calendario',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                        ],
+                      _buildInterfaceOptionCard(
+                        id: 'classic',
+                        title: 'Clásica',
+                        subtitle: 'Nav bar tradicional',
+                        preview: _buildClassicPreview(isSelected: preferenceNotifier.interfaceStyle == 'classic'),
                       ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          _buildCalendarOptionCard(
-                            id: 'weekly',
-                            title: 'Semanal',
-                            subtitle: '1 fila',
-                            previewRows: 1,
-                          ),
-                          const SizedBox(width: 10),
-                          _buildCalendarOptionCard(
-                            id: 'biweekly',
-                            title: 'Quincenal',
-                            subtitle: '2 filas',
-                            previewRows: 2,
-                          ),
-                          const SizedBox(width: 10),
-                          _buildCalendarOptionCard(
-                            id: 'monthly',
-                            title: 'Mensual',
-                            subtitle: 'Completo',
-                            previewRows: 4,
-                          ),
-                        ],
+                      const SizedBox(width: 12),
+                      _buildInterfaceOptionCard(
+                        id: 'modern',
+                        title: 'Moderna',
+                        subtitle: 'Flotante premium',
+                        preview: _buildModernPreview(isSelected: preferenceNotifier.interfaceStyle == 'modern'),
                       ),
                     ],
                   ),
                 ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.delete_forever_outlined, color: Colors.redAccent),
-                  title: const Text(
-                    'Eliminar historial de medicamentos',
-                    style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600),
+
+                _buildOptionCardWrapper(
+                  title: 'Vista de calendario',
+                  subtitle: 'Elige cómo quieres ver el calendario.',
+                  child: Row(
+                    children: [
+                      _buildCalendarOptionCard(
+                        id: 'weekly',
+                        title: 'Semanal',
+                        subtitle: '1 fila',
+                        previewRows: 1,
+                      ),
+                      const SizedBox(width: 10),
+                      _buildCalendarOptionCard(
+                        id: 'biweekly',
+                        title: 'Quincenal',
+                        subtitle: '2 filas',
+                        previewRows: 2,
+                      ),
+                      const SizedBox(width: 10),
+                      _buildCalendarOptionCard(
+                        id: 'monthly',
+                        title: 'Mensual',
+                        subtitle: 'Completo',
+                        previewRows: 4,
+                      ),
+                    ],
                   ),
-                  subtitle: const Text('Borra todos los tratamientos y sus alarmas'),
-                  onTap: () => _confirmClearHistory(context),
                 ),
-                // --- FIN DE LA MODIFICACIÓN ---
+
+                // 2. Section: Notificaciones y Alarmas
+                _buildSectionHeader(
+                  'Notificaciones y Alarmas',
+                  Icons.notifications_active_outlined,
+                  subtitle: 'Configura cómo quieres recibir tus recordatorios.',
+                ),
+                const SizedBox(height: 12),
+
+                _buildOptionCardWrapper(
+                  title: 'Gestión de tomas',
+                  subtitle: 'Configura el comportamiento al sonar las alarmas.',
+                  child: Row(
+                    children: [
+                      _buildNotificationOptionCard(
+                        activeMode: true,
+                        title: 'Modo Activo',
+                        subtitle: 'Alertas y acciones manuales',
+                        preview: _buildActiveModePreview(isSelected: preferenceNotifier.notificationModeActive == true),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildNotificationOptionCard(
+                        activeMode: false,
+                        title: 'Automático',
+                        subtitle: 'Tomas marcadas al sonar',
+                        preview: _buildAutoModePreview(isSelected: preferenceNotifier.notificationModeActive == false),
+                      ),
+                    ],
+                  ),
+                ),
+
+                _buildListTileCard(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.snooze_outlined, color: AppTheme.primaryColor, size: 20),
+                    ),
+                    title: Text(
+                      'Aplazamiento',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryTextColor,
+                      ),
+                    ),
+                    subtitle: const Text('Duración de la alarma pospuesta'),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppTheme.borderColor,
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: Builder(
+                          builder: (context) {
+                            final currentSnooze = preferenceNotifier.snoozeDuration;
+                            final List<int> displayOptions = List<int>.from(_snoozeOptions);
+                            if (!displayOptions.contains(currentSnooze)) {
+                              displayOptions.add(currentSnooze);
+                              displayOptions.sort();
+                            }
+                            
+                            final List<DropdownMenuItem<int>> dropdownItems = [];
+                            for (var val in displayOptions) {
+                              dropdownItems.add(
+                                DropdownMenuItem<int>(
+                                  value: val,
+                                  child: Text('$val min'),
+                                ),
+                              );
+                            }
+                            dropdownItems.add(
+                              const DropdownMenuItem<int>(
+                                value: -1,
+                                child: Text('Personalizado...'),
+                              ),
+                            );
+
+                            return DropdownButton<int>(
+                              value: currentSnooze,
+                              dropdownColor: Theme.of(context).cardColor,
+                              borderRadius: BorderRadius.circular(16),
+                              style: TextStyle(
+                                color: AppTheme.primaryColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.primaryColor),
+                              items: dropdownItems,
+                              onChanged: (int? newValue) {
+                                if (newValue == -1) {
+                                  _showCustomSnoozeDialog(context);
+                                } else {
+                                  _onSnoozeDurationChanged(newValue);
+                                }
+                              },
+                            );
+                          }
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 3. Section: Datos y Privacidad
+                _buildSectionHeader('Datos y Privacidad', Icons.security_rounded),
+                const SizedBox(height: 12),
+
+                _buildListTileCard(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.errorColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.delete_forever_outlined, color: AppTheme.errorColor, size: 20),
+                    ),
+                    title: const Text(
+                      'Eliminar historial médico',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.errorColor,
+                      ),
+                    ),
+                    subtitle: const Text('Borra permanentemente todos los tratamientos'),
+                    onTap: () => _confirmClearHistory(context),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildListTileCard(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.errorColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.forum_outlined, color: AppTheme.errorColor, size: 20),
+                    ),
+                    title: const Text(
+                      'Eliminar historial de chats con IA',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.errorColor,
+                      ),
+                    ),
+                    subtitle: const Text('Borra todas las conversaciones con Midi'),
+                    onTap: () => _confirmClearChatHistory(context),
+                  ),
+                ),
               ],
             ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon, {String? subtitle}) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 10, top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: AppTheme.primaryColor, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryTextColor,
+                ),
+              ),
+            ],
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: 28),
+              child: Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.secondaryTextColor,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptionCardWrapper({
+    required String title,
+    required String subtitle,
+    required Widget child,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primaryTextColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.secondaryTextColor,
+            ),
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildListTileCard({required Widget child}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildOptionCardLayout({
+    required Widget preview,
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final cardBorderColor = isSelected
+        ? AppTheme.primaryColor
+        : AppTheme.borderColor;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppTheme.primaryColor.withOpacity(0.04)
+                : Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: cardBorderColor,
+              width: isSelected ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // 1. Preview
+              SizedBox(
+                height: 48,
+                child: Center(child: preview),
+              ),
+              const SizedBox(height: 12),
+              // 2. Title
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: isSelected ? AppTheme.primaryColor : AppTheme.primaryTextColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              // 3. Subtitle
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.secondaryTextColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              // 4. Radio Indicator
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                  border: Border.all(
+                    color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500,
+                    width: isSelected ? 0 : 2,
+                  ),
+                ),
+                child: isSelected
+                    ? const Icon(
+                        Icons.check,
+                        color: Colors.white,
+                        size: 12,
+                      )
+                    : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeOptionCard({
+    required String id,
+    required String title,
+    required String subtitle,
+    required Widget preview,
+  }) {
+    final preferenceNotifier = context.watch<PreferenceNotifier>();
+    final isSelected = preferenceNotifier.themeMode == id;
+    return _buildOptionCardLayout(
+      preview: preview,
+      title: title,
+      subtitle: subtitle,
+      isSelected: isSelected,
+      onTap: () => preferenceNotifier.setThemeMode(id),
+    );
+  }
+
+  Widget _buildInterfaceOptionCard({
+    required String id,
+    required String title,
+    required String subtitle,
+    required Widget preview,
+  }) {
+    final preferenceNotifier = context.watch<PreferenceNotifier>();
+    final isSelected = preferenceNotifier.interfaceStyle == id;
+    return _buildOptionCardLayout(
+      preview: preview,
+      title: title,
+      subtitle: subtitle,
+      isSelected: isSelected,
+      onTap: () => _onInterfaceStyleChanged(id),
     );
   }
 
@@ -411,85 +835,37 @@ class _OpcionesPageState extends State<OpcionesPage> {
     required String subtitle,
     required int previewRows,
   }) {
-    final isSelected = _calendarFormatStr == id;
-    final primaryColor = const Color(0xFF2296F3);
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => _onCalendarFormatChanged(id),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isSelected ? primaryColor.withOpacity(0.05) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? primaryColor : Colors.grey.shade300,
-              width: isSelected ? 2 : 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
+    final preferenceNotifier = context.watch<PreferenceNotifier>();
+    final isSelected = preferenceNotifier.calendarFormat == id;
+    
+    final preview = Column(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: List.generate(previewRows, (r) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: List.generate(7, (c) {
+            final isToday = r == 0 && c == 3;
+            return Container(
+              width: 5,
+              height: 5,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isToday
+                    ? AppTheme.primaryColor
+                    : (isSelected ? AppTheme.primaryColor.withOpacity(0.3) : Colors.grey.shade500),
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Mini Preview representation
-              Container(
-                height: 48,
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(previewRows, (r) {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: List.generate(7, (c) {
-                        final isToday = r == 0 && c == 3; // Highlight one dot as today
-                        return Container(
-                          width: 5,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isToday
-                                ? primaryColor
-                                : (isSelected ? primaryColor.withOpacity(0.3) : Colors.grey.shade300),
-                          ),
-                        );
-                      }),
-                    );
-                  }),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: isSelected ? primaryColor : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+            );
+          }),
+        );
+      }),
+    );
+    
+    return _buildOptionCardLayout(
+      preview: preview,
+      title: title,
+      subtitle: subtitle,
+      isSelected: isSelected,
+      onTap: () => _onCalendarFormatChanged(id),
     );
   }
 
@@ -499,67 +875,161 @@ class _OpcionesPageState extends State<OpcionesPage> {
     required String subtitle,
     required Widget preview,
   }) {
-    final isSelected = _notificacionesActivas == activeMode;
-    final primaryColor = const Color(0xFF2296F3);
+    final preferenceNotifier = context.watch<PreferenceNotifier>();
+    final isSelected = preferenceNotifier.notificationModeActive == activeMode;
+    return _buildOptionCardLayout(
+      preview: preview,
+      title: title,
+      subtitle: subtitle,
+      isSelected: isSelected,
+      onTap: _isRescheduling ? () {} : () => _onNotificationModeChanged(activeMode),
+    );
+  }
 
-    return Expanded(
-      child: GestureDetector(
-        onTap: _isRescheduling ? null : () => _onNotificationModeChanged(activeMode),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isSelected ? primaryColor.withOpacity(0.05) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? primaryColor : Colors.grey.shade300,
-              width: isSelected ? 2 : 1,
+  Widget _buildClassicPreview({required bool isSelected}) {
+    return Container(
+      width: 80,
+      height: 16,
+      decoration: BoxDecoration(
+        color: isSelected ? AppTheme.primaryColor.withOpacity(0.1) : Colors.grey.shade700.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: List.generate(
+          3,
+          (index) => Container(
+            width: 4,
+            height: 4,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Preview representation
-              Container(
-                height: 54,
-                width: double.infinity,
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: preview,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: isSelected ? primaryColor : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildModernPreview({required bool isSelected}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 55,
+          height: 16,
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primaryColor.withOpacity(0.1) : Colors.grey.shade700.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(
+              3,
+              (index) => Container(
+                width: 3,
+                height: 3,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const Center(
+            child: Icon(Icons.add, size: 10, color: Colors.white),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActiveModePreview({required bool isSelected}) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.notifications_active, size: 16, color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500),
+            const SizedBox(width: 4),
+            Container(
+              width: 35, 
+              height: 4, 
+              decoration: BoxDecoration(
+                color: isSelected ? AppTheme.primaryColor.withOpacity(0.3) : Colors.grey.shade700.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Container(
+              width: 32,
+              height: 10,
+              decoration: BoxDecoration(
+                color: isSelected ? AppTheme.primaryColor.withOpacity(0.15) : Colors.grey.shade700.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Center(child: Container(width: 16, height: 2, color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500)),
+            ),
+            Container(
+              width: 32,
+              height: 10,
+              decoration: BoxDecoration(
+                color: isSelected ? AppTheme.primaryColor.withOpacity(0.15) : Colors.grey.shade700.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Center(child: Container(width: 16, height: 2, color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500)),
+            ),
+          ],
+        )
+      ],
+    );
+  }
+
+  Widget _buildAutoModePreview({required bool isSelected}) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.check_circle, size: 16, color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500),
+            const SizedBox(width: 6),
+            Container(
+              width: 35, 
+              height: 4, 
+              decoration: BoxDecoration(
+                color: isSelected ? AppTheme.primaryColor.withOpacity(0.3) : Colors.grey.shade700.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Container(
+          width: 50, 
+          height: 3, 
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primaryColor.withOpacity(0.3) : Colors.grey.shade700.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(1.5),
+          ),
+        ),
+      ],
     );
   }
 }
