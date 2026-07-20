@@ -61,6 +61,9 @@ dependencies:
   geolocator: ^13.0.1
   maplibre_gl: ^0.26.0
   url_launcher: ^6.1.7
+  flutter_tts: ^4.2.0
+  record: ^6.0.0
+  path_provider: ^2.1.4
 
 dev_dependencies:
   flutter_test:
