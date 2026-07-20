@@ -1,5 +1,6 @@
 // lib/widgets/treatment_form/indefinite_treatment_info.dart
 import 'package:flutter/material.dart';
+import 'package:meditime/theme/app_theme.dart';
 
 /// Widget informativo para tratamientos indefinidos
 class IndefiniteTreatmentInfo extends StatelessWidget {
@@ -11,9 +12,11 @@ class IndefiniteTreatmentInfo extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue[200]!),
+        color: AppTheme.primaryColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -21,9 +24,9 @@ class IndefiniteTreatmentInfo extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
+              const Icon(
                 Icons.info_outline,
-                color: Colors.blue[700],
+                color: AppTheme.primaryColor,
                 size: 20,
               ),
               const SizedBox(width: 12),
@@ -34,7 +37,7 @@ class IndefiniteTreatmentInfo extends StatelessWidget {
                     Text(
                       'Tratamiento Indefinido',
                       style: TextStyle(
-                        color: Colors.blue[700],
+                        color: AppTheme.primaryColor,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -43,7 +46,7 @@ class IndefiniteTreatmentInfo extends StatelessWidget {
                     Text(
                       'Este tratamiento se ejecutará de forma continua hasta que lo marques como completado o lo elimines.',
                       style: TextStyle(
-                        color: Colors.blue[700],
+                        color: AppTheme.primaryTextColor,
                         fontSize: 14,
                       ),
                     ),
@@ -53,7 +56,7 @@ class IndefiniteTreatmentInfo extends StatelessWidget {
                       '• Puedes pausar o detener el tratamiento en cualquier momento\n'
                       '• El calendario mostrará las dosis mes a mes para mejor rendimiento',
                       style: TextStyle(
-                        color: Colors.blue[600],
+                        color: AppTheme.secondaryTextColor,
                         fontSize: 13,
                       ),
                     ),

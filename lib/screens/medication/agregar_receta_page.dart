@@ -13,6 +13,9 @@ import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/widgets/treatment_form/form_field_wrapper.dart';
 import 'package:meditime/widgets/treatment_form/duration_selector.dart';
 import 'package:meditime/widgets/treatment_form/treatment_summary_card.dart';
+import 'package:meditime/widgets/drug_interaction_dialog.dart';
+import 'package:meditime/repositories/treatment_repository.dart';
+import 'package:meditime/services/auth_service.dart';
 
 class AgregarRecetaPage extends StatefulWidget {
   const AgregarRecetaPage({super.key});
@@ -75,11 +78,52 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
     super.dispose();
   }
 
+  /// Verificación de interacciones farmacológicas con la IA
+  Future<bool> _checkAndWarnDrugInteractions(String newDrugName) async {
+    if (newDrugName.trim().isEmpty) return true;
+
+    try {
+      final authService = context.read<AuthService>();
+      final userId = authService.currentUser?.uid;
+      if (userId == null) return true;
+
+      final treatmentRepo = context.read<TreatmentRepository>();
+      final result = await treatmentRepo.getTreatments(userId);
+      if (!result.isSuccess || result.data == null || result.data!.isEmpty) return true;
+
+      final activeTreatments = result.data!;
+      final geminiService = context.read<GeminiService>();
+
+      final checkResult = await geminiService.checkDrugInteractions(
+        newDrugName: newDrugName,
+        activeTreatments: activeTreatments,
+      );
+
+      if (checkResult['hasInteraction'] == true && mounted) {
+        final warningMessage = checkResult['warningMessage'] as String? ??
+            'Se ha detectado una posible interacción medicamentosa.';
+        final proceed = await DrugInteractionDialog.show(
+          context,
+          warningMessage: warningMessage,
+        );
+        return proceed;
+      }
+    } catch (e) {
+      debugPrint('Error en la verificación de interacciones: $e');
+    }
+
+    return true;
+  }
+
   /// Guarda el tratamiento usando el notifier
   Future<void> _saveData() async {
     if (!mounted) return;
 
     final notifier = context.read<TreatmentFormNotifier>();
+
+    final proceed = await _checkAndWarnDrugInteractions(notifier.formData.nombreMedicamento);
+    if (!proceed || !mounted) return;
+
     final success = await notifier.saveTreatment();
 
     if (!mounted) return;
@@ -307,6 +351,12 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
             backgroundColor: Colors.green,
           ),
         );
+
+        // Verificar interacciones farmacológicas para el medicamento extraído
+        final scannedDrugName = result['nombreMedicamento']?.toString();
+        if (scannedDrugName != null && scannedDrugName.isNotEmpty) {
+          await _checkAndWarnDrugInteractions(scannedDrugName);
+        }
       } else {
         if (mounted) Navigator.pop(context);
         throw Exception('No se pudo extraer información de la receta.');
@@ -329,13 +379,37 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
     return Consumer<TreatmentFormNotifier>(
       builder: (context, notifier, child) {
         return Scaffold(
+          backgroundColor: AppTheme.backgroundColor,
           appBar: AppBar(
-            title: const Text('Agregar Receta'),
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            foregroundColor: AppTheme.primaryTextColor,
+            title: Text(
+              'Agregar Receta',
+              style: TextStyle(
+                color: AppTheme.primaryTextColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.document_scanner),
-                tooltip: 'Escanear receta con IA',
-                onPressed: () => _scanPrescriptionWithAI(notifier),
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.document_scanner,
+                      color: AppTheme.primaryColor,
+                      size: 22,
+                    ),
+                  ),
+                  tooltip: 'Escanear receta con IA',
+                  onPressed: () => _scanPrescriptionWithAI(notifier),
+                ),
               ),
             ],
           ),
@@ -388,8 +462,8 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
       children: [
         if (_currentStep > 0)
           SizedBox(
-            width: 70,
-            height: 70,
+            width: 64,
+            height: 64,
             child: FloatingActionButton(
               onPressed:
                   _isAnimating
@@ -408,8 +482,9 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                           });
                         }
                       },
-              backgroundColor: Colors.blue,
+              backgroundColor: AppTheme.primaryColor,
               foregroundColor: Colors.white,
+              elevation: 2,
               shape: const CircleBorder(),
               heroTag: 'botonAnterior',
               child: const Icon(Icons.arrow_back),
@@ -417,8 +492,8 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
           ),
         if (_currentStep < 7)
           SizedBox(
-            width: 70,
-            height: 70,
+            width: 64,
+            height: 64,
             child: FloatingActionButton(
               onPressed:
                   notifier.isStepValid(_currentStep) && !_isAnimating
@@ -439,9 +514,13 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                       : null,
               backgroundColor:
                   notifier.isStepValid(_currentStep)
-                      ? Colors.blue
-                      : Colors.grey,
-              foregroundColor: Colors.white,
+                      ? AppTheme.primaryColor
+                      : AppTheme.borderColor,
+              foregroundColor:
+                  notifier.isStepValid(_currentStep)
+                      ? Colors.white
+                      : AppTheme.secondaryTextColor,
+              elevation: notifier.isStepValid(_currentStep) ? 2 : 0,
               shape: const CircleBorder(),
               heroTag: 'botonSiguiente',
               child: const Icon(Icons.arrow_forward),
@@ -449,11 +528,12 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
           ),
         if (_currentStep == 7)
           SizedBox(
-            width: 70,
-            height: 70,
+            width: 64,
+            height: 64,
             child: FloatingActionButton(
-              backgroundColor: const Color.fromARGB(255, 92, 214, 96),
+              backgroundColor: AppTheme.secondaryColor,
               foregroundColor: Colors.white,
+              elevation: 2,
               shape: const CircleBorder(),
               heroTag: 'botonFinalizar',
               onPressed:
@@ -480,7 +560,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                           strokeWidth: 2,
                         ),
                       )
-                      : const Icon(Icons.check),
+                      : const Icon(Icons.check, size: 28),
             ),
           ),
       ],
@@ -490,9 +570,9 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
   Widget _buildQuestionText(String text) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 30,
-        color: Colors.blue,
+      style: TextStyle(
+        fontSize: 26,
+        color: AppTheme.primaryColor,
         fontWeight: FontWeight.bold,
       ),
       textAlign: TextAlign.center,
@@ -634,11 +714,12 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
         );
 
       case 5: // Inventario
-        return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+        return Center(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
               _buildQuestionText('¿Cómo quieres registrar tu inventario?'),
               const SizedBox(height: 20),
               FormFieldWrapper(
@@ -678,7 +759,8 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
               ),
             ],
           ),
-        );
+        ),
+      );
 
       case 6: // Notas
         return Column(
@@ -719,18 +801,21 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Text(
+                Text(
                   'Resumen de la receta',
                   style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blue,
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryColor,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Revisa los datos antes de confirmar',
-                  style: TextStyle(fontSize: 15, color: Colors.grey[600]),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.secondaryTextColor,
+                  ),
                 ),
                 const SizedBox(height: 20),
 
@@ -739,22 +824,24 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                   summaryInfo: notifier.getSummaryInfo(),
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
 
                 // Mensaje de confirmación
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue[200]!),
+                    color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.info_outline,
-                        color: Colors.blue[700],
+                        color: AppTheme.primaryColor,
                         size: 20,
                       ),
                       const SizedBox(width: 12),
@@ -762,8 +849,9 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                         child: Text(
                           'Al confirmar, se programarán las alarmas automáticamente para recordarte cada dosis',
                           style: TextStyle(
-                            color: Colors.blue[700],
+                            color: AppTheme.primaryTextColor,
                             fontSize: 14,
+                            height: 1.3,
                           ),
                         ),
                       ),

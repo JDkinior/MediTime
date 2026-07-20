@@ -19,6 +19,8 @@ import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/services/notification_service.dart';
+import 'package:meditime/widgets/drug_interaction_dialog.dart';
+import 'package:meditime/repositories/treatment_repository.dart';
 import 'package:intl/intl.dart';
 
 class ChatBotScreen extends StatefulWidget {
@@ -32,8 +34,8 @@ class ChatBotScreen extends StatefulWidget {
 
 class _ChatBotScreenState extends State<ChatBotScreen> {
   static const List<Color> _chatGradient = <Color>[
-    Color(0xFF2F6DB4),
-    Color(0xFF49C2FF),
+    Color(0xFF004AC6),
+    Color(0xFF2563EB),
   ];
   static const double _composerRadius = 30;
   static const String _midiOpenAsset = 'assets/chatbot/midi_open.png';
@@ -45,9 +47,9 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   final Random _random = Random();
 
   final List<_ChatMessage> _messages = <_ChatMessage>[
-    const _ChatMessage(
+    _ChatMessage(
       text:
-          '¡Hola! Soy tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?',
+          '¡Hola! Soy Midi, tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?',
       isUser: false,
     ),
   ];
@@ -163,7 +165,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     if (pickedFile == null) return;
 
     setState(() {
-      _messages.add(const _ChatMessage(
+      _messages.add(_ChatMessage(
         text: 'Analizando la foto de tu receta médica... 🔍 Un momento por favor.',
         isUser: false,
         isStreaming: true,
@@ -712,6 +714,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         .map((m) => {
               'text': m.text,
               'isUser': m.isUser,
+              'timestamp': m.timestamp.toIso8601String(),
               if (m.prescriptionData != null) 'prescriptionData': m.prescriptionData,
               if (m.showAdherenceChart) 'showAdherenceChart': true,
             })
@@ -739,9 +742,12 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
       _messages.clear();
       for (final m in messagesData) {
         if (m is Map) {
+          final rawTime = m['timestamp'] as String?;
+          final parsedTime = rawTime != null ? DateTime.tryParse(rawTime) : null;
           _messages.add(_ChatMessage(
             text: m['text'] as String? ?? '',
             isUser: m['isUser'] as bool? ?? false,
+            timestamp: parsedTime,
             prescriptionData: m['prescriptionData'] != null
                 ? Map<String, dynamic>.from(m['prescriptionData'] as Map)
                 : null,
@@ -763,8 +769,8 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
       _currentChatId = null;
       _messages.clear();
       _messages.add(
-        const _ChatMessage(
-          text: '¡Hola! Soy tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?',
+        _ChatMessage(
+          text: '¡Hola! Soy Midi, tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?',
           isUser: false,
         ),
       );
@@ -1303,6 +1309,30 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     final user = authService.currentUser;
     if (user == null) return;
 
+    // Verificar interacciones farmacológicas con IA
+    try {
+      final treatmentRepo = context.read<TreatmentRepository>();
+      final result = await treatmentRepo.getTreatments(user.uid);
+      if (result.isSuccess && result.data != null && result.data!.isNotEmpty) {
+        final geminiService = context.read<GeminiService>();
+        final interactionResult = await geminiService.checkDrugInteractions(
+          newDrugName: name,
+          activeTreatments: result.data!,
+        );
+        if (interactionResult['hasInteraction'] == true && mounted) {
+          final warningMessage = interactionResult['warningMessage'] as String? ??
+              'Se ha detectado una posible interacción medicamentosa.';
+          final proceed = await DrugInteractionDialog.show(
+            context,
+            warningMessage: warningMessage,
+          );
+          if (!proceed || !mounted) return;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error comprobando interacciones en chat: $e');
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1516,7 +1546,7 @@ class _ChatBubble extends StatelessWidget {
         child: message.isStreaming && message.text.isEmpty
             ? const _AnimatedTypingDots()
             : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   RichText(
@@ -1524,20 +1554,14 @@ class _ChatBubble extends StatelessWidget {
                       children: _buildTextSpans(message.text, textColor),
                     ),
                   ),
-                  if (message.timestamp != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Align(
-                        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Text(
-                          DateFormat('h:mm a').format(message.timestamp!),
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: isUser ? Colors.white.withOpacity(0.7) : AppTheme.secondaryTextColor,
-                          ),
-                        ),
-                      ),
+                  const SizedBox(height: 4),
+                  Text(
+                    DateFormat('h:mm a').format(message.timestamp),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isUser ? Colors.white.withOpacity(0.75) : AppTheme.secondaryTextColor,
                     ),
+                  ),
                 ],
               ),
       ),
@@ -2664,21 +2688,21 @@ class _AnimatedTypingDotsState extends State<_AnimatedTypingDots> {
 }
 
 class _ChatMessage {
-  const _ChatMessage({
+  _ChatMessage({
     required this.text,
     required this.isUser,
     this.isStreaming = false,
     this.prescriptionData,
     this.showAdherenceChart = false,
-    this.timestamp,
-  });
+    DateTime? timestamp,
+  }) : timestamp = timestamp ?? DateTime.now();
 
   final String text;
   final bool isUser;
   final bool isStreaming;
   final Map<String, dynamic>? prescriptionData;
   final bool showAdherenceChart;
-  final DateTime? timestamp;
+  final DateTime timestamp;
 
   _ChatMessage copyWith({
     String? text,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:meditime/core/constants.dart';
 
 /// Enhanced application theme with better organization and consistency.
@@ -240,6 +241,7 @@ class AppTheme {
     appBarTheme: appBarTheme.copyWith(
       backgroundColor: backgroundColor,
       foregroundColor: primaryTextColor,
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
       titleTextStyle: TextStyle(color: primaryTextColor, fontSize: 20, fontWeight: FontWeight.bold),
     ),
     inputDecorationTheme: inputDecorationTheme,
@@ -272,6 +274,7 @@ class AppTheme {
     appBarTheme: appBarTheme.copyWith(
       backgroundColor: backgroundColor,
       foregroundColor: primaryTextColor,
+      systemOverlayStyle: SystemUiOverlayStyle.light,
       titleTextStyle: TextStyle(color: primaryTextColor, fontSize: 20, fontWeight: FontWeight.bold),
     ),
     inputDecorationTheme: inputDecorationTheme,

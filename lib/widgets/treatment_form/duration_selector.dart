@@ -104,10 +104,10 @@ class DurationSelector extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? Colors.blue.withValues(alpha: 0.15) : Colors.blue[50],
+                color: isDark ? AppTheme.primaryColor.withValues(alpha: 0.15) : AppTheme.surfaceColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isDark ? Colors.blue.withValues(alpha: 0.3) : Colors.blue[200]!,
+                  color: AppTheme.primaryColor.withValues(alpha: 0.2),
                 ),
               ),
               child: Column(
@@ -118,7 +118,7 @@ class DurationSelector extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.info_outline,
-                        color: isDark ? Colors.blue[300] : Colors.blue[700],
+                        color: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryColor,
                         size: 20,
                       ),
                       const SizedBox(width: 12),
@@ -126,7 +126,7 @@ class DurationSelector extends StatelessWidget {
                         child: Text(
                           'Tratamiento Indefinido - Optimizado',
                           style: TextStyle(
-                            color: isDark ? Colors.blue[300] : Colors.blue[700],
+                            color: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryColor,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -142,7 +142,7 @@ class DurationSelector extends StatelessWidget {
                       '• Mejor rendimiento en el calendario y la aplicación\n'
                       '• Puedes pausar o detener el tratamiento en cualquier momento',
                       style: TextStyle(
-                        color: isDark ? Colors.blue[200] : Colors.blue[600],
+                        color: isDark ? const Color(0xFF93C5FD) : AppTheme.secondaryTextColor,
                         fontSize: 13,
                       ),
                     ),

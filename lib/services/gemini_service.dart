@@ -36,20 +36,15 @@ class GeminiService {
   static const int _maxCompletionTokens = 400;
   final List<Map<String, dynamic>> _history = <Map<String, dynamic>>[];
 
-  /// Compact system prompt — focused on behavior rules only.
+  /// Compact system prompt — focused on behavior rules and tool usage.
   static const String _systemInstruction = '''
-You are MediBot, a virtual health assistant.
+You are Midi, a warm health assistant for MediTime.
 RULES:
-1. Detect user's language and respond in the same language.
-2. Be concise.
-3. You are an AI, advise consulting a doctor.
-4. Use tools for treatment data. DO NOT invent.
-5. "today's medications" -> get_today_medications.
-6. "treatments/medications" -> get_active_treatments.
-7. Explicitly add/create -> create_treatment.
-8. Explicitly log/mark dose -> update_dose_status.
-9. Adherence/progress -> show_adherence_chart.
-10. Format meds in bold **name**.
+1. Respond in user's language. Friendly & concise. Advise doctor when needed.
+2. NEVER mention tool/function names (e.g. get_today_medications). Speak naturally.
+3. Capabilities: "Puedo consultar tus dosis del día, tratamientos activos, agendar recordatorios o ver tu adherencia."
+4. Use tools for data. DO NOT invent.
+5. Format meds in bold **nombre**.
 ''';
 
   /// Tool definitions for Groq function calling.
@@ -592,6 +587,88 @@ RULES:
     final messageData = choices.first['message'] as Map<String, dynamic>;
     final content = messageData['content'] as String;
     return jsonDecode(content) as Map<String, dynamic>;
+  }
+
+  /// Evaluates potential drug-drug interactions between a new medication and active treatments.
+  /// Returns a map containing:
+  /// - `hasInteraction`: bool
+  /// - `severity`: 'mild' | 'moderate' | 'severe'
+  /// - `warningMessage`: String (Empathetic warning in Spanish advising doctor consultation)
+  Future<Map<String, dynamic>> checkDrugInteractions({
+    required String newDrugName,
+    required List<Tratamiento> activeTreatments,
+  }) async {
+    final cleanNewName = newDrugName.trim();
+    if (cleanNewName.isEmpty || activeTreatments.isEmpty) {
+      return {'hasInteraction': false};
+    }
+
+    final otherTreatments = activeTreatments
+        .where((t) => t.nombreMedicamento.trim().toLowerCase() != cleanNewName.toLowerCase())
+        .toList();
+
+    if (otherTreatments.isEmpty) {
+      return {'hasInteraction': false};
+    }
+
+    final activeMedsList = otherTreatments
+        .map((t) => '${t.nombreMedicamento} (${t.presentacion})')
+        .join(', ');
+
+    if (_apiKey.isEmpty) {
+      return {'hasInteraction': false};
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse(_baseUrl),
+        headers: <String, String>{
+          'Authorization': 'Bearer $_apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(<String, dynamic>{
+          'model': _fallbackModel,
+          'response_format': {'type': 'json_object'},
+          'temperature': 0.1,
+          'messages': <Map<String, dynamic>>[
+            <String, String>{
+              'role': 'system',
+              'content':
+                  'Eres un asistente de farmacología clínica. Analiza si existen interacciones medicamentosas clínicamente relevantes entre un nuevo fármaco que el usuario desea agregar y su lista de tratamientos activos actuales. '
+                  'Formato JSON requerido de salida exclusivamente: '
+                  '{"hasInteraction": boolean, "severity": "mild"|"moderate"|"severe", "warningMessage": "Mensaje en español con advertencia suave, empática y clara. Ejemplo: \'Tomar Ibuprofeno e Hidroclorotiazida juntos puede afectar la presión arterial; te sugiero consultarlo con tu médico.\' Retorna string vacío si hasInteraction es false."}',
+            },
+            <String, String>{
+              'role': 'user',
+              'content':
+                  'Nuevo fármaco a agregar: "$cleanNewName".\n'
+                  'Tratamientos activos del paciente: $activeMedsList.',
+            },
+          ],
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        return {'hasInteraction': false};
+      }
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      final choices = decoded['choices'] as List<dynamic>?;
+      if (choices == null || choices.isEmpty) return {'hasInteraction': false};
+      final messageData = choices.first['message'] as Map<String, dynamic>?;
+      final content = messageData?['content'] as String?;
+      if (content == null || content.isEmpty) return {'hasInteraction': false};
+
+      final parsed = jsonDecode(content) as Map<String, dynamic>;
+      return <String, dynamic>{
+        'hasInteraction': parsed['hasInteraction'] == true,
+        'severity': parsed['severity'] ?? 'moderate',
+        'warningMessage': parsed['warningMessage']?.toString() ?? '',
+      };
+    } catch (e) {
+      debugPrint('Error checking drug interactions: $e');
+      return {'hasInteraction': false};
+    }
   }
 
   /// Keeps context short to reduce token usage on free plans.
