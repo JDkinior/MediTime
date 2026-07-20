@@ -67,8 +67,8 @@ class VoiceService {
       _isRecording = true;
 
       _amplitudeSub = _audioRecorder.onAmplitudeChanged(const Duration(milliseconds: 100)).listen((amp) {
-        if (amp.current < -35.0) {
-          _silenceTimer ??= Timer(const Duration(seconds: 2), () {
+        if (amp.current < -28.0) {
+          _silenceTimer ??= Timer(const Duration(milliseconds: 1500), () {
             _onSilence?.call();
           });
         } else {

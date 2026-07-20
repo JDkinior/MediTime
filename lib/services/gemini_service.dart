@@ -28,6 +28,7 @@ class GeminiService {
 
   // Model chosen for 15,000 TPM on free tier (2.5x more than llama models).
   static const String _model = 'llama-3.3-70b-versatile';
+  static const String _fallbackModel = 'llama-3.1-8b-instant';
   static const String _visionModel = 'meta-llama/llama-4-scout-17b-16e-instruct';
   static const String _baseUrl =
       'https://api.groq.com/openai/v1/chat/completions';
@@ -36,21 +37,19 @@ class GeminiService {
   final List<Map<String, dynamic>> _history = <Map<String, dynamic>>[];
 
   /// Compact system prompt — focused on behavior rules only.
-  /// Treatment data is fetched on-demand via function calling.
   static const String _systemInstruction = '''
-You are MediBot, MediTime's virtual health assistant. You help users manage medications, doses, and treatments.
-
+You are MediBot, a virtual health assistant.
 RULES:
-1. Detect user's language (Spanish/English) and respond in the same language.
-2. Be concise: max 3-4 sentences for simple queries, more for detailed requests.
-3. You are an AI — always recommend consulting a doctor for clinical decisions.
-4. Use the provided tools to access treatment data. NEVER invent medication names, doses, or schedules.
-5. When asked about today's medications, ALWAYS call get_today_medications first.
-6. When asked about treatments or medications in general, call get_active_treatments first.
-7. Only call create_treatment when the user EXPLICITLY asks to add/create/register a medication.
-8. Only call update_dose_status when the user EXPLICITLY asks to mark/log a dose.
-9. When showing adherence/progress, call show_adherence_chart.
-10. Keep responses practical and empathetic. Format medication names in bold with **name**.
+1. Detect user's language and respond in the same language.
+2. Be concise.
+3. You are an AI, advise consulting a doctor.
+4. Use tools for treatment data. DO NOT invent.
+5. "today's medications" -> get_today_medications.
+6. "treatments/medications" -> get_active_treatments.
+7. Explicitly add/create -> create_treatment.
+8. Explicitly log/mark dose -> update_dose_status.
+9. Adherence/progress -> show_adherence_chart.
+10. Format meds in bold **name**.
 ''';
 
   /// Tool definitions for Groq function calling.
@@ -59,74 +58,37 @@ RULES:
       'type': 'function',
       'function': {
         'name': 'get_today_medications',
-        'description': 'Get all medications and doses scheduled for today, including their times and status (pending, taken, skipped, etc.). Use this when the user asks about today\'s medications, reminders, or schedule.',
-        'parameters': {
-          'type': 'object',
-          'properties': {},
-          'required': [],
-        },
+        'description': 'Get today\'s medications and statuses.',
       },
     },
     {
       'type': 'function',
       'function': {
         'name': 'get_tomorrow_medications',
-        'description': 'Get all medications and doses scheduled for tomorrow. Use this when the user asks about tomorrow\'s medications or schedule.',
-        'parameters': {
-          'type': 'object',
-          'properties': {},
-          'required': [],
-        },
+        'description': 'Get tomorrow\'s medications.',
       },
     },
     {
       'type': 'function',
       'function': {
         'name': 'get_active_treatments',
-        'description': 'Get a summary of all currently active treatments (medication name, dosage, frequency, notes, inventory). Use this for general questions about treatments.',
-        'parameters': {
-          'type': 'object',
-          'properties': {},
-          'required': [],
-        },
+        'description': 'Get summary of active treatments.',
       },
     },
     {
       'type': 'function',
       'function': {
         'name': 'create_treatment',
-        'description': 'Create a new medication treatment/reminder. Only use when the user explicitly asks to add, register, or create a new medication.',
+        'description': 'Create a new medication reminder.',
         'parameters': {
           'type': 'object',
           'properties': {
-            'nombreMedicamento': {
-              'type': 'string',
-              'description': 'Name of the medication',
-            },
-            'presentacion': {
-              'type': 'string',
-              'description': 'Presentation type: Comprimidos, Grageas, Cápsulas, Sobres, Jarabes, Gotas, Suspensiones, or Emulsiones. Leave empty if unknown.',
-            },
-            'dosisPorToma': {
-              'type': 'integer',
-              'description': 'Number of units per dose (e.g., 1 pill, 2 capsules)',
-              'default': 1,
-            },
-            'intervaloDosis': {
-              'type': 'integer',
-              'description': 'Hours between doses (e.g., 8, 12, 24)',
-              'default': 8,
-            },
-            'duracion': {
-              'type': 'integer',
-              'description': 'Treatment duration in days',
-              'default': 7,
-            },
-            'notas': {
-              'type': 'string',
-              'description': 'Additional notes or instructions',
-              'default': '',
-            },
+            'nombreMedicamento': {'type': 'string'},
+            'presentacion': {'type': 'string'},
+            'dosisPorToma': {'type': 'integer', 'default': 1},
+            'intervaloDosis': {'type': 'integer', 'default': 8},
+            'duracion': {'type': 'integer', 'default': 7},
+            'notas': {'type': 'string'},
           },
           'required': ['nombreMedicamento'],
         },
@@ -136,29 +98,14 @@ RULES:
       'type': 'function',
       'function': {
         'name': 'update_dose_status',
-        'description': 'Mark a dose as taken (tomada), skipped (omitida), or postponed (aplazada). Only use when the user explicitly asks to mark, log, or record a dose status.',
+        'description': 'Mark dose as tomada, omitida, or aplazada.',
         'parameters': {
           'type': 'object',
           'properties': {
-            'medicamento': {
-              'type': 'string',
-              'description': 'Medication name, or "Todos" to update all medications',
-            },
-            'status': {
-              'type': 'string',
-              'description': 'New status for the dose',
-              'enum': ['tomada', 'omitida', 'aplazada'],
-            },
-            'minutosAplazo': {
-              'type': 'integer',
-              'description': 'Minutes to postpone (only for aplazada status)',
-              'default': 30,
-            },
-            'updateAll': {
-              'type': 'boolean',
-              'description': 'If true, update all pending doses for the specified medication',
-              'default': false,
-            },
+            'medicamento': {'type': 'string'},
+            'status': {'type': 'string', 'enum': ['tomada', 'omitida', 'aplazada']},
+            'minutosAplazo': {'type': 'integer', 'default': 30},
+            'updateAll': {'type': 'boolean', 'default': false},
           },
           'required': ['medicamento', 'status'],
         },
@@ -168,29 +115,19 @@ RULES:
       'type': 'function',
       'function': {
         'name': 'show_adherence_chart',
-        'description': 'Show the user their medication adherence chart, progress, and statistics. Use when the user asks about their progress, adherence, stats, or reports.',
-        'parameters': {
-          'type': 'object',
-          'properties': {},
-          'required': [],
-        },
+        'description': 'Show adherence chart and stats.',
       },
     },
     {
       'type': 'function',
       'function': {
         'name': 'get_treatment_inventory',
-        'description': 'Check the remaining stock/inventory for medications. Use when the user asks how many pills/doses they have left.',
+        'description': 'Check medication inventory.',
         'parameters': {
           'type': 'object',
           'properties': {
-            'medicamento': {
-              'type': 'string',
-              'description': 'Medication name to check inventory for. Leave empty to check all.',
-              'default': '',
-            },
+            'medicamento': {'type': 'string', 'default': ''},
           },
-          'required': [],
         },
       },
     },
@@ -198,17 +135,12 @@ RULES:
       'type': 'function',
       'function': {
         'name': 'get_missed_doses',
-        'description': 'Get recent missed/skipped doses. Use when the user asks about forgotten, missed, or skipped doses.',
+        'description': 'Get missed/skipped doses.',
         'parameters': {
           'type': 'object',
           'properties': {
-            'days': {
-              'type': 'integer',
-              'description': 'Number of past days to check (default: 7)',
-              'default': 7,
-            },
+            'days': {'type': 'integer', 'default': 7},
           },
-          'required': [],
         },
       },
     },
@@ -313,6 +245,15 @@ RULES:
         final fnArgs = decodedArgs is Map<String, dynamic> ? decodedArgs : <String, dynamic>{};
         final toolCallId = tcMap['id'] as String;
 
+        // Sanitize string-numbers to int to prevent UI crashes if Groq leaks them
+        for (final key in fnArgs.keys.toList()) {
+          final val = fnArgs[key];
+          if (val is String && (key == 'dosisPorToma' || key == 'intervaloDosis' || key == 'duracion' || key == 'minutosAplazo' || key == 'days')) {
+            final parsed = int.tryParse(val);
+            if (parsed != null) fnArgs[key] = parsed;
+          }
+        }
+
         // Execute locally or flag for UI
         final isUiAction = fnName == 'create_treatment' ||
             fnName == 'update_dose_status' ||
@@ -364,9 +305,10 @@ RULES:
   Future<Map<String, dynamic>> _sendChatRequest(
     List<Map<String, dynamic>> messages, {
     bool useTools = false,
+    bool isRetry = false,
   }) async {
     final body = <String, dynamic>{
-      'model': _model,
+      'model': isRetry ? _fallbackModel : _model,
       'messages': messages,
       'stream': false,
       'temperature': 0.3,
@@ -387,6 +329,11 @@ RULES:
       body: jsonEncode(body),
     );
 
+    if (response.statusCode == 429 && !isRetry) {
+      debugPrint('GeminiService: 429 Rate Limit. Retrying with $_fallbackModel');
+      return _sendChatRequest(messages, useTools: useTools, isRetry: true);
+    }
+
     if (response.statusCode != 200) {
       throw StateError('Groq API error (${response.statusCode}): ${response.body}');
     }
@@ -397,15 +344,16 @@ RULES:
   /// Streams the final response after tool results have been added.
   Stream<String> _streamFinalResponse(
     List<Map<String, dynamic>> messages,
-    String originalPrompt,
-  ) async* {
+    String originalPrompt, {
+    bool isRetry = false,
+  }) async* {
     final request = http.Request('POST', Uri.parse(_baseUrl))
       ..headers.addAll(<String, String>{
         'Authorization': 'Bearer $_apiKey',
         'Content-Type': 'application/json',
       })
       ..body = jsonEncode(<String, dynamic>{
-        'model': _model,
+        'model': isRetry ? _fallbackModel : _model,
         'stream': true,
         'temperature': 0.3,
         'max_tokens': _maxCompletionTokens,
@@ -415,6 +363,13 @@ RULES:
     final client = http.Client();
     try {
       final response = await client.send(request);
+      
+      if (response.statusCode == 429 && !isRetry) {
+        debugPrint('GeminiService: 429 Rate Limit on Stream. Retrying with $_fallbackModel');
+        yield* _streamFinalResponse(messages, originalPrompt, isRetry: true);
+        return;
+      }
+
       if (response.statusCode != 200) {
         final errorBody = await response.stream.bytesToString();
         throw StateError('Groq API error (${response.statusCode}): $errorBody');

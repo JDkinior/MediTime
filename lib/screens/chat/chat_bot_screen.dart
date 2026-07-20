@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
@@ -59,6 +60,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   bool _hasText = false;
   bool _isBlinking = false;
   bool _isRecording = false;
+  bool _isTranscribing = false;
   bool _wasLastInputVoice = false;
   Timer? _blinkTimer;
   VoiceService? _voiceService;
@@ -228,11 +230,12 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     FocusScope.of(context).unfocus();
 
     _wasLastInputVoice = fromVoice;
+    final now = DateTime.now();
 
     setState(() {
-      _messages.add(_ChatMessage(text: text, isUser: true));
+      _messages.add(_ChatMessage(text: text, isUser: true, timestamp: now));
       _messages.add(
-        const _ChatMessage(text: '', isUser: false, isStreaming: true),
+        _ChatMessage(text: '', isUser: false, isStreaming: true, timestamp: now),
       );
       _isGenerating = true;
     });
@@ -391,7 +394,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     if (_voiceService == null) {
       _voiceService = VoiceService();
       _voiceService!.onTtsComplete = () {
-        if (!mounted || _isRecording || _isGenerating || !_wasLastInputVoice || _messages.isEmpty) return;
+        if (!mounted || _isRecording || _isTranscribing || _isGenerating || !_wasLastInputVoice || _messages.isEmpty) return;
         final lastMsg = _messages.last.text.trim();
         if (lastMsg.endsWith('?') || lastMsg.endsWith(':')) {
           _startVoiceRecording();
@@ -427,7 +430,10 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   Future<void> _stopVoiceRecordingAndSend() async {
     if (!_isRecording || _voiceService == null) return;
 
-    setState(() => _isRecording = false);
+    setState(() {
+      _isRecording = false;
+      _isTranscribing = true;
+    });
 
     try {
       final transcribedText = await _voiceService!.stopRecordingAndTranscribe();
@@ -453,6 +459,10 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
             backgroundColor: Colors.red,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isTranscribing = false);
       }
     }
   }
@@ -585,6 +595,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
             _messages.add(_ChatMessage(
               text: '¡Se actualizaron **$updatedCount** dosis de **${treatment.nombreMedicamento}** a **${status.displayName}** con éxito!',
               isUser: false,
+              timestamp: DateTime.now(),
             ));
           });
         } else {
@@ -594,6 +605,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
               _messages.add(_ChatMessage(
                 text: 'No encontré ninguna dosis pendiente o programada cercana para **${treatment.nombreMedicamento}**.',
                 isUser: false,
+                timestamp: DateTime.now(),
               ));
             });
             _scrollToBottom();
@@ -1065,8 +1077,23 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                 const SizedBox(width: 8),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
-                  child: (!isEnabled || !_hasText)
-                      ? // Mic button
+                  child: _isTranscribing
+                      ? Container(
+                          key: const ValueKey('loading'),
+                          width: 50,
+                          height: 50,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppTheme.primaryColor.withOpacity(0.08),
+                          ),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                          ),
+                        )
+                      : (!isEnabled || !_hasText)
+                          ? // Mic button
                         GestureDetector(
                           key: const ValueKey('mic_button'),
                           onTap: _isGenerating
@@ -1341,6 +1368,9 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: AppTheme.primaryTextColor,
+        systemOverlayStyle: Theme.of(context).brightness == Brightness.light
+            ? SystemUiOverlayStyle.dark
+            : SystemUiOverlayStyle.light,
         titleSpacing: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -1485,10 +1515,30 @@ class _ChatBubble extends StatelessWidget {
         ),
         child: message.isStreaming && message.text.isEmpty
             ? const _AnimatedTypingDots()
-            : RichText(
-                text: TextSpan(
-                  children: _buildTextSpans(message.text, textColor),
-                ),
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      children: _buildTextSpans(message.text, textColor),
+                    ),
+                  ),
+                  if (message.timestamp != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Align(
+                        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                        child: Text(
+                          DateFormat('h:mm a').format(message.timestamp!),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isUser ? Colors.white.withOpacity(0.7) : AppTheme.secondaryTextColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
       ),
     );
@@ -2620,6 +2670,7 @@ class _ChatMessage {
     this.isStreaming = false,
     this.prescriptionData,
     this.showAdherenceChart = false,
+    this.timestamp,
   });
 
   final String text;
@@ -2627,6 +2678,7 @@ class _ChatMessage {
   final bool isStreaming;
   final Map<String, dynamic>? prescriptionData;
   final bool showAdherenceChart;
+  final DateTime? timestamp;
 
   _ChatMessage copyWith({
     String? text,
@@ -2634,6 +2686,7 @@ class _ChatMessage {
     bool? isStreaming,
     Map<String, dynamic>? prescriptionData,
     bool? showAdherenceChart,
+    DateTime? timestamp,
   }) {
     return _ChatMessage(
       text: text ?? this.text,
@@ -2641,6 +2694,7 @@ class _ChatMessage {
       isStreaming: isStreaming ?? this.isStreaming,
       prescriptionData: prescriptionData ?? this.prescriptionData,
       showAdherenceChart: showAdherenceChart ?? this.showAdherenceChart,
+      timestamp: timestamp ?? this.timestamp,
     );
   }
 }
