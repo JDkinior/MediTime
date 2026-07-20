@@ -6,8 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:showcaseview/showcaseview.dart';
 
 // Widgets, servicios y el notifier
-import 'package:meditime/widgets/primary_button.dart';
-import 'package:meditime/widgets/styled_text_field.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/storage_service.dart';
@@ -251,17 +249,18 @@ class _PerfilPageState extends State<PerfilPage> {
         _saveProfileDataSilently();
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al seleccionar la imagen: $e')),
         );
+      }
     } finally {
       if (mounted) setState(() => _isPickingImage = false);
     }
   }
 
   Future<void> _saveProfileDataSilently() async {
-    if (!mounted) return;
+    if (!mounted || _isSaving) return;
     
     final authService = context.read<AuthService>();
     final firestoreService = context.read<FirestoreService>();
@@ -269,49 +268,81 @@ class _PerfilPageState extends State<PerfilPage> {
     final user = authService.currentUser;
     if (user == null) return;
 
-    String? finalImageUrl = _originalProfileImageUrl;
+    setState(() => _isSaving = true);
 
-    if (_profileImageUrl != null &&
-        _profileImageUrl!.isNotEmpty &&
-        !_profileImageUrl!.startsWith('http')) {
-      File imageFile = File(_profileImageUrl!);
-      finalImageUrl = await storageService.uploadProfileImage(
-        user.uid,
-        imageFile,
-      );
-    }
+    try {
+      String? finalImageUrl = _originalProfileImageUrl;
 
-    final dataToSave = {
-      'name': _nameController.text,
-      'phone': _phoneController.text,
-      'dob': _dobController.text,
-      'bloodType': _bloodTypeController.text,
-      'allergies': _allergiesController.text,
-      'medications': _medicationsController.text,
-      'medicalHistory': _medicalHistoryController.text,
-      'profileImage': finalImageUrl ?? '',
-    };
+      if (_profileImageUrl != null &&
+          _profileImageUrl!.isNotEmpty &&
+          !_profileImageUrl!.startsWith('http')) {
+        File imageFile = File(_profileImageUrl!);
+        finalImageUrl = await storageService.uploadProfileImage(
+          user.uid,
+          imageFile,
+        );
+      }
 
-    await firestoreService.saveUserProfile(user.uid, dataToSave);
+      final dataToSave = {
+        'name': _nameController.text,
+        'phone': _phoneController.text,
+        'dob': _dobController.text,
+        'bloodType': _bloodTypeController.text,
+        'allergies': _allergiesController.text,
+        'medications': _medicationsController.text,
+        'medicalHistory': _medicalHistoryController.text,
+        'profileImage': finalImageUrl ?? '',
+      };
 
-    if (mounted) {
-      context.read<ProfileNotifier>().updateProfile(
-        newName: _nameController.text,
-        newImageUrl: finalImageUrl,
-      );
+      await firestoreService.saveUserProfile(user.uid, dataToSave);
 
-      setState(() {
-        _originalName = _nameController.text;
-        _originalPhone = _phoneController.text;
-        _originalDob = _dobController.text;
-        _originalBloodType = _bloodTypeController.text;
-        _originalAllergies = _allergiesController.text;
-        _originalMedications = _medicationsController.text;
-        _originalMedicalHistory = _medicalHistoryController.text;
-        _originalProfileImageUrl = finalImageUrl;
-        _profileImageUrl = finalImageUrl;
-        _isSaveButtonEnabled = false;
-      });
+      // Sincronizar también con el photoURL de Firebase Auth
+      if (finalImageUrl != null && finalImageUrl.isNotEmpty) {
+        try {
+          await user.updatePhotoURL(finalImageUrl);
+        } catch (e) {
+          debugPrint('PerfilPage: Error al actualizar photoURL en FirebaseAuth: $e');
+        }
+      }
+
+      if (mounted) {
+        // Limpiar la caché de imágenes en memoria para asegurar refresco inmediato
+        PaintingBinding.instance.imageCache.clear();
+        PaintingBinding.instance.imageCache.clearLiveImages();
+
+        context.read<ProfileNotifier>().updateProfile(
+          newName: _nameController.text,
+          newImageUrl: finalImageUrl,
+        );
+
+        setState(() {
+          _originalName = _nameController.text;
+          _originalPhone = _phoneController.text;
+          _originalDob = _dobController.text;
+          _originalBloodType = _bloodTypeController.text;
+          _originalAllergies = _allergiesController.text;
+          _originalMedications = _medicationsController.text;
+          _originalMedicalHistory = _medicalHistoryController.text;
+          _originalProfileImageUrl = finalImageUrl;
+          _profileImageUrl = finalImageUrl;
+          _isSaveButtonEnabled = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('PerfilPage: Error al guardar datos del perfil: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al guardar la foto/perfil: $e')),
+        );
+        setState(() {
+          _profileImageUrl = _originalProfileImageUrl;
+          _isSaveButtonEnabled = false;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 

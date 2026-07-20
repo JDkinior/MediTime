@@ -65,6 +65,8 @@ class StorageService {
         ),
       );
 
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+
       // Agregar archivo comprimido
       request.files.add(
         http.MultipartFile.fromBytes(
@@ -76,7 +78,7 @@ class StorageService {
 
       // Agregar parámetros de Cloudinary
       request.fields['upload_preset'] = cloudinaryUploadPreset;
-      request.fields['public_id'] = 'meditime/profile_$userId';
+      request.fields['public_id'] = 'profile_${userId}_$timestamp';
       request.fields['folder'] = 'meditime/profiles';
 
       // Enviar petición
@@ -89,11 +91,15 @@ class StorageService {
         debugPrint('StorageService: Respuesta exitosa de Cloudinary');
 
         final responseJson = jsonDecode(responseBody) as Map<String, dynamic>;
-        final downloadUrl = responseJson['secure_url'] as String?;
+        final rawUrl = responseJson['secure_url'] as String?;
 
-        if (downloadUrl == null || downloadUrl.isEmpty) {
+        if (rawUrl == null || rawUrl.isEmpty) {
           throw Exception('Cloudinary no devolvió secure_url');
         }
+
+        // Agregar timestamp como query param (?t=...) para que Flutter e HTTP invaliden la caché
+        // mientras Cloudinary sobrescribe y mantiene sólo 1 imagen por usuario.
+        final downloadUrl = '$rawUrl?t=$timestamp';
 
         debugPrint('StorageService: Imagen subida exitosamente. URL: $downloadUrl');
         return downloadUrl;
