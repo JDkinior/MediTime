@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 
 // Services, Notifiers, Theme
 import 'package:meditime/services/gemini_service.dart';
+import 'package:meditime/services/voice_service.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/treatment_service.dart';
@@ -57,7 +58,10 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   bool _isGenerating = false;
   bool _hasText = false;
   bool _isBlinking = false;
+  bool _isRecording = false;
+  bool _wasLastInputVoice = false;
   Timer? _blinkTimer;
+  VoiceService? _voiceService;
 
   @override
   void initState() {
@@ -87,6 +91,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   @override
   void dispose() {
     _blinkTimer?.cancel();
+    _voiceService?.dispose();
     _messageController.removeListener(_handleInputChanged);
     _messageController.dispose();
     _scrollController.dispose();
@@ -213,7 +218,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     _sendMessage();
   }
 
-  Future<void> _sendMessage() async {
+  Future<void> _sendMessage({bool fromVoice = false}) async {
     final text = _messageController.text.trim();
     if (text.isEmpty || _isGenerating) {
       return;
@@ -221,6 +226,8 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
 
     _messageController.clear();
     FocusScope.of(context).unfocus();
+
+    _wasLastInputVoice = fromVoice;
 
     setState(() {
       _messages.add(_ChatMessage(text: text, isUser: true));
@@ -241,18 +248,40 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
       try {
         final allTreatments = await firestoreService.getMedicamentosStream(user.uid).first;
         final now = DateTime.now();
-        // Only pass currently active (not finished) treatments to the AI
         activeTreatments = allTreatments.where((t) => t.fechaFinTratamiento.isAfter(now)).toList();
       } catch (_) {}
     }
 
     final botMessageIndex = _messages.length - 1;
 
+    // Variables to collect tool-call actions for the UI
+    Map<String, dynamic>? prescriptionData;
+    bool showAdherenceChart = false;
+    final List<Map<String, dynamic>> updateDoseActions = [];
+
     try {
-      await for (final partialText in geminiService.streamResponse(text, activeTreatments: activeTreatments)) {
-        if (!mounted) {
-          return;
-        }
+      await for (final partialText in geminiService.streamResponse(
+        text,
+        activeTreatments: activeTreatments,
+        onToolCalls: (toolCalls) {
+          // Process UI-level tool calls from function calling
+          for (final tc in toolCalls) {
+            switch (tc.functionName) {
+              case 'create_treatment':
+                prescriptionData = Map<String, dynamic>.from(tc.arguments);
+                prescriptionData!['isSaved'] = false;
+                break;
+              case 'update_dose_status':
+                updateDoseActions.add(tc.arguments);
+                break;
+              case 'show_adherence_chart':
+                showAdherenceChart = true;
+                break;
+            }
+          }
+        },
+      )) {
+        if (!mounted) return;
         setState(() {
           _messages[botMessageIndex] = _messages[botMessageIndex].copyWith(
             text: partialText,
@@ -262,9 +291,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         _scrollToBottom();
       }
     } catch (error) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() {
         _messages[botMessageIndex] = _ChatMessage(
           text: _buildUserFriendlyError(error),
@@ -275,57 +302,10 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     } finally {
       if (mounted) {
         final botMsg = _messages[botMessageIndex];
-        String cleanText = botMsg.text;
-        Map<String, dynamic>? prescriptionData;
-        bool showAdherenceChart = false;
-        Map<String, dynamic>? updateDoseData;
-
-        // Parse <create_treatment>
-        while (cleanText.contains('<create_treatment>')) {
-          final startIdx = cleanText.indexOf('<create_treatment>');
-          final endIdx = cleanText.indexOf('</create_treatment>');
-          if (endIdx > startIdx) {
-            final jsonStr = cleanText.substring(startIdx + 18, endIdx);
-            try {
-              prescriptionData = jsonDecode(jsonStr);
-              prescriptionData!['isSaved'] = false;
-            } catch (_) {}
-            cleanText = cleanText.substring(0, startIdx) + cleanText.substring(endIdx + 19);
-          } else {
-            cleanText = cleanText.replaceAll('<create_treatment>', '');
-            break;
-          }
-        }
-
-        // Parse <update_dose>
-        final List<Map<String, dynamic>> updateDoseActions = [];
-        while (cleanText.contains('<update_dose>')) {
-          final startIdx = cleanText.indexOf('<update_dose>');
-          final endIdx = cleanText.indexOf('</update_dose>');
-          if (endIdx > startIdx) {
-            final jsonStr = cleanText.substring(startIdx + 13, endIdx);
-            try {
-              final parsed = jsonDecode(jsonStr);
-              if (parsed is Map<String, dynamic>) {
-                updateDoseActions.add(parsed);
-              }
-            } catch (_) {}
-            cleanText = cleanText.substring(0, startIdx) + cleanText.substring(endIdx + 14);
-          } else {
-            cleanText = cleanText.replaceAll('<update_dose>', '');
-            break;
-          }
-        }
-
-        // Parse <show_adherence_chart/>
-        while (cleanText.contains('<show_adherence_chart/>')) {
-          showAdherenceChart = true;
-          cleanText = cleanText.replaceFirst('<show_adherence_chart/>', '');
-        }
 
         setState(() {
           _messages[botMessageIndex] = botMsg.copyWith(
-            text: cleanText.trim(),
+            text: botMsg.text.trim(),
             isStreaming: false,
             prescriptionData: prescriptionData,
             showAdherenceChart: showAdherenceChart,
@@ -333,7 +313,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
           _isGenerating = false;
         });
 
-        // Trigger all update_dose actions if present
+        // Execute dose update actions from function calling
         for (final action in updateDoseActions) {
           final med = action['medicamento']?.toString() ?? '';
           final status = action['status']?.toString() ?? 'tomada';
@@ -342,9 +322,138 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
           _executeUpdateDose(med, status, mins, updateAll);
         }
 
+        // TTS: speak response if message came from voice input
+        if (fromVoice && botMsg.text.isNotEmpty) {
+          _voiceService ??= VoiceService();
+          _voiceService!.speak(botMsg.text);
+        }
+
         _scrollToBottom();
       }
       await _saveChatToFirestore();
+    }
+  }
+
+  // ─── Voice Chat Methods ───
+
+  void _editMessageDialog(int index, String oldText) {
+    final controller = TextEditingController(text: oldText);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Editar mensaje'),
+        content: TextField(
+          controller: controller,
+          maxLines: null,
+          decoration: const InputDecoration(border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _editMessage(index, controller.text);
+            },
+            child: const Text('Guardar y re-enviar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editMessage(int index, String newText) {
+    if (newText.trim().isEmpty) return;
+
+    setState(() {
+      _messages.removeRange(index, _messages.length);
+      final List<Map<String, dynamic>> newHistory = [];
+      for (final msg in _messages) {
+        if (msg.text.isNotEmpty && !msg.isStreaming) {
+          newHistory.add({
+            'role': msg.isUser ? 'user' : 'assistant',
+            'content': msg.text,
+          });
+        }
+      }
+      context.read<GeminiService>().syncHistory(newHistory);
+    });
+
+    _messageController.text = newText;
+    _sendMessage();
+  }
+
+  Future<void> _startVoiceRecording() async {
+    if (_isGenerating || _isRecording) return;
+    
+    if (_voiceService == null) {
+      _voiceService = VoiceService();
+      _voiceService!.onTtsComplete = () {
+        if (!mounted || _isRecording || _isGenerating || !_wasLastInputVoice || _messages.isEmpty) return;
+        final lastMsg = _messages.last.text.trim();
+        if (lastMsg.endsWith('?') || lastMsg.endsWith(':')) {
+          _startVoiceRecording();
+        }
+      };
+    }
+
+    try {
+      await _voiceService!.startRecordingAndTranscribe(
+        onSilence: () {
+          if (mounted) _stopVoiceRecordingAndSend();
+        }
+      );
+      setState(() => _isRecording = true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al iniciar grabación: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _cancelVoiceRecording() async {
+    if (!_isRecording || _voiceService == null) return;
+    await _voiceService!.cancelRecording();
+    setState(() => _isRecording = false);
+  }
+
+  Future<void> _stopVoiceRecordingAndSend() async {
+    if (!_isRecording || _voiceService == null) return;
+
+    setState(() => _isRecording = false);
+
+    try {
+      final transcribedText = await _voiceService!.stopRecordingAndTranscribe();
+      if (transcribedText.trim().isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se detectó audio. Intenta de nuevo.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      _messageController.text = transcribedText;
+      _sendMessage(fromVoice: true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al transcribir: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -370,7 +479,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
       if (isAll) {
         int updatedCount = 0;
         for (final treatment in runningTreatments) {
-          final doseTime = _findClosestPendingDose(treatment);
+          final doseTime = _findClosestDose(treatment);
           if (doseTime != null) {
             if (status == DoseStatus.aplazada) {
               final newDoseTime = doseTime.add(Duration(minutes: minutes));
@@ -479,7 +588,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
             ));
           });
         } else {
-          final doseTime = _findClosestPendingDose(treatment);
+          final doseTime = _findClosestDose(treatment);
           if (doseTime == null) {
             setState(() {
               _messages.add(_ChatMessage(
@@ -554,22 +663,18 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     }
   }
 
-  DateTime? _findClosestPendingDose(Tratamiento t) {
+  DateTime? _findClosestDose(Tratamiento t) {
     final now = DateTime.now();
     DateTime? closest;
     Duration? minDiff;
 
     t.doseStatus.forEach((key, status) {
-      if (status == DoseStatus.pendiente ||
-          status == DoseStatus.notificada ||
-          status == DoseStatus.aplazada) {
-        final time = DateTime.tryParse(key);
-        if (time != null) {
-          final diff = time.difference(now).abs();
-          if (minDiff == null || diff < minDiff!) {
-            minDiff = diff;
-            closest = time;
-          }
+      final time = DateTime.tryParse(key);
+      if (time != null) {
+        final diff = time.difference(now).abs();
+        if (minDiff == null || diff < minDiff!) {
+          minDiff = diff;
+          closest = time;
         }
       }
     });
@@ -668,10 +773,19 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
       return 'La clave de Groq no es válida o fue revocada. Genera una nueva clave e inténtalo de nuevo.';
     }
 
+    if (normalized.contains('413') || normalized.contains('request too large')) {
+      return 'El mensaje fue demasiado largo. Intenta con una pregunta más corta o inicia un nuevo chat para limpiar el contexto.';
+    }
+
     if (normalized.contains('429') ||
         normalized.contains('rate limit') ||
-        normalized.contains('quota')) {
-      return 'Se alcanzó el límite gratuito temporal de solicitudes. Espera unos minutos e inténtalo nuevamente.';
+        normalized.contains('quota') ||
+        normalized.contains('rate_limit_exceeded')) {
+      return 'Se alcanzó el límite gratuito temporal de solicitudes. Espera un minuto e inténtalo nuevamente.';
+    }
+
+    if (normalized.contains('timeout') || normalized.contains('timed out')) {
+      return 'La respuesta tardó demasiado. Verifica tu conexión a internet e inténtalo de nuevo.';
     }
 
     return 'No fue posible generar una respuesta. Detalle técnico: $errorText';
@@ -836,98 +950,182 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     final isEnabled = (_hasText || _isGenerating == false) && !_isGenerating;
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-        child: Row(
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(_composerRadius),
-                  border: Border.all(color: AppTheme.borderColor),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
-                      blurRadius: 14,
-                      offset: const Offset(0, 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Recording indicator
+          if (_isRecording)
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.red.withOpacity(0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.3, end: 1.0),
+                    duration: const Duration(milliseconds: 700),
+                    builder: (context, value, child) {
+                      return Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(value),
+                          shape: BoxShape.circle,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Grabando... Toca el mic para enviar',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
                     ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(_composerRadius),
-                  child: TextField(
-                    controller: _messageController,
-                    minLines: 1,
-                    maxLines: 4,
-                    textCapitalization: TextCapitalization.sentences,
-                    style: TextStyle(color: AppTheme.primaryTextColor),
-                    decoration: InputDecoration(
-                      hintText: 'Pregunta lo que necesitas...',
-                      hintStyle: TextStyle(
-                        color: AppTheme.secondaryTextColor.withOpacity(0.6),
-                        fontSize: 16,
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.cancel, color: Colors.red),
+                    onPressed: _cancelVoiceRecording,
+                    tooltip: 'Cancelar grabación',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(_composerRadius),
+                      border: Border.all(color: _isRecording ? Colors.red.withOpacity(0.4) : AppTheme.borderColor),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 14,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(_composerRadius),
+                      child: TextField(
+                        controller: _messageController,
+                        minLines: 1,
+                        maxLines: 4,
+                        enabled: !_isRecording,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: TextStyle(color: AppTheme.primaryTextColor),
+                        decoration: InputDecoration(
+                          hintText: _isRecording ? 'Escuchando...' : 'Pregunta lo que necesitas...',
+                          hintStyle: TextStyle(
+                            color: _isRecording ? Colors.red.withOpacity(0.6) : AppTheme.secondaryTextColor.withOpacity(0.6),
+                            fontSize: 16,
+                          ),
+                          filled: true,
+                          fillColor: Theme.of(context).cardColor,
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.only(left: 12, right: 8),
+                            child: InkWell(
+                              onTap: _isGenerating || _isRecording ? null : _scanPrescription,
+                              child: const ShaderMask(
+                                shaderCallback: _sparklesGradientShader,
+                                child: Icon(
+                                  Icons.auto_awesome_outlined,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                          ),
+                          border: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                        ),
+                        onSubmitted: (_) => _sendMessage(),
                       ),
-                      filled: true,
-                      fillColor: Theme.of(context).cardColor,
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.only(left: 12, right: 8),
-                        child: InkWell(
-                          onTap: _isGenerating ? null : _scanPrescription,
-                          child: const ShaderMask(
-                            shaderCallback: _sparklesGradientShader,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: (!isEnabled || !_hasText)
+                      ? // Mic button
+                        GestureDetector(
+                          key: const ValueKey('mic_button'),
+                          onTap: _isGenerating
+                              ? null
+                              : (_isRecording ? _stopVoiceRecordingAndSend : _startVoiceRecording),
+                          child: Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _isRecording
+                                  ? Colors.red
+                                  : AppTheme.primaryColor.withOpacity(0.08),
+                            ),
                             child: Icon(
-                              Icons.auto_awesome_outlined,
-                              color: Colors.white,
+                              _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                              color: _isRecording ? Colors.white : AppTheme.primaryColor,
                               size: 24,
                             ),
                           ),
+                        )
+                      : // Send button
+                        GestureDetector(
+                          key: const ValueKey('send_button'),
+                          onTap: _sendMessage,
+                          child: Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                colors: _chatGradient,
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primaryColor.withOpacity(0.3),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.send_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
                         ),
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: isEnabled ? _sendMessage : null,
-              child: Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: _chatGradient,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primaryColor.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.send_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+
 
   Widget _buildHistoryDrawer(BuildContext context) {
     final authService = context.watch<AuthService>();
@@ -1203,6 +1401,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                   children: [
                     _ChatBubble(
                       message: message,
+                      onEdit: message.isUser ? () => _editMessageDialog(index, message.text) : null,
                       onConfirmRecipe: (name, pres, interval, dosis, duration, notas, pData) {
                         _handleConfirmRecipe(name, pres, interval, dosis, duration, notas, pData);
                       },
@@ -1232,9 +1431,12 @@ class _ChatBubble extends StatelessWidget {
     Map<String, dynamic> prescriptionData,
   )? onConfirmRecipe;
 
+  final void Function()? onEdit;
+
   const _ChatBubble({
     required this.message,
     this.onConfirmRecipe,
+    this.onEdit,
   });
 
   @override
@@ -1290,6 +1492,13 @@ class _ChatBubble extends StatelessWidget {
               ),
       ),
     );
+
+    if (isUser && onEdit != null) {
+      bubble = GestureDetector(
+        onLongPress: onEdit,
+        child: bubble,
+      );
+    }
 
     if (message.prescriptionData != null || message.showAdherenceChart) {
       return Column(
