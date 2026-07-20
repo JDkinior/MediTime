@@ -1,8 +1,22 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:meditime/models/tratamiento.dart';
 
-/// Service responsible for chat interactions using a free-tier provider (Groq).
+/// Result of a function call that the chat screen should handle.
+class ToolCallResult {
+  const ToolCallResult({
+    required this.functionName,
+    required this.arguments,
+    required this.result,
+  });
+
+  final String functionName;
+  final Map<String, dynamic> arguments;
+  final String result;
+}
+
+/// Service responsible for chat interactions using Groq API with function calling.
 ///
 /// Note: The class name is kept for backward compatibility with the existing
 /// Provider wiring in the app.
@@ -12,60 +26,236 @@ class GeminiService {
 
   final String _apiKey;
 
-  // Groq models chosen for speed, vision support, and free-tier friendliness.
-  static const String _model = 'llama-3.1-8b-instant';
+  // Model chosen for 15,000 TPM on free tier (2.5x more than llama models).
+  static const String _model = 'llama-3.3-70b-versatile';
   static const String _visionModel = 'meta-llama/llama-4-scout-17b-16e-instruct';
   static const String _baseUrl =
       'https://api.groq.com/openai/v1/chat/completions';
-  static const int _maxHistoryMessages = 12;
-  final List<Map<String, String>> _history = <Map<String, String>>[];
+  static const int _maxHistoryMessages = 6;
+  static const int _maxCompletionTokens = 400;
+  final List<Map<String, dynamic>> _history = <Map<String, dynamic>>[];
 
+  /// Compact system prompt — focused on behavior rules only.
+  /// Treatment data is fetched on-demand via function calling.
   static const String _systemInstruction = '''
-You are the MediTime Virtual Assistant, a friendly and professional companion designed to support users with their health and medical management.
+You are MediBot, MediTime's virtual health assistant. You help users manage medications, doses, and treatments.
 
-Here is key information about MediTime's features to help users:
-1. **Medication Scheduling & Alarms**: Users can add treatments with details like name, presentation, first dose time, interval, and notes. The app sets up local push notifications to alert them when to take their meds.
-2. **Calendar & Dose Tracking**: A calendar view shows doses grouped by day. Users can log doses as "tomada" (taken), "omitida" (skipped), or keep them "pendiente" (pending).
-3. **Inventory & Stock Management**: MediTime tracks current pill counts. When logging a dose as "taken", it decreases inventory and shows status indicators. It warns the user when their stock is running low.
-4. **Caregiver Mode (Modo Cuidador)**: Caregivers can link profiles with their patients by email (via Profile screen) to view active treatments, calendar logs, and adherence status in real-time.
-5. **AI OCR Prescription Scan**: Inside "Agregar Receta", users can tap the document icon to take a photo of a prescription. The AI automatically parses details (name, duration, dose, interval, notes) to auto-fill the form.
-6. **Pharmacy Locator**: Users can view nearby pharmacies on a map layout to locate where to buy medicines.
-7. **Offline Cache**: MediTime supports offline operations with Firestore persistence; data is saved locally and synced automatically when back online.
-8. **Adherence Reports**: The app computes statistics on taken vs. skipped doses to help users review adherence over time.
-
-DATA ACCURACY RULES (MANDATORY - HIGHEST PRIORITY):
-- You will receive structured data sections labeled "Active treatments", "TODAY'S DOSES SCHEDULE", and "TOMORROW'S DOSES SCHEDULE" injected into this prompt.
-- These sections contain the ONLY source of truth about the user's current medications, doses, and schedule.
-- You MUST ONLY reference medications and doses that appear in these injected data sections.
-- If the injected data says "No doses are scheduled for today", you MUST tell the user they have no doses today. Do NOT invent, guess, or hallucinate any medications or doses.
-- If the injected data says "No active treatments running currently", the user has NO active medications.
-- NEVER reference medications from your conversation history if they do not appear in the current injected data. Treatments can end or be deleted at any time.
-- NEVER invent dose times, medication names, presentations, or any other treatment details that are not in the injected data.
-- When the user asks "what medications do I have today?" or similar, check ONLY the "TODAY'S DOSES SCHEDULE" section and report exactly what is listed there.
-
-Action Tags Rules (CRITICAL - READ CAREFULLY):
-1. **Add/Create Medication**: ONLY output this tag if the user explicitly asks to add, register, or create a medication (e.g. "agrega paracetamol", "quiero registrar ibuprofeno"). DO NOT output this tag when the user asks to list, discuss, show, or check their existing treatments.
-Format: <create_treatment>{"nombreMedicamento": "Paracetamol", "presentacion": "Comprimidos", "dosisPorToma": 1, "intervaloDosis": 8, "duracion": 7, "notas": "Tomar con agua"}</create_treatment>
-Fill in whatever fields the user explicitly mentioned, using standard defaults for missing fields.
-
-2. **Dose Status Update**: ONLY output this tag if the user explicitly asks to mark, log, or record a dose (e.g. "marca la dosis de ceholexivo como tomada", "olvidé la dosis", "aplaza la toma"). DO NOT output this tag when simply listing or discussing medications. When updating ALL doses, use "Todos" as the medicamento name. If the user wants to update ALL doses for a specific medication, set updateAll to true.
-Format: <update_dose>{"medicamento": "NombreMedicamento", "status": "tomada|omitida|aplazada", "minutosAplazo": 30, "updateAll": true}</update_dose>
-
-3. **Progress Adherence Graphics**: ONLY output this tag if the user explicitly asks about their progress, adherence chart, stats, or reports (e.g. "mi progreso", "cómo va mi adherencia?").
-Format: <show_adherence_chart/>
-
-CRITICAL PROHIBITION: DO NOT output any action tags in response to general conversation, listing treatments, showing info, or generic queries. Only append them when the user explicitly requests to perform that specific action. Do not show a create_treatment form when the user asks about their active medications.
-
-General Rules:
-1. Detect whether the user's latest message is in Spanish or English.
-2. Always answer in the same language detected from that latest user message.
-3. Keep responses highly practical, safe, empathetic, and clear for patients and caregivers.
-4. Emphasize that you are an AI assistant and they should always consult a medical professional for critical clinical decisions.
+RULES:
+1. Detect user's language (Spanish/English) and respond in the same language.
+2. Be concise: max 3-4 sentences for simple queries, more for detailed requests.
+3. You are an AI — always recommend consulting a doctor for clinical decisions.
+4. Use the provided tools to access treatment data. NEVER invent medication names, doses, or schedules.
+5. When asked about today's medications, ALWAYS call get_today_medications first.
+6. When asked about treatments or medications in general, call get_active_treatments first.
+7. Only call create_treatment when the user EXPLICITLY asks to add/create/register a medication.
+8. Only call update_dose_status when the user EXPLICITLY asks to mark/log a dose.
+9. When showing adherence/progress, call show_adherence_chart.
+10. Keep responses practical and empathetic. Format medication names in bold with **name**.
 ''';
 
-  /// Streams a growing response so the UI can update while the model is generating.
-  /// Optionally accepts [activeTreatments] to include as context for drug interaction warnings.
-  Stream<String> streamResponse(String userMessage, {List<Tratamiento>? activeTreatments}) async* {
+  /// Tool definitions for Groq function calling.
+  static const List<Map<String, dynamic>> _tools = [
+    {
+      'type': 'function',
+      'function': {
+        'name': 'get_today_medications',
+        'description': 'Get all medications and doses scheduled for today, including their times and status (pending, taken, skipped, etc.). Use this when the user asks about today\'s medications, reminders, or schedule.',
+        'parameters': {
+          'type': 'object',
+          'properties': {},
+          'required': [],
+        },
+      },
+    },
+    {
+      'type': 'function',
+      'function': {
+        'name': 'get_tomorrow_medications',
+        'description': 'Get all medications and doses scheduled for tomorrow. Use this when the user asks about tomorrow\'s medications or schedule.',
+        'parameters': {
+          'type': 'object',
+          'properties': {},
+          'required': [],
+        },
+      },
+    },
+    {
+      'type': 'function',
+      'function': {
+        'name': 'get_active_treatments',
+        'description': 'Get a summary of all currently active treatments (medication name, dosage, frequency, notes, inventory). Use this for general questions about treatments.',
+        'parameters': {
+          'type': 'object',
+          'properties': {},
+          'required': [],
+        },
+      },
+    },
+    {
+      'type': 'function',
+      'function': {
+        'name': 'create_treatment',
+        'description': 'Create a new medication treatment/reminder. Only use when the user explicitly asks to add, register, or create a new medication.',
+        'parameters': {
+          'type': 'object',
+          'properties': {
+            'nombreMedicamento': {
+              'type': 'string',
+              'description': 'Name of the medication',
+            },
+            'presentacion': {
+              'type': 'string',
+              'description': 'Presentation type: Comprimidos, Grageas, Cápsulas, Sobres, Jarabes, Gotas, Suspensiones, or Emulsiones. Leave empty if unknown.',
+            },
+            'dosisPorToma': {
+              'type': 'integer',
+              'description': 'Number of units per dose (e.g., 1 pill, 2 capsules)',
+              'default': 1,
+            },
+            'intervaloDosis': {
+              'type': 'integer',
+              'description': 'Hours between doses (e.g., 8, 12, 24)',
+              'default': 8,
+            },
+            'duracion': {
+              'type': 'integer',
+              'description': 'Treatment duration in days',
+              'default': 7,
+            },
+            'notas': {
+              'type': 'string',
+              'description': 'Additional notes or instructions',
+              'default': '',
+            },
+          },
+          'required': ['nombreMedicamento'],
+        },
+      },
+    },
+    {
+      'type': 'function',
+      'function': {
+        'name': 'update_dose_status',
+        'description': 'Mark a dose as taken (tomada), skipped (omitida), or postponed (aplazada). Only use when the user explicitly asks to mark, log, or record a dose status.',
+        'parameters': {
+          'type': 'object',
+          'properties': {
+            'medicamento': {
+              'type': 'string',
+              'description': 'Medication name, or "Todos" to update all medications',
+            },
+            'status': {
+              'type': 'string',
+              'description': 'New status for the dose',
+              'enum': ['tomada', 'omitida', 'aplazada'],
+            },
+            'minutosAplazo': {
+              'type': 'integer',
+              'description': 'Minutes to postpone (only for aplazada status)',
+              'default': 30,
+            },
+            'updateAll': {
+              'type': 'boolean',
+              'description': 'If true, update all pending doses for the specified medication',
+              'default': false,
+            },
+          },
+          'required': ['medicamento', 'status'],
+        },
+      },
+    },
+    {
+      'type': 'function',
+      'function': {
+        'name': 'show_adherence_chart',
+        'description': 'Show the user their medication adherence chart, progress, and statistics. Use when the user asks about their progress, adherence, stats, or reports.',
+        'parameters': {
+          'type': 'object',
+          'properties': {},
+          'required': [],
+        },
+      },
+    },
+    {
+      'type': 'function',
+      'function': {
+        'name': 'get_treatment_inventory',
+        'description': 'Check the remaining stock/inventory for medications. Use when the user asks how many pills/doses they have left.',
+        'parameters': {
+          'type': 'object',
+          'properties': {
+            'medicamento': {
+              'type': 'string',
+              'description': 'Medication name to check inventory for. Leave empty to check all.',
+              'default': '',
+            },
+          },
+          'required': [],
+        },
+      },
+    },
+    {
+      'type': 'function',
+      'function': {
+        'name': 'get_missed_doses',
+        'description': 'Get recent missed/skipped doses. Use when the user asks about forgotten, missed, or skipped doses.',
+        'parameters': {
+          'type': 'object',
+          'properties': {
+            'days': {
+              'type': 'integer',
+              'description': 'Number of past days to check (default: 7)',
+              'default': 7,
+            },
+          },
+          'required': [],
+        },
+      },
+    },
+  ];
+
+  /// Executes a tool function locally and returns the result string.
+  /// The [activeTreatments] must be pre-filtered to only active ones.
+  String executeToolFunction(
+    String functionName,
+    Map<String, dynamic> arguments,
+    List<Tratamiento> activeTreatments,
+  ) {
+    switch (functionName) {
+      case 'get_today_medications':
+        return _getScheduledMedications(activeTreatments, DateTime.now());
+      case 'get_tomorrow_medications':
+        return _getScheduledMedications(
+          activeTreatments,
+          DateTime.now().add(const Duration(days: 1)),
+        );
+      case 'get_active_treatments':
+        return _getActiveTreatmentsSummary(activeTreatments);
+      case 'get_treatment_inventory':
+        final medName = arguments['medicamento']?.toString() ?? '';
+        return _getInventory(activeTreatments, medName);
+      case 'get_missed_doses':
+        final days = (arguments['days'] as int?) ?? 7;
+        return _getMissedDoses(activeTreatments, days);
+      case 'create_treatment':
+      case 'update_dose_status':
+      case 'show_adherence_chart':
+        // These are handled by the UI layer — return a confirmation
+        return 'Action "$functionName" will be executed by the app.';
+      default:
+        return 'Unknown function: $functionName';
+    }
+  }
+
+  /// Sends a message and handles the full function-calling loop.
+  /// Returns a stream of progressive text updates for the final response.
+  /// [onToolCalls] is invoked when the model requests tool calls that
+  /// the UI needs to handle (create_treatment, update_dose_status, show_adherence_chart).
+  Stream<String> streamResponse(
+    String userMessage, {
+    List<Tratamiento>? activeTreatments,
+    void Function(List<ToolCallResult>)? onToolCalls,
+  }) async* {
     final prompt = userMessage.trim();
     if (prompt.isEmpty) {
       throw ArgumentError('User message cannot be empty.');
@@ -77,62 +267,150 @@ General Rules:
       );
     }
 
-    final String treatmentsPrompt;
-    if (activeTreatments != null && activeTreatments.isNotEmpty) {
-      final now = DateTime.now();
+    final treatments = activeTreatments ?? <Tratamiento>[];
+
+    // Build messages array
+    final messages = <Map<String, dynamic>>[
+      <String, String>{
+        'role': 'system',
+        'content': _systemInstruction,
+      },
+      ..._history,
+      <String, String>{'role': 'user', 'content': prompt},
+    ];
+
+    // Step 1: Send initial request (non-streaming) to check for tool calls
+    final initialResponse = await _sendChatRequest(messages, useTools: true);
+
+    final choice = initialResponse['choices']?[0] as Map<String, dynamic>?;
+    if (choice == null) {
+      throw StateError('The model returned an empty response.');
+    }
+
+    final messageRaw = choice['message'];
+    if (messageRaw is! Map<String, dynamic>) {
+      throw StateError('Invalid API response format (missing message): $choice');
+    }
+    final message = messageRaw;
+    if (message['content'] == null) {
+      message['content'] = '';
+    }
+    final toolCalls = message['tool_calls'] as List<dynamic>?;
+
+    if (toolCalls != null && toolCalls.isNotEmpty) {
+      // Model wants to call tools — execute them
+      final List<ToolCallResult> uiToolCalls = [];
       
-      // Filter out finished treatments! A treatment is active if its end date is in the future.
-      final runningTreatments = activeTreatments
-          .where((t) => t.fechaFinTratamiento.isAfter(now))
-          .toList();
+      // Add assistant message with tool_calls to the messages
+      messages.add(message);
 
+      for (final tc in toolCalls) {
+        final tcMap = tc as Map<String, dynamic>;
+        final fnObj = tcMap['function'] as Map<String, dynamic>;
+        final fnName = fnObj['name'] as String;
+        final argsString = fnObj['arguments'] as String? ?? '{}';
+        final dynamic decodedArgs = jsonDecode(argsString.isEmpty ? '{}' : argsString);
+        final fnArgs = decodedArgs is Map<String, dynamic> ? decodedArgs : <String, dynamic>{};
+        final toolCallId = tcMap['id'] as String;
 
+        // Execute locally or flag for UI
+        final isUiAction = fnName == 'create_treatment' ||
+            fnName == 'update_dose_status' ||
+            fnName == 'show_adherence_chart';
 
-      final List<String> scheduleDosesText = [];
+        final result = executeToolFunction(fnName, fnArgs, treatments);
 
-      for (final t in runningTreatments) {
-        t.doseStatus.forEach((dateString, status) {
-          final doseTime = DateTime.parse(dateString);
-          if (status == DoseStatus.pendiente || status == DoseStatus.aplazada || status == DoseStatus.notificada || status == DoseStatus.omitida) {
-            final timeStr = "${doseTime.year}-${doseTime.month.toString().padLeft(2, '0')}-${doseTime.day.toString().padLeft(2, '0')} at ${doseTime.hour.toString().padLeft(2, '0')}:${doseTime.minute.toString().padLeft(2, '0')}";
-            scheduleDosesText.add('- ${t.nombreMedicamento} (${t.presentacion}): scheduled on $timeStr, status: ${status.value}');
-          }
+        if (isUiAction) {
+          uiToolCalls.add(ToolCallResult(
+            functionName: fnName,
+            arguments: fnArgs,
+            result: result,
+          ));
+        }
+
+        // Add tool result to messages
+        messages.add({
+          'role': 'tool',
+          'tool_call_id': toolCallId,
+          'name': fnName,
+          'content': result,
         });
       }
 
-      treatmentsPrompt = '\n\nActive treatments context for safety and interaction analysis:\n' +
-          (runningTreatments.isEmpty
-              ? 'No active treatments running currently.'
-              : runningTreatments
-                  .map((t) =>
-                      '- Name: ${t.nombreMedicamento}, Presentation: ${t.presentacion}, Interval: every ${t.intervaloDosis.inHours} hours, Notes: ${t.notas}')
-                  .join('\n')) +
-          '\n\nENTIRE DOSE SCHEDULE AND LOGS FOR ACTIVE TREATMENTS:\n' +
-          (scheduleDosesText.isEmpty ? 'No doses are scheduled.' : scheduleDosesText.join('\n')) +
-          '\nUse this exact schedule information to answer user questions about what doses they have scheduled or missed. Check this schedule before saying they have doses or not.';
+      // Notify UI of actions that need handling
+      if (uiToolCalls.isNotEmpty && onToolCalls != null) {
+        onToolCalls(uiToolCalls);
+      }
+
+      // Step 2: Send follow-up with tool results (streaming for final response)
+      yield* _streamFinalResponse(messages, prompt);
     } else {
-      treatmentsPrompt = '';
+      // No tool calls — stream the direct response
+      final content = message['content'] as String? ?? '';
+      if (content.isEmpty) {
+        throw StateError('The model returned an empty response.');
+      }
+      
+      // Save to history
+      _history.add(<String, String>{'role': 'user', 'content': prompt});
+      _history.add(<String, String>{'role': 'assistant', 'content': content});
+      _trimHistory();
+
+      yield content;
+    }
+  }
+
+  /// Sends a non-streaming chat request (used for tool-call detection).
+  Future<Map<String, dynamic>> _sendChatRequest(
+    List<Map<String, dynamic>> messages, {
+    bool useTools = false,
+  }) async {
+    final body = <String, dynamic>{
+      'model': _model,
+      'messages': messages,
+      'stream': false,
+      'temperature': 0.3,
+      'max_tokens': _maxCompletionTokens,
+    };
+
+    if (useTools) {
+      body['tools'] = _tools;
+      body['tool_choice'] = 'auto';
     }
 
-    final request =
-        http.Request('POST', Uri.parse(_baseUrl))
-          ..headers.addAll(<String, String>{
-            'Authorization': 'Bearer $_apiKey',
-            'Content-Type': 'application/json',
-          })
-          ..body = jsonEncode(<String, dynamic>{
-            'model': _model,
-            'stream': true,
-            'temperature': 0.3,
-            'messages': <Map<String, String>>[
-              <String, String>{
-                'role': 'system',
-                'content': _systemInstruction + treatmentsPrompt,
-              },
-              ..._history,
-              <String, String>{'role': 'user', 'content': prompt},
-            ],
-          });
+    final response = await http.post(
+      Uri.parse(_baseUrl),
+      headers: <String, String>{
+        'Authorization': 'Bearer $_apiKey',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode != 200) {
+      throw StateError('Groq API error (${response.statusCode}): ${response.body}');
+    }
+
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  /// Streams the final response after tool results have been added.
+  Stream<String> _streamFinalResponse(
+    List<Map<String, dynamic>> messages,
+    String originalPrompt,
+  ) async* {
+    final request = http.Request('POST', Uri.parse(_baseUrl))
+      ..headers.addAll(<String, String>{
+        'Authorization': 'Bearer $_apiKey',
+        'Content-Type': 'application/json',
+      })
+      ..body = jsonEncode(<String, dynamic>{
+        'model': _model,
+        'stream': true,
+        'temperature': 0.3,
+        'max_tokens': _maxCompletionTokens,
+        'messages': messages,
+      });
 
     final client = http.Client();
     try {
@@ -149,42 +427,37 @@ General Rules:
 
       await for (final rawLine in stream) {
         final line = rawLine.trim();
-        if (!line.startsWith('data: ')) {
-          continue;
-        }
+        if (!line.startsWith('data: ')) continue;
 
         final payload = line.substring(6).trim();
-        if (payload == '[DONE]') {
-          break;
-        }
+        if (payload == '[DONE]') break;
 
-        final dynamic decoded = jsonDecode(payload);
-        final decodedMap = decoded is Map<String, dynamic> ? decoded : null;
-        final choices = decodedMap?['choices'] as List<dynamic>? ?? const [];
-        if (choices.isEmpty) {
+        try {
+          final dynamic decoded = jsonDecode(payload);
+          final decodedMap = decoded is Map<String, dynamic> ? decoded : null;
+          final choices = decodedMap?['choices'] as List<dynamic>? ?? const [];
+          if (choices.isEmpty) continue;
+
+          final firstChoice = choices.first;
+          if (firstChoice is! Map<String, dynamic>) continue;
+          final deltaMap = firstChoice['delta'] as Map<String, dynamic>?;
+          final delta = deltaMap?['content'] as String?;
+          if (delta == null || delta.isEmpty) continue;
+
+          fullText.write(delta);
+          yield fullText.toString();
+        } catch (_) {
+          // Skip malformed SSE lines
           continue;
         }
-
-        final firstChoice = choices.first;
-        if (firstChoice is! Map<String, dynamic>) {
-          continue;
-        }
-        final deltaMap = firstChoice['delta'] as Map<String, dynamic>?;
-        final delta = deltaMap?['content'] as String?;
-        if (delta == null || delta.isEmpty) {
-          continue;
-        }
-
-        fullText.write(delta);
-        yield fullText.toString();
       }
 
       if (fullText.isEmpty) {
-        throw StateError('The model returned an empty response.');
+        yield 'Acción completada.';
       }
 
-      // Persist conversation context for better continuity in following turns.
-      _history.add(<String, String>{'role': 'user', 'content': prompt});
+      // Save to history
+      _history.add(<String, String>{'role': 'user', 'content': originalPrompt});
       _history.add(<String, String>{
         'role': 'assistant',
         'content': fullText.toString(),
@@ -193,6 +466,116 @@ General Rules:
     } finally {
       client.close();
     }
+  }
+
+  // ─── Tool Implementation Functions ───
+
+  String _getScheduledMedications(List<Tratamiento> treatments, DateTime date) {
+    if (treatments.isEmpty) {
+      return 'No active treatments found.';
+    }
+
+    final dateStart = DateTime(date.year, date.month, date.day);
+    final dateEnd = dateStart.add(const Duration(days: 1));
+    final now = DateTime.now();
+    final lines = <String>[];
+
+    for (final t in treatments) {
+      final doses = <String>[];
+      t.doseStatus.forEach((key, status) {
+        final doseTime = DateTime.tryParse(key);
+        if (doseTime != null &&
+            doseTime.isAfter(dateStart) &&
+            doseTime.isBefore(dateEnd)) {
+          final timeStr =
+              '${doseTime.hour.toString().padLeft(2, '0')}:${doseTime.minute.toString().padLeft(2, '0')}';
+          final isPast = doseTime.isBefore(now);
+          doses.add('  - $timeStr: ${status.displayName}${isPast ? ' (past)' : ''}');
+        }
+      });
+
+      if (doses.isNotEmpty) {
+        lines.add('${t.nombreMedicamento} (${t.presentacion}, ${t.dosisPorToma} per dose):');
+        lines.addAll(doses);
+      }
+    }
+
+    if (lines.isEmpty) {
+      final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      return 'No doses scheduled for $dateStr.';
+    }
+
+    final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    return 'Medications for $dateStr:\n${lines.join('\n')}';
+  }
+
+  String _getActiveTreatmentsSummary(List<Tratamiento> treatments) {
+    if (treatments.isEmpty) {
+      return 'No active treatments.';
+    }
+
+    final lines = treatments.map((t) {
+      final endStr = '${t.fechaFinTratamiento.year}-${t.fechaFinTratamiento.month.toString().padLeft(2, '0')}-${t.fechaFinTratamiento.day.toString().padLeft(2, '0')}';
+      return '- ${t.nombreMedicamento}: ${t.presentacion}, '
+          '${t.dosisPorToma} per dose every ${t.intervaloDosis.inHours}h, '
+          'ends $endStr'
+          '${t.notas.isNotEmpty ? ', notes: ${t.notas}' : ''}';
+    }).toList();
+
+    return 'Active treatments (${treatments.length}):\n${lines.join('\n')}';
+  }
+
+  String _getInventory(List<Tratamiento> treatments, String medName) {
+    if (treatments.isEmpty) {
+      return 'No active treatments.';
+    }
+
+    final filtered = medName.isEmpty
+        ? treatments
+        : treatments
+            .where((t) => t.nombreMedicamento.toLowerCase().contains(medName.toLowerCase()))
+            .toList();
+
+    if (filtered.isEmpty) {
+      return 'No medication found matching "$medName".';
+    }
+
+    final lines = filtered.map((t) {
+      final remaining = t.cantidadActual;
+      final total = t.cantidadTotalCaja;
+      final isLow = t.hasStockBajo;
+      return '- ${t.nombreMedicamento}: $remaining/$total remaining${isLow ? ' ⚠️ LOW STOCK' : ''}';
+    }).toList();
+
+    return 'Medication inventory:\n${lines.join('\n')}';
+  }
+
+  String _getMissedDoses(List<Tratamiento> treatments, int days) {
+    if (treatments.isEmpty) {
+      return 'No active treatments.';
+    }
+
+    final now = DateTime.now();
+    final cutoff = now.subtract(Duration(days: days));
+    final missed = <String>[];
+
+    for (final t in treatments) {
+      t.doseStatus.forEach((key, status) {
+        if (status == DoseStatus.omitida) {
+          final doseTime = DateTime.tryParse(key);
+          if (doseTime != null && doseTime.isAfter(cutoff) && doseTime.isBefore(now)) {
+            final dateStr = '${doseTime.year}-${doseTime.month.toString().padLeft(2, '0')}-${doseTime.day.toString().padLeft(2, '0')} ${doseTime.hour.toString().padLeft(2, '0')}:${doseTime.minute.toString().padLeft(2, '0')}';
+            missed.add('- ${t.nombreMedicamento}: missed on $dateStr');
+          }
+        }
+      });
+    }
+
+    if (missed.isEmpty) {
+      return 'No missed doses in the last $days days. Great adherence!';
+    }
+
+    return 'Missed doses (last $days days):\n${missed.join('\n')}';
   }
 
   /// Extracts prescription data from a Base64 image using Groq's vision model.
@@ -251,8 +634,8 @@ General Rules:
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
     final choices = decoded['choices'] as List<dynamic>;
     if (choices.isEmpty) return null;
-    final message = choices.first['message'] as Map<String, dynamic>;
-    final content = message['content'] as String;
+    final messageData = choices.first['message'] as Map<String, dynamic>;
+    final content = messageData['content'] as String;
     return jsonDecode(content) as Map<String, dynamic>;
   }
 
@@ -270,5 +653,13 @@ General Rules:
   /// to prevent stale context from bleeding between conversations.
   void clearHistory() {
     _history.clear();
+  }
+
+  /// Synchronizes the internal history with a provided history state.
+  /// Useful when rewriting chat history (e.g., editing past messages).
+  void syncHistory(List<Map<String, dynamic>> newHistory) {
+    _history.clear();
+    _history.addAll(newHistory);
+    _trimHistory();
   }
 }
