@@ -41,10 +41,11 @@ class GeminiService {
 You are Midi, a warm health assistant for MediTime.
 RULES:
 1. Respond in user's language. Friendly & concise. Advise doctor when needed.
-2. NEVER mention tool/function names (e.g. get_today_medications). Speak naturally.
-3. Capabilities: "Puedo consultar tus dosis del día, tratamientos activos, agendar recordatorios o ver tu adherencia."
-4. Use tools for data. DO NOT invent.
-5. Format meds in bold **nombre**.
+2. CRITICAL: NEVER write function/tool calls as text. Do NOT output JSON like {"function": "..."} or XML like <function>. Tool calls happen invisibly in the background.
+3. When you need data, call the tool silently. Then respond naturally using the result.
+4. Capabilities: "Puedo consultar tus dosis del día, tratamientos activos, agendar recordatorios o ver tu adherencia."
+5. Use tools for data. DO NOT invent.
+6. Format meds in bold **nombre**.
 ''';
 
   /// Tool definitions for Groq function calling.
@@ -324,13 +325,15 @@ RULES:
       body: jsonEncode(body),
     );
 
-    if (response.statusCode == 429 && !isRetry) {
-      debugPrint('GeminiService: 429 Rate Limit. Retrying with $_fallbackModel');
+    if ((response.statusCode == 429 || response.statusCode == 400) && !isRetry) {
+      debugPrint('GeminiService: ${response.statusCode} Error. Retrying with $_fallbackModel');
       return _sendChatRequest(messages, useTools: useTools, isRetry: true);
     }
 
     if (response.statusCode != 200) {
-      throw StateError('Groq API error (${response.statusCode}): ${response.body}');
+      final errorBody = response.body;
+      debugPrint('Groq API error (${response.statusCode}): $errorBody');
+      throw StateError('Lo siento, hubo un error de procesamiento. Intenta decirlo de otra forma.');
     }
 
     return jsonDecode(response.body) as Map<String, dynamic>;
@@ -359,15 +362,16 @@ RULES:
     try {
       final response = await client.send(request);
       
-      if (response.statusCode == 429 && !isRetry) {
-        debugPrint('GeminiService: 429 Rate Limit on Stream. Retrying with $_fallbackModel');
+      if ((response.statusCode == 429 || response.statusCode == 400) && !isRetry) {
+        debugPrint('GeminiService: ${response.statusCode} Error on Stream. Retrying with $_fallbackModel');
         yield* _streamFinalResponse(messages, originalPrompt, isRetry: true);
         return;
       }
 
       if (response.statusCode != 200) {
         final errorBody = await response.stream.bytesToString();
-        throw StateError('Groq API error (${response.statusCode}): $errorBody');
+        debugPrint('Groq API error (${response.statusCode}): $errorBody');
+        throw StateError('Lo siento, hubo un error temporal. Por favor, intenta de nuevo.');
       }
 
       final fullText = StringBuffer();
@@ -395,7 +399,8 @@ RULES:
           if (delta == null || delta.isEmpty) continue;
 
           fullText.write(delta);
-          yield fullText.toString();
+          // Apply real-time filter before yielding to prevent artifacts appearing in UI
+          yield _sanitizeModelOutput(fullText.toString());
         } catch (_) {
           // Skip malformed SSE lines
           continue;
@@ -404,6 +409,13 @@ RULES:
 
       if (fullText.isEmpty) {
         yield 'Acción completada.';
+      } else {
+        // Final pass: strip all hallucinated function output patterns
+        final cleanText = _sanitizeModelOutput(fullText.toString()).trim();
+        // If after sanitizing nothing remains, yield a fallback
+        if (cleanText.isEmpty) {
+          yield 'Acción completada.';
+        }
       }
 
       // Save to history
@@ -419,6 +431,29 @@ RULES:
   }
 
   // ─── Tool Implementation Functions ───
+
+  /// Strips hallucinated function call patterns from model text output.
+  /// Handles: JSON {"function": "..."}, XML function tags, and similar artifacts.
+  static String _sanitizeModelOutput(String text) {
+    // Remove JSON-style function calls: {"function": "name", ...} or {"function":"name"}
+    // This catches single-line and multi-line JSON function blobs
+    var clean = text.replaceAll(
+      RegExp(r'\{[^{}]*"function"[^{}]*\}', multiLine: true),
+      '',
+    );
+
+    // Remove XML-style function tags: <function=name> or <function>...</function>
+    clean = clean.replaceAll(RegExp(r'</?function[^>]*>', caseSensitive: false), '');
+
+    // Remove leftover tool call markers that some models emit
+    clean = clean.replaceAll(RegExp(r'<\|[^|]*\|>', caseSensitive: false), '');
+
+    // Clean up multiple consecutive blank lines left behind by removed blocks
+    clean = clean.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+
+    return clean;
+  }
+
 
   String _getScheduledMedications(List<Tratamiento> treatments, DateTime date) {
     if (treatments.isEmpty) {
