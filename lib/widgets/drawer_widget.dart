@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
+import 'package:meditime/notifiers/caregiver_notifier.dart';
+import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/screens/shared/ayuda_page.dart';
 import 'package:meditime/screens/shared/opciones_page.dart';
 import 'package:meditime/screens/reports/reportes_page.dart';
@@ -9,6 +11,7 @@ import 'package:meditime/core/constants.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/chat/chat_bot_screen.dart';
 import 'package:meditime/screens/profile/perfil_page.dart';
+import 'package:meditime/screens/caregiver/manage_caregiver_profiles_page.dart';
 
 class CustomDrawer extends StatelessWidget {
   final VoidCallback onLogout;
@@ -156,6 +159,59 @@ class CustomDrawer extends StatelessWidget {
               Navigator.pop(context);
               Navigator.pushNamed(context, ChatBotScreen.routeName);
             },
+          ),
+          const Divider(),
+          Consumer<CaregiverNotifier>(
+            builder: (context, caregiver, _) {
+              return ExpansionTile(
+                leading: const Icon(Icons.health_and_safety_outlined),
+                title: const Text('Modo Cuidador'),
+                subtitle: Text(caregiver.isCaregiverModeActive ? 'Activado' : 'Desactivado'),
+                children: [
+                  SwitchListTile(
+                    title: const Text('Activar Modo'),
+                    value: caregiver.isCaregiverModeActive,
+                    onChanged: (val) {
+                      caregiver.setCaregiverModeActive(val);
+                    },
+                  ),
+                  if (caregiver.isCaregiverModeActive)
+                    ListTile(
+                      title: const Text('Tipo de Cuidador'),
+                      trailing: DropdownButton<CaregiverModeType>(
+                        value: caregiver.modeType,
+                        items: const [
+                          DropdownMenuItem(
+                            value: CaregiverModeType.familiar,
+                            child: Text('Familiar'),
+                          ),
+                          DropdownMenuItem(
+                            value: CaregiverModeType.clinico,
+                            child: Text('Clínico'),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            caregiver.setModeType(val);
+                          }
+                        },
+                      ),
+                    ),
+                  if (caregiver.isCaregiverModeActive)
+                    ListTile(
+                      leading: const Icon(Icons.people_alt_outlined),
+                      title: const Text('Gestionar Pacientes'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ManageCaregiverProfilesPage()),
+                        );
+                      },
+                    ),
+                ],
+              );
+            }
           ),
           const Divider(),
           ListTile(

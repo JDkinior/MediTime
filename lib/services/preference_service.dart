@@ -18,6 +18,11 @@ class PreferenceService {
   static const String _largeButtonsKey = 'large_buttons_active';
   static const String _simplifiedInterfaceKey = 'simplified_interface_active';
 
+  // Caregiver Mode keys
+  static const String _caregiverModeActiveKey = 'caregiver_mode_active';
+  static const String _caregiverModeTypeKey = 'caregiver_mode_type';
+  static const String _caregiverActiveProfileKey = 'caregiver_active_profile';
+
   Future<void> saveThemeMode(String themeStr) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_themeModeKey, themeStr);
@@ -186,6 +191,44 @@ class PreferenceService {
   Future<void> markTutorialShown(String userId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('$_tutorialShownPrefix$userId', true);
+  }
+
+  // --- Caregiver Mode ---
+  Future<void> saveCaregiverModeActive(bool isActive) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_caregiverModeActiveKey, isActive);
+  }
+
+  Future<bool> getCaregiverModeActive() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool(_caregiverModeActiveKey) ?? false;
+  }
+
+  Future<void> saveCaregiverModeType(String type) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_caregiverModeTypeKey, type);
+  }
+
+  Future<String> getCaregiverModeType() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getString(_caregiverModeTypeKey) ?? 'familiar';
+  }
+
+  Future<void> saveCaregiverActiveProfile(String? profileId) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (profileId == null) {
+      await prefs.remove(_caregiverActiveProfileKey);
+    } else {
+      await prefs.setString(_caregiverActiveProfileKey, profileId);
+    }
+  }
+
+  Future<String?> getCaregiverActiveProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getString(_caregiverActiveProfileKey);
   }
 
 }

@@ -1,6 +1,7 @@
 // lib/notifiers/treatment_form_notifier.dart
 import 'package:flutter/material.dart';
 import 'package:meditime/models/treatment_form_data.dart';
+import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/services/treatment_service.dart';
 import 'package:meditime/services/auth_service.dart';
 
@@ -130,7 +131,7 @@ class TreatmentFormNotifier extends ChangeNotifier {
   }
 
   /// Guarda el tratamiento
-  Future<bool> saveTreatment() async {
+  Future<bool> saveTreatment([CaregiverProfile? profile]) async {
     final user = _authService.currentUser;
     if (user == null) {
       _setError('Error: Usuario no encontrado.');
@@ -148,6 +149,7 @@ class TreatmentFormNotifier extends ChangeNotifier {
     try {
       await _treatmentService.saveTreatment(
         userId: user.uid,
+        profile: profile,
         formData: _formData,
       );
 

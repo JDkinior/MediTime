@@ -1,6 +1,7 @@
 // lib/screens/reports/progreso_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:meditime/notifiers/caregiver_notifier.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
@@ -752,7 +753,9 @@ class _ProgresoPageState extends State<ProgresoPage> {
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
     final firestoreService = context.watch<FirestoreService>();
+    final caregiverNotifier = context.watch<CaregiverNotifier>();
     final user = authService.currentUser;
+    final activeProfile = caregiverNotifier.isCaregiverModeActive ? caregiverNotifier.activeProfile : null;
     final dateRange = _getDateRange();
 
     if (user == null) {
@@ -768,8 +771,8 @@ class _ProgresoPageState extends State<ProgresoPage> {
           _buildIntervalSelector(),
           Expanded(
             child: StreamBuilder<List<Tratamiento>>(
-              initialData: firestoreService.getCachedMedicamentos(user.uid),
-              stream: firestoreService.getMedicamentosStream(user.uid),
+              initialData: firestoreService.getCachedMedicamentos(user.uid, activeProfile),
+              stream: firestoreService.getMedicamentosStream(user.uid, activeProfile),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                   return const EstadoVista(state: ViewState.loading, child: SizedBox.shrink());

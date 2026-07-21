@@ -23,6 +23,7 @@ import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/notifiers/treatment_form_notifier.dart';
 import 'package:meditime/notifiers/calendar_notifier.dart';
+import 'package:meditime/notifiers/caregiver_notifier.dart';
 import 'package:meditime/services/treatment_service.dart';
 import 'package:meditime/services/lazy_treatment_service.dart';
 
@@ -116,6 +117,13 @@ class MyApp extends StatelessWidget {
                 context.read<LazyTreatmentService>(),
                 context.read<FirestoreService>(),
               ),
+        ),
+        ChangeNotifierProvider<CaregiverNotifier>(
+          create:
+              (context) => CaregiverNotifier(
+                context.read<PreferenceService>(),
+                context.read<FirestoreService>(),
+              )..loadProfiles(context.read<AuthService>().currentUser?.uid ?? ''),
         ),
       ],
       child: Consumer<PreferenceNotifier>(

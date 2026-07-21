@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/services/tratamiento_service.dart';
 import 'package:meditime/services/widget_service.dart';
+import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/core/stream_cache.dart';
 
 /// Servicio para interactuar con la base de datos de Cloud Firestore.
@@ -39,18 +40,41 @@ class FirestoreService {
     return _db.collection('users').doc(userId).get();
   }
 
+  // --- Perfil de Cuidador (Caregiver Mode) ---
+  
+  Future<List<CaregiverProfile>> getCaregiverProfiles(String userId) async {
+    final query = await _db.collection('users').doc(userId).collection('managed_profiles').get();
+    return query.docs.map((doc) => CaregiverProfile.fromMap(doc.id, doc.data())).toList();
+  }
+
+  Future<void> saveCaregiverProfile(String userId, CaregiverProfile profile) {
+    return _db.collection('users').doc(userId).collection('managed_profiles').doc(profile.id).set(profile.toMap());
+  }
+
+  Future<void> deleteCaregiverProfile(String userId, String profileId) {
+    return _db.collection('users').doc(userId).collection('managed_profiles').doc(profileId).delete();
+  }
+
   // --- Medicamentos ---
+
+  CollectionReference _getMedicamentosCollection(String userId, [CaregiverProfile? profile]) {
+    if (profile == null) {
+      return _db.collection('medicamentos').doc(userId).collection('userMedicamentos');
+    }
+    if (profile.isExternalUser && profile.linkedUid != null) {
+      return _db.collection('medicamentos').doc(profile.linkedUid!).collection('userMedicamentos');
+    }
+    return _db.collection('users').doc(userId).collection('managed_profiles').doc(profile.id).collection('userMedicamentos');
+  }
 
   /// Obtiene un `Stream` con la lista de todos los tratamientos de un usuario.
   ///
   /// El `Stream` se actualiza automáticamente cuando hay cambios en Firestore.
   /// Transforma los documentos de Firestore en una lista de objetos `Tratamiento`.
-  Stream<List<Tratamiento>> getMedicamentosStream(String userId) {
-    return _medicamentosCache.getStream(userId, () {
-      return _db
-          .collection('medicamentos')
-          .doc(userId)
-          .collection('userMedicamentos')
+  Stream<List<Tratamiento>> getMedicamentosStream(String userId, [CaregiverProfile? profile]) {
+    final cacheKey = profile == null ? userId : '${userId}_${profile.id}';
+    return _medicamentosCache.getStream(cacheKey, () {
+      return _getMedicamentosCollection(userId, profile)
           .snapshots()
           .map((snapshot) {
         return snapshot.docs.map((doc) {
@@ -63,13 +87,15 @@ class FirestoreService {
   }
 
   /// Obtiene los medicamentos de la cache de forma sincrónica.
-  List<Tratamiento>? getCachedMedicamentos(String userId) {
-    return _medicamentosCache.getLastValue(userId);
+  List<Tratamiento>? getCachedMedicamentos(String userId, [CaregiverProfile? profile]) {
+    final cacheKey = profile == null ? userId : '${userId}_${profile.id}';
+    return _medicamentosCache.getLastValue(cacheKey);
   }
 
   /// Guarda un nuevo tratamiento en la base de datos para un usuario específico.
   Future<DocumentReference> saveMedicamento({
     required String userId,
+    CaregiverProfile? profile,
     required String nombreMedicamento,
     required String presentacion,
     required String duracion,
@@ -120,11 +146,7 @@ class FirestoreService {
     }
     // Para tratamientos largos, el mapa de dosis se mantiene vacío inicialmente
 
-    final ref = _db
-        .collection('medicamentos')
-        .doc(userId)
-        .collection('userMedicamentos')
-        .doc();
+    final ref = _getMedicamentosCollection(userId, profile).doc();
 
     return ref.set({
       'nombreMedicamento': nombreMedicamento,
@@ -153,13 +175,8 @@ class FirestoreService {
   }
 
   /// Elimina un documento de tratamiento específico.
-  Future<void> deleteTratamiento(String userId, String docId) async {
-    await _db
-        .collection('medicamentos')
-        .doc(userId)
-        .collection('userMedicamentos')
-        .doc(docId)
-        .delete();
+  Future<void> deleteTratamiento(String userId, String docId, [CaregiverProfile? profile]) async {
+    await _getMedicamentosCollection(userId, profile).doc(docId).delete();
     try {
       WidgetService.updateWidgetData(userId: userId);
     } catch (e) {
@@ -169,12 +186,8 @@ class FirestoreService {
 
   /// Elimina todos los tratamientos de un usuario de la base de datos y
   /// retorna la lista de tratamientos eliminados para poder cancelar sus alarmas.
-  Future<List<Tratamiento>> clearAllMedicamentos(String userId) async {
-    final snapshot = await _db
-        .collection('medicamentos')
-        .doc(userId)
-        .collection('userMedicamentos')
-        .get();
+  Future<List<Tratamiento>> clearAllMedicamentos(String userId, [CaregiverProfile? profile]) async {
+    final snapshot = await _getMedicamentosCollection(userId, profile).get();
 
     final List<Tratamiento> tratamientos = [];
     final batch = _db.batch();
@@ -188,7 +201,8 @@ class FirestoreService {
     }
 
     await batch.commit();
-    _medicamentosCache.clearKey(userId);
+    final cacheKey = profile == null ? userId : '${userId}_${profile.id}';
+    _medicamentosCache.clearKey(cacheKey);
     try {
       WidgetService.updateWidgetData(userId: userId);
     } catch (e) {
@@ -200,12 +214,8 @@ class FirestoreService {
 
   /// Obtiene la referencia a un documento de tratamiento específico.
   /// Útil para realizar actualizaciones o lecturas directas.
-  DocumentReference getMedicamentoDocRef(String userId, String docId) {
-    return _db
-        .collection('medicamentos')
-        .doc(userId)
-        .collection('userMedicamentos')
-        .doc(docId);
+  DocumentReference getMedicamentoDocRef(String userId, String docId, [CaregiverProfile? profile]) {
+    return _getMedicamentosCollection(userId, profile).doc(docId);
   }
 
   /// Actualiza el mapa completo de dosis de un tratamiento
@@ -213,8 +223,9 @@ class FirestoreService {
     String userId,
     String docId,
     Map<String, String> doseStatusMap,
+    [CaregiverProfile? profile]
   ) async {
-    final docRef = getMedicamentoDocRef(userId, docId);
+    final docRef = getMedicamentoDocRef(userId, docId, profile);
 
     try {
       await docRef.update({'doseStatus': doseStatusMap});
@@ -234,8 +245,9 @@ class FirestoreService {
     String docId,
     DateTime doseTime,
     DoseStatus newStatus,
+    [CaregiverProfile? profile]
   ) async {
-    final docRef = getMedicamentoDocRef(userId, docId);
+    final docRef = getMedicamentoDocRef(userId, docId, profile);
     debugPrint("Attempting to robustly update status for doc: ${docRef.path}");
 
     try {

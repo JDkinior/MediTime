@@ -2,6 +2,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/notification_service.dart';
@@ -15,6 +16,7 @@ class TreatmentService {
   /// Guarda un nuevo tratamiento y programa las notificaciones
   Future<DocumentReference> saveTreatment({
     required String userId,
+    CaregiverProfile? profile,
     required TreatmentFormData formData,
   }) async {
     // Generar ID único para las alarmas
@@ -43,6 +45,7 @@ class TreatmentService {
     // Guardar en Firestore
     final DocumentReference docRef = await _firestoreService.saveMedicamento(
       userId: userId,
+      profile: profile,
       nombreMedicamento: formData.nombreMedicamento,
       presentacion: formData.presentacion,
       duracion: formData.duracionEnDias.toString(),

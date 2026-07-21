@@ -9,6 +9,7 @@ import 'package:meditime/services/gemini_service.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/screens/shared/guia_optimizacion_page.dart';
 import 'package:meditime/notifiers/treatment_form_notifier.dart';
+import 'package:meditime/notifiers/caregiver_notifier.dart';
 import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/widgets/treatment_form/form_field_wrapper.dart';
 import 'package:meditime/widgets/treatment_form/duration_selector.dart';
@@ -120,11 +121,13 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
     if (!mounted) return;
 
     final notifier = context.read<TreatmentFormNotifier>();
+    final caregiverNotifier = context.read<CaregiverNotifier>();
+    final activeProfile = caregiverNotifier.isCaregiverModeActive ? caregiverNotifier.activeProfile : null;
 
     final proceed = await _checkAndWarnDrugInteractions(notifier.formData.nombreMedicamento);
     if (!proceed || !mounted) return;
 
-    final success = await notifier.saveTreatment();
+    final success = await notifier.saveTreatment(activeProfile);
 
     if (!mounted) return;
 

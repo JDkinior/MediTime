@@ -5,12 +5,16 @@ import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
+import 'package:meditime/notifiers/caregiver_notifier.dart';
+import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/screens/medication/agregar_receta_page.dart';
+import 'package:meditime/widgets/caregiver/add_caregiver_profile_dialog.dart';
 
 // Pantallas y Widgets
 import 'package:meditime/screens/calendar/calendario_page.dart';
 import 'package:meditime/screens/profile/perfil_page.dart';
 import 'package:meditime/screens/medication/receta_page.dart';
+import 'package:meditime/screens/medication/general_caregiver_page.dart';
 import 'package:meditime/screens/shared/ayuda_page.dart';
 import 'package:meditime/screens/chat/chat_bot_screen.dart';
 import 'package:meditime/screens/reports/progreso_page.dart';
@@ -18,6 +22,7 @@ import 'package:meditime/widgets/drawer_widget.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/tutorial_tooltip.dart';
 import 'package:meditime/widgets/midi_blinking_icon.dart';
+import 'package:meditime/screens/caregiver/manage_caregiver_profiles_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -277,20 +282,124 @@ class _HomePageState extends State<HomePage> {
         final canLoadProfileImage = profileImagePath != null &&
             profileImagePath.isNotEmpty &&
             !profileImagePath.contains('firebasestorage.googleapis.com');
+            
+        final caregiverNotifier = ctx.watch<CaregiverNotifier>();
+        final isCaregiverActive = caregiverNotifier.isCaregiverModeActive;
 
         return Scaffold(
           appBar: AppBar(
             centerTitle: true,
             title: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Text(
-                titles[_currentIndex],
-                style: TextStyle(
-                  color: AppTheme.primaryTextColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              ),
+              child: isCaregiverActive
+                  ? DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        value: caregiverNotifier.activeProfileId ?? 'myself',
+                        icon: const Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor),
+                        style: TextStyle(
+                          color: AppTheme.primaryTextColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                        onChanged: (String? newValue) {
+                          if (newValue == 'manage_profiles') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const ManageCaregiverProfilesPage()),
+                            );
+                          } else if (newValue == 'add_new') {
+                            showDialog(
+                              context: context,
+                              builder: (context) => const AddCaregiverProfileDialog(),
+                            );
+                          } else if (newValue == 'myself') {
+                            caregiverNotifier.setActiveProfileId(null);
+                          } else {
+                            caregiverNotifier.setActiveProfileId(newValue);
+                          }
+                        },
+                        items: [
+                          DropdownMenuItem<String>(
+                            value: 'myself',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.person, color: AppTheme.primaryColor),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text('Mis Medicamentos', overflow: TextOverflow.ellipsis),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (caregiverNotifier.managedProfiles.isNotEmpty)
+                            DropdownMenuItem<String>(
+                              value: 'general',
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.group, color: AppTheme.primaryColor),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text('Vista General (Pacientes)', overflow: TextOverflow.ellipsis),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ...caregiverNotifier.managedProfiles.map((p) {
+                            String displayName = p.name;
+                            if (caregiverNotifier.modeType == CaregiverModeType.clinico && p.roomNumber != null) {
+                              displayName = 'Cama ${p.roomNumber} - $displayName';
+                            }
+                            return DropdownMenuItem<String>(
+                              value: p.id,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    caregiverNotifier.modeType == CaregiverModeType.clinico ? Icons.hotel : Icons.family_restroom,
+                                    color: Color(int.parse(p.colorHex.replaceFirst('#', 'FF'), radix: 16)),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      displayName,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          DropdownMenuItem<String>(
+                            value: 'add_new',
+                            child: Row(
+                              children: [
+                                Icon(Icons.add, color: AppTheme.secondaryTextColor),
+                                const SizedBox(width: 8),
+                                const Text('Agregar Persona...'),
+                              ],
+                            ),
+                          ),
+                          DropdownMenuItem<String>(
+                            value: 'manage_profiles',
+                            child: Row(
+                              children: [
+                                Icon(Icons.people_alt_outlined, color: AppTheme.secondaryTextColor),
+                                const SizedBox(width: 8),
+                                const Text('Gestionar Pacientes...'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Text(
+                      titles[_currentIndex],
+                      style: TextStyle(
+                        color: AppTheme.primaryTextColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
             ),
             actions: [
               if (!preferenceNotifier.simplifiedInterface)
@@ -343,21 +452,55 @@ class _HomePageState extends State<HomePage> {
             onLogout: _handleLogout,
             onStartTutorial: _startTutorial,
           ),
-          body: PageView(
-            controller: _pageController,
-            onPageChanged: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
+          body: Column(
             children: [
-              RecetaPage(
-                fabKey: isModern ? null : _fabKey,
-                summaryKey: _summaryKey,
-                dateKey: _dateKey,
+              if (isCaregiverActive && caregiverNotifier.isGeneralMode)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                  color: AppTheme.primaryColor,
+                  child: const Text(
+                    'Vista General: Todos los pacientes',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              else if (isCaregiverActive && caregiverNotifier.activeProfile != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                  color: Color(int.parse(caregiverNotifier.activeProfile!.colorHex.replaceFirst('#', 'FF'), radix: 16)),
+                  child: Text(
+                    'Viendo agenda médica de: ${caregiverNotifier.activeProfile!.name}',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentIndex = index;
+                    });
+                  },
+                  children: [
+                    caregiverNotifier.isGeneralMode 
+                        ? const GeneralCaregiverPage()
+                        : RecetaPage(
+                            fabKey: isModern ? null : _fabKey,
+                            summaryKey: _summaryKey,
+                            dateKey: _dateKey,
+                          ),
+                    caregiverNotifier.isGeneralMode 
+                        ? const Center(child: Text('Selecciona un paciente específico para ver su calendario.'))
+                        : CalendarioPage(calendarKey: _calendarKey),
+                    caregiverNotifier.isGeneralMode 
+                        ? const Center(child: Text('Selecciona un paciente específico para ver su progreso.'))
+                        : const ProgresoPage(),
+                  ],
+                ),
               ),
-              CalendarioPage(calendarKey: _calendarKey),
-              const ProgresoPage(),
             ],
           ),
           bottomNavigationBar: isModern

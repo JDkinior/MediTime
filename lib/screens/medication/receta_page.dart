@@ -12,6 +12,7 @@ import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
+import 'package:meditime/notifiers/caregiver_notifier.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'agregar_receta_page.dart';
 import 'detalle_receta_page.dart';
@@ -518,8 +519,10 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
     final firestoreService = context.watch<FirestoreService>();
     final profile = context.watch<ProfileNotifier>();
     final preferenceNotifier = context.watch<PreferenceNotifier>();
+    final caregiverNotifier = context.watch<CaregiverNotifier>();
     final isModern = preferenceNotifier.interfaceStyle == 'modern';
     final user = authService.currentUser;
+    final activeProfile = caregiverNotifier.isCaregiverModeActive ? caregiverNotifier.activeProfile : null;
 
     if (user == null) {
       return const Scaffold(
@@ -537,8 +540,8 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: StreamBuilder<List<Tratamiento>>(
-        initialData: firestoreService.getCachedMedicamentos(user.uid),
-        stream: firestoreService.getMedicamentosStream(user.uid),
+        initialData: firestoreService.getCachedMedicamentos(user.uid, activeProfile),
+        stream: firestoreService.getMedicamentosStream(user.uid, activeProfile),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
             return const EstadoVista(state: ViewState.loading, child: SizedBox.shrink());
