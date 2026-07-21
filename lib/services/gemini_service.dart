@@ -29,7 +29,9 @@ class GeminiService {
   // Model chosen for 15,000 TPM on free tier (2.5x more than llama models).
   static const String _model = 'llama-3.3-70b-versatile';
   static const String _fallbackModel = 'llama-3.1-8b-instant';
-  static const String _visionModel = 'meta-llama/llama-4-scout-17b-16e-instruct';
+  // Primary vision model — use maverick as it is more stable on free-tier access
+  static const String _visionModel = 'meta-llama/llama-4-maverick-17b-128e-instruct';
+  static const String _visionFallbackModel = 'meta-llama/llama-4-scout-17b-16e-instruct';
   static const String _baseUrl =
       'https://api.groq.com/openai/v1/chat/completions';
   static const int _maxHistoryMessages = 6;
@@ -571,7 +573,37 @@ RULES:
       );
     }
 
-    final response = await http.post(
+    final messages = <Map<String, dynamic>>[
+      <String, dynamic>{
+        'role': 'system',
+        'content': 'You are a precise medical prescription extractor. Extract the details of the prescription from the image and output them in a structured JSON format. Ensure all text properties are in Spanish. Output ONLY the raw JSON object, starting with { and ending with }.',
+      },
+      <String, dynamic>{
+        'role': 'user',
+        'content': <dynamic>[
+          <String, dynamic>{
+            'type': 'text',
+            'text': 'Analyze this medical prescription image and return a JSON object with the following fields: '
+                '"nombreMedicamento" (String, name of the drug/medication), '
+                '"presentacion" (String, e.g., "pastillas", "jarabe", "cápsulas"), '
+                '"duracion" (String, e.g., "7 días", "30 días", "uso continuo"), '
+                '"intervaloDosis" (int, hours between doses, e.g., 8, 12, 24), '
+                '"dosisPorToma" (int, number of units/pills per dose, e.g., 1, 2), '
+                '"notas" (String, extra medical recommendations or instructions). '
+                'CRITICAL: Return only the raw JSON. Do not include markdown code block formatting (like ```json) or any conversational text.',
+          },
+          <String, dynamic>{
+            'type': 'image_url',
+            'image_url': <String, String>{
+              'url': 'data:$mimeType;base64,$base64Image',
+            },
+          },
+        ],
+      },
+    ];
+
+    // Try primary vision model; fall back to the secondary on 404/400
+    http.Response response = await http.post(
       Uri.parse(_baseUrl),
       headers: <String, String>{
         'Authorization': 'Bearer $_apiKey',
@@ -581,39 +613,30 @@ RULES:
         'model': _visionModel,
         'response_format': {'type': 'json_object'},
         'temperature': 0.1,
-        'messages': <Map<String, dynamic>>[
-          <String, dynamic>{
-            'role': 'system',
-            'content': 'You are a precise medical prescription extractor. Extract the details of the prescription from the image and output them in a structured JSON format. Ensure all text properties are in Spanish. Output ONLY the raw JSON object, starting with { and ending with }.',
-          },
-          <String, dynamic>{
-            'role': 'user',
-            'content': <dynamic>[
-              <String, dynamic>{
-                'type': 'text',
-                'text': 'Analyze this medical prescription image and return a JSON object with the following fields: '
-                    '"nombreMedicamento" (String, name of the drug/medication), '
-                    '"presentacion" (String, e.g., "pastillas", "jarabe", "cápsulas"), '
-                    '"duracion" (String, e.g., "7 días", "30 días", "uso continuo"), '
-                    '"intervaloDosis" (int, hours between doses, e.g., 8, 12, 24), '
-                    '"dosisPorToma" (int, number of units/pills per dose, e.g., 1, 2), '
-                    '"notas" (String, extra medical recommendations or instructions). '
-                    'CRITICAL: Return only the raw JSON. Do not include markdown code block formatting (like ```json) or any conversational text.',
-              },
-              <String, dynamic>{
-                'type': 'image_url',
-                'image_url': <String, String>{
-                  'url': 'data:$mimeType;base64,$base64Image',
-                },
-              },
-            ],
-          },
-        ],
+        'messages': messages,
       }),
     );
 
+    if (response.statusCode == 404 || response.statusCode == 400) {
+      debugPrint('Vision model $_visionModel failed (${response.statusCode}). Retrying with $_visionFallbackModel');
+      response = await http.post(
+        Uri.parse(_baseUrl),
+        headers: <String, String>{
+          'Authorization': 'Bearer $_apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(<String, dynamic>{
+          'model': _visionFallbackModel,
+          'response_format': {'type': 'json_object'},
+          'temperature': 0.1,
+          'messages': messages,
+        }),
+      );
+    }
+
     if (response.statusCode != 200) {
-      throw StateError('Groq Vision API error (${response.statusCode}): ${response.body}');
+      debugPrint('Groq Vision API error (${response.statusCode}): ${response.body}');
+      throw StateError('No se pudo analizar la imagen en este momento. Intenta de nuevo o ingresa los datos manualmente.');
     }
 
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -662,16 +685,17 @@ RULES:
           'Content-Type': 'application/json',
         },
         body: jsonEncode(<String, dynamic>{
-          'model': _fallbackModel,
+          'model': _model,
           'response_format': {'type': 'json_object'},
           'temperature': 0.1,
           'messages': <Map<String, dynamic>>[
             <String, String>{
               'role': 'system',
               'content':
-                  'Eres un asistente de farmacología clínica. Analiza si existen interacciones medicamentosas clínicamente relevantes entre un nuevo fármaco que el usuario desea agregar y su lista de tratamientos activos actuales. '
-                  'Formato JSON requerido de salida exclusivamente: '
-                  '{"hasInteraction": boolean, "severity": "mild"|"moderate"|"severe", "warningMessage": "Mensaje en español con advertencia suave, empática y clara. Ejemplo: \'Tomar Ibuprofeno e Hidroclorotiazida juntos puede afectar la presión arterial; te sugiero consultarlo con tu médico.\' Retorna string vacío si hasInteraction es false."}',
+                  'Eres un experto en farmacología clínica. Analiza si existen interacciones medicamentosas reales y clínicamente relevantes entre el nuevo fármaco y los tratamientos activos. '
+                  'REGLA CRÍTICA: Si alguno de los fármacos no existe, es inventado, es desconocido, o NO hay interacción comprobada, DEBES retornar estrictamente {"hasInteraction": false, "severity": "", "warningMessage": ""}. '
+                  'Si SÍ hay interacción comprobada médica y científicamente, retorna {"hasInteraction": true, "severity": "mild"|"moderate"|"severe", "warningMessage": "Advertencia breve y empática explicando el posible efecto."}. '
+                  'IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON. No inventes interacciones ni asumas similitudes.',
             },
             <String, String>{
               'role': 'user',
