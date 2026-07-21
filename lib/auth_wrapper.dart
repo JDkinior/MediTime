@@ -13,6 +13,7 @@ import 'package:meditime/repositories/user_repository.dart';
 // Importar pantallas
 import 'package:meditime/screens/auth/login_page.dart';
 import 'package:meditime/screens/home/home_page.dart';
+import 'package:meditime/services/widget_service.dart';
 
 /// Un widget "guardián" que controla qué pantalla se muestra al usuario.
 ///
@@ -143,14 +144,20 @@ class _AuthWrapperState extends State<AuthWrapper> {
       }
     }
     
-    // Check mounted state before calling setState
-    if (!mounted) return;
-    
+    // Sincronizar estado inicial con los Widgets nativos de Android
+    await WidgetService.updateWidgetData(userId: user.uid);
+
+    // Verificar si la aplicación fue abierta por toque en un Widget (ej. Asistente Midi)
+    if (mounted) {
+      await WidgetService.handleWidgetLaunch(context);
+    }
+
     // Marcamos que la configuración inicial ya se realizó.
     setState(() {
       _initialSetupDone = true;
     });
   }
+
 
   @override
   Widget build(BuildContext context) {

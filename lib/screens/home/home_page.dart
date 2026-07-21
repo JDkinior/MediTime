@@ -78,9 +78,12 @@ class _HomePageState extends State<HomePage> {
   void _startTutorial() {
     if (_showcaseContext == null || !mounted) return;
     setState(() => _isTutorialRunning = true);
+    
+    final isSimplified = context.read<PreferenceNotifier>().simplifiedInterface;
+    
     ShowCaseWidget.of(_showcaseContext!).startShowCase([
       _menuKey,
-      _chatbotKey,
+      if (!isSimplified) _chatbotKey,
       _summaryKey,
       _dateKey,
       _fabKey,
@@ -290,26 +293,27 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             actions: [
-              Showcase.withWidget(
-                key: _chatbotKey,
-                height: 160,
-                width: 320,
-                disableDefaultTargetGestures: true,
-                container: const TutorialTooltip(
-                  icon: Icons.smart_toy_rounded,
-                  title: 'Asistente MediTime AI',
-                  description: 'Resuelve tus dudas sobre dosis, efectos secundarios o interacciones de medicamentos chateando con nuestra IA inteligente.',
-                  stepNumber: 2,
+              if (!preferenceNotifier.simplifiedInterface)
+                Showcase.withWidget(
+                  key: _chatbotKey,
+                  height: 160,
+                  width: 320,
+                  disableDefaultTargetGestures: true,
+                  container: const TutorialTooltip(
+                    icon: Icons.smart_toy_rounded,
+                    title: 'Asistente MediTime AI',
+                    description: 'Resuelve tus dudas sobre dosis, efectos secundarios o interacciones de medicamentos chateando con nuestra IA inteligente.',
+                    stepNumber: 2,
+                  ),
+                  targetShapeBorder: const CircleBorder(),
+                  targetPadding: const EdgeInsets.all(4),
+                  child: IconButton(
+                    icon: const MidiBlinkingIcon(size: 28),
+                    onPressed: () {
+                      Navigator.pushNamed(context, ChatBotScreen.routeName);
+                    },
+                  ),
                 ),
-                targetShapeBorder: const CircleBorder(),
-                targetPadding: const EdgeInsets.all(4),
-                child: IconButton(
-                  icon: const MidiBlinkingIcon(size: 28),
-                  onPressed: () {
-                    Navigator.pushNamed(context, ChatBotScreen.routeName);
-                  },
-                ),
-              ),
             ],
             leading: Showcase.withWidget(
               key: _menuKey,

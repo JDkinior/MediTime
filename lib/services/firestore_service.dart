@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/services/tratamiento_service.dart';
+import 'package:meditime/services/widget_service.dart';
 import 'package:meditime/core/stream_cache.dart';
 
 /// Servicio para interactuar con la base de datos de Cloud Firestore.
@@ -119,37 +120,51 @@ class FirestoreService {
     }
     // Para tratamientos largos, el mapa de dosis se mantiene vacío inicialmente
 
-    return _db
+    final ref = _db
         .collection('medicamentos')
         .doc(userId)
         .collection('userMedicamentos')
-        .add({
-          'nombreMedicamento': nombreMedicamento,
-          'presentacion': presentacion,
-          'duracion': duracion,
-          'cantidadActual': cantidadActual,
-          'cantidadTotalCaja': cantidadTotalCaja,
-          'dosisPorToma': dosisPorToma,
-          'horaPrimeraDosis':
-              '${horaPrimeraDosis.hour}:${horaPrimeraDosis.minute}',
-          'intervaloDosis': intervaloDosis.inHours.toString(),
-          'prescriptionAlarmId': prescriptionAlarmId,
-          'fechaInicioTratamiento': Timestamp.fromDate(fechaInicioTratamiento),
-          'fechaFinTratamiento': Timestamp.fromDate(fechaFinTratamiento),
-          'skippedDoses': [],
-          'notas': notas,
-          'doseStatus': doseStatusMap,
-        });
+        .doc();
+
+    return ref.set({
+      'nombreMedicamento': nombreMedicamento,
+      'presentacion': presentacion,
+      'duracion': duracion,
+      'cantidadActual': cantidadActual,
+      'cantidadTotalCaja': cantidadTotalCaja,
+      'dosisPorToma': dosisPorToma,
+      'horaPrimeraDosis':
+          '${horaPrimeraDosis.hour}:${horaPrimeraDosis.minute}',
+      'intervaloDosis': intervaloDosis.inHours.toString(),
+      'prescriptionAlarmId': prescriptionAlarmId,
+      'fechaInicioTratamiento': Timestamp.fromDate(fechaInicioTratamiento),
+      'fechaFinTratamiento': Timestamp.fromDate(fechaFinTratamiento),
+      'skippedDoses': [],
+      'notas': notas,
+      'doseStatus': doseStatusMap,
+    }).then((_) {
+      try {
+        WidgetService.updateWidgetData(userId: userId);
+      } catch (e) {
+        debugPrint('Error actualizando widget tras guardar medicamento: $e');
+      }
+      return ref;
+    });
   }
 
   /// Elimina un documento de tratamiento específico.
-  Future<void> deleteTratamiento(String userId, String docId) {
-    return _db
+  Future<void> deleteTratamiento(String userId, String docId) async {
+    await _db
         .collection('medicamentos')
         .doc(userId)
         .collection('userMedicamentos')
         .doc(docId)
         .delete();
+    try {
+      WidgetService.updateWidgetData(userId: userId);
+    } catch (e) {
+      debugPrint('Error actualizando widget tras borrar tratamiento: $e');
+    }
   }
 
   /// Elimina todos los tratamientos de un usuario de la base de datos y
@@ -174,8 +189,14 @@ class FirestoreService {
 
     await batch.commit();
     _medicamentosCache.clearKey(userId);
+    try {
+      WidgetService.updateWidgetData(userId: userId);
+    } catch (e) {
+      debugPrint('Error actualizando widget tras limpiar medicamentos: $e');
+    }
     return tratamientos;
   }
+
 
   /// Obtiene la referencia a un documento de tratamiento específico.
   /// Útil para realizar actualizaciones o lecturas directas.
@@ -267,6 +288,11 @@ class FirestoreService {
       });
 
       debugPrint("SUCCESS: Document status updated via transaction.");
+      try {
+        WidgetService.updateWidgetData(userId: userId);
+      } catch (e) {
+        debugPrint("Error actualizando widget tras cambio de dosis: $e");
+      }
       return inventoryResult;
     } catch (e) {
       debugPrint("Firebase transaction error during updateDoseStatus: $e");
