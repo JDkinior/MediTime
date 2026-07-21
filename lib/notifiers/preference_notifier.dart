@@ -22,6 +22,18 @@ class PreferenceNotifier extends ChangeNotifier {
   String _themeMode = 'system';
   String get themeMode => _themeMode;
 
+  bool _highContrast = false;
+  bool get highContrast => _highContrast;
+
+  bool _largeText = false;
+  bool get largeText => _largeText;
+
+  bool _largeButtons = false;
+  bool get largeButtons => _largeButtons;
+
+  bool _simplifiedInterface = false;
+  bool get simplifiedInterface => _simplifiedInterface;
+
   ThemeMode get themeModeEnum {
     switch (_themeMode) {
       case 'light':
@@ -46,6 +58,11 @@ class PreferenceNotifier extends ChangeNotifier {
     _calendarFormat = await _preferenceService.getCalendarFormat();
     _interfaceStyle = await _preferenceService.getInterfaceStyle();
     _themeMode = await _preferenceService.getThemeMode();
+
+    _highContrast = await _preferenceService.getHighContrast();
+    _largeText = await _preferenceService.getLargeText();
+    _largeButtons = await _preferenceService.getLargeButtons();
+    _simplifiedInterface = await _preferenceService.getSimplifiedInterface();
 
     _isLoading = false;
     notifyListeners();
@@ -84,5 +101,33 @@ class PreferenceNotifier extends ChangeNotifier {
     _themeMode = themeStr;
     notifyListeners();
     await _preferenceService.saveThemeMode(themeStr);
+  }
+
+  Future<void> setHighContrast(bool value) async {
+    if (_highContrast == value) return;
+    _highContrast = value;
+    notifyListeners();
+    await _preferenceService.saveHighContrast(value);
+  }
+
+  Future<void> setLargeText(bool value) async {
+    if (_largeText == value) return;
+    _largeText = value;
+    notifyListeners();
+    await _preferenceService.saveLargeText(value);
+  }
+
+  Future<void> setLargeButtons(bool value) async {
+    if (_largeButtons == value) return;
+    _largeButtons = value;
+    notifyListeners();
+    await _preferenceService.saveLargeButtons(value);
+  }
+
+  Future<void> setSimplifiedInterface(bool value) async {
+    if (_simplifiedInterface == value) return;
+    _simplifiedInterface = value;
+    notifyListeners();
+    await _preferenceService.saveSimplifiedInterface(value);
   }
 }

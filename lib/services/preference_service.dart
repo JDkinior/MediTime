@@ -12,6 +12,12 @@ class PreferenceService {
   static const String _interfaceStyleKey = 'interface_style_string';
   static const String _themeModeKey = 'theme_mode_string';
 
+  // Accessibility keys
+  static const String _highContrastKey = 'high_contrast_active';
+  static const String _largeTextKey = 'large_text_active';
+  static const String _largeButtonsKey = 'large_buttons_active';
+  static const String _simplifiedInterfaceKey = 'simplified_interface_active';
+
   Future<void> saveThemeMode(String themeStr) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_themeModeKey, themeStr);
@@ -74,6 +80,51 @@ class PreferenceService {
     await prefs.reload();
     return prefs.getInt(_snoozeDurationKey) ?? 10;
   }  
+
+  // --- Accesibilidad ---
+  Future<void> saveHighContrast(bool isActive) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_highContrastKey, isActive);
+  }
+
+  Future<bool> getHighContrast() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool(_highContrastKey) ?? false;
+  }
+
+  Future<void> saveLargeText(bool isActive) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_largeTextKey, isActive);
+  }
+
+  Future<bool> getLargeText() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool(_largeTextKey) ?? false;
+  }
+
+  Future<void> saveLargeButtons(bool isActive) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_largeButtonsKey, isActive);
+  }
+
+  Future<bool> getLargeButtons() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool(_largeButtonsKey) ?? false;
+  }
+
+  Future<void> saveSimplifiedInterface(bool isActive) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_simplifiedInterfaceKey, isActive);
+  }
+
+  Future<bool> getSimplifiedInterface() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool(_simplifiedInterfaceKey) ?? false;
+  }
 
   // --- Sesión de usuario actual ---
   Future<void> saveCurrentUserId(String? userId) async {

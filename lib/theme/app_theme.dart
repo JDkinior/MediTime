@@ -42,14 +42,23 @@ class AppTheme {
   static Color cardColor = Colors.white;
   static Color borderColor = const Color(0xFFEFF3F9);
 
-  /// Updates static colors to match light or dark mode.
-  static void updateThemeColors(bool isDark) {
-    backgroundColor = isDark ? const Color(0xFF111318) : const Color(0xFFF8F9FF);
-    primaryTextColor = isDark ? const Color(0xFFE2E2E9) : const Color(0xFF0B1C30);
-    secondaryTextColor = isDark ? const Color(0xFF9093A5) : const Color(0xFF434655);
-    surfaceColor = isDark ? const Color(0xFF1D2027) : const Color(0xFFEFF4FF);
-    cardColor = isDark ? const Color(0xFF1A1C23) : Colors.white;
-    borderColor = isDark ? const Color(0xFF2A2D3C) : const Color(0xFFEFF3F9);
+  /// Updates static colors to match light or dark mode and high contrast.
+  static void updateThemeColors(bool isDark, {bool highContrast = false}) {
+    if (highContrast) {
+      backgroundColor = isDark ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
+      primaryTextColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
+      secondaryTextColor = isDark ? const Color(0xFFCCCCCC) : const Color(0xFF333333);
+      surfaceColor = isDark ? const Color(0xFF121212) : const Color(0xFFF0F0F0);
+      cardColor = isDark ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
+      borderColor = isDark ? const Color(0xFF444444) : const Color(0xFFBBBBBB);
+    } else {
+      backgroundColor = isDark ? const Color(0xFF111318) : const Color(0xFFF8F9FF);
+      primaryTextColor = isDark ? const Color(0xFFE2E2E9) : const Color(0xFF0B1C30);
+      secondaryTextColor = isDark ? const Color(0xFF9093A5) : const Color(0xFF434655);
+      surfaceColor = isDark ? const Color(0xFF1D2027) : const Color(0xFFEFF4FF);
+      cardColor = isDark ? const Color(0xFF1A1C23) : Colors.white;
+      borderColor = isDark ? const Color(0xFF2A2D3C) : const Color(0xFFEFF3F9);
+    }
   }
 
   // -------------------
@@ -184,17 +193,18 @@ class AppTheme {
   );
 
   /// Elevated button theme
-  static ElevatedButtonThemeData get elevatedButtonTheme => ElevatedButtonThemeData(
+  static ElevatedButtonThemeData getElevatedButtonTheme({bool largeButtons = false}) => ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
+      minimumSize: largeButtons ? const Size(64, 64) : null,
       backgroundColor: primaryColor,
       foregroundColor: whiteTextColor,
-      textStyle: buttonTextStyle,
+      textStyle: buttonTextStyle.copyWith(fontSize: largeButtons ? 18 : 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(defaultBorderRadius),
       ),
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: AppConstants.largePadding,
-        vertical: AppConstants.defaultPadding,
+        vertical: largeButtons ? 20 : AppConstants.defaultPadding,
       ),
     ),
   );
@@ -225,7 +235,7 @@ class AppTheme {
   // -------------------
 
   /// Light theme configuration
-  static ThemeData get lightTheme => ThemeData(
+  static ThemeData getLightTheme({bool largeButtons = false}) => ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
     colorScheme: ColorScheme.fromSeed(
@@ -234,8 +244,8 @@ class AppTheme {
       brightness: Brightness.light,
     ),
     scaffoldBackgroundColor: backgroundColor,
-    dialogTheme: const DialogThemeData(
-      backgroundColor: Colors.white,
+    dialogTheme: DialogThemeData(
+      backgroundColor: cardColor,
       surfaceTintColor: Colors.transparent,
     ),
     appBarTheme: appBarTheme.copyWith(
@@ -245,7 +255,7 @@ class AppTheme {
       titleTextStyle: TextStyle(color: primaryTextColor, fontSize: 20, fontWeight: FontWeight.bold),
     ),
     inputDecorationTheme: inputDecorationTheme,
-    elevatedButtonTheme: elevatedButtonTheme,
+    elevatedButtonTheme: getElevatedButtonTheme(largeButtons: largeButtons),
     cardTheme: cardTheme,
     textTheme: const TextTheme(
       headlineLarge: pageTitleStyle,
@@ -258,7 +268,7 @@ class AppTheme {
   );
 
   /// Dark theme configuration
-  static ThemeData get darkTheme => ThemeData(
+  static ThemeData getDarkTheme({bool largeButtons = false}) => ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: ColorScheme.fromSeed(
@@ -267,8 +277,8 @@ class AppTheme {
       brightness: Brightness.dark,
     ),
     scaffoldBackgroundColor: backgroundColor,
-    dialogTheme: const DialogThemeData(
-      backgroundColor: Color(0xFF1E2027),
+    dialogTheme: DialogThemeData(
+      backgroundColor: cardColor,
       surfaceTintColor: Colors.transparent,
     ),
     appBarTheme: appBarTheme.copyWith(
@@ -278,7 +288,7 @@ class AppTheme {
       titleTextStyle: TextStyle(color: primaryTextColor, fontSize: 20, fontWeight: FontWeight.bold),
     ),
     inputDecorationTheme: inputDecorationTheme,
-    elevatedButtonTheme: elevatedButtonTheme,
+    elevatedButtonTheme: getElevatedButtonTheme(largeButtons: largeButtons),
     cardTheme: cardTheme,
     textTheme: const TextTheme(
       headlineLarge: pageTitleStyle,
