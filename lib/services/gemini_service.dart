@@ -603,6 +603,7 @@ RULES:
     ];
 
     // Try primary vision model; fall back to the secondary on 404/400
+    // NOTE: response_format: json_object is NOT supported alongside image_url in llama-4 models
     http.Response response = await http.post(
       Uri.parse(_baseUrl),
       headers: <String, String>{
@@ -611,14 +612,13 @@ RULES:
       },
       body: jsonEncode(<String, dynamic>{
         'model': _visionModel,
-        'response_format': {'type': 'json_object'},
         'temperature': 0.1,
         'messages': messages,
       }),
     );
 
     if (response.statusCode == 404 || response.statusCode == 400) {
-      debugPrint('Vision model $_visionModel failed (${response.statusCode}). Retrying with $_visionFallbackModel');
+      debugPrint('Vision model $_visionModel failed (${response.statusCode}): ${response.body}. Retrying with $_visionFallbackModel');
       response = await http.post(
         Uri.parse(_baseUrl),
         headers: <String, String>{
@@ -627,7 +627,6 @@ RULES:
         },
         body: jsonEncode(<String, dynamic>{
           'model': _visionFallbackModel,
-          'response_format': {'type': 'json_object'},
           'temperature': 0.1,
           'messages': messages,
         }),
@@ -638,7 +637,6 @@ RULES:
       final errorBody = response.body;
       debugPrint('Groq Vision API error (${response.statusCode}): $errorBody');
 
-      // Detect specific access/permission errors to guide the user
       String errorMsg = 'No se pudo analizar la imagen en este momento. Intenta de nuevo o ingresa los datos manualmente.';
       if (errorBody.contains('model_not_found') || errorBody.contains('do not have access')) {
         errorMsg = 'Tu cuenta de Groq no tiene acceso al modelo de visión. Actívalo en console.groq.com o ingresa los datos manualmente.';
@@ -652,8 +650,15 @@ RULES:
     final choices = decoded['choices'] as List<dynamic>;
     if (choices.isEmpty) return null;
     final messageData = choices.first['message'] as Map<String, dynamic>;
-    final content = messageData['content'] as String;
-    return jsonDecode(content) as Map<String, dynamic>;
+    final rawContent = messageData['content'] as String;
+
+    // Strip markdown code fences if model wraps JSON in ```json ... ```
+    final jsonStr = rawContent
+        .replaceAll(RegExp(r'```json\s*'), '')
+        .replaceAll(RegExp(r'```\s*'), '')
+        .trim();
+
+    return jsonDecode(jsonStr) as Map<String, dynamic>;
   }
 
   /// Evaluates potential drug-drug interactions between a new medication and active treatments.
