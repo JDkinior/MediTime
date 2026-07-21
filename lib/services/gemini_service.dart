@@ -652,11 +652,21 @@ RULES:
     final messageData = choices.first['message'] as Map<String, dynamic>;
     final rawContent = messageData['content'] as String;
 
-    // Strip markdown code fences if model wraps JSON in ```json ... ```
-    final jsonStr = rawContent
+    // Strip <think>...</think> reasoning blocks (Qwen and other reasoning models)
+    // Strip markdown code fences (```json ... ```)
+    // Then extract the first { ... } JSON object
+    String jsonStr = rawContent
+        .replaceAll(RegExp(r'<think>[\s\S]*?</think>', caseSensitive: false), '')
         .replaceAll(RegExp(r'```json\s*'), '')
         .replaceAll(RegExp(r'```\s*'), '')
         .trim();
+
+    // If still not starting with {, find the first { character
+    final braceStart = jsonStr.indexOf('{');
+    final braceEnd = jsonStr.lastIndexOf('}');
+    if (braceStart != -1 && braceEnd != -1 && braceEnd > braceStart) {
+      jsonStr = jsonStr.substring(braceStart, braceEnd + 1);
+    }
 
     return jsonDecode(jsonStr) as Map<String, dynamic>;
   }
