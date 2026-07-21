@@ -126,7 +126,40 @@
             android:name="flutterEmbedding"
             android:value="2" />
         
+        <!-- RECEPTORES WIDGETS MEDITIME -->
+        <receiver
+            android:name=".MediTimeDoseWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/meditime_dose_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".MediTimeQuickWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/meditime_quick_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name="es.antonborri.home_widget.HomeWidgetBackgroundReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="es.antonborri.home_widget.action.BACKGROUND" />
+            </intent-filter>
+        </receiver>
+
     </application>
+
+
     
     <!-- QUERIES: Para funcionalidades adicionales -->
     <queries>

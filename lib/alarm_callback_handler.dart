@@ -142,8 +142,8 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       // Mostrar notificación simple inmediatamente
       await NotificationService.showSimpleNotification(
         id: notificationId,
-        title: 'Dosis registrada: $nombreMedicamento',
-        body: 'Se ha marcado como tomada. Próxima dosis en $intervaloHoras horas.',
+        title: 'Hora de tomar: $nombreMedicamento',
+        body: 'Dosis registrada automáticamente. Próxima dosis en $intervaloHoras horas.',
       );
 
       // CAMBIO CRÍTICO: Actualizar Firestore y reprogramar solo si está disponible

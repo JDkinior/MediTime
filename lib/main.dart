@@ -34,6 +34,8 @@ import 'package:meditime/repositories/firestore_user_repository.dart';
 import 'package:meditime/use_cases/sign_out_use_case.dart';
 import 'package:meditime/use_cases/load_user_profile_use_case.dart';
 
+import 'package:meditime/services/widget_service.dart';
+
 /// Punto de entrada principal de la aplicación.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,6 +44,7 @@ void main() async {
   await NotificationService.initializeCore();
   await NotificationService.requestAllNecessaryPermissions();
   await AndroidAlarmManager.initialize();
+  await WidgetService.initialize();
   await initializeDateFormatting('es_ES', null);
 
   // PRUEBA DE CALLBACKS (comentar después de probar)
@@ -121,14 +124,24 @@ class MyApp extends StatelessWidget {
           final isDark = themeModeStr == 'dark' ||
               (themeModeStr == 'system' &&
                   MediaQuery.platformBrightnessOf(context) == Brightness.dark);
-          AppTheme.updateThemeColors(isDark);
+          AppTheme.updateThemeColors(isDark, highContrast: preferenceNotifier.highContrast);
 
           return MaterialApp(
             title: 'MediTime',
             navigatorKey: navigatorKey,
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
+            theme: AppTheme.getLightTheme(largeButtons: preferenceNotifier.largeButtons),
+            darkTheme: AppTheme.getDarkTheme(largeButtons: preferenceNotifier.largeButtons),
             themeMode: preferenceNotifier.themeModeEnum,
+            builder: (context, widget) {
+              final mediaQueryData = MediaQuery.of(context);
+              final scale = preferenceNotifier.largeText ? 1.3 : 1.0;
+              return MediaQuery(
+                data: mediaQueryData.copyWith(
+                  textScaler: TextScaler.linear(scale),
+                ),
+                child: widget!,
+              );
+            },
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
