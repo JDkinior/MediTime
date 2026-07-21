@@ -72,7 +72,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
     final end = dateRange['end']!;
 
     if (tratamiento.doseStatus.isEmpty) {
-      final todasLasDosis = TratamientoService().generarDosisTotales(tratamiento);
+      final todasLasDosis = TratamientoService().generarDosisEnRango(tratamiento, start, end);
       for (var doseTime in todasLasDosis) {
         if (!doseTime.isBefore(start) && !doseTime.isAfter(end)) {
           if (doseTime.isBefore(now)) {
@@ -114,7 +114,7 @@ class _ProgresoPageState extends State<ProgresoPage> {
     final end = dateRange['end']!;
 
     if (tratamiento.doseStatus.isEmpty) {
-      final todasLasDosis = TratamientoService().generarDosisTotales(tratamiento);
+      final todasLasDosis = TratamientoService().generarDosisEnRango(tratamiento, start, end);
       for (var doseTime in todasLasDosis) {
         if (!doseTime.isBefore(start) && !doseTime.isAfter(end)) {
           totalProgramadas++;

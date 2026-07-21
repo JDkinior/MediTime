@@ -87,8 +87,8 @@ class _ReportesPageState extends State<ReportesPage> {
     final start = dateRange['start']!;
     final end = dateRange['end']!;
 
-    // Generar todas las dosis programadas desde el inicio del tratamiento
-    final todasLasDosis = TratamientoService().generarDosisTotales(tratamiento);
+    // Generar solo las dosis en el rango de fechas programadas
+    final todasLasDosis = TratamientoService().generarDosisEnRango(tratamiento, start, end);
 
     // Mapear el estado de cada dosis por su timestamp para búsqueda rápida
     final Map<int, DoseStatus> statusMap = {};
