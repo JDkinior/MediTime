@@ -20,6 +20,14 @@ class GeneralCaregiverPage extends StatefulWidget {
 }
 
 class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
+  String _shortenName(String fullName) {
+    final parts = fullName.trim().split(RegExp(r'\s+'));
+    if (parts.length > 1) {
+      return '${parts[0]} ${parts[1]}';
+    }
+    return parts.isNotEmpty ? parts[0] : '';
+  }
+
   DateTime _selectedDate = DateTime.now();
   String _selectedCategory = 'Todos';
   Stream<List<List<Map<String, dynamic>>>>? _combinedStream;
@@ -422,32 +430,14 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              tratamiento.nombreMedicamento,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: isCompleted ? AppTheme.successColor : AppTheme.primaryTextColor,
-                                decoration: isOmitted ? TextDecoration.lineThrough : null,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: patientColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              profile.name,
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: patientColor),
-                            ),
-                          )
-                        ],
+                      Text(
+                        tratamiento.nombreMedicamento,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isCompleted ? AppTheme.successColor : AppTheme.primaryTextColor,
+                          decoration: isOmitted ? TextDecoration.lineThrough : null,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -457,19 +447,36 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
                           color: AppTheme.secondaryTextColor,
                         ),
                       ),
-                      if (profile.roomNumber != null || profile.bloodType != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Wrap(
-                            spacing: 8,
-                            children: [
-                              if (profile.roomNumber != null)
-                                _buildBadge(Icons.hotel, 'Hab: ${profile.roomNumber}'),
-                              if (profile.bloodType != null)
-                                _buildBadge(Icons.bloodtype, profile.bloodType!),
-                            ],
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: patientColor.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: patientColor.withOpacity(0.2)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.person, size: 12, color: patientColor),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _shortenName(profile.name),
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: patientColor),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                          if (profile.roomNumber != null)
+                            _buildBadge(Icons.hotel, 'Hab: ${profile.roomNumber}'),
+                          if (profile.bloodType != null)
+                            _buildBadge(Icons.bloodtype, profile.bloodType!),
+                        ],
+                      ),
                     ],
                   ),
                 ),
