@@ -29,9 +29,9 @@ class GeminiService {
   // Model chosen for 15,000 TPM on free tier (2.5x more than llama models).
   static const String _model = 'llama-3.3-70b-versatile';
   static const String _fallbackModel = 'llama-3.1-8b-instant';
-  // Primary vision model — use maverick as it is more stable on free-tier access
-  static const String _visionModel = 'meta-llama/llama-4-maverick-17b-128e-instruct';
-  static const String _visionFallbackModel = 'meta-llama/llama-4-scout-17b-16e-instruct';
+  // Primary vision model — qwen3.6-27b supports image inputs on free tier
+  static const String _visionModel = 'qwen/qwen3.6-27b';
+  static const String _visionFallbackModel = 'openai/gpt-oss-120b';
   static const String _baseUrl =
       'https://api.groq.com/openai/v1/chat/completions';
   static const int _maxHistoryMessages = 6;
