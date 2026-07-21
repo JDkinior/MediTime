@@ -635,8 +635,17 @@ RULES:
     }
 
     if (response.statusCode != 200) {
-      debugPrint('Groq Vision API error (${response.statusCode}): ${response.body}');
-      throw StateError('No se pudo analizar la imagen en este momento. Intenta de nuevo o ingresa los datos manualmente.');
+      final errorBody = response.body;
+      debugPrint('Groq Vision API error (${response.statusCode}): $errorBody');
+
+      // Detect specific access/permission errors to guide the user
+      String errorMsg = 'No se pudo analizar la imagen en este momento. Intenta de nuevo o ingresa los datos manualmente.';
+      if (errorBody.contains('model_not_found') || errorBody.contains('do not have access')) {
+        errorMsg = 'Tu cuenta de Groq no tiene acceso al modelo de visión. Actívalo en console.groq.com o ingresa los datos manualmente.';
+      } else if (errorBody.contains('rate_limit') || response.statusCode == 429) {
+        errorMsg = 'Límite de peticiones alcanzado. Espera unos segundos e intenta de nuevo.';
+      }
+      throw StateError(errorMsg);
     }
 
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
