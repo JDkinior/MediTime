@@ -8,11 +8,9 @@ import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
 import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/screens/medication/agregar_receta_page.dart';
-import 'package:meditime/widgets/caregiver/add_caregiver_profile_dialog.dart';
 
 // Pantallas y Widgets
 import 'package:meditime/screens/calendar/calendario_page.dart';
-import 'package:meditime/screens/profile/perfil_page.dart';
 import 'package:meditime/screens/medication/receta_page.dart';
 import 'package:meditime/screens/medication/general_caregiver_page.dart';
 import 'package:meditime/screens/shared/ayuda_page.dart';
@@ -22,7 +20,7 @@ import 'package:meditime/widgets/drawer_widget.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/tutorial_tooltip.dart';
 import 'package:meditime/widgets/midi_blinking_icon.dart';
-import 'package:meditime/screens/caregiver/manage_caregiver_profiles_page.dart';
+import 'package:meditime/widgets/caregiver/patient_selector_dialog.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -33,7 +31,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final PageController _pageController = PageController();
-  int _currentIndex = 0;
+  final ValueNotifier<int> _currentIndexNotifier = ValueNotifier<int>(0);
   bool _isTutorialRunning = false;
 
   // Showcase keys (un step por funcionalidad clave)
@@ -43,7 +41,10 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey _dateKey = GlobalKey();
   final GlobalKey _fabKey = GlobalKey();
   final GlobalKey _calendarKey = GlobalKey();
-  final GlobalKey _profileKey = GlobalKey();
+  final GlobalKey _calendarViewKey = GlobalKey();
+  final GlobalKey _progressKey = GlobalKey();
+  final GlobalKey _progressRingKey = GlobalKey();
+  final GlobalKey _progressTimelineKey = GlobalKey();
   final GlobalKey _bottomNavKey = GlobalKey();
 
   // Contexto dentro del árbol de ShowCaseWidget para poder llamar startShowCase / dismiss
@@ -66,6 +67,7 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _hideSkipButton();
     _pageController.dispose();
+    _currentIndexNotifier.dispose();
     super.dispose();
   }
 
@@ -93,28 +95,41 @@ class _HomePageState extends State<HomePage> {
       _dateKey,
       _fabKey,
       _calendarKey,
-      _profileKey,
+      _calendarViewKey,
+      _progressKey,
+      _progressRingKey,
+      _progressTimelineKey,
       _bottomNavKey,
     ]);
   }
 
-  void _showSkipButton() {
+  void _showSkipButton([GlobalKey? currentKey]) {
     if (!mounted) return;
     _hideSkipButton();
+    final isChatbotStep = currentKey == _chatbotKey;
     _skipOverlay = OverlayEntry(
       builder:
           (ctx) => Positioned(
             top: MediaQuery.of(ctx).padding.top + 12,
-            right: 16,
+            right: isChatbotStep ? null : 16,
+            left: isChatbotStep ? 16 : null,
             child: Material(
               color: Colors.transparent,
               child: Container(
-                decoration: BoxDecoration(color: Theme.of(context).cardColor.withValues(alpha: 0.15),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.88),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3),
+                    color: Colors.white.withValues(alpha: 0.4),
                     width: 1,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: InkWell(
                   onTap: _skipTutorial,
@@ -127,7 +142,7 @@ class _HomePageState extends State<HomePage> {
                         const Text(
                           'Saltar',
                           style: TextStyle(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.bold,
                             color: Colors.white,
                             fontSize: 13,
                             letterSpacing: 0.3,
@@ -136,7 +151,7 @@ class _HomePageState extends State<HomePage> {
                         const SizedBox(width: 4),
                         Icon(
                           Icons.skip_next_rounded,
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: Colors.white.withValues(alpha: 0.95),
                           size: 18,
                         ),
                       ],
@@ -172,6 +187,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onTabTapped(int index) {
+    _currentIndexNotifier.value = index;
     _pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 300),
@@ -249,23 +265,31 @@ class _HomePageState extends State<HomePage> {
         if (!_isTutorialRunning) {
           setState(() => _isTutorialRunning = true);
         }
-        // Re-insertar el botón saltar en cada paso para que quede sobre el overlay
-        WidgetsBinding.instance.addPostFrameCallback((_) => _showSkipButton());
+        // Re-insertar el botón saltar tras el renderizado de la capa de desenfoque del showcase
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Future.delayed(const Duration(milliseconds: 50), () {
+            if (mounted && _isTutorialRunning) {
+              _showSkipButton(key);
+            }
+          });
+        });
       },
       onComplete: (index, key) {
-        // Navegar a la página correcta reactivamente según la clave
+        // Navegar a la página correcta reactivamente según la clave del tutorial
         if (key == _fabKey) {
           _pageController.jumpToPage(1);
-          setState(() => _currentIndex = 1);
-        } else if (key == _calendarKey) {
+          _currentIndexNotifier.value = 1;
+        } else if (key == _calendarViewKey) {
           _pageController.jumpToPage(2);
-          setState(() => _currentIndex = 2);
-        } else if (key == _profileKey) {
+          _currentIndexNotifier.value = 2;
+        } else if (key == _progressTimelineKey) {
           _pageController.jumpToPage(0);
-          setState(() => _currentIndex = 0);
+          _currentIndexNotifier.value = 0;
         }
       },
       onFinish: () {
+        _pageController.jumpToPage(0);
+        _currentIndexNotifier.value = 0;
         setState(() => _isTutorialRunning = false);
         _hideSkipButton();
         _markTutorialDone();
@@ -289,118 +313,84 @@ class _HomePageState extends State<HomePage> {
         return Scaffold(
           appBar: AppBar(
             centerTitle: true,
-            title: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: isCaregiverActive
-                  ? DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        isExpanded: true,
-                        value: caregiverNotifier.activeProfileId ?? 'myself',
-                        icon: const Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor),
-                        style: TextStyle(
-                          color: AppTheme.primaryTextColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                        onChanged: (String? newValue) {
-                          if (newValue == 'manage_profiles') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const ManageCaregiverProfilesPage()),
-                            );
-                          } else if (newValue == 'add_new') {
-                            showDialog(
-                              context: context,
-                              builder: (context) => const AddCaregiverProfileDialog(),
-                            );
-                          } else if (newValue == 'myself') {
-                            caregiverNotifier.setActiveProfileId(null);
-                          } else {
-                            caregiverNotifier.setActiveProfileId(newValue);
-                          }
-                        },
-                        items: [
-                          DropdownMenuItem<String>(
-                            value: 'myself',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.person, color: AppTheme.primaryColor),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text('Mis Medicamentos', overflow: TextOverflow.ellipsis),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (caregiverNotifier.managedProfiles.isNotEmpty)
-                            DropdownMenuItem<String>(
-                              value: 'general',
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.group, color: AppTheme.primaryColor),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text('Vista General (Pacientes)', overflow: TextOverflow.ellipsis),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ...caregiverNotifier.managedProfiles.map((p) {
-                            String displayName = p.name;
-                            if (caregiverNotifier.modeType == CaregiverModeType.clinico && p.roomNumber != null) {
-                              displayName = 'Cama ${p.roomNumber} - $displayName';
-                            }
-                            return DropdownMenuItem<String>(
-                              value: p.id,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    caregiverNotifier.modeType == CaregiverModeType.clinico ? Icons.hotel : Icons.family_restroom,
-                                    color: Color(int.parse(p.colorHex.replaceFirst('#', 'FF'), radix: 16)),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      displayName,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                          DropdownMenuItem<String>(
-                            value: 'add_new',
-                            child: Row(
-                              children: [
-                                Icon(Icons.add, color: AppTheme.secondaryTextColor),
-                                const SizedBox(width: 8),
-                                const Text('Agregar Persona...'),
-                              ],
-                            ),
-                          ),
-                          DropdownMenuItem<String>(
-                            value: 'manage_profiles',
-                            child: Row(
-                              children: [
-                                Icon(Icons.people_alt_outlined, color: AppTheme.secondaryTextColor),
-                                const SizedBox(width: 8),
-                                const Text('Gestionar Pacientes...'),
-                              ],
-                            ),
+            title: isCaregiverActive
+                ? InkWell(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => const PatientSelectorDialog(),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.borderColor),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
-                    )
-                  : Text(
-                      titles[_currentIndex],
-                      style: TextStyle(
-                        color: AppTheme.primaryTextColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            caregiverNotifier.isGeneralMode
+                                ? Icons.grid_view_rounded
+                                : (caregiverNotifier.activeProfile != null
+                                    ? (caregiverNotifier.modeType == CaregiverModeType.clinico
+                                        ? Icons.hotel_rounded
+                                        : Icons.person_rounded)
+                                    : Icons.person_pin_rounded),
+                            color: caregiverNotifier.activeProfile != null
+                                ? Color(int.parse(caregiverNotifier.activeProfile!.colorHex.replaceFirst('#', 'FF'), radix: 16))
+                                : AppTheme.primaryTextColor,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              caregiverNotifier.isGeneralMode
+                                  ? 'Vista General (Todos)'
+                                  : (caregiverNotifier.activeProfile != null
+                                      ? caregiverNotifier.activeProfile!.name
+                                      : 'Mi Perfil'),
+                              style: TextStyle(
+                                color: AppTheme.primaryTextColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: AppTheme.primaryTextColor,
+                            size: 22,
+                          ),
+                        ],
                       ),
                     ),
-            ),
+                  )
+                : ValueListenableBuilder<int>(
+                    valueListenable: _currentIndexNotifier,
+                    builder: (context, currentIndex, _) {
+                      return Text(
+                        titles[currentIndex],
+                        style: TextStyle(
+                          color: AppTheme.primaryTextColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      );
+                    },
+                  ),
             actions: [
               if (!preferenceNotifier.simplifiedInterface)
                 Showcase.withWidget(
@@ -410,9 +400,10 @@ class _HomePageState extends State<HomePage> {
                   disableDefaultTargetGestures: true,
                   container: const TutorialTooltip(
                     icon: Icons.smart_toy_rounded,
-                    title: 'Asistente MediTime AI',
-                    description: 'Resuelve tus dudas sobre dosis, efectos secundarios o interacciones de medicamentos chateando con nuestra IA inteligente.',
+                    title: 'Midi, tu Asistente Virtual',
+                    description: 'Conoce a Midi, tu asistente inteligente. Chatea con él para resolver dudas sobre medicamentos, dosis, efectos secundarios e interacciones.',
                     stepNumber: 2,
+                    totalSteps: 11,
                   ),
                   targetShapeBorder: const CircleBorder(),
                   targetPadding: const EdgeInsets.all(4),
@@ -431,9 +422,10 @@ class _HomePageState extends State<HomePage> {
               disableDefaultTargetGestures: true,
               container: const TutorialTooltip(
                 icon: Icons.menu_rounded,
-                title: 'Menú principal',
-                description: 'Accede al menú lateral para ver reportes de adherencia, ajustar notificaciones y acceder al chat de IA.',
+                title: 'Menú Principal',
+                description: 'Accede al menú lateral para ver tu Perfil, Reportes de Adherencia en PDF, gestionar Pacientes (Modo Cuidador) y ajustar Notificaciones.',
                 stepNumber: 1,
+                totalSteps: 11,
               ),
               targetShapeBorder: const CircleBorder(),
               targetPadding: const EdgeInsets.all(4),
@@ -478,11 +470,12 @@ class _HomePageState extends State<HomePage> {
                 ),
               Expanded(
                 child: PageView(
+                  physics: const PageScrollPhysics(parent: ClampingScrollPhysics()),
                   controller: _pageController,
                   onPageChanged: (index) {
-                    setState(() {
-                      _currentIndex = index;
-                    });
+                    if (_currentIndexNotifier.value != index) {
+                      _currentIndexNotifier.value = index;
+                    }
                   },
                   children: [
                     caregiverNotifier.isGeneralMode 
@@ -492,12 +485,14 @@ class _HomePageState extends State<HomePage> {
                             summaryKey: _summaryKey,
                             dateKey: _dateKey,
                           ),
-                    caregiverNotifier.isGeneralMode 
-                        ? const Center(child: Text('Selecciona un paciente específico para ver su calendario.'))
-                        : CalendarioPage(calendarKey: _calendarKey),
-                    caregiverNotifier.isGeneralMode 
-                        ? const Center(child: Text('Selecciona un paciente específico para ver su progreso.'))
-                        : const ProgresoPage(),
+                    CalendarioPage(
+                      calendarKey: _calendarKey,
+                      calendarViewKey: _calendarViewKey,
+                    ),
+                    ProgresoPage(
+                      progressRingKey: _progressRingKey,
+                      progressTimelineKey: _progressTimelineKey,
+                    ),
                   ],
                 ),
               ),
@@ -518,10 +513,11 @@ class _HomePageState extends State<HomePage> {
                             width: 320,
                             disableDefaultTargetGestures: true,
                             container: const TutorialTooltip(
-                              icon: Icons.swap_horiz_rounded,
-                              title: 'Navegación principal',
-                              description: 'Muévete entre tus Recetas (medicamentos pendientes), el Calendario mensual y tu Progreso de salud.',
-                              stepNumber: 8,
+                              icon: Icons.navigation_rounded,
+                              title: 'Navegación Principal',
+                              description: '¡Todo listo! Usa la barra inferior para moverte cómodamente entre Receta, Calendario y Mi Progreso.',
+                              stepNumber: 11,
+                              totalSteps: 11,
                             ),
                             targetShapeBorder: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(24),
@@ -550,43 +546,64 @@ class _HomePageState extends State<HomePage> {
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(24),
-                                child: BottomNavigationBar(
-                                  onTap: _onTabTapped,
-                                  currentIndex: _currentIndex,
-                                  selectedItemColor: AppTheme.primaryColor,
-                                  unselectedItemColor:
-                                      AppTheme.secondaryTextColor.withOpacity(0.6),
-                                  backgroundColor: Colors.transparent,
-                                  elevation: 0,
-                                  type: BottomNavigationBarType.fixed,
-                                  items: [
-                                    const BottomNavigationBarItem(
-                                      icon: Icon(Icons.medication_rounded),
-                                      label: 'Receta',
-                                    ),
-                                    const BottomNavigationBarItem(
-                                      icon: Icon(Icons.calendar_today),
-                                      label: 'Calendario',
-                                    ),
-                                    BottomNavigationBarItem(
-                                      icon: Showcase.withWidget(
-                                        key: _profileKey,
-                                        height: 160,
-                                        width: 320,
-                                        disableDefaultTargetGestures: true,
-                                        container: const TutorialTooltip(
-                                          icon: Icons.bar_chart_rounded,
-                                          title: 'Mi Progreso',
-                                          description: 'Monitorea tu nivel de adherencia, mira tus estadísticas diarias y mantén tus rachas de toma de medicamentos.',
-                                          stepNumber: 7,
+                                child: ValueListenableBuilder<int>(
+                                  valueListenable: _currentIndexNotifier,
+                                  builder: (context, currentIndex, _) {
+                                    return BottomNavigationBar(
+                                      onTap: _onTabTapped,
+                                      currentIndex: currentIndex,
+                                      selectedItemColor: AppTheme.primaryColor,
+                                      unselectedItemColor:
+                                          AppTheme.secondaryTextColor.withOpacity(0.6),
+                                      backgroundColor: Colors.transparent,
+                                      elevation: 0,
+                                      type: BottomNavigationBarType.fixed,
+                                      items: [
+                                        const BottomNavigationBarItem(
+                                          icon: Icon(Icons.medication_rounded),
+                                          label: 'Receta',
                                         ),
-                                        targetShapeBorder: const CircleBorder(),
-                                        targetPadding: const EdgeInsets.all(4),
-                                        child: const Icon(Icons.bar_chart_rounded),
-                                      ),
-                                      label: 'Progreso',
-                                    ),
-                                  ],
+                                        BottomNavigationBarItem(
+                                          icon: Showcase.withWidget(
+                                            key: _calendarKey,
+                                            height: 160,
+                                            width: 320,
+                                            disableDefaultTargetGestures: true,
+                                            container: const TutorialTooltip(
+                                              icon: Icons.calendar_month_rounded,
+                                              title: 'Pestaña Calendario',
+                                              description: 'Accede al Calendario interactivo para ver tu historial de tomas organizado día por día.',
+                                              stepNumber: 6,
+                                              totalSteps: 11,
+                                            ),
+                                            targetShapeBorder: const CircleBorder(),
+                                            targetPadding: const EdgeInsets.all(4),
+                                            child: const Icon(Icons.calendar_today),
+                                          ),
+                                          label: 'Calendario',
+                                        ),
+                                        BottomNavigationBarItem(
+                                          icon: Showcase.withWidget(
+                                            key: _progressKey,
+                                            height: 160,
+                                            width: 320,
+                                            disableDefaultTargetGestures: true,
+                                            container: const TutorialTooltip(
+                                              icon: Icons.bar_chart_rounded,
+                                              title: 'Pestaña Mi Progreso',
+                                              description: 'Accede a la pestaña Progreso para analizar tus estadísticas de salud, cumplimiento acumulado y rachas.',
+                                              stepNumber: 8,
+                                              totalSteps: 11,
+                                            ),
+                                            targetShapeBorder: const CircleBorder(),
+                                            targetPadding: const EdgeInsets.all(4),
+                                            child: const Icon(Icons.bar_chart_rounded),
+                                          ),
+                                          label: 'Progreso',
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 ),
                               ),
                             ),
@@ -651,10 +668,11 @@ class _HomePageState extends State<HomePage> {
                   width: 320,
                   disableDefaultTargetGestures: true,
                   container: const TutorialTooltip(
-                    icon: Icons.swap_horiz_rounded,
-                    title: 'Navegación principal',
-                    description: 'Muévete entre tus Recetas (medicamentos pendientes), el Calendario mensual y tu Progreso de salud.',
-                    stepNumber: 8,
+                    icon: Icons.navigation_rounded,
+                    title: 'Navegación Principal',
+                    description: '¡Todo listo! Usa la barra inferior para moverte cómodamente entre Receta, Calendario y Mi Progreso.',
+                    stepNumber: 11,
+                    totalSteps: 11,
                   ),
                   targetShapeBorder: const RoundedRectangleBorder(),
                   targetPadding: EdgeInsets.zero,
@@ -668,41 +686,62 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                     ),
-                    child: BottomNavigationBar(
-                      onTap: _onTabTapped,
-                      currentIndex: _currentIndex,
-                      selectedItemColor: AppTheme.primaryColor,
-                      unselectedItemColor: AppTheme.secondaryTextColor.withOpacity(0.6),
-                      backgroundColor: Colors.transparent,
-                      elevation: 0,
-                      items: [
-                        const BottomNavigationBarItem(
-                          icon: Icon(Icons.medication_rounded),
-                          label: 'Receta',
-                        ),
-                        const BottomNavigationBarItem(
-                          icon: Icon(Icons.calendar_today),
-                          label: 'Calendario',
-                        ),
-                        BottomNavigationBarItem(
-                          icon: Showcase.withWidget(
-                            key: _profileKey,
-                            height: 160,
-                            width: 320,
-                            disableDefaultTargetGestures: true,
-                            container: const TutorialTooltip(
-                              icon: Icons.bar_chart_rounded,
-                              title: 'Mi Progreso',
-                              description: 'Monitorea tu nivel de adherencia, mira tus estadísticas diarias y mantén tus rachas de toma de medicamentos.',
-                              stepNumber: 7,
+                    child: ValueListenableBuilder<int>(
+                      valueListenable: _currentIndexNotifier,
+                      builder: (context, currentIndex, _) {
+                        return BottomNavigationBar(
+                          onTap: _onTabTapped,
+                          currentIndex: currentIndex,
+                          selectedItemColor: AppTheme.primaryColor,
+                          unselectedItemColor: AppTheme.secondaryTextColor.withOpacity(0.6),
+                          backgroundColor: Colors.transparent,
+                          elevation: 0,
+                          items: [
+                            const BottomNavigationBarItem(
+                              icon: Icon(Icons.medication_rounded),
+                              label: 'Receta',
                             ),
-                            targetShapeBorder: const CircleBorder(),
-                            targetPadding: const EdgeInsets.all(4),
-                            child: const Icon(Icons.bar_chart_rounded),
-                          ),
-                          label: 'Progreso',
-                        ),
-                      ],
+                            BottomNavigationBarItem(
+                              icon: Showcase.withWidget(
+                                key: _calendarKey,
+                                height: 160,
+                                width: 320,
+                                disableDefaultTargetGestures: true,
+                                container: const TutorialTooltip(
+                                  icon: Icons.calendar_month_rounded,
+                                  title: 'Pestaña Calendario',
+                                  description: 'Accede al Calendario interactivo para ver tu historial de tomas organizado día por día.',
+                                  stepNumber: 6,
+                                  totalSteps: 11,
+                                ),
+                                targetShapeBorder: const CircleBorder(),
+                                targetPadding: const EdgeInsets.all(4),
+                                child: const Icon(Icons.calendar_today),
+                              ),
+                              label: 'Calendario',
+                            ),
+                            BottomNavigationBarItem(
+                              icon: Showcase.withWidget(
+                                key: _progressKey,
+                                height: 160,
+                                width: 320,
+                                disableDefaultTargetGestures: true,
+                                container: const TutorialTooltip(
+                                  icon: Icons.bar_chart_rounded,
+                                  title: 'Pestaña Mi Progreso',
+                                  description: 'Accede a la pestaña Progreso para analizar tus estadísticas de salud, cumplimiento acumulado y rachas.',
+                                  stepNumber: 8,
+                                  totalSteps: 11,
+                                ),
+                                targetShapeBorder: const CircleBorder(),
+                                targetPadding: const EdgeInsets.all(4),
+                                child: const Icon(Icons.bar_chart_rounded),
+                              ),
+                              label: 'Progreso',
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ),

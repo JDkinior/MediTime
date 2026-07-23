@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:meditime/theme/app_theme.dart';
 
 class StyledTextField extends StatelessWidget {
   final TextEditingController controller;
@@ -9,7 +10,7 @@ class StyledTextField extends StatelessWidget {
   final TextInputAction textInputAction;
   final String? errorText;
   final ValueChanged<String>? onChanged;
-  final bool enabled; // <-- 1. AÑADIMOS EL PARÁMETRO
+  final bool enabled;
 
   const StyledTextField({
     super.key,
@@ -21,11 +22,16 @@ class StyledTextField extends StatelessWidget {
     this.textInputAction = TextInputAction.next,
     this.errorText,
     this.onChanged,
-    this.enabled = true, // <-- 2. LO AÑADIMOS AL CONSTRUCTOR (por defecto es true)
+    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inputBg = isDark
+        ? AppTheme.surfaceColor
+        : (enabled ? Colors.white : Colors.grey.shade200);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -33,9 +39,10 @@ class StyledTextField extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 8.0),
           child: Text(
             labelText,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primaryTextColor,
             ),
           ),
         ),
@@ -45,40 +52,42 @@ class StyledTextField extends StatelessWidget {
           keyboardType: keyboardType,
           textInputAction: textInputAction,
           onChanged: onChanged,
-          enabled: enabled, // <-- 3. PASAMOS EL PARÁMETRO AL TEXTFORMFIELD
+          enabled: enabled,
+          style: TextStyle(
+            color: AppTheme.primaryTextColor,
+            fontSize: 15,
+          ),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: TextStyle(color: Colors.grey[400]),
+            hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.6)),
             errorText: errorText,
-            // Cambiamos el color de relleno si está deshabilitado para dar feedback visual
-            fillColor: enabled ? Colors.white : Colors.grey.shade200,
+            fillColor: inputBg,
             filled: true,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(20),
               borderSide: BorderSide(
-                color: errorText != null ? Colors.red : Colors.transparent,
-                width: 2,
+                color: errorText != null ? AppTheme.errorColor : AppTheme.borderColor,
+                width: 1.5,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(20),
               borderSide: BorderSide(
-                color: errorText != null ? Colors.red : Colors.transparent,
-                width: 2,
+                color: errorText != null ? AppTheme.errorColor : AppTheme.borderColor,
+                width: 1.5,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(20),
               borderSide: BorderSide(
-                color: errorText != null ? Colors.red : const Color(0xFF41B8DB),
+                color: errorText != null ? AppTheme.errorColor : AppTheme.primaryColor,
                 width: 2,
               ),
             ),
-            // Borde para cuando el campo está deshabilitado
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(20),
               borderSide: BorderSide(
-                color: Colors.grey.shade300,
+                color: AppTheme.borderColor,
                 width: 1,
               ),
             ),

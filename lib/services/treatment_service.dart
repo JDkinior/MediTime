@@ -68,6 +68,7 @@ class TreatmentService {
       prescriptionAlarmManagerId: prescriptionAlarmManagerId,
       userId: userId,
       docId: docRef.id,
+      profile: profile,
     );
 
     return docRef;
@@ -81,6 +82,7 @@ class TreatmentService {
     required int prescriptionAlarmManagerId,
     required String userId,
     required String docId,
+    CaregiverProfile? profile,
   }) async {
     if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
       debugPrint(
@@ -104,6 +106,7 @@ class TreatmentService {
         prescriptionAlarmManagerId: prescriptionAlarmManagerId,
         userId: userId,
         docId: docId,
+        profile: profile,
       );
     }
   }

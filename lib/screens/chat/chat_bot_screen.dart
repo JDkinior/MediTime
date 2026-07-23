@@ -1646,7 +1646,7 @@ class _AdherenceChartCard extends StatelessWidget {
     int programadasPasadas = 0;
 
     final now = DateTime.now();
-    final todasLasDosis = TratamientoService().generarDosisTotales(tratamiento);
+    final todasLasDosis = TratamientoService.generarDosisTotales(tratamiento);
 
     final Map<int, DoseStatus> statusMap = {};
     tratamiento.doseStatus.forEach((key, status) {

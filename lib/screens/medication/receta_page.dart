@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
+import 'package:meditime/services/tratamiento_service.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
@@ -36,7 +37,10 @@ class RecetaPage extends StatefulWidget {
   State<RecetaPage> createState() => _RecetaPageState();
 }
 
-class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateMixin {
+class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   DateTime _selectedDate = DateTime.now();
   late AnimationController _waveController;
 
@@ -66,16 +70,16 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
     final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
 
     for (var tratamiento in todosLosTratamientos) {
-      tratamiento.doseStatus.forEach((dateString, status) {
-        final doseTime = DateTime.parse(dateString);
-        if (!doseTime.isBefore(startOfDay) && !doseTime.isAfter(endOfDay)) {
-          hoyDosis.add({
-            'tratamiento': tratamiento,
-            'doseTime': doseTime,
-            'status': status,
-          });
-        }
-      });
+      final dosisCalculadas = TratamientoService.generarDosisEnRango(tratamiento, startOfDay, endOfDay);
+      for (var doseTime in dosisCalculadas) {
+        final key = doseTime.toIso8601String();
+        final status = tratamiento.doseStatus[key] ?? DoseStatus.pendiente;
+        hoyDosis.add({
+          'tratamiento': tratamiento,
+          'doseTime': doseTime,
+          'status': status,
+        });
+      }
     }
 
     hoyDosis.sort((a, b) => (a['doseTime'] as DateTime).compareTo(b['doseTime'] as DateTime));
@@ -85,9 +89,11 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
   void _showDoseOptionsDialog(BuildContext context, Tratamiento tratamiento, DateTime doseTime, DoseStatus status) {
     final authService = Provider.of<AuthService>(context, listen: false);
     final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+    final caregiverNotifier = Provider.of<CaregiverNotifier>(context, listen: false);
     final user = authService.currentUser;
     if (user == null) return;
 
+    final activeProfile = caregiverNotifier.isCaregiverModeActive ? caregiverNotifier.activeProfile : null;
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     Widget buildDeferOption(BuildContext ctx, int minutes, String label) {
@@ -421,7 +427,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                             pickedTime.hour,
                             pickedTime.minute,
                           );
-                          final docRef = firestoreService.getMedicamentoDocRef(user.uid, tratamiento.id);
+                          final docRef = firestoreService.getMedicamentoDocRef(user.uid, tratamiento.id, activeProfile);
                           await FirebaseFirestore.instance.runTransaction((transaction) async {
                             final snapshot = await transaction.get(docRef);
                             if (!snapshot.exists) return;
@@ -436,7 +442,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                           final doc = await docRef.get();
                           if (doc.exists) {
                             final updatedTratamiento = Tratamiento.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
-                            await NotificationService.rescheduleNextPendingDose(updatedTratamiento, user.uid);
+                            await NotificationService.rescheduleNextPendingDose(updatedTratamiento, user.uid, activeProfile);
                           }
                           scaffoldMessenger.showSnackBar(
                             const SnackBar(content: Text('Hora de la dosis modificada.')),
@@ -494,7 +500,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                               await NotificationService.cancelTreatmentAlarms(tratamiento.prescriptionAlarmId);
                               await NotificationService.cancelAllActiveAndroidNotifications();
                               await NotificationService.cancelAllFlutterLocalNotifications();
-                              await firestoreService.deleteTratamiento(user.uid, tratamiento.id);
+                              await firestoreService.deleteTratamiento(user.uid, tratamiento.id, activeProfile);
                               scaffoldMessenger.showSnackBar(
                                 const SnackBar(content: Text('Tratamiento eliminado.')),
                               );
@@ -515,6 +521,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final authService = context.watch<AuthService>();
     final firestoreService = context.watch<FirestoreService>();
     final profile = context.watch<ProfileNotifier>();
@@ -641,58 +648,60 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
             ),
           );
 
-          // Summary Card widget
-          Widget summaryCard = Container(
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x22004AC6),
-                  blurRadius: 15,
-                  offset: Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: AnimatedBuilder(
-                    animation: _waveController,
-                    builder: (context, child) {
-                      return CustomPaint(
-                        painter: WavePainter(animationValue: _waveController.value),
-                      );
-                    },
+          // Summary Card widget (wrapped in RepaintBoundary for smooth transitions)
+          Widget summaryCard = RepaintBoundary(
+            child: Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x22004AC6),
+                    blurRadius: 15,
+                    offset: Offset(0, 8),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _esHoy(_selectedDate) ? 'Resumen de hoy' : 'Resumen del día',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white.withValues(alpha: 0.9),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: AnimatedBuilder(
+                      animation: _waveController,
+                      builder: (context, child) {
+                        return CustomPaint(
+                          painter: WavePainter(animationValue: _waveController.value),
+                        );
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _esHoy(_selectedDate) ? 'Resumen de hoy' : 'Resumen del día',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildSummaryItem(pendientesHoy.toString(), 'PENDIENTES'),
-                          _buildSummaryItem(tomadasHoy.toString(), 'TOMADAS'),
-                          _buildSummaryItem('${adherenciaHoy.toStringAsFixed(0)}%', 'ADHERENCIA'),
-                        ],
-                      ),
-                    ],
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildSummaryItem(pendientesHoy.toString(), 'PENDIENTES'),
+                            _buildSummaryItem(tomadasHoy.toString(), 'TOMADAS'),
+                            _buildSummaryItem('${adherenciaHoy.toStringAsFixed(0)}%', 'ADHERENCIA'),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
 
@@ -729,9 +738,10 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                           disableDefaultTargetGestures: true,
                           container: const TutorialTooltip(
                             icon: Icons.date_range_rounded,
-                            title: 'Selector de fecha',
+                            title: 'Selector de Fechas',
                             description: 'Navega en el tiempo: toca la fecha para planificar o registrar medicamentos de días anteriores o futuros.',
                             stepNumber: 4,
+                            totalSteps: 11,
                           ),
                           targetShapeBorder: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
@@ -756,6 +766,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                         title: 'Resumen Diario',
                         description: 'Monitorea tu nivel de adherencia hoy y visualiza de un vistazo las dosis pendientes y tomadas del día.',
                         stepNumber: 3,
+                        totalSteps: 11,
                       ),
                       targetShapeBorder: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
@@ -1063,9 +1074,10 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
         disableDefaultTargetGestures: true,
         container: const TutorialTooltip(
           icon: Icons.add_circle_outline_rounded,
-          title: 'Agregar medicamento',
-          description: 'Toca aquí para añadir un nuevo medicamento. Podrás configurar el horario, intervalo y duración del tratamiento.',
+          title: 'Agregar Receta o Tratamiento',
+          description: 'Toca el botón + para registrar nuevos medicamentos, definir frecuencias de tomas y configurar recordatorios automáticos.',
           stepNumber: 5,
+          totalSteps: 11,
         ),
         targetShapeBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         targetPadding: const EdgeInsets.all(4),

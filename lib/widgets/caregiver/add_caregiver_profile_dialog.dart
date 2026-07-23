@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:uuid/uuid.dart';
 import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/theme/app_theme.dart';
-import 'package:meditime/widgets/primary_button.dart';
 import 'package:meditime/widgets/styled_text_field.dart';
 
 class AddCaregiverProfileDialog extends StatefulWidget {
@@ -36,14 +34,16 @@ class _AddCaregiverProfileDialogState extends State<AddCaregiverProfileDialog> w
   final _notesController = TextEditingController();
 
   final List<String> _presetColors = [
-    '#004AC6', // Primary
-    '#E53935', // Red
-    '#43A047', // Green
-    '#FDD835', // Yellow
-    '#8E24AA', // Purple
-    '#00ACC1', // Cyan
+    '#4F46E5', // Indigo Suave
+    '#F43F5E', // Rosa Coral
+    '#10B981', // Verde Esmeralda
+    '#F59E0B', // Ámbar Miel
+    '#8B5CF6', // Violeta Lavanda
+    '#0EA5E9', // Azul Celeste
+    '#14B8A6', // Menta Turquesa
+    '#F97316', // Terracota
   ];
-  String _selectedColorHex = '#004AC6';
+  String _selectedColorHex = '#4F46E5';
 
   String? _selectedRelationship;
   String? _selectedBloodType;
@@ -214,7 +214,7 @@ class _AddCaregiverProfileDialogState extends State<AddCaregiverProfileDialog> w
         );
       } else {
         newProfile = CaregiverProfile(
-          id: const Uuid().v4(),
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
           name: _nameController.text.trim(),
           relationship: relationship,
           colorHex: _selectedColorHex,
@@ -262,13 +262,36 @@ class _AddCaregiverProfileDialogState extends State<AddCaregiverProfileDialog> w
     );
   }
 
+  InputDecoration _buildDropdownDecoration(String labelText, bool isDark) {
+    return InputDecoration(
+      labelText: labelText,
+      labelStyle: TextStyle(color: AppTheme.secondaryTextColor),
+      fillColor: isDark ? AppTheme.surfaceColor : Colors.white,
+      filled: true,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide(color: AppTheme.borderColor),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide(color: AppTheme.borderColor),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(20)),
+        borderSide: BorderSide(color: AppTheme.primaryColor, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+    );
+  }
+
   Widget _buildLocalProfileForm(bool isClinico) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
+        Text(
           'Crear un perfil gestionado enteramente por ti.',
-          style: TextStyle(color: Colors.grey, fontSize: 13),
+          style: TextStyle(color: AppTheme.secondaryTextColor, fontSize: 13),
         ),
         const SizedBox(height: 16),
         StyledTextField(
@@ -278,10 +301,11 @@ class _AddCaregiverProfileDialogState extends State<AddCaregiverProfileDialog> w
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          decoration: InputDecoration(
-            labelText: isClinico ? 'Relación / Identificador' : 'Parentesco',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          dropdownColor: Theme.of(context).cardColor,
+          style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 15),
+          decoration: _buildDropdownDecoration(
+            isClinico ? 'Relación / Identificador' : 'Parentesco',
+            isDark,
           ),
           value: _selectedRelationship,
           items: (isClinico ? _clinicRelationships : _familyRelationships).map((String value) {
@@ -307,11 +331,9 @@ class _AddCaregiverProfileDialogState extends State<AddCaregiverProfileDialog> w
         if (isClinico) ...[
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            decoration: InputDecoration(
-              labelText: 'Categoría / Piso',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            ),
+            dropdownColor: Theme.of(context).cardColor,
+            style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 15),
+            decoration: _buildDropdownDecoration('Categoría / Piso', isDark),
             value: _selectedCategory,
             items: _clinicCategories.map((String value) {
               return DropdownMenuItem<String>(
@@ -342,11 +364,9 @@ class _AddCaregiverProfileDialogState extends State<AddCaregiverProfileDialog> w
         ],
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          decoration: InputDecoration(
-            labelText: 'Tipo de Sangre (Opcional)',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          ),
+          dropdownColor: Theme.of(context).cardColor,
+          style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 15),
+          decoration: _buildDropdownDecoration('Tipo de Sangre (Opcional)', isDark),
           value: _selectedBloodType,
           items: _bloodTypes.map((String value) {
             return DropdownMenuItem<String>(
@@ -406,9 +426,14 @@ class _AddCaregiverProfileDialogState extends State<AddCaregiverProfileDialog> w
     final isClinico = caregiverNotifier.modeType == CaregiverModeType.clinico;
 
     return Dialog(
+      backgroundColor: Theme.of(context).cardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(20),
+        ),
         constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
         child: Column(
           children: [

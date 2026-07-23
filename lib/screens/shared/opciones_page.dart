@@ -4,6 +4,7 @@ import 'package:meditime/screens/shared/accesibilidad_page.dart';
 import 'package:meditime/screens/shared/diseno_apariencia_page.dart';
 import 'package:meditime/screens/shared/notificaciones_opciones_page.dart';
 import 'package:meditime/screens/shared/datos_privacidad_page.dart';
+import 'package:meditime/screens/shared/modo_cuidador_opciones_page.dart';
 
 class OpcionesPage extends StatelessWidget {
   const OpcionesPage({super.key});
@@ -52,6 +53,14 @@ class OpcionesPage extends StatelessWidget {
             icon: Icons.security_rounded,
             iconColor: AppTheme.errorColor,
             page: const DatosPrivacidadPage(),
+          ),
+          _buildCategoryCard(
+            context: context,
+            title: 'Modo Cuidador',
+            subtitle: 'Configura la gestión multi-perfil para familiares o sector clínico.',
+            icon: Icons.health_and_safety_outlined,
+            iconColor: Colors.teal,
+            page: const ModoCuidadorOpcionesPage(),
           ),
         ],
       ),

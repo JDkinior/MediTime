@@ -44,7 +44,7 @@ class CaregiverProfile {
       id: id,
       name: data['name'] ?? '',
       relationship: data['relationship'] ?? '',
-      colorHex: data['colorHex'] ?? '#004AC6', // Default primary color
+      colorHex: data['colorHex'] ?? '#4F46E5', // Default soft indigo color
       isExternalUser: data['isExternalUser'] ?? false,
       email: data['email'],
       linkedUid: data['linkedUid'],

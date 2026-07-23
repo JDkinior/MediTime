@@ -22,6 +22,8 @@ class PreferenceService {
   static const String _caregiverModeActiveKey = 'caregiver_mode_active';
   static const String _caregiverModeTypeKey = 'caregiver_mode_type';
   static const String _caregiverActiveProfileKey = 'caregiver_active_profile';
+  static const String _caregiverNotifyPatientDosesKey = 'caregiver_notify_patient_doses';
+  static const String _caregiverIncludeLocationKey = 'caregiver_include_location';
 
   Future<void> saveThemeMode(String themeStr) async {
     final prefs = await SharedPreferences.getInstance();
@@ -229,6 +231,28 @@ class PreferenceService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.reload();
     return prefs.getString(_caregiverActiveProfileKey);
+  }
+
+  Future<void> saveCaregiverNotifyPatientDoses(bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_caregiverNotifyPatientDosesKey, val);
+  }
+
+  Future<bool> getCaregiverNotifyPatientDoses() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool(_caregiverNotifyPatientDosesKey) ?? true;
+  }
+
+  Future<void> saveCaregiverIncludeLocation(bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_caregiverIncludeLocationKey, val);
+  }
+
+  Future<bool> getCaregiverIncludeLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool(_caregiverIncludeLocationKey) ?? true;
   }
 
 }

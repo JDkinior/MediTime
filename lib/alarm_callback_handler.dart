@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:meditime/models/tratamiento.dart';
+import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/preference_service.dart';
@@ -93,13 +94,38 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       debugPrint("ERROR en guard de usuario/revocado: $e");
     }
 
+    // Declaramos dummyProfile aquí para usarlo en toda la función
+    CaregiverProfile? dummyProfile;
+    final profileId = params['profileId'] as String?;
+    if (profileId != null && profileId.isNotEmpty) {
+      dummyProfile = CaregiverProfile(
+        id: profileId,
+        name: params['pacienteNombre'] as String? ?? '',
+        relationship: 'dummy',
+        colorHex: '#000000',
+        isExternalUser: params['isExternalUser'] as bool? ?? false,
+        linkedUid: params['linkedUid'] as String?,
+      );
+    }
+
     // Si podemos, verifiquemos que el documento aún exista (para evitar notificaciones de tratamientos eliminados remotamente)
     try {
       if (firebaseInitialized) {
-        final firestoreService = FirestoreService();
-        final docRef = firestoreService.getMedicamentoDocRef(userId, docId);
-        final docSnap = await docRef.get().timeout(const Duration(seconds: 3));
-        if (!docSnap.exists) {
+        bool exists = false;
+
+        if (dummyProfile != null) {
+          final firestoreService = FirestoreService();
+          final docRef = firestoreService.getMedicamentoDocRef(userId, docId, dummyProfile);
+          final snap = await docRef.get().timeout(const Duration(seconds: 3));
+          exists = snap.exists;
+        } else {
+          final firestoreService = FirestoreService();
+          final docRef = firestoreService.getMedicamentoDocRef(userId, docId);
+          final docSnap = await docRef.get().timeout(const Duration(seconds: 3));
+          exists = docSnap.exists;
+        }
+
+        if (!exists) {
           final int seriesId = (params['prescriptionAlarmId'] as int?) ?? 0;
           debugPrint("Guard: Documento no existe en Firestore. Cancelando serie $seriesId y saliendo.");
           if (seriesId != 0) {
@@ -112,6 +138,33 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       debugPrint("Advertencia: No se pudo verificar existencia del doc: $e");
     }
 
+    final pacienteNombre = params['pacienteNombre'] as String?;
+    final habitacion = params['habitacion'] as String?;
+    final categoria = params['categoria'] as String?;
+    final dosisPorToma = params['dosisPorToma'] ?? 1;
+    final presentacion = params['presentacion'] as String? ?? 'dosis';
+
+    String notificationTitle = 'Hora de tomar: $nombreMedicamento';
+    String notificationBody = 'Por favor, confirma si tomaste tu dosis.';
+
+    if (pacienteNombre != null && pacienteNombre.isNotEmpty) {
+      notificationTitle = 'Suministrar $nombreMedicamento a $pacienteNombre';
+      
+      String body = 'Es momento de darle $dosisPorToma $presentacion.';
+      
+      if (habitacion != null && habitacion.isNotEmpty) {
+        if (categoria != null && categoria.isNotEmpty) {
+          body += ' Se encuentra en la Hab. $habitacion ($categoria).';
+        } else {
+          body += ' Se encuentra en la Hab. $habitacion.';
+        }
+      } else if (categoria != null && categoria.isNotEmpty) {
+        body += ' Ubicación: $categoria.';
+      }
+      
+      notificationBody = body;
+    }
+
     // CAMBIO CRÍTICO: Procesar notificación independientemente del estado de Firebase
     if (isModeActive) {
       debugPrint("Modo Activo detectado para: $nombreMedicamento");
@@ -119,8 +172,8 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       // Mostrar notificación activa inmediatamente
       await NotificationService.showActiveNotification(
         id: notificationId,
-        title: 'Hora de tomar: $nombreMedicamento',
-        body: 'Por favor, confirma si tomaste tu dosis.',
+        title: notificationTitle,
+        body: notificationBody,
         payload: 'active_notification|$userId|$docId|${doseTime.toIso8601String()}',
       );
 
@@ -128,7 +181,7 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       if (firebaseInitialized) {
         try {
           final firestoreService = FirestoreService();
-          await firestoreService.updateDoseStatus(userId, docId, doseTime, DoseStatus.notificada)
+          await firestoreService.updateDoseStatus(userId, docId, doseTime, DoseStatus.notificada, dummyProfile)
               .timeout(Duration(seconds: 3));
           debugPrint("Estado actualizado en Firestore: notificada");
         } catch (e) {
@@ -142,20 +195,22 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       // Mostrar notificación simple inmediatamente
       await NotificationService.showSimpleNotification(
         id: notificationId,
-        title: 'Hora de tomar: $nombreMedicamento',
-        body: 'Dosis registrada automáticamente. Próxima dosis en $intervaloHoras horas.',
+        title: notificationTitle,
+        body: pacienteNombre != null && pacienteNombre.isNotEmpty
+            ? notificationBody
+            : 'Dosis registrada automáticamente. Próxima dosis en $intervaloHoras horas.',
       );
 
       // CAMBIO CRÍTICO: Actualizar Firestore y reprogramar solo si está disponible
       if (firebaseInitialized) {
         try {
           final firestoreService = FirestoreService();
-          await firestoreService.updateDoseStatus(userId, docId, doseTime, DoseStatus.tomada)
+          await firestoreService.updateDoseStatus(userId, docId, doseTime, DoseStatus.tomada, dummyProfile)
               .timeout(Duration(seconds: 3));
           debugPrint("Estado actualizado en Firestore: tomada");
 
           // Reprogramar siguiente dosis
-          await _reprogramarSiguienteDosis(params, userId, firestoreService);
+          await _reprogramarSiguienteDosis(params, userId, firestoreService, dummyProfile);
         } catch (e) {
           debugPrint("ERROR actualizando Firestore (modo pasivo): $e");
           // FALLBACK: Reprogramar siguiente dosis usando solo parámetros
@@ -194,7 +249,7 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
 /// directamente de Firestore para asegurarse de que tiene el estado más actualizado
 /// antes de encontrar y programar la siguiente dosis pendiente.
 // NUEVA FUNCIÓN: Reprogramar siguiente dosis con acceso a Firebase
-Future<void> _reprogramarSiguienteDosis(Map<String, dynamic> params, String userId, FirestoreService firestoreService) async {
+Future<void> _reprogramarSiguienteDosis(Map<String, dynamic> params, String userId, FirestoreService firestoreService, CaregiverProfile? dummyProfile) async {
   try {
     final docId = params['docId'] as String?;
     if (docId == null) {
@@ -202,12 +257,12 @@ Future<void> _reprogramarSiguienteDosis(Map<String, dynamic> params, String user
       return;
     }
     
-    final doc = await firestoreService.getMedicamentoDocRef(userId, docId).get()
+    final doc = await firestoreService.getMedicamentoDocRef(userId, docId, dummyProfile).get()
         .timeout(Duration(seconds: 5));
     
     if (doc.exists) {
       final tratamiento = Tratamiento.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
-      await NotificationService.rescheduleNextPendingDose(tratamiento, userId);
+      await NotificationService.rescheduleNextPendingDose(tratamiento, userId, dummyProfile);
       debugPrint("Siguiente dosis reprogramada con datos de Firebase");
     }
   } catch (e) {

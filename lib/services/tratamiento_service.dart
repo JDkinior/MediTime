@@ -7,7 +7,7 @@ class TratamientoService {
   /// desde su inicio hasta su fin.
   /// ADVERTENCIA: Puede ser muy ineficiente para tratamientos largos o crónicos.
   /// Úsalo con precaución o prefiere generarDosisEnRango.
-  List<DateTime> generarDosisTotales(Tratamiento tratamiento) {
+  static List<DateTime> generarDosisTotales(Tratamiento tratamiento) {
     List<DateTime> dosis = [];
     DateTime dosisActual = tratamiento.fechaInicioTratamiento;
     final int intervalo = tratamiento.intervaloDosis.inHours;
@@ -26,7 +26,7 @@ class TratamientoService {
 
   /// Genera solo las dosis dentro de un rango de fechas.
   /// Es mucho más eficiente que generarDosisTotales para períodos cortos.
-  List<DateTime> generarDosisEnRango(Tratamiento tratamiento, DateTime inicio, DateTime fin) {
+  static List<DateTime> generarDosisEnRango(Tratamiento tratamiento, DateTime inicio, DateTime fin) {
     List<DateTime> dosis = [];
     DateTime dosisActual = tratamiento.fechaInicioTratamiento;
     final int intervalo = tratamiento.intervaloDosis.inHours;
@@ -65,7 +65,7 @@ class TratamientoService {
 
   /// Genera solo las dosis futuras de un tratamiento que no han sido omitidas.
   /// Ideal para la pantalla principal de "Receta".
-  List<DateTime> generarDosisPendientes(Tratamiento tratamiento, {int limit = 50}) {
+  static List<DateTime> generarDosisPendientes(Tratamiento tratamiento, {int limit = 50}) {
     final ahora = DateTime.now();
     // En lugar de generar todas las dosis, generamos un bloque razonable hacia el futuro.
     // Asumimos un máximo de 30 días para buscar dosis pendientes.
@@ -86,7 +86,7 @@ class TratamientoService {
 
   /// Calcula cuántas dosis de un tratamiento corresponden a un día específico.
   /// Útil para la vista de calendario.
-  int getDosisCountForDay(Tratamiento tratamiento, DateTime dia) {
+  static int getDosisCountForDay(Tratamiento tratamiento, DateTime dia) {
     final startOfDay = DateTime(dia.year, dia.month, dia.day);
     final endOfDay = DateTime(dia.year, dia.month, dia.day, 23, 59, 59);
     

@@ -109,42 +109,9 @@ class FirestoreService {
     required DateTime fechaFinTratamiento,
     required String notas,
   }) {
-    // Para tratamientos indefinidos o muy largos, no generamos todas las dosis
-    // El sistema lazy se encargará de generarlas bajo demanda
-    final treatmentDuration = fechaFinTratamiento.difference(
-      fechaInicioTratamiento,
-    );
-    final isLongTreatment = treatmentDuration.inDays > 365; // Más de 1 año
-
-    Map<String, String> doseStatusMap = {};
-
-    if (!isLongTreatment) {
-      // Solo para tratamientos cortos generamos todas las dosis
-      final tratamientoService = TratamientoService();
-      final tempTratamiento = Tratamiento(
-        id: '',
-        nombreMedicamento: nombreMedicamento,
-        presentacion: presentacion,
-        duracion: duracion,
-        cantidadActual: cantidadActual,
-        cantidadTotalCaja: cantidadTotalCaja,
-        dosisPorToma: dosisPorToma,
-        horaPrimeraDosis: horaPrimeraDosis,
-        intervaloDosis: intervaloDosis,
-        prescriptionAlarmId: prescriptionAlarmId,
-        fechaInicioTratamiento: fechaInicioTratamiento,
-        fechaFinTratamiento: fechaFinTratamiento,
-      );
-
-      final List<DateTime> todasLasDosis = tratamientoService
-          .generarDosisTotales(tempTratamiento);
-      doseStatusMap = {
-        for (var dosis in todasLasDosis)
-          dosis.toIso8601String():
-              DoseStatus.pendiente.toString().split('.').last,
-      };
-    }
-    // Para tratamientos largos, el mapa de dosis se mantiene vacío inicialmente
+    // Todos los tratamientos utilizan el sistema lazy: el mapa de dosis se mantiene vacío inicialmente
+    // y las dosis se calculan bajo demanda, guardando en Firestore únicamente los cambios de estado.
+    final Map<String, String> doseStatusMap = {};
 
     final ref = _getMedicamentosCollection(userId, profile).doc();
 

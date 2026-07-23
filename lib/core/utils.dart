@@ -1,6 +1,10 @@
 // lib/core/utils.dart
 import 'package:flutter/material.dart';
 import 'package:meditime/core/constants.dart';
+import 'package:meditime/services/tratamiento_service.dart';
+
+/// Alias for TratamientoService date utility functions
+typedef TreatmentDateUtils = TratamientoService;
 
 /// Utility class containing common helper functions used throughout the application.
 /// 

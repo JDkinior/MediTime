@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'package:meditime/enums/view_state.dart';
 
@@ -70,6 +71,7 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<PreferenceNotifier>();
     final authService = context.watch<AuthService>();
     final firestoreService = context.watch<FirestoreService>();
     final caregiverNotifier = context.watch<CaregiverNotifier>();

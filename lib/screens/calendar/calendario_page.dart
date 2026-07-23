@@ -1,6 +1,7 @@
-// lib/screens/calendar/calendario_page.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:meditime/models/tratamiento.dart';
+import 'package:meditime/models/caregiver_profile.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
 import 'package:meditime/services/preference_service.dart';
@@ -18,59 +19,137 @@ import 'package:meditime/widgets/tutorial_tooltip.dart';
 import 'package:meditime/screens/medication/detalle_receta_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class CalendarioPage extends StatelessWidget {
+class CalendarioPage extends StatefulWidget {
   final GlobalKey? calendarKey;
+  final GlobalKey? calendarViewKey;
 
-  const CalendarioPage({super.key, this.calendarKey});
+  const CalendarioPage({
+    super.key,
+    this.calendarKey,
+    this.calendarViewKey,
+  });
+
+  @override
+  State<CalendarioPage> createState() => _CalendarioPageState();
+}
+
+class _CalendarioPageState extends State<CalendarioPage> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+  Stream<List<Map<String, dynamic>>>? _combinedStream;
+  List<CaregiverProfile>? _lastProfiles;
+  bool _lastIsGeneral = false;
+  String? _lastActiveProfileId;
+  String? _lastUserId;
+
+  void _updateStreamIfNeeded(String userId, bool isGeneral, List<CaregiverProfile> profiles, CaregiverProfile? activeProfile, FirestoreService firestoreService) {
+    final activeProfileId = activeProfile?.id;
+    if (_combinedStream != null &&
+        _lastUserId == userId &&
+        _lastIsGeneral == isGeneral &&
+        _lastActiveProfileId == activeProfileId &&
+        _lastProfiles != null &&
+        _lastProfiles!.length == profiles.length) {
+      bool same = true;
+      for (int i = 0; i < profiles.length; i++) {
+        if (_lastProfiles![i].id != profiles[i].id) {
+          same = false;
+          break;
+        }
+      }
+      if (same) return;
+    }
+
+    _lastUserId = userId;
+    _lastIsGeneral = isGeneral;
+    _lastActiveProfileId = activeProfileId;
+    _lastProfiles = List.from(profiles);
+
+    if (!isGeneral) {
+      _combinedStream = firestoreService.getMedicamentosStream(userId, activeProfile).map((tratamientos) {
+        return tratamientos.map((t) => {'tratamiento': t, 'profile': activeProfile}).toList();
+      });
+      return;
+    }
+
+    if (profiles.isEmpty) {
+      _combinedStream = Stream.value([]);
+      return;
+    }
+
+    List<Stream<List<Map<String, dynamic>>>> streams = profiles.map((profile) {
+      return firestoreService.getMedicamentosStream(userId, profile).map((tratamientos) {
+        return tratamientos.map((t) => {'tratamiento': t, 'profile': profile}).toList();
+      });
+    }).toList();
+
+    _combinedStream = _combineLatest(streams).map((listOfLists) {
+      return listOfLists.expand((list) => list).toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final authService = context.watch<AuthService>();
     final firestoreService = context.watch<FirestoreService>();
     final caregiverNotifier = context.watch<CaregiverNotifier>();
     final user = authService.currentUser;
+    final isGeneralMode = caregiverNotifier.isCaregiverModeActive && caregiverNotifier.isGeneralMode;
     final activeProfile = caregiverNotifier.isCaregiverModeActive ? caregiverNotifier.activeProfile : null;
+    final profiles = caregiverNotifier.managedProfiles;
+
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: AppTheme.backgroundColor,
+        body: Center(child: Text('Inicia sesión para ver el calendario.')),
+      );
+    }
+
+    _updateStreamIfNeeded(user.uid, isGeneralMode, profiles, activeProfile, firestoreService);
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      body: user == null
-          ? const Center(child: Text('Inicia sesión para ver el calendario.'))
-          : StreamBuilder<List<Tratamiento>>(
-              initialData: firestoreService.getCachedMedicamentos(user.uid, activeProfile),
-              stream: firestoreService.getMedicamentosStream(user.uid, activeProfile),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                  return const EstadoVista(state: ViewState.loading, child: SizedBox.shrink());
-                }
-                if (snapshot.hasError) {
-                  return const EstadoVista(
-                    state: ViewState.error,
-                    errorMessage: 'No se pudieron cargar los datos.',
-                    child: SizedBox.shrink(),
-                  );
-                }
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        key: ValueKey('${isGeneralMode}_${activeProfile?.id}_${caregiverNotifier.isCaregiverModeActive}'),
+        stream: _combinedStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+            return const EstadoVista(state: ViewState.loading, child: SizedBox.shrink());
+          }
+          if (snapshot.hasError) {
+            return const EstadoVista(
+              state: ViewState.error,
+              errorMessage: 'No se pudieron cargar los datos.',
+              child: SizedBox.shrink(),
+            );
+          }
 
-                final todosLosTratamientos = snapshot.data ?? [];
-                return _CalendarioContenido(
-                  tratamientos: todosLosTratamientos,
-                  userId: user.uid,
-                  calendarKey: calendarKey,
-                );
-              },
-            ),
+          final items = snapshot.data ?? [];
+          return _CalendarioContenido(
+            tratamientosItems: items,
+            userId: user.uid,
+            calendarKey: widget.calendarKey,
+            calendarViewKey: widget.calendarViewKey,
+          );
+        },
+      ),
     );
   }
 }
 
+
 class _CalendarioContenido extends StatefulWidget {
-  final List<Tratamiento> tratamientos;
+  final List<Map<String, dynamic>> tratamientosItems;
   final String userId;
   final GlobalKey? calendarKey;
+  final GlobalKey? calendarViewKey;
 
   const _CalendarioContenido({
-    required this.tratamientos,
+    required this.tratamientosItems,
     required this.userId,
     this.calendarKey,
+    this.calendarViewKey,
   });
 
   @override
@@ -83,7 +162,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
   DateTime? _selectedDay;
   Animation<double>? _secondaryAnimation;
 
-  final Map<DateTime, Map<Tratamiento, List<Map<String, dynamic>>>> _dayCache = {};
+  final Map<DateTime, Map<String, List<Map<String, dynamic>>>> _dayCache = {};
   final Set<DateTime> _populatedMonths = {};
 
   @override
@@ -136,7 +215,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
   @override
   void didUpdateWidget(covariant _CalendarioContenido oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.tratamientos != widget.tratamientos) {
+    if (oldWidget.tratamientosItems != widget.tratamientosItems) {
       _dayCache.clear();
       _populatedMonths.clear();
       _populateCacheForMonth(_focusedDay);
@@ -152,7 +231,10 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
     final firstDayOfMonth = monthKey;
     final lastDayOfMonth = DateTime(month.year, month.month + 1, 0);
 
-    for (var tratamiento in widget.tratamientos) {
+    for (var item in widget.tratamientosItems) {
+      final Tratamiento tratamiento = item['tratamiento'];
+      final CaregiverProfile? profile = item['profile'];
+
       tratamiento.doseStatus.forEach((dateString, status) {
         final doseTime = DateTime.parse(dateString);
 
@@ -162,9 +244,13 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
 
           _dayCache.putIfAbsent(dayKey, () => {});
           final treatmentMap = _dayCache[dayKey]!;
+          
+          final cacheKey = "${tratamiento.id}_${profile?.id ?? 'self'}";
 
-          treatmentMap.putIfAbsent(tratamiento, () => []);
-          treatmentMap[tratamiento]!.add({
+          treatmentMap.putIfAbsent(cacheKey, () => []);
+          treatmentMap[cacheKey]!.add({
+            'tratamiento': tratamiento,
+            'profile': profile,
             'doseTime': doseTime,
             'status': status,
           });
@@ -186,7 +272,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
     }
   }
 
-  Map<Tratamiento, List<Map<String, dynamic>>> _getGroupedDosesForDay(DateTime day) {
+  Map<String, List<Map<String, dynamic>>> _getGroupedDosesForDay(DateTime day) {
     final dayKey = DateTime(day.year, day.month, day.day);
     return _dayCache[dayKey] ?? {};
   }
@@ -195,13 +281,9 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
     final groupedDoses = _getGroupedDosesForDay(day);
     final List<Map<String, dynamic>> flatDoses = [];
 
-    groupedDoses.forEach((tratamiento, list) {
+    groupedDoses.forEach((key, list) {
       for (var dose in list) {
-        flatDoses.add({
-          'tratamiento': tratamiento,
-          'doseTime': dose['doseTime'] as DateTime,
-          'status': dose['status'] as DoseStatus,
-        });
+        flatDoses.add(dose);
       }
     });
 
@@ -209,7 +291,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
     return flatDoses;
   }
 
-  Color _determineDayColor(Map<Tratamiento, List<Map<String, dynamic>>> dosesForDay) {
+  Color _determineDayColor(Map<String, List<Map<String, dynamic>>> dosesForDay) {
     if (dosesForDay.isEmpty) return Colors.transparent;
 
     final allDoses = dosesForDay.values.expand((d) => d).toList();
@@ -225,7 +307,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
     }
   }
 
-  void _showDoseOptionsDialog(BuildContext context, Tratamiento tratamiento, DateTime doseTime, DoseStatus status) {
+  void _showDoseOptionsDialog(BuildContext context, Tratamiento tratamiento, CaregiverProfile? profile, DateTime doseTime, DoseStatus status) {
     final firestoreService = Provider.of<FirestoreService>(context, listen: false);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
@@ -337,6 +419,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                       tratamiento.id,
                       doseTime,
                       DoseStatus.tomada,
+                      profile,
                     );
                     if (inventoryResult?.stockBajo == true) {
                       scaffoldMessenger.showSnackBar(
@@ -424,11 +507,11 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                         ),
                         onTap: () async {
                           Navigator.of(context).pop();
-                          await firestoreService.updateDoseStatus(widget.userId, tratamiento.id, doseTime, DoseStatus.omitida);
-                          final doc = await firestoreService.getMedicamentoDocRef(widget.userId, tratamiento.id).get();
+                          await firestoreService.updateDoseStatus(widget.userId, tratamiento.id, doseTime, DoseStatus.omitida, profile);
+                          final doc = await firestoreService.getMedicamentoDocRef(widget.userId, tratamiento.id, profile).get();
                           if (doc.exists) {
                             final updatedTratamiento = Tratamiento.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
-                            await NotificationService.rescheduleNextPendingDose(updatedTratamiento, widget.userId);
+                            await NotificationService.rescheduleNextPendingDose(updatedTratamiento, widget.userId, profile);
                           }
                           scaffoldMessenger.showSnackBar(
                             const SnackBar(content: Text('Dosis omitida y alarma reprogramada.')),
@@ -508,7 +591,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
 
                         if (minutes != null) {
                           final newDoseTime = doseTime.add(Duration(minutes: minutes));
-                          final docRef = firestoreService.getMedicamentoDocRef(widget.userId, tratamiento.id);
+                          final docRef = firestoreService.getMedicamentoDocRef(widget.userId, tratamiento.id, profile);
                           await FirebaseFirestore.instance.runTransaction((transaction) async {
                             final snapshot = await transaction.get(docRef);
                             if (!snapshot.exists) return;
@@ -523,7 +606,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                           final doc = await docRef.get();
                           if (doc.exists) {
                             final updatedTratamiento = Tratamiento.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
-                            await NotificationService.rescheduleNextPendingDose(updatedTratamiento, widget.userId);
+                            await NotificationService.rescheduleNextPendingDose(updatedTratamiento, widget.userId, profile);
                           }
                           scaffoldMessenger.showSnackBar(
                             SnackBar(content: Text('Dosis aplazada por $minutes minutos.')),
@@ -560,7 +643,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                             pickedTime.hour,
                             pickedTime.minute,
                           );
-                          final docRef = firestoreService.getMedicamentoDocRef(widget.userId, tratamiento.id);
+                          final docRef = firestoreService.getMedicamentoDocRef(widget.userId, tratamiento.id, profile);
                           await FirebaseFirestore.instance.runTransaction((transaction) async {
                             final snapshot = await transaction.get(docRef);
                             if (!snapshot.exists) return;
@@ -575,7 +658,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                           final doc = await docRef.get();
                           if (doc.exists) {
                             final updatedTratamiento = Tratamiento.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
-                            await NotificationService.rescheduleNextPendingDose(updatedTratamiento, widget.userId);
+                            await NotificationService.rescheduleNextPendingDose(updatedTratamiento, widget.userId, profile);
                           }
                           scaffoldMessenger.showSnackBar(
                             const SnackBar(content: Text('Hora de la dosis modificada.')),
@@ -631,7 +714,9 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                               Navigator.of(context).pop();
                               await NotificationService.revokeTreatmentLocally(widget.userId, tratamiento.id);
                               await NotificationService.cancelTreatmentAlarms(tratamiento.prescriptionAlarmId);
-                              await firestoreService.deleteTratamiento(widget.userId, tratamiento.id);
+                              await NotificationService.cancelAllActiveAndroidNotifications();
+                              await NotificationService.cancelAllFlutterLocalNotifications();
+                              await firestoreService.deleteTratamiento(widget.userId, tratamiento.id, profile);
                               scaffoldMessenger.showSnackBar(
                                 const SnackBar(content: Text('Tratamiento eliminado.')),
                               );
@@ -662,15 +747,17 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
 
     return Column(
       children: [
-        // TableCalendar Container Card
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          decoration: BoxDecoration(color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: AppTheme.cardShadow,
-            border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+        // TableCalendar Container Card (wrapped in RepaintBoundary for smooth transitions)
+        RepaintBoundary(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            decoration: BoxDecoration(color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: AppTheme.cardShadow,
+              border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+            ),
+            child: _buildCalendar(),
           ),
-          child: _buildCalendar(),
         ),
 
         // Resumen del día
@@ -867,17 +954,19 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
       ),
     );
 
-    if (widget.calendarKey != null) {
+    final keyToUse = widget.calendarViewKey ?? widget.calendarKey;
+    if (keyToUse != null) {
       return Showcase.withWidget(
-        key: widget.calendarKey!,
+        key: keyToUse,
         height: 200,
         width: 320,
         disableDefaultTargetGestures: true,
         container: const TutorialTooltip(
-          icon: Icons.calendar_month_rounded,
-          title: 'Calendario de dosis',
-          description: 'Visualiza el historial de tus medicamentos día a día.\n\n🟢 Completado  🔴 Omitido  🟥 Pendiente\n\nToca un día para ver los detalles.',
-          stepNumber: 6,
+          icon: Icons.today_rounded,
+          title: 'Historial y Detalle del Día',
+          description: 'Revisa cada día según tus dosis:\n🟢 Tomadas  🔴 Omitidas  🟡 Pendientes\n\nToca cualquier día para ver la lista de dosis programadas.',
+          stepNumber: 7,
+          totalSteps: 11,
         ),
         targetShapeBorder: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -891,6 +980,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
 
   Widget _buildTimelineRow(Map<String, dynamic> dose, bool isFirst, bool isLast, FirestoreService firestoreService) {
     final Tratamiento tratamiento = dose['tratamiento'];
+    final CaregiverProfile? profile = dose['profile'];
     final DateTime doseTime = dose['doseTime'];
     final DoseStatus status = dose['status'];
     final timeStr = DateFormat('hh:mm a', 'es_ES').format(doseTime);
@@ -1078,12 +1168,38 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                     color: AppTheme.secondaryTextColor,
                                   ),
                                 ),
+                                if (profile != null) ...[
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16)).withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16)).withOpacity(0.2)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.person, size: 12, color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16))),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          profile.name,
+                                          style: TextStyle(
+                                            fontSize: 11, 
+                                            fontWeight: FontWeight.bold, 
+                                            color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16)),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
                           const SizedBox(width: 8),
                           GestureDetector(
-                            onTap: () => _showDoseOptionsDialog(context, tratamiento, doseTime, status),
+                            onTap: () => _showDoseOptionsDialog(context, tratamiento, profile, doseTime, status),
                             behavior: HitTestBehavior.opaque,
                             child: Container(
                               padding: const EdgeInsets.all(8.0),
@@ -1112,7 +1228,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                               elevation: 0,
                             ),
                             onPressed: () async {
-                              final result = await firestoreService.updateDoseStatus(widget.userId, tratamiento.id, doseTime, DoseStatus.tomada);
+                              final result = await firestoreService.updateDoseStatus(widget.userId, tratamiento.id, doseTime, DoseStatus.tomada, profile);
                               if (result?.stockBajo == true && context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -1142,7 +1258,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                               elevation: 0,
                             ),
                             onPressed: () {
-                              firestoreService.updateDoseStatus(widget.userId, tratamiento.id, doseTime, DoseStatus.omitida);
+                              firestoreService.updateDoseStatus(widget.userId, tratamiento.id, doseTime, DoseStatus.omitida, profile);
                             },
                           ),
                         ],
@@ -1156,4 +1272,49 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
       ),
     );
   }
+}
+
+// A simple manual stream combiner since we don't have rxdart
+Stream<List<T>> _combineLatest<T>(List<Stream<T>> streams) {
+  if (streams.isEmpty) {
+    return Stream.value([]);
+  }
+  
+  late StreamController<List<T>> controller;
+  List<T?> currentValues = List.filled(streams.length, null);
+  List<bool> hasValue = List.filled(streams.length, false);
+  
+  controller = StreamController<List<T>>.broadcast(
+    onListen: () {
+      int completed = 0;
+      List<dynamic> subscriptions = [];
+      
+      for (int i = 0; i < streams.length; i++) {
+        subscriptions.add(streams[i].listen(
+          (value) {
+            currentValues[i] = value;
+            hasValue[i] = true;
+            if (!hasValue.contains(false)) {
+              controller.add(List<T>.from(currentValues));
+            }
+          },
+          onError: controller.addError,
+          onDone: () {
+            completed++;
+            if (completed == streams.length) {
+              controller.close();
+            }
+          },
+        ));
+      }
+      
+      controller.onCancel = () {
+        for (var sub in subscriptions) {
+          sub.cancel();
+        }
+      };
+    },
+  );
+  
+  return controller.stream;
 }

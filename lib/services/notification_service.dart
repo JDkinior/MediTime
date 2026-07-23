@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/models/tratamiento.dart';
+import 'package:meditime/models/caregiver_profile.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
@@ -454,8 +455,9 @@ class NotificationService {
   /// dosis con estado 'pendiente' para programar una nueva alarma.
   static Future<void> rescheduleNextPendingDose(
     Tratamiento tratamiento,
-    String userId,
-  ) async {
+    String userId, [
+    CaregiverProfile? profile,
+  ]) async {
     // Cancelamos cualquier alarma que pudiera estar programada para esta serie
     await AndroidAlarmManager.cancel(tratamiento.prescriptionAlarmId);
 
@@ -466,7 +468,7 @@ class NotificationService {
       debugPrint(
         "REPROGRAMANDO: Próxima dosis para '${tratamiento.nombreMedicamento}' será a las $proximaDosis",
       );
-      await _rescheduleAlarm(proximaDosis, tratamiento, userId);
+      await _rescheduleAlarm(proximaDosis, tratamiento, userId, profile);
     } else {
       debugPrint(
         "REPROGRAMANDO: No hay más dosis pendientes para '${tratamiento.nombreMedicamento}'.",
@@ -608,6 +610,7 @@ class NotificationService {
     required int prescriptionAlarmManagerId,
     required String userId,
     required String docId,
+    CaregiverProfile? profile,
   }) async {
     if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
       debugPrint(
@@ -615,17 +618,27 @@ class NotificationService {
       );
 
       // CAMBIO CRÍTICO: Incluir todos los datos necesarios para funcionamiento offline
-      final Map<String, dynamic> completeParams = {
-        'currentNotificationId': Random().nextInt(100000),
-        'nombreMedicamento': nombreMedicamento,
-        'presentacion': presentacion,
-        'intervaloHoras': intervaloEnHoras,
-        'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
-        'prescriptionAlarmId': prescriptionAlarmManagerId,
-        'userId': userId,
-        'docId': docId,
-        'doseTime': primeraDosisDateTime.toIso8601String(),
-      };
+      final Map<String, dynamic> completeParams = _buildAlarmParams(
+        nombreMedicamento: nombreMedicamento,
+        presentacion: presentacion,
+        intervaloHoras: intervaloEnHoras,
+        fechaFinTratamiento: fechaFinTratamiento,
+        prescriptionAlarmId: prescriptionAlarmManagerId,
+        userId: userId,
+        docId: docId,
+        doseTime: primeraDosisDateTime,
+        profileId: profile?.id,
+        pacienteNombre: profile?.name,
+        habitacion: profile?.roomNumber,
+        categoria: profile?.category,
+        dosisPorToma: 1, // Default or fetch from formData if needed, but 1 is safe default here if not passed
+      );
+      
+      // We pass isExternalUser and linkedUid through _buildAlarmParams by modifying it
+      if (profile != null) {
+        completeParams['isExternalUser'] = profile.isExternalUser;
+        completeParams['linkedUid'] = profile.linkedUid;
+      }
 
       await AndroidAlarmManager.oneShotAt(
         primeraDosisDateTime,
@@ -798,6 +811,13 @@ class NotificationService {
     required String userId,
     required String docId,
     required DateTime doseTime,
+    String? profileId,
+    String? pacienteNombre,
+    String? habitacion,
+    String? categoria,
+    int? dosisPorToma,
+    bool? isExternalUser,
+    String? linkedUid,
   }) {
     return {
       // IDs y configuración básica
@@ -813,6 +833,15 @@ class NotificationService {
       'intervaloHoras': intervaloHoras,
       'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
 
+      // Datos del paciente/cuidador
+      'profileId': profileId,
+      'pacienteNombre': pacienteNombre,
+      'habitacion': habitacion,
+      'categoria': categoria,
+      'dosisPorToma': dosisPorToma ?? 1,
+      'isExternalUser': isExternalUser,
+      'linkedUid': linkedUid,
+
       // Metadatos adicionales
       'scheduledAt': DateTime.now().toIso8601String(),
       'version': '2.0', // Para tracking de versiones del payload
@@ -823,8 +852,9 @@ class NotificationService {
   static Future<void> _rescheduleAlarm(
     DateTime scheduleTime,
     Tratamiento tratamiento,
-    String userId,
-  ) async {
+    String userId, [
+    CaregiverProfile? profile,
+  ]) async {
     await AndroidAlarmManager.oneShotAt(
       scheduleTime,
       tratamiento.prescriptionAlarmId,
@@ -843,9 +873,16 @@ class NotificationService {
         userId: userId,
         docId: tratamiento.id,
         doseTime: scheduleTime,
+        profileId: profile?.id,
+        pacienteNombre: profile?.name,
+        habitacion: profile?.roomNumber,
+        categoria: profile?.category,
+        dosisPorToma: tratamiento.dosisPorToma,
+        isExternalUser: profile?.isExternalUser,
+        linkedUid: profile?.linkedUid,
       ),
     );
-    debugPrint("Alarma reprogramada para: $scheduleTime con datos completos");
+    debugPrint("Alarma reprogramada para: $scheduleTime con datos completos (${profile?.name ?? 'Personal'})");
   }
 
   /// Busca la próxima dosis futura que tenga el estado `DoseStatus.pendiente`.

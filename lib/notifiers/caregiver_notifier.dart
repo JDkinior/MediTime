@@ -12,6 +12,8 @@ class CaregiverNotifier extends ChangeNotifier {
   String? _activeProfileId;
   List<CaregiverProfile> _managedProfiles = [];
   bool _isLoading = false;
+  bool _notifyPatientDoses = true;
+  bool _includeLocationInNotifications = true;
 
   CaregiverNotifier(this._preferenceService, this._firestoreService) {
     _loadPreferences();
@@ -23,6 +25,8 @@ class CaregiverNotifier extends ChangeNotifier {
   List<CaregiverProfile> get managedProfiles => _managedProfiles;
   bool get isLoading => _isLoading;
   bool get isGeneralMode => _activeProfileId == 'general';
+  bool get notifyPatientDoses => _notifyPatientDoses;
+  bool get includeLocationInNotifications => _includeLocationInNotifications;
 
   CaregiverProfile? get activeProfile {
     if (_activeProfileId == null || _activeProfileId == 'general') return null;
@@ -38,6 +42,8 @@ class CaregiverNotifier extends ChangeNotifier {
     final typeStr = await _preferenceService.getCaregiverModeType();
     _modeType = typeStr == 'clinico' ? CaregiverModeType.clinico : CaregiverModeType.familiar;
     _activeProfileId = await _preferenceService.getCaregiverActiveProfile();
+    _notifyPatientDoses = await _preferenceService.getCaregiverNotifyPatientDoses();
+    _includeLocationInNotifications = await _preferenceService.getCaregiverIncludeLocation();
     notifyListeners();
   }
 
@@ -80,6 +86,18 @@ class CaregiverNotifier extends ChangeNotifier {
   Future<void> setActiveProfileId(String? profileId) async {
     _activeProfileId = profileId;
     await _preferenceService.saveCaregiverActiveProfile(profileId);
+    notifyListeners();
+  }
+
+  Future<void> setNotifyPatientDoses(bool val) async {
+    _notifyPatientDoses = val;
+    await _preferenceService.saveCaregiverNotifyPatientDoses(val);
+    notifyListeners();
+  }
+
+  Future<void> setIncludeLocationInNotifications(bool val) async {
+    _includeLocationInNotifications = val;
+    await _preferenceService.saveCaregiverIncludeLocation(val);
     notifyListeners();
   }
 }

@@ -1,6 +1,19 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:meditime/theme/app_theme.dart';
+import 'package:meditime/models/caregiver_profile.dart';
+
+Color _parseColorHex(String hexString, {Color defaultColor = AppTheme.primaryColor}) {
+  try {
+    String cleanHex = hexString.replaceFirst('#', '');
+    if (cleanHex.length == 6) {
+      cleanHex = 'FF$cleanHex';
+    }
+    return Color(int.parse(cleanHex, radix: 16));
+  } catch (_) {
+    return defaultColor;
+  }
+}
 
 class AdherenceBarChart extends StatelessWidget {
   final double tomadas;
@@ -91,19 +104,33 @@ class AdherenceBarChart extends StatelessWidget {
 
 class WeeklyComplianceChart extends StatelessWidget {
   final List<double> values;
+  final Color? barColor;
+  final List<Map<CaregiverProfile, double>>? stackedValues;
+  final List<String>? customLabels;
 
   const WeeklyComplianceChart({
     super.key,
     required this.values,
+    this.barColor,
+    this.stackedValues,
+    this.customLabels,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Asegurarse de tener exactamente 7 valores
-    final chartValues = values.length == 7 ? values : List.filled(7, 0.0);
-    
-    // Obtener el día actual de la semana (1 = Lunes, 7 = Domingo)
+    final bool isStacked = stackedValues != null && stackedValues!.isNotEmpty;
+    final int itemCount = isStacked
+        ? stackedValues!.length
+        : (values.isNotEmpty ? values.length : 7);
+
+    final chartValues = values.length == itemCount ? values : List.filled(itemCount, 0.0);
     final int currentDayOfWeek = DateTime.now().weekday;
+    final primaryBarColor = barColor ?? AppTheme.primaryColor;
+
+    final defaultLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    final labels = (customLabels != null && customLabels!.length == itemCount)
+        ? customLabels!
+        : (itemCount == 7 ? defaultLabels : List.generate(itemCount, (i) => '${i + 1}'));
 
     return BarChart(
       BarChartData(
@@ -113,7 +140,7 @@ class WeeklyComplianceChart extends StatelessWidget {
         borderData: FlBorderData(show: false),
         barTouchData: BarTouchData(
           touchTooltipData: BarTouchTooltipData(
-            getTooltipColor: (_) => AppTheme.primaryColor,
+            getTooltipColor: (_) => primaryBarColor,
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
               return BarTooltipItem(
                 '${rod.toY.toInt()}%',
@@ -133,55 +160,88 @@ class WeeklyComplianceChart extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               getTitlesWidget: (value, meta) {
-                final style = TextStyle(
-                  color: AppTheme.secondaryTextColor,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                );
-                String text = '';
-                switch (value.toInt()) {
-                  case 0: text = 'L'; break;
-                  case 1: text = 'M'; break;
-                  case 2: text = 'M'; break;
-                  case 3: text = 'J'; break;
-                  case 4: text = 'V'; break;
-                  case 5: text = 'S'; break;
-                  case 6: text = 'D'; break;
+                final idx = value.toInt();
+                if (idx >= 0 && idx < labels.length) {
+                  return SideTitleWidget(
+                    axisSide: meta.axisSide,
+                    space: 6,
+                    child: Text(
+                      labels[idx],
+                      style: TextStyle(
+                        color: AppTheme.secondaryTextColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: itemCount > 7 ? 11 : 13,
+                      ),
+                    ),
+                  );
                 }
-                return SideTitleWidget(
-                  axisSide: meta.axisSide,
-                  space: 8,
-                  child: Text(text, style: style),
-                );
+                return const SizedBox.shrink();
               },
               reservedSize: 28,
             ),
           ),
         ),
-        barGroups: List.generate(7, (index) {
-          final val = chartValues[index];
-          // El color principal se aplica al día actual de la semana
-          final isToday = (index + 1) == currentDayOfWeek;
+        barGroups: List.generate(itemCount, (index) {
+          final isToday = itemCount == 7 && (index + 1) == currentDayOfWeek;
+          final rodWidth = itemCount > 7 ? (itemCount > 10 ? 8.0 : 10.0) : 14.0;
 
-          return BarChartGroupData(
-            x: index,
-            barRods: [
-              BarChartRodData(
-                toY: val,
-                // Color corporativo clínico para hoy, o un tono azul claro pastel para otros días
-                color: isToday 
-                    ? AppTheme.primaryColor 
-                    : const Color(0xFFB4C6FF),
-                width: 14,
-                borderRadius: BorderRadius.circular(10), // Totalmente redondeado/cápsula
-                backDrawRodData: BackgroundBarChartRodData(
-                  show: true,
-                  toY: 100,
-                  color: const Color(0xFFEFF4FF).withOpacity(0.5),
+          if (isStacked) {
+            final dayMap = stackedValues![index];
+            double accumulatedY = 0.0;
+            final List<BarChartRodStackItem> rodStackItems = [];
+
+            dayMap.forEach((profile, pct) {
+              if (pct > 0) {
+                final pColor = _parseColorHex(profile.colorHex);
+                final fromY = accumulatedY;
+                final toY = accumulatedY + pct;
+                rodStackItems.add(BarChartRodStackItem(fromY, toY, pColor));
+                accumulatedY = toY;
+              }
+            });
+
+            final totalToY = accumulatedY.clamp(0.0, 100.0);
+
+            return BarChartGroupData(
+              x: index,
+              barRods: [
+                BarChartRodData(
+                  toY: totalToY,
+                  color: rodStackItems.isNotEmpty ? rodStackItems.first.color : primaryBarColor,
+                  rodStackItems: rodStackItems,
+                  width: rodWidth,
+                  borderRadius: BorderRadius.circular(itemCount > 7 ? 4 : 10),
+                  backDrawRodData: BackgroundBarChartRodData(
+                    show: true,
+                    toY: 100,
+                    color: const Color(0xFFEFF4FF).withOpacity(0.08),
+                  ),
                 ),
-              ),
-            ],
-          );
+              ],
+            );
+          } else {
+            final val = chartValues[index];
+            final displayColor = isToday 
+                ? primaryBarColor 
+                : primaryBarColor.withOpacity(0.5);
+
+            return BarChartGroupData(
+              x: index,
+              barRods: [
+                BarChartRodData(
+                  toY: val,
+                  color: displayColor,
+                  width: rodWidth,
+                  borderRadius: BorderRadius.circular(itemCount > 7 ? 4 : 10),
+                  backDrawRodData: BackgroundBarChartRodData(
+                    show: true,
+                    toY: 100,
+                    color: const Color(0xFFEFF4FF).withOpacity(0.08),
+                  ),
+                ),
+              ],
+            );
+          }
         }),
       ),
     );

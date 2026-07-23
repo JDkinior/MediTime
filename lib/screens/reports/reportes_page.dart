@@ -88,7 +88,7 @@ class _ReportesPageState extends State<ReportesPage> {
     final end = dateRange['end']!;
 
     // Generar solo las dosis en el rango de fechas programadas
-    final todasLasDosis = TratamientoService().generarDosisEnRango(tratamiento, start, end);
+    final todasLasDosis = TratamientoService.generarDosisEnRango(tratamiento, start, end);
 
     // Mapear el estado de cada dosis por su timestamp para búsqueda rápida
     final Map<int, DoseStatus> statusMap = {};
@@ -496,11 +496,19 @@ class _ReportesPageState extends State<ReportesPage> {
 
   Widget _buildIntervalSelector() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      padding: const EdgeInsets.all(4),
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: const Color(0xFFC3C6D7).withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: ReportInterval.values.map((interval) {
@@ -529,16 +537,16 @@ class _ReportesPageState extends State<ReportesPage> {
                 });
               },
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
+                duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOut,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(24),
                   color: isSelected ? AppTheme.primaryColor : Colors.transparent,
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: AppTheme.primaryColor.withOpacity(0.15),
+                            color: AppTheme.primaryColor.withValues(alpha: 0.2),
                             blurRadius: 6,
                             offset: const Offset(0, 3),
                           ),
@@ -546,12 +554,15 @@ class _ReportesPageState extends State<ReportesPage> {
                       : null,
                 ),
                 child: Center(
-                  child: Text(
-                    text,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                      fontSize: 13,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      text,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ),

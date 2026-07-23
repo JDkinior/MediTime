@@ -86,25 +86,8 @@ class FirestoreTreatmentRepository implements TreatmentRepository {
     required String notas,
   }) async {
     try {
-      // Generate initial dose status map
-      final tratamientoService = TratamientoService();
-      final tempTratamiento = Tratamiento(
-        id: '',
-        nombreMedicamento: nombreMedicamento,
-        presentacion: presentacion,
-        duracion: duracion,
-        horaPrimeraDosis: horaPrimeraDosis,
-        intervaloDosis: intervaloDosis,
-        prescriptionAlarmId: prescriptionAlarmId,
-        fechaInicioTratamiento: fechaInicioTratamiento,
-        fechaFinTratamiento: fechaFinTratamiento,
-      );
-
-      final List<DateTime> todasLasDosis = tratamientoService.generarDosisTotales(tempTratamiento);
-      final Map<String, String> doseStatusMap = {
-        for (var dosis in todasLasDosis)
-          dosis.toIso8601String(): DoseStatus.pendiente.toString().split('.').last
-      };
+      // Usamos Lazy Loading: mapa de dosis vacio inicialmente
+      final Map<String, String> doseStatusMap = {};
 
       // Create a temporary treatment object to use its toFirestoreMap method
       final tempTreatment = Tratamiento(
