@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/caregiver/manage_caregiver_profiles_page.dart';
@@ -318,7 +319,9 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                       decoration: BoxDecoration(
                         color: isDark ? AppTheme.backgroundColor : const Color(0xFFFAFCFF),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppTheme.borderColor),
+                        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                            ? Border.all(color: AppTheme.borderColor)
+                            : null,
                       ),
                       child: Column(
                         children: [
@@ -436,7 +439,9 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                         decoration: BoxDecoration(
                           color: isDark ? AppTheme.backgroundColor : const Color(0xFFFAFCFF),
                           borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: AppTheme.borderColor),
+                          border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                              ? Border.all(color: AppTheme.borderColor)
+                              : null,
                         ),
                         child: Row(
                           children: [

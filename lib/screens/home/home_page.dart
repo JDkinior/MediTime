@@ -309,6 +309,7 @@ class _HomePageState extends State<HomePage> {
             
         final caregiverNotifier = ctx.watch<CaregiverNotifier>();
         final isCaregiverActive = caregiverNotifier.isCaregiverModeActive;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return Scaffold(
           appBar: AppBar(
@@ -327,7 +328,9 @@ class _HomePageState extends State<HomePage> {
                       decoration: BoxDecoration(
                         color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.borderColor),
+                        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                            ? Border.all(color: AppTheme.borderColor)
+                            : null,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.04),
@@ -527,21 +530,23 @@ class _HomePageState extends State<HomePage> {
                               height: 64,
                               decoration: BoxDecoration(color: Theme.of(context).cardColor,
                                 borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
-                                  color: const Color(0xFFC3C6D7).withOpacity(0.3),
-                                  width: 1,
-                                ),
+                                border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                                    ? Border.all(color: AppTheme.borderColor, width: 1)
+                                    : null,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, -2),
+                                    color: isDark
+                                        ? Colors.black.withValues(alpha: 0.45)
+                                        : Colors.black.withValues(alpha: 0.04),
+                                    blurRadius: isDark ? 16 : 10,
+                                    offset: const Offset(0, -3),
                                   ),
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.02),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 4),
-                                  ),
+                                  if (!isDark)
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.02),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 4),
+                                    ),
                                 ],
                               ),
                               child: ClipRRect(
@@ -679,12 +684,18 @@ class _HomePageState extends State<HomePage> {
                   child: Container(
                     decoration: BoxDecoration(
                       color: AppTheme.backgroundColor,
-                      border: Border(
-                        top: BorderSide(
-                          color: const Color(0xFFC3C6D7).withOpacity(0.3),
-                          width: 1,
+                      border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                          ? Border(top: BorderSide(color: AppTheme.borderColor, width: 1))
+                          : null,
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDark
+                              ? Colors.black.withValues(alpha: 0.45)
+                              : Colors.black.withValues(alpha: 0.04),
+                          blurRadius: isDark ? 16 : 10,
+                          offset: const Offset(0, -3),
                         ),
-                      ),
+                      ],
                     ),
                     child: ValueListenableBuilder<int>(
                       valueListenable: _currentIndexNotifier,

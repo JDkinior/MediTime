@@ -6,6 +6,7 @@ import 'package:meditime/enums/view_state.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'package:provider/provider.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/pdf_report_service.dart';
@@ -501,7 +502,9 @@ class _ReportesPageState extends State<ReportesPage> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: const Color(0xFFC3C6D7).withValues(alpha: 0.3)),
+        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+            ? Border.all(color: const Color(0xFFC3C6D7).withValues(alpha: 0.3))
+            : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -586,7 +589,9 @@ class _ReportesPageState extends State<ReportesPage> {
             offset: Offset(0, 6),
           )
         ],
-        border: Border.all(color: AppTheme.borderColor),
+        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+            ? Border.all(color: AppTheme.borderColor)
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -707,9 +712,9 @@ class _ReportesPageState extends State<ReportesPage> {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: borderColor,
-        ),
+        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+            ? Border.all(color: borderColor)
+            : null,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -843,7 +848,9 @@ class _ReportesPageState extends State<ReportesPage> {
               offset: Offset(0, 4),
             )
           ],
-          border: Border.all(color: AppTheme.borderColor),
+          border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+              ? Border.all(color: AppTheme.borderColor)
+              : null,
         ),
         child: Column(
           children: [
@@ -916,7 +923,9 @@ class _ReportesPageState extends State<ReportesPage> {
             offset: Offset(0, 6),
           )
         ],
-        border: Border.all(color: AppTheme.borderColor),
+        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+            ? Border.all(color: AppTheme.borderColor)
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1092,7 +1101,9 @@ class _ReportesPageState extends State<ReportesPage> {
             offset: Offset(0, 4),
           )
         ],
-        border: Border.all(color: AppTheme.borderColor),
+        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+            ? Border.all(color: AppTheme.borderColor)
+            : null,
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -1257,7 +1268,9 @@ class _ReportesPageState extends State<ReportesPage> {
                   offset: Offset(0, 4),
                 )
               ],
-              border: Border.all(color: AppTheme.borderColor),
+              border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                  ? Border.all(color: AppTheme.borderColor)
+                  : null,
             ),
             child: ListView.separated(
               shrinkWrap: true,
@@ -1394,10 +1407,9 @@ class _ReportesPageState extends State<ReportesPage> {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? const Color(0xFF2E2A5C) : const Color(0xFFE0E7FF),
-          width: 1,
-        ),
+        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+            ? Border.all(color: isDark ? const Color(0xFF2E2A5C) : const Color(0xFFE0E7FF), width: 1)
+            : null,
       ),
       child: Row(
         children: [
@@ -1506,7 +1518,9 @@ class _ReportesPageState extends State<ReportesPage> {
                 offset: Offset(0, 4),
               )
             ],
-            border: Border.all(color: AppTheme.borderColor),
+            border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                ? Border.all(color: AppTheme.borderColor)
+                : null,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,

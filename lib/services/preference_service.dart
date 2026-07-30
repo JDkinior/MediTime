@@ -17,6 +17,7 @@ class PreferenceService {
   static const String _largeTextKey = 'large_text_active';
   static const String _largeButtonsKey = 'large_buttons_active';
   static const String _simplifiedInterfaceKey = 'simplified_interface_active';
+  static const String _showCardBorderKey = 'show_card_border_active';
 
   // Caregiver Mode keys
   static const String _caregiverModeActiveKey = 'caregiver_mode_active';
@@ -131,6 +132,17 @@ class PreferenceService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.reload();
     return prefs.getBool(_simplifiedInterfaceKey) ?? false;
+  }
+
+  Future<void> saveShowCardBorder(bool isActive) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_showCardBorderKey, isActive);
+  }
+
+  Future<bool> getShowCardBorder() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool(_showCardBorderKey) ?? false;
   }
 
   // --- Sesión de usuario actual ---

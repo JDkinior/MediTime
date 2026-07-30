@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/notification_service.dart';
@@ -246,7 +247,9 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderColor),
+        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+            ? Border.all(color: AppTheme.borderColor)
+            : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.02),

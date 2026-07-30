@@ -4,6 +4,7 @@ import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/models/caregiver_profile.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/services/preference_service.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -486,7 +487,9 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                 decoration: BoxDecoration(
                   color: AppTheme.surfaceColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.borderColor),
+                  border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                      ? Border.all(color: AppTheme.borderColor)
+                      : null,
                 ),
                 child: Column(
                   children: [
@@ -751,10 +754,13 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
         RepaintBoundary(
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            decoration: BoxDecoration(color: Theme.of(context).cardColor,
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(20),
               boxShadow: AppTheme.cardShadow,
-              border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+              border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                  ? Border.all(color: AppTheme.borderColor)
+                  : null,
             ),
             child: _buildCalendar(),
           ),
@@ -766,9 +772,12 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Theme.of(context).cardColor,
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+                border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                    ? Border.all(color: AppTheme.borderColor)
+                    : null,
                 boxShadow: AppTheme.cardShadow,
               ),
               child: Column(
@@ -1111,9 +1120,12 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                     ),
                     child: Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: Theme.of(context).cardColor,
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardColor,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+                        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                            ? Border.all(color: AppTheme.borderColor)
+                            : null,
                         boxShadow: AppTheme.cardShadow,
                       ),
                       child: Row(

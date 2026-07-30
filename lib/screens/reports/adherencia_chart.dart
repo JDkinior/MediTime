@@ -118,6 +118,11 @@ class WeeklyComplianceChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color trackColor = isDark
+        ? const Color(0xFFEFF4FF).withValues(alpha: 0.08)
+        : const Color(0xFFE2E8F0);
+
     final bool isStacked = stackedValues != null && stackedValues!.isNotEmpty;
     final int itemCount = isStacked
         ? stackedValues!.length
@@ -214,7 +219,7 @@ class WeeklyComplianceChart extends StatelessWidget {
                   backDrawRodData: BackgroundBarChartRodData(
                     show: true,
                     toY: 100,
-                    color: const Color(0xFFEFF4FF).withOpacity(0.08),
+                    color: trackColor,
                   ),
                 ),
               ],
@@ -223,7 +228,7 @@ class WeeklyComplianceChart extends StatelessWidget {
             final val = chartValues[index];
             final displayColor = isToday 
                 ? primaryBarColor 
-                : primaryBarColor.withOpacity(0.5);
+                : primaryBarColor.withValues(alpha: 0.5);
 
             return BarChartGroupData(
               x: index,
@@ -236,7 +241,7 @@ class WeeklyComplianceChart extends StatelessWidget {
                   backDrawRodData: BackgroundBarChartRodData(
                     show: true,
                     toY: 100,
-                    color: const Color(0xFFEFF4FF).withOpacity(0.08),
+                    color: trackColor,
                   ),
                 ),
               ],

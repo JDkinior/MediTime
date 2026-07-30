@@ -137,8 +137,14 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             title: 'MediTime',
             navigatorKey: navigatorKey,
-            theme: AppTheme.getLightTheme(largeButtons: preferenceNotifier.largeButtons),
-            darkTheme: AppTheme.getDarkTheme(largeButtons: preferenceNotifier.largeButtons),
+            theme: AppTheme.getLightTheme(
+              largeButtons: preferenceNotifier.largeButtons,
+              showCardBorder: preferenceNotifier.showCardBorder || preferenceNotifier.highContrast,
+            ),
+            darkTheme: AppTheme.getDarkTheme(
+              largeButtons: preferenceNotifier.largeButtons,
+              showCardBorder: preferenceNotifier.showCardBorder || preferenceNotifier.highContrast,
+            ),
             themeMode: preferenceNotifier.themeModeEnum,
             builder: (context, widget) {
               final mediaQueryData = MediaQuery.of(context);

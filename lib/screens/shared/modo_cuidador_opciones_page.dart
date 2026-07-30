@@ -113,7 +113,9 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.borderColor),
+                border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                    ? Border.all(color: AppTheme.borderColor)
+                    : null,
               ),
               child: Column(
                 children: [
@@ -158,7 +160,9 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.borderColor),
+                border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                    ? Border.all(color: AppTheme.borderColor)
+                    : null,
               ),
               child: Column(
                 children: [
@@ -203,7 +207,9 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.borderColor),
+                border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                    ? Border.all(color: AppTheme.borderColor)
+                    : null,
               ),
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/shared/accesibilidad_page.dart';
 import 'package:meditime/screens/shared/diseno_apariencia_page.dart';
@@ -80,7 +82,9 @@ class OpcionesPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderColor),
+        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+            ? Border.all(color: AppTheme.borderColor)
+            : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.02),

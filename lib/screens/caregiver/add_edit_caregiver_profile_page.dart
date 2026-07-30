@@ -352,7 +352,9 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppTheme.borderColor),
+            border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                ? Border.all(color: AppTheme.borderColor)
+                : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -429,7 +431,9 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppTheme.borderColor),
+            border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                ? Border.all(color: AppTheme.borderColor)
+                : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -536,7 +540,9 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppTheme.borderColor),
+            border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                ? Border.all(color: AppTheme.borderColor)
+                : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -607,7 +613,9 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppTheme.borderColor),
+            border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                ? Border.all(color: AppTheme.borderColor)
+                : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

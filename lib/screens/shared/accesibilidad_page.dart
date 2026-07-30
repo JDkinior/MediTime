@@ -54,6 +54,15 @@ class AccesibilidadPage extends StatelessWidget {
                 ),
                 _buildAccessibilityOption(
                   context: context,
+                  title: 'Borde en tarjetas',
+                  description: 'Muestra un borde visible alrededor de todas las tarjetas para definir sus contornos.',
+                  value: preferenceNotifier.showCardBorder,
+                  onChanged: (val) => preferenceNotifier.setShowCardBorder(val),
+                  icon: Icons.crop_square_rounded,
+                  demoWidget: _buildCardBorderDemo(context, preferenceNotifier.showCardBorder),
+                ),
+                _buildAccessibilityOption(
+                  context: context,
                   title: 'Interfaz Simplificada',
                   description: 'Oculta opciones secundarias y se enfoca solo en lo más importante (tus alarmas y medicamentos).',
                   value: preferenceNotifier.simplifiedInterface,
@@ -223,6 +232,47 @@ class AccesibilidadPage extends StatelessWidget {
       onPressed: () {},
       icon: const Icon(Icons.check_circle_outline),
       label: const Text('Botón de Ejemplo'),
+    );
+  }
+
+  Widget _buildCardBorderDemo(BuildContext context, bool showBorder) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: showBorder ? Border.all(color: AppTheme.borderColor, width: 1.5) : null,
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.medication_rounded, color: AppTheme.primaryColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '07:30 a. m. • Noxpirin',
+                style: TextStyle(color: AppTheme.primaryTextColor, fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Ejemplo de tarjeta',
+                style: TextStyle(color: AppTheme.secondaryTextColor, fontSize: 12),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

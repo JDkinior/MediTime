@@ -10,6 +10,7 @@ import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/storage_service.dart';
 import 'package:meditime/notifiers/profile_notifier.dart'; // Se importa el notifier
+import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart'; // Se importa el tema para estilos consistentes
 import 'package:meditime/screens/shared/localizador_farmacias_page.dart';
 import 'package:meditime/widgets/treatment_form/form_field_wrapper.dart';
@@ -461,7 +462,9 @@ class _PerfilPageState extends State<PerfilPage> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: AppTheme.borderColor),
+                  border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                      ? Border.all(color: AppTheme.borderColor)
+                      : null,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.02),
@@ -866,10 +869,11 @@ class _PerfilPageState extends State<PerfilPage> {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: (enabled && isFocused) ? AppTheme.primaryColor : AppTheme.borderColor,
-            width: (enabled && isFocused) ? 2 : 1,
-          ),
+          border: (enabled && isFocused)
+              ? Border.all(color: AppTheme.primaryColor, width: 2)
+              : ((context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                  ? Border.all(color: AppTheme.borderColor, width: 1)
+                  : null),
         ),
         child: Row(
           children: [
@@ -939,7 +943,9 @@ class _PerfilPageState extends State<PerfilPage> {
       decoration: BoxDecoration(
         color: AppTheme.primaryColor.withOpacity(0.06),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.15)),
+        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+            ? Border.all(color: AppTheme.primaryColor.withOpacity(0.15))
+            : null,
       ),
       child: Row(
         children: [

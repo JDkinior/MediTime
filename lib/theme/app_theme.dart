@@ -42,22 +42,26 @@ class AppTheme {
   static Color cardColor = Colors.white;
   static Color borderColor = const Color(0xFFEFF3F9);
 
+  /// Track current theme mode state
+  static bool currentIsDark = false;
+
   /// Updates static colors to match light or dark mode and high contrast.
   static void updateThemeColors(bool isDark, {bool highContrast = false}) {
+    currentIsDark = isDark;
     if (highContrast) {
       backgroundColor = isDark ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
       primaryTextColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
       secondaryTextColor = isDark ? const Color(0xFFCCCCCC) : const Color(0xFF333333);
-      surfaceColor = isDark ? const Color(0xFF121212) : const Color(0xFFF0F0F0);
-      cardColor = isDark ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
+      surfaceColor = isDark ? const Color(0xFF16181F) : const Color(0xFFF0F0F0);
+      cardColor = isDark ? const Color(0xFF1F232D) : const Color(0xFFFFFFFF);
       borderColor = isDark ? const Color(0xFF444444) : const Color(0xFFBBBBBB);
     } else {
       backgroundColor = isDark ? const Color(0xFF111318) : const Color(0xFFF8F9FF);
       primaryTextColor = isDark ? const Color(0xFFE2E2E9) : const Color(0xFF0B1C30);
       secondaryTextColor = isDark ? const Color(0xFF9093A5) : const Color(0xFF434655);
-      surfaceColor = isDark ? const Color(0xFF1D2027) : const Color(0xFFEFF4FF);
-      cardColor = isDark ? const Color(0xFF1A1C23) : Colors.white;
-      borderColor = isDark ? const Color(0xFF2A2D3C) : const Color(0xFFEFF3F9);
+      surfaceColor = isDark ? const Color(0xFF191C24) : const Color(0xFFEFF4FF);
+      cardColor = isDark ? const Color(0xFF1F232D) : Colors.white;
+      borderColor = isDark ? const Color(0xFF2E3342) : const Color(0xFFEFF3F9);
     }
   }
 
@@ -87,12 +91,12 @@ class AppTheme {
   // -------------------
 
   /// Standard card shadow used throughout the application.
-  static const List<BoxShadow> cardShadow = [
+  static List<BoxShadow> get cardShadow => [
     BoxShadow(
-      color: Color(0x0A000000), // ~4% Black
-      blurRadius: 15,
+      color: currentIsDark ? Colors.black.withValues(alpha: 0.32) : const Color(0x0A000000),
+      blurRadius: currentIsDark ? 10 : 15,
       spreadRadius: 0,
-      offset: Offset(0, 4),
+      offset: const Offset(0, 4),
     ),
   ];
 
@@ -210,12 +214,13 @@ class AppTheme {
   );
 
   /// Card theme
-  static CardThemeData get cardTheme => CardThemeData(
+  static CardThemeData getCardTheme({bool showCardBorder = false}) => CardThemeData(
     color: cardColor,
-    shadowColor: const Color.fromARGB(20, 47, 109, 180),
+    shadowColor: const Color.fromARGB(40, 0, 0, 0),
     elevation: 4,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(defaultBorderRadius),
+      side: showCardBorder ? BorderSide(color: borderColor, width: 1) : BorderSide.none,
     ),
   );
 
@@ -235,12 +240,15 @@ class AppTheme {
   // -------------------
 
   /// Light theme configuration
-  static ThemeData getLightTheme({bool largeButtons = false}) => ThemeData(
+  static ThemeData getLightTheme({bool largeButtons = false, bool showCardBorder = false}) => ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
+    cardColor: cardColor,
     colorScheme: ColorScheme.fromSeed(
       seedColor: primaryColor,
       surface: backgroundColor,
+      surfaceContainer: cardColor,
+      surfaceContainerHigh: cardColor,
       brightness: Brightness.light,
     ),
     scaffoldBackgroundColor: backgroundColor,
@@ -256,7 +264,7 @@ class AppTheme {
     ),
     inputDecorationTheme: inputDecorationTheme,
     elevatedButtonTheme: getElevatedButtonTheme(largeButtons: largeButtons),
-    cardTheme: cardTheme,
+    cardTheme: getCardTheme(showCardBorder: showCardBorder),
     textTheme: const TextTheme(
       headlineLarge: pageTitleStyle,
       headlineMedium: sectionTitleStyle,
@@ -268,12 +276,15 @@ class AppTheme {
   );
 
   /// Dark theme configuration
-  static ThemeData getDarkTheme({bool largeButtons = false}) => ThemeData(
+  static ThemeData getDarkTheme({bool largeButtons = false, bool showCardBorder = false}) => ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
+    cardColor: cardColor,
     colorScheme: ColorScheme.fromSeed(
       seedColor: primaryColor,
       surface: backgroundColor,
+      surfaceContainer: cardColor,
+      surfaceContainerHigh: cardColor,
       brightness: Brightness.dark,
     ),
     scaffoldBackgroundColor: backgroundColor,
@@ -289,7 +300,7 @@ class AppTheme {
     ),
     inputDecorationTheme: inputDecorationTheme,
     elevatedButtonTheme: getElevatedButtonTheme(largeButtons: largeButtons),
-    cardTheme: cardTheme,
+    cardTheme: getCardTheme(showCardBorder: showCardBorder),
     textTheme: const TextTheme(
       headlineLarge: pageTitleStyle,
       headlineMedium: sectionTitleStyle,

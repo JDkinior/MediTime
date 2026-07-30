@@ -155,7 +155,9 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderColor),
+        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+            ? Border.all(color: AppTheme.borderColor)
+            : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.02),

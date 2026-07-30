@@ -416,18 +416,12 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isCompleted ? AppTheme.successColor.withOpacity(0.05) : AppTheme.surfaceColor,
+                    color: isCompleted ? AppTheme.successColor.withOpacity(0.05) : AppTheme.cardColor,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isCompleted ? AppTheme.successColor.withOpacity(0.3) : AppTheme.borderColor,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      )
-                    ],
+                    border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                        ? Border.all(color: isCompleted ? AppTheme.successColor.withOpacity(0.3) : AppTheme.borderColor)
+                        : null,
+                    boxShadow: AppTheme.cardShadow,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

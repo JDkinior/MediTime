@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/services/auth_service.dart';
@@ -681,7 +682,9 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+            ? Border.all(color: AppTheme.borderColor)
+            : null,
         boxShadow: AppTheme.cardShadow,
       ),
       child: Column(
@@ -771,7 +774,9 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+                border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                    ? Border.all(color: AppTheme.borderColor)
+                    : null,
                 boxShadow: AppTheme.cardShadow,
               ),
               child: Row(
@@ -814,7 +819,9 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+                border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                    ? Border.all(color: AppTheme.borderColor)
+                    : null,
                 boxShadow: AppTheme.cardShadow,
               ),
               child: Row(
@@ -884,7 +891,9 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+            ? Border.all(color: AppTheme.borderColor)
+            : null,
         boxShadow: AppTheme.cardShadow,
       ),
       child: Column(
@@ -1220,7 +1229,9 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.3)),
+        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+            ? Border.all(color: AppTheme.borderColor)
+            : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -1416,7 +1427,9 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
                           decoration: BoxDecoration(
                             color: Theme.of(context).cardColor,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+                            border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                                ? Border.all(color: AppTheme.borderColor)
+                                : null,
                             boxShadow: AppTheme.cardShadow,
                           ),
                           child: Row(
@@ -1519,7 +1532,9 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
                       decoration: BoxDecoration(color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+                        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                            ? Border.all(color: AppTheme.borderColor)
+                            : null,
                         boxShadow: AppTheme.cardShadow,
                       ),
                       child: Column(

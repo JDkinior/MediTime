@@ -34,6 +34,9 @@ class PreferenceNotifier extends ChangeNotifier {
   bool _simplifiedInterface = false;
   bool get simplifiedInterface => _simplifiedInterface;
 
+  bool _showCardBorder = false;
+  bool get showCardBorder => _showCardBorder;
+
   ThemeMode get themeModeEnum {
     switch (_themeMode) {
       case 'light':
@@ -63,6 +66,7 @@ class PreferenceNotifier extends ChangeNotifier {
     _largeText = await _preferenceService.getLargeText();
     _largeButtons = await _preferenceService.getLargeButtons();
     _simplifiedInterface = await _preferenceService.getSimplifiedInterface();
+    _showCardBorder = await _preferenceService.getShowCardBorder();
 
     _isLoading = false;
     notifyListeners();
@@ -129,5 +133,12 @@ class PreferenceNotifier extends ChangeNotifier {
     _simplifiedInterface = value;
     notifyListeners();
     await _preferenceService.saveSimplifiedInterface(value);
+  }
+
+  Future<void> setShowCardBorder(bool value) async {
+    if (_showCardBorder == value) return;
+    _showCardBorder = value;
+    notifyListeners();
+    await _preferenceService.saveShowCardBorder(value);
   }
 }

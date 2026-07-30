@@ -270,7 +270,9 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                 decoration: BoxDecoration(
                   color: AppTheme.surfaceColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.borderColor),
+                  border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                      ? Border.all(color: AppTheme.borderColor)
+                      : null,
                 ),
                 child: Column(
                   children: [
@@ -624,7 +626,9 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
               decoration: BoxDecoration(
                 color: AppTheme.surfaceColor,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.3)),
+                border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                    ? Border.all(color: AppTheme.borderColor)
+                    : null,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -974,9 +978,12 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                 ),
                 child: Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: Theme.of(context).cardColor,
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardColor,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.2)),
+                    border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                        ? Border.all(color: AppTheme.borderColor)
+                        : null,
                     boxShadow: AppTheme.cardShadow,
                   ),
                   child: Row(
