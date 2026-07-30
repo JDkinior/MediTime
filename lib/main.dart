@@ -35,11 +35,22 @@ import 'package:meditime/repositories/firestore_user_repository.dart';
 import 'package:meditime/use_cases/sign_out_use_case.dart';
 import 'package:meditime/use_cases/load_user_profile_use_case.dart';
 
+import 'package:flutter/services.dart';
 import 'package:meditime/services/widget_service.dart';
 
 /// Punto de entrada principal de la aplicación.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Enable edge-to-edge: the system navigation bar becomes transparent
+  // so the Scaffold background shows through, adapting to any theme.
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
+    systemNavigationBarContrastEnforced: false,
+  ));
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await NotificationService.initializeCore();
@@ -153,7 +164,26 @@ class MyApp extends StatelessWidget {
                 data: mediaQueryData.copyWith(
                   textScaler: TextScaler.linear(scale),
                 ),
-                child: widget!,
+                // Annotate the entire app so all screens use our overlay style
+                child: AnnotatedRegion<SystemUiOverlayStyle>(
+                  value: SystemUiOverlayStyle(
+                    statusBarColor: Colors.transparent,
+                    statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+                    statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+                    systemNavigationBarColor: Colors.transparent,
+                    systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+                    systemNavigationBarDividerColor: Colors.transparent,
+                    systemNavigationBarContrastEnforced: false,
+                  ),
+                  child: Container(
+                    color: AppTheme.backgroundColor,
+                    child: SafeArea(
+                      top: false, // AppBar handles the top
+                      bottom: true, // Prevent content behind system nav bar
+                      child: widget!,
+                    ),
+                  ),
+                ),
               );
             },
             localizationsDelegates: const [

@@ -4,7 +4,7 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
@@ -1398,9 +1398,6 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: AppTheme.primaryTextColor,
-        systemOverlayStyle: Theme.of(context).brightness == Brightness.light
-            ? SystemUiOverlayStyle.dark
-            : SystemUiOverlayStyle.light,
         titleSpacing: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),

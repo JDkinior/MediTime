@@ -259,7 +259,7 @@ class AppTheme {
     appBarTheme: appBarTheme.copyWith(
       backgroundColor: backgroundColor,
       foregroundColor: primaryTextColor,
-      systemOverlayStyle: SystemUiOverlayStyle.dark,
+      systemOverlayStyle: const SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: Brightness.dark, statusBarBrightness: Brightness.light),
       titleTextStyle: TextStyle(color: primaryTextColor, fontSize: 20, fontWeight: FontWeight.bold),
     ),
     inputDecorationTheme: inputDecorationTheme,
@@ -295,7 +295,7 @@ class AppTheme {
     appBarTheme: appBarTheme.copyWith(
       backgroundColor: backgroundColor,
       foregroundColor: primaryTextColor,
-      systemOverlayStyle: SystemUiOverlayStyle.light,
+      systemOverlayStyle: const SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: Brightness.light, statusBarBrightness: Brightness.dark),
       titleTextStyle: TextStyle(color: primaryTextColor, fontSize: 20, fontWeight: FontWeight.bold),
     ),
     inputDecorationTheme: inputDecorationTheme,
