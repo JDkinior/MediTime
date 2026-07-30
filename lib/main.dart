@@ -170,18 +170,14 @@ class MyApp extends StatelessWidget {
                     statusBarColor: Colors.transparent,
                     statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
                     statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
-                    systemNavigationBarColor: Colors.transparent,
+                    systemNavigationBarColor: AppTheme.backgroundColor,
                     systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
                     systemNavigationBarDividerColor: Colors.transparent,
                     systemNavigationBarContrastEnforced: false,
                   ),
                   child: Container(
                     color: AppTheme.backgroundColor,
-                    child: SafeArea(
-                      top: false, // AppBar handles the top
-                      bottom: true, // Prevent content behind system nav bar
-                      child: widget!,
-                    ),
+                    child: widget!,
                   ),
                 ),
               );
