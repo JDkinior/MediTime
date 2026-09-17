@@ -50,7 +50,6 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
   void initState() {
     super.initState();
     if (widget.tratamientoToEdit != null) {
-      _userInteractedWithTime = true;
       final t = widget.tratamientoToEdit!;
       _nombreMedicamentoController.text = t.nombreMedicamento;
       _cantidadActualController.text = t.cantidadActual.toString();
@@ -732,9 +731,6 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                   final selectedTime = TimeOfDay(hour: time.hour, minute: time.minute);
                   if (selectedTime.hour != notifier.formData.horaPrimeraDosis.hour ||
                       selectedTime.minute != notifier.formData.horaPrimeraDosis.minute) {
-                    setState(() {
-                      _userInteractedWithTime = true;
-                    });
                     notifier.updateHoraPrimeraDosis(selectedTime);
                   }
                 },
