@@ -76,7 +76,7 @@ class OpcionesPage extends StatelessWidget {
             title: l10n?.optionsCaregiver ?? 'Modo Cuidador',
             subtitle: l10n?.optionsCaregiverSubtitle ?? 'Configura la gestión multi-perfil para familiares o sector clínico.',
             icon: Icons.health_and_safety_outlined,
-            iconColor: Colors.teal,
+            iconColor: const Color(0xFF8B62D4),
             page: const ModoCuidadorOpcionesPage(),
           ),
           _buildCategoryCard(
@@ -84,7 +84,7 @@ class OpcionesPage extends StatelessWidget {
             title: l10n?.optionsAnimals ?? 'Modo Animales (Veterinaria)',
             subtitle: l10n?.optionsAnimalsSubtitle ?? 'Adapta la aplicación para veterinarias y mascotas (individual o múltiple).',
             icon: Icons.pets_rounded,
-            iconColor: const Color(0xFF15803D),
+            iconColor: const Color(0xFF389E6A),
             page: const ModoAnimalesOpcionesPage(),
           ),
           Builder(

@@ -44,7 +44,7 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: isAnimalActive
-                    ? [const Color(0xFF15803D), const Color(0xFF16A34A)]
+                    ? [AppTheme.primaryColor, const Color(0xFF58BA8B)]
                     : [Colors.grey.shade700, Colors.grey.shade900],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -52,7 +52,7 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: (isAnimalActive ? const Color(0xFF15803D) : Colors.black).withValues(alpha: 0.25),
+                  color: (isAnimalActive ? AppTheme.primaryColor : Colors.black).withValues(alpha: 0.25),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -144,10 +144,10 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
                     subtitle: const Text(
                       'Para tutores de una sola mascota o animal en tratamiento doméstico en casa.',
                     ),
-                    secondary: const Icon(Icons.pets_rounded, color: Color(0xFF15803D)),
+                    secondary: Icon(Icons.pets_rounded, color: AppTheme.primaryColor),
                     value: 'individual',
                     groupValue: animalModeType,
-                    activeColor: const Color(0xFF15803D),
+                    activeColor: AppTheme.primaryColor,
                     onChanged: (val) {
                       if (val != null) {
                         preferenceNotifier.setAnimalModeType(val);
@@ -163,10 +163,10 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
                     subtitle: const Text(
                       'Para veterinarias, consultorios o refugios con múltiples animales, boxes/jaulas y fichas clínicas.',
                     ),
-                    secondary: const Icon(Icons.local_hospital_rounded, color: Color(0xFF15803D)),
+                    secondary: Icon(Icons.local_hospital_rounded, color: AppTheme.primaryColor),
                     value: 'veterinaria',
                     groupValue: animalModeType,
-                    activeColor: const Color(0xFF15803D),
+                    activeColor: AppTheme.primaryColor,
                     onChanged: (val) {
                       if (val != null) {
                         preferenceNotifier.setAnimalModeType(val);
@@ -205,9 +205,9 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
                     subtitle: const Text(
                       'Recibir alarmas y recordatorios programados para las tomas de tus mascotas.',
                     ),
-                    secondary: const Icon(Icons.notifications_active_rounded, color: Color(0xFF15803D)),
+                    secondary: Icon(Icons.notifications_active_rounded, color: AppTheme.primaryColor),
                     value: caregiverNotifier.notifyPatientDoses,
-                    activeColor: const Color(0xFF15803D),
+                    activeColor: AppTheme.primaryColor,
                     onChanged: (val) {
                       caregiverNotifier.setNotifyPatientDoses(val);
                     },
@@ -221,9 +221,9 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
                     subtitle: const Text(
                       'Muestra la jaula, box, canil o especie del animal en la notificación.',
                     ),
-                    secondary: const Icon(Icons.meeting_room_rounded, color: Color(0xFF15803D)),
+                    secondary: Icon(Icons.meeting_room_rounded, color: AppTheme.primaryColor),
                     value: caregiverNotifier.includeLocationInNotifications,
-                    activeColor: const Color(0xFF15803D),
+                    activeColor: AppTheme.primaryColor,
                     onChanged: caregiverNotifier.notifyPatientDoses
                         ? (val) {
                             caregiverNotifier.setIncludeLocationInNotifications(val);
@@ -257,10 +257,10 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF15803D).withValues(alpha: 0.1),
+                    color: AppTheme.primaryColor.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.pets_rounded, color: Color(0xFF15803D)),
+                  child: Icon(Icons.pets_rounded, color: AppTheme.primaryColor),
                 ),
                 title: Text(
                   animalModeType == 'individual'

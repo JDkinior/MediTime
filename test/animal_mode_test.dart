@@ -44,13 +44,13 @@ void main() {
       AppTheme.updateThemeColors(false, highContrast: false, isAnimalMode: false);
       expect(AppTheme.primaryColor, const Color(0xFF004AC6));
 
-      // Animal mode (light) - should be green
+      // Animal mode (light) - should be soft creamy green
       AppTheme.updateThemeColors(false, highContrast: false, isAnimalMode: true);
-      expect(AppTheme.primaryColor, const Color(0xFF15803D));
+      expect(AppTheme.primaryColor, const Color(0xFF389E6A));
 
-      // Animal mode (dark) - should also be green
+      // Animal mode (dark) - should also be soft green
       AppTheme.updateThemeColors(true, highContrast: false, isAnimalMode: true);
-      expect(AppTheme.primaryColor, const Color(0xFF15803D));
+      expect(AppTheme.primaryColor, const Color(0xFF389E6A));
 
       // Back to normal mode (light)
       AppTheme.updateThemeColors(false, highContrast: false, isAnimalMode: false);
@@ -62,14 +62,14 @@ void main() {
       AppTheme.updateThemeColors(false, highContrast: false, isCaregiverMode: false);
       expect(AppTheme.primaryColor, const Color(0xFF004AC6));
 
-      // Caregiver mode (light) - should be purple
+      // Caregiver mode (light) - should be soft creamy purple
       AppTheme.updateThemeColors(false, highContrast: false, isCaregiverMode: true);
-      expect(AppTheme.primaryColor, const Color(0xFF7C3AED));
-      expect(AppTheme.secondaryColor, const Color(0xFF5B21B6));
+      expect(AppTheme.primaryColor, const Color(0xFF8B62D4));
+      expect(AppTheme.secondaryColor, const Color(0xFFA582E2));
 
-      // Caregiver mode (dark) - should also be purple
+      // Caregiver mode (dark) - should also be soft purple
       AppTheme.updateThemeColors(true, highContrast: false, isCaregiverMode: true);
-      expect(AppTheme.primaryColor, const Color(0xFF7C3AED));
+      expect(AppTheme.primaryColor, const Color(0xFF8B62D4));
 
       // Back to normal mode (light)
       AppTheme.updateThemeColors(false, highContrast: false, isCaregiverMode: false);

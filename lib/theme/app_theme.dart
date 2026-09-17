@@ -59,11 +59,11 @@ class AppTheme {
     currentIsCaregiverMode = isCaregiverMode;
 
     if (isAnimalMode) {
-      primaryColor = const Color(0xFF15803D); // Verde veterinario esmeralda/médico
-      secondaryColor = const Color(0xFF047857);
+      primaryColor = const Color(0xFF389E6A); // Verde salvia suave / crema menta
+      secondaryColor = const Color(0xFF52B788);
     } else if (isCaregiverMode) {
-      primaryColor = const Color(0xFF7C3AED); // Morado cuidador / Violet 600
-      secondaryColor = const Color(0xFF5B21B6); // Violet 800
+      primaryColor = const Color(0xFF8B62D4); // Morado lavanda suave / crema lila
+      secondaryColor = const Color(0xFFA582E2);
     } else {
       primaryColor = const Color(0xFF004AC6); // Azul institucional
       secondaryColor = const Color(0xFF006C49);
@@ -77,19 +77,19 @@ class AppTheme {
       cardColor = isDark ? const Color(0xFF1F232D) : const Color(0xFFFFFFFF);
       borderColor = isDark ? const Color(0xFF444444) : const Color(0xFFBBBBBB);
     } else if (isAnimalMode) {
-      backgroundColor = isDark ? const Color(0xFF0D1711) : const Color(0xFFF3FAF6);
-      primaryTextColor = isDark ? const Color(0xFFE2EBE5) : const Color(0xFF0B2618);
-      secondaryTextColor = isDark ? const Color(0xFF8CA595) : const Color(0xFF3A5445);
-      surfaceColor = isDark ? const Color(0xFF132219) : const Color(0xFFEDF8F1);
-      cardColor = isDark ? const Color(0xFF18291F) : Colors.white;
-      borderColor = isDark ? const Color(0xFF233E2F) : const Color(0xFFD6EFE0);
+      backgroundColor = isDark ? const Color(0xFF101713) : const Color(0xFFF9FAF5);
+      primaryTextColor = isDark ? const Color(0xFFE8EFEA) : const Color(0xFF1B3124);
+      secondaryTextColor = isDark ? const Color(0xFF98ACA0) : const Color(0xFF536E5D);
+      surfaceColor = isDark ? const Color(0xFF17231B) : const Color(0xFFEFF5ED);
+      cardColor = isDark ? const Color(0xFF1F2E24) : Colors.white;
+      borderColor = isDark ? const Color(0xFF2C3E33) : const Color(0xFFDFECE1);
     } else if (isCaregiverMode) {
-      backgroundColor = isDark ? const Color(0xFF100C1A) : const Color(0xFFFBF8FF);
-      primaryTextColor = isDark ? const Color(0xFFF1EEFA) : const Color(0xFF1E1135);
-      secondaryTextColor = isDark ? const Color(0xFFA594C2) : const Color(0xFF52436A);
-      surfaceColor = isDark ? const Color(0xFF181226) : const Color(0xFFF4EEFD);
-      cardColor = isDark ? const Color(0xFF221A36) : Colors.white;
-      borderColor = isDark ? const Color(0xFF352654) : const Color(0xFFEADBFF);
+      backgroundColor = isDark ? const Color(0xFF14111B) : const Color(0xFFFAF8F5);
+      primaryTextColor = isDark ? const Color(0xFFF3EEF9) : const Color(0xFF281E35);
+      secondaryTextColor = isDark ? const Color(0xFFADA2BD) : const Color(0xFF645576);
+      surfaceColor = isDark ? const Color(0xFF1D1825) : const Color(0xFFF4EEF8);
+      cardColor = isDark ? const Color(0xFF262031) : Colors.white;
+      borderColor = isDark ? const Color(0xFF3A314A) : const Color(0xFFEAE2F3);
     } else {
       backgroundColor = isDark ? const Color(0xFF111318) : const Color(0xFFF8F9FF);
       primaryTextColor = isDark ? const Color(0xFFE2E2E9) : const Color(0xFF0B1C30);
@@ -111,8 +111,8 @@ class AppTheme {
     colors: [
       primaryColor,
       currentIsAnimalMode
-          ? const Color(0xFF22C55E)
-          : (currentIsCaregiverMode ? const Color(0xFF9333EA) : const Color(0xFF2563EB)),
+          ? const Color(0xFF58BA8B)
+          : (currentIsCaregiverMode ? const Color(0xFFA685E2) : const Color(0xFF2563EB)),
     ],
   );
 
@@ -123,8 +123,8 @@ class AppTheme {
     colors: [
       primaryColor,
       currentIsAnimalMode
-          ? const Color(0xFF16A34A)
-          : (currentIsCaregiverMode ? const Color(0xFF8B5CF6) : const Color(0xFF2563EB)),
+          ? const Color(0xFF4DB080)
+          : (currentIsCaregiverMode ? const Color(0xFF9D7AE0) : const Color(0xFF2563EB)),
     ],
   );
 

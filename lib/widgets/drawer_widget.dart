@@ -58,9 +58,9 @@ class CustomDrawer extends StatelessWidget {
     final headerBgColor = isDark
         ? const Color(0xFF1E293B)
         : (isAnimalActive
-            ? const Color(0xFFF3FAF6)
+            ? const Color(0xFFF9FAF5)
             : (isCaregiverActive
-                ? const Color(0xFFFAF5FF)
+                ? const Color(0xFFFAF8F5)
                 : const Color(0xFFF0F6FE)));
     final sectionHeaderColor = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
     final dividerColor = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
@@ -127,11 +127,11 @@ class CustomDrawer extends StatelessWidget {
                       ),
                       if (isAnimalActive) ...[
                         const SizedBox(height: 8),
-                        // Animal Mode Chip Badge (green)
+                        // Animal Mode Chip Badge (soft sage green)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF14532D) : const Color(0xFFDCFCE7),
+                            color: isDark ? const Color(0xFF163824) : const Color(0xFFEAF5ED),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
@@ -140,7 +140,7 @@ class CustomDrawer extends StatelessWidget {
                               Icon(
                                 Icons.pets_rounded,
                                 size: 14,
-                                color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
+                                color: isDark ? const Color(0xFF65C895) : const Color(0xFF389E6A),
                               ),
                               const SizedBox(width: 5),
                               Text(
@@ -148,7 +148,7 @@ class CustomDrawer extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
+                                  color: isDark ? const Color(0xFF65C895) : const Color(0xFF389E6A),
                                 ),
                               ),
                             ],
@@ -156,11 +156,11 @@ class CustomDrawer extends StatelessWidget {
                         ),
                       ] else if (isCaregiverActive) ...[
                         const SizedBox(height: 8),
-                        // Caregiver Mode Chip Badge (only shown when active)
+                        // Caregiver Mode Chip Badge (soft creamy lavender)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF3B185F) : const Color(0xFFEDE9FE),
+                            color: isDark ? const Color(0xFF2E2242) : const Color(0xFFF3ECFA),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
@@ -169,7 +169,7 @@ class CustomDrawer extends StatelessWidget {
                               Icon(
                                 Icons.shield_outlined,
                                 size: 14,
-                                color: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
+                                color: isDark ? const Color(0xFFBCA2F3) : const Color(0xFF8B62D4),
                               ),
                               const SizedBox(width: 5),
                               Text(
@@ -177,7 +177,7 @@ class CustomDrawer extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
+                                  color: isDark ? const Color(0xFFBCA2F3) : const Color(0xFF8B62D4),
                                 ),
                               ),
                             ],
@@ -299,8 +299,8 @@ class CustomDrawer extends StatelessWidget {
                     icon: Icons.pets_rounded,
                     title: l10n?.drawerManageAnimals ?? 'Gestionar Mascotas / Animales',
                     subtitle: l10n?.drawerManageAnimalsSubtitle ?? 'Agregar, editar o dar de alta',
-                    iconColor: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
-                    iconBgColor: isDark ? const Color(0xFF14532D) : const Color(0xFFDCFCE7),
+                    iconColor: isDark ? const Color(0xFF65C895) : const Color(0xFF389E6A),
+                    iconBgColor: isDark ? const Color(0xFF163824) : const Color(0xFFEAF5ED),
                     isDark: isDark,
                     onTap: () {
                       Navigator.pop(context);
@@ -316,8 +316,8 @@ class CustomDrawer extends StatelessWidget {
                     icon: Icons.tune_rounded,
                     title: l10n?.drawerAnimalsSettings ?? 'Configuración Modo Animales',
                     subtitle: l10n?.drawerAnimalsSettingsSubtitle ?? 'Preferencias veterinarias y de mascotas',
-                    iconColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
-                    iconBgColor: isDark ? const Color(0xFF133E2B) : const Color(0xFFECFDF5),
+                    iconColor: isDark ? const Color(0xFF52B788) : const Color(0xFF2E8B57),
+                    iconBgColor: isDark ? const Color(0xFF132F20) : const Color(0xFFF1F8F3),
                     isDark: isDark,
                     onTap: () {
                       Navigator.pop(context);
@@ -338,8 +338,8 @@ class CustomDrawer extends StatelessWidget {
                     icon: Icons.people_outline_rounded,
                     title: l10n?.drawerManagePatients ?? 'Gestionar Pacientes',
                     subtitle: l10n?.drawerManagePatientsSubtitle ?? 'Agregar, editar o eliminar',
-                    iconColor: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
-                    iconBgColor: isDark ? const Color(0xFF3B185F) : const Color(0xFFEDE9FE),
+                    iconColor: isDark ? const Color(0xFFBCA2F3) : const Color(0xFF8B62D4),
+                    iconBgColor: isDark ? const Color(0xFF2E2242) : const Color(0xFFF3ECFA),
                     isDark: isDark,
                     onTap: () {
                       Navigator.pop(context);
@@ -355,8 +355,8 @@ class CustomDrawer extends StatelessWidget {
                     icon: Icons.tune_rounded,
                     title: l10n?.drawerCaregiverSettings ?? 'Configuración Cuidador',
                     subtitle: l10n?.drawerCaregiverSettingsSubtitle ?? 'Preferencias del modo cuidador',
-                    iconColor: isDark ? const Color(0xFFC084FC) : const Color(0xFF9333EA),
-                    iconBgColor: isDark ? const Color(0xFF2E1B4E) : const Color(0xFFF5F3FF),
+                    iconColor: isDark ? const Color(0xFFCCAFF7) : const Color(0xFF9F7AE8),
+                    iconBgColor: isDark ? const Color(0xFF251A38) : const Color(0xFFF7F1FC),
                     isDark: isDark,
                     onTap: () {
                       Navigator.pop(context);
