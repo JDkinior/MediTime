@@ -117,6 +117,7 @@ Al iniciar la aplicación, se deben autorizar los siguientes permisos esenciales
   * **TOMAR (Verde):** Detiene el sonido, deduce del inventario y marca la dosis como tomada.
   * **POSPONER / SNOOZE (Amarillo):** Silencia momentáneamente y reactiva la alarma tras el lapso de aplazamiento configurado (10, 15 o 30 min).
   * **OMITIR (Rojo):** Registra voluntariamente la dosis como no consumida para auditoría médica.
+- **Control Robusto del Ciclo de Sonido:** Cancelación de audio pre-procesamiento ante botones de acción, auto-apagado de seguridad tras 5 minutos y enlace de descarte (*deleteIntent*) para detener el sonido inmediatamente si la notificación es retirada.
 
 ## 7. CALENDARIO INTERACTIVO Y REGISTRO CRONOLÓGICO
 - **Vista Mensual:** Días con dosis señalados mediante indicadores visuales circulares.

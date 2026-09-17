@@ -6,6 +6,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:meditime/models/treatment_form_data.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
+import 'package:meditime/core/utils.dart';
 
 /// Widget para mostrar el resumen del tratamiento
 class TreatmentSummaryCard extends StatelessWidget {
@@ -20,6 +22,24 @@ class TreatmentSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final isEn = Localizations.localeOf(context).languageCode == 'en';
+
+    String getLocalizedDuration() {
+      if (formData.esIndefinido) return l10n?.durationIndefinite ?? 'Indefinido';
+      final n = formData.duracionNumero;
+      switch (formData.duracionUnidad) {
+        case DurationUnit.days:
+          return '$n ${n == 1 ? (isEn ? 'day' : 'día') : (isEn ? 'days' : 'días')}';
+        case DurationUnit.months:
+          return '$n ${n == 1 ? (isEn ? 'month' : 'mes') : (isEn ? 'months' : 'meses')}';
+        case DurationUnit.years:
+          return '$n ${n == 1 ? (isEn ? 'year' : 'año') : (isEn ? 'years' : 'años')}';
+      }
+    }
+
+    final localizedPresentation = AppUtils.localizePresentation(context, formData.presentacion);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -40,7 +60,7 @@ class TreatmentSummaryCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildSection(
-                  title: 'Medicamento',
+                  title: l10n?.treatmentSummaryMedicine ?? 'Medicamento',
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -54,7 +74,8 @@ class TreatmentSummaryCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Presentación: ${formData.presentacion}',
+                        l10n?.treatmentSummaryPresentation(localizedPresentation) ??
+                            'Presentación: $localizedPresentation',
                         style: TextStyle(fontSize: 16, color: AppTheme.secondaryTextColor),
                       ),
                     ],
@@ -71,7 +92,7 @@ class TreatmentSummaryCard extends StatelessWidget {
                     color: kInfoColor,
                     size: 32,
                   ),
-                  tooltip: 'Descargar PDF',
+                  tooltip: l10n?.treatmentSummaryDownloadPdfTooltip ?? 'Descargar PDF',
                 ),
               ),
             ],
@@ -86,7 +107,7 @@ class TreatmentSummaryCard extends StatelessWidget {
               // Horarios
               Expanded(
                 child: _buildSection(
-                  title: 'Horarios',
+                  title: l10n?.treatmentSummarySchedules ?? 'Horarios',
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: _generateScheduleTimes(context),
@@ -97,12 +118,12 @@ class TreatmentSummaryCard extends StatelessWidget {
               // Duración
               Expanded(
                 child: _buildSection(
-                  title: 'Duración',
+                  title: l10n?.treatmentSummaryDuration ?? 'Duración',
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        summaryInfo['durationText'] ?? '',
+                        getLocalizedDuration(),
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
@@ -112,7 +133,8 @@ class TreatmentSummaryCard extends StatelessWidget {
                       if (!formData.esIndefinido) ...[
                         const SizedBox(height: 4),
                         Text(
-                          '(${formData.duracionEnDias} días)',
+                          l10n?.treatmentSummaryDaysInParentheses(formData.duracionEnDias) ??
+                              '(${formData.duracionEnDias} días)',
                           style: TextStyle(
                             fontSize: 14,
                             color: AppTheme.secondaryTextColor,
@@ -121,7 +143,7 @@ class TreatmentSummaryCard extends StatelessWidget {
                       ],
                       const SizedBox(height: 16),
                       Text(
-                        'Frecuencia',
+                        l10n?.treatmentSummaryFrequency ?? 'Frecuencia',
                         style: TextStyle(
                           fontSize: 16,
                           color: AppTheme.secondaryTextColor,
@@ -130,7 +152,8 @@ class TreatmentSummaryCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Cada ${formData.intervaloDosis} horas',
+                        l10n?.treatmentSummaryEveryHours(formData.intervaloDosis) ??
+                            'Cada ${formData.intervaloDosis} horas',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -152,14 +175,16 @@ class TreatmentSummaryCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   formData.esIndefinido
-                      ? '• Dosis generadas automáticamente'
-                      : '• Total ${summaryInfo['totalDoses']} dosis',
+                      ? (l10n?.treatmentSummaryAutoGenerated ?? '• Dosis generadas automáticamente')
+                      : (l10n?.treatmentSummaryTotalDoses(summaryInfo['totalDoses'] ?? formData.totalDoses.toString()) ??
+                          '• Total ${summaryInfo['totalDoses']} dosis'),
                   style: TextStyle(fontSize: 14, color: AppTheme.secondaryTextColor),
                 ),
               ),
               Expanded(
                 child: Text(
-                  '• Hasta ${summaryInfo['endDate']}',
+                  l10n?.treatmentSummaryUntil(summaryInfo['endDate'] ?? '') ??
+                      '• Hasta ${summaryInfo['endDate']}',
                   style: TextStyle(fontSize: 14, color: AppTheme.secondaryTextColor),
                 ),
               ),
@@ -169,7 +194,7 @@ class TreatmentSummaryCard extends StatelessWidget {
           if (formData.cantidadTotalCaja > 0 || formData.cantidadActual > 0) ...[
             _buildDivider(),
             _buildSection(
-              title: 'Inventario y Stock',
+              title: l10n?.treatmentSummaryStockTitle ?? 'Inventario y Stock',
               child: Row(
                 children: [
                   Expanded(
@@ -177,7 +202,9 @@ class TreatmentSummaryCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Disponible: ${formData.cantidadActual} de ${formData.cantidadTotalCaja}',
+                          l10n?.treatmentSummaryStockAvailable(
+                                  formData.cantidadActual, formData.cantidadTotalCaja) ??
+                              'Disponible: ${formData.cantidadActual} de ${formData.cantidadTotalCaja}',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -186,7 +213,8 @@ class TreatmentSummaryCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Dosis por toma: ${formData.dosisPorToma}',
+                          l10n?.treatmentSummaryDosePerIntake(formData.dosisPorToma) ??
+                              'Dosis por toma: ${formData.dosisPorToma}',
                           style: TextStyle(
                             fontSize: 14,
                             color: AppTheme.secondaryTextColor,
@@ -200,7 +228,10 @@ class TreatmentSummaryCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Tomas restantes: ${(formData.dosisPorToma > 0) ? (formData.cantidadActual / formData.dosisPorToma).floor() : 0}',
+                          l10n?.treatmentSummaryRemainingIntakes((formData.dosisPorToma > 0)
+                                  ? (formData.cantidadActual / formData.dosisPorToma).floor()
+                                  : 0) ??
+                              'Tomas restantes: ${(formData.dosisPorToma > 0) ? (formData.cantidadActual / formData.dosisPorToma).floor() : 0}',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -219,7 +250,7 @@ class TreatmentSummaryCard extends StatelessWidget {
           if (formData.notas.isNotEmpty) ...[
             _buildDivider(),
             _buildSection(
-              title: 'Notas',
+              title: l10n?.treatmentSummaryNotes ?? 'Notas',
               child: Text(
                 '• ${formData.notas}',
                 style: TextStyle(fontSize: 16, color: AppTheme.primaryTextColor),
@@ -228,9 +259,9 @@ class TreatmentSummaryCard extends StatelessWidget {
           ] else ...[
             _buildDivider(),
             _buildSection(
-              title: 'Notas',
+              title: l10n?.treatmentSummaryNotes ?? 'Notas',
               child: Text(
-                '• Ninguna',
+                l10n?.treatmentSummaryNoNotes ?? '• Ninguna',
                 style: TextStyle(fontSize: 16, color: AppTheme.secondaryTextColor),
               ),
             ),
@@ -270,11 +301,12 @@ class TreatmentSummaryCard extends StatelessWidget {
  
   List<Widget> _generateScheduleTimes(BuildContext context) {
     final schedule = formData.generateDailySchedule();
+    final l10n = AppLocalizations.of(context);
  
     if (schedule.isEmpty) {
       return [
         Text(
-          '• No definido',
+          l10n?.treatmentSummaryNotDefined ?? '• No definido',
           style: TextStyle(fontSize: 16, color: AppTheme.secondaryTextColor),
         ),
       ];

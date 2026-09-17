@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 
 /// Builds a premium custom tooltip card for the Showcase tutorial.
 ///
@@ -131,7 +132,7 @@ class TutorialTooltip extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
-                  'Toca para continuar',
+                  AppLocalizations.of(context)?.tutorialTapToContinue ?? 'Toca para continuar',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.5),
                     fontSize: 11,

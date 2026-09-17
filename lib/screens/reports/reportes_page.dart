@@ -16,6 +16,7 @@ import 'dart:math';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:meditime/screens/medication/detalle_receta_page.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 
 // Enum para manejar los intervalos de forma clara
 enum ReportInterval { semana, mes, anio, todo }
@@ -193,16 +194,17 @@ class _ReportesPageState extends State<ReportesPage> {
     final List<String> labels = [];
     final List<Map<String, dynamic>> details = [];
     final now = DateTime.now();
+    final locale = Localizations.localeOf(context).toString();
+    final isEs = locale.startsWith('es');
 
     switch (_selectedInterval) {
       case ReportInterval.semana:
         // 7 días de la semana actual (Lunes a Domingo)
         final monday = now.subtract(Duration(days: now.weekday - 1));
-        final dayLetters = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-        final dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-        labels.addAll(dayLetters);
         for (int i = 0; i < 7; i++) {
           final date = monday.add(Duration(days: i));
+          final shortLetter = DateFormat.E(locale).format(date).substring(0, 1).toUpperCase();
+          labels.add(shortLetter);
           final range = {
             'start': DateTime(date.year, date.month, date.day, 0, 0, 0),
             'end': DateTime(date.year, date.month, date.day, 23, 59, 59),
@@ -223,8 +225,8 @@ class _ReportesPageState extends State<ReportesPage> {
           final double compliance = programadas > 0 ? (tomadas / programadas) * 100 : 0.0;
           spots.add(FlSpot(i.toDouble(), compliance));
           details.add({
-            'label': dayLetters[i],
-            'fullLabel': "${dayNames[i]} ${date.day} ${DateFormat('MMM', 'es').format(date)}",
+            'label': shortLetter,
+            'fullLabel': "${DateFormat.EEEE(locale).format(date)} ${date.day} ${DateFormat('MMM', locale).format(date)}",
             'compliance': compliance,
             'tomadas': tomadas,
             'programadas': programadas,
@@ -263,8 +265,10 @@ class _ReportesPageState extends State<ReportesPage> {
           spots.add(FlSpot(i.toDouble(), compliance));
           final displayEndDay = endDay > 30 ? 30 : endDay;
           details.add({
-            'label': 'Días $startDay-$displayEndDay',
-            'fullLabel': "Días $startDay al $displayEndDay de ${DateFormat('MMMM', 'es').format(now)}",
+            'label': isEs ? 'Días $startDay-$displayEndDay' : 'Days $startDay-$displayEndDay',
+            'fullLabel': isEs
+                ? "Días $startDay al $displayEndDay de ${DateFormat('MMMM', locale).format(now)}"
+                : "Days $startDay to $displayEndDay of ${DateFormat('MMMM', locale).format(now)}",
             'compliance': compliance,
             'tomadas': tomadas,
             'programadas': programadas,
@@ -276,11 +280,11 @@ class _ReportesPageState extends State<ReportesPage> {
         break;
 
       case ReportInterval.anio:
-        // 12 iniciales de los meses
-        final yearLetters = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
-        labels.addAll(yearLetters);
+        // 12 iniciales de los meses según locale
         for (int i = 0; i < 12; i++) {
           final monthDate = DateTime(now.year, i + 1, 1);
+          final monthLetter = DateFormat.MMM(locale).format(monthDate).substring(0, 1).toUpperCase();
+          labels.add(monthLetter);
           final start = DateTime(now.year, i + 1, 1, 0, 0, 0);
           final end = DateTime(now.year, i + 2, 0, 23, 59, 59);
           final range = {'start': start, 'end': end};
@@ -301,8 +305,8 @@ class _ReportesPageState extends State<ReportesPage> {
           final double compliance = programadas > 0 ? (tomadas / programadas) * 100 : 0.0;
           spots.add(FlSpot(i.toDouble(), compliance));
           details.add({
-            'label': DateFormat('MMM', 'es').format(monthDate),
-            'fullLabel': "${DateFormat('MMMM', 'es').format(monthDate)} ${now.year}",
+            'label': DateFormat('MMM', locale).format(monthDate),
+            'fullLabel': "${DateFormat('MMMM', locale).format(monthDate)} ${now.year}",
             'compliance': compliance,
             'tomadas': tomadas,
             'programadas': programadas,
@@ -317,7 +321,7 @@ class _ReportesPageState extends State<ReportesPage> {
         // 6 meses anteriores
         for (int i = 5; i >= 0; i--) {
           final targetMonth = DateTime(now.year, now.month - i, 1);
-          final monthStr = DateFormat('MMM', 'es').format(targetMonth);
+          final monthStr = DateFormat('MMM', locale).format(targetMonth);
           labels.add(monthStr);
           final start = DateTime(targetMonth.year, targetMonth.month, 1, 0, 0, 0);
           final end = DateTime(targetMonth.year, targetMonth.month + 1, 0, 23, 59, 59);
@@ -340,7 +344,7 @@ class _ReportesPageState extends State<ReportesPage> {
           spots.add(FlSpot((5 - i).toDouble(), compliance));
           details.add({
             'label': monthStr,
-            'fullLabel': DateFormat('MMMM yyyy', 'es').format(targetMonth),
+            'fullLabel': DateFormat('MMMM yyyy', locale).format(targetMonth),
             'compliance': compliance,
             'tomadas': tomadas,
             'programadas': programadas,
@@ -529,7 +533,7 @@ class _ReportesPageState extends State<ReportesPage> {
         ],
       ),
       body: user == null
-          ? const Center(child: Text('Inicia sesión para ver tus reportes.'))
+          ? Center(child: Text(AppLocalizations.of(context)?.reportsLoginRequired ?? 'Inicia sesión para ver tus reportes.'))
           : Column(
               children: [
                 _buildIntervalSelector(),
@@ -538,22 +542,23 @@ class _ReportesPageState extends State<ReportesPage> {
                     initialData: firestoreService.getCachedMedicamentos(user.uid),
                     stream: firestoreService.getMedicamentosStream(user.uid),
                     builder: (context, snapshot) {
+                      final l10n = AppLocalizations.of(context);
                       if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                         return const EstadoVista(state: ViewState.loading, child: SizedBox.shrink());
                       }
                       if (snapshot.hasError) {
                         return EstadoVista(
                           state: ViewState.error,
-                          errorMessage: "Error al cargar los datos para el reporte.",
+                          errorMessage: l10n?.reportsLoadError ?? "Error al cargar los datos para el reporte.",
                           onRetry: () => setState(() {}),
                           child: const SizedBox.shrink(),
                         );
                       }
                       if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return const EstadoVista(
+                        return EstadoVista(
                           state: ViewState.empty,
-                          emptyMessage: 'No hay tratamientos para generar un reporte.',
-                          child: SizedBox.shrink(),
+                          emptyMessage: l10n?.reportsNoTreatments ?? 'No hay tratamientos para generar un reporte.',
+                          child: const SizedBox.shrink(),
                         );
                       }
 
@@ -694,19 +699,20 @@ class _ReportesPageState extends State<ReportesPage> {
       child: Row(
         children: ReportInterval.values.map((interval) {
           final isSelected = _selectedInterval == interval;
+          final l10n = AppLocalizations.of(context);
           String text = '';
           switch (interval) {
             case ReportInterval.semana:
-              text = 'Semana';
+              text = l10n?.intervalWeek ?? 'Semana';
               break;
             case ReportInterval.mes:
-              text = 'Mes';
+              text = l10n?.intervalMonth ?? 'Mes';
               break;
             case ReportInterval.anio:
-              text = 'Año';
+              text = l10n?.intervalYear ?? 'Año';
               break;
             case ReportInterval.todo:
-              text = 'Todo';
+              text = l10n?.intervalAll ?? 'Todo';
               break;
           }
 
@@ -978,11 +984,12 @@ class _ReportesPageState extends State<ReportesPage> {
   }
 
   Widget _buildQuickSummaryRow(int totales, int tomadas, int omitidas, int notificadas, int aplazadas, double adherencia) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Resumen rápido",
+          l10n?.reportsQuickSummary ?? "Resumen rápido",
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
         ),
         const SizedBox(height: 12),
@@ -993,35 +1000,35 @@ class _ReportesPageState extends State<ReportesPage> {
               iconColor: AppTheme.successColor,
               iconBgColor: AppTheme.successColor.withValues(alpha: 0.08),
               value: tomadas.toString(),
-              label: "Tomadas",
+              label: l10n?.reportsTakenDoses ?? "Tomadas",
             ),
             _buildQuickStatCard(
               icon: Icons.cancel_outlined,
               iconColor: AppTheme.errorColor,
               iconBgColor: AppTheme.errorColor.withValues(alpha: 0.08),
               value: omitidas.toString(),
-              label: "Omitidas",
+              label: l10n?.reportsSkippedDoses ?? "Omitidas",
             ),
             _buildQuickStatCard(
               icon: Icons.notifications_outlined,
               iconColor: const Color(0xFFFFB703),
               iconBgColor: const Color(0xFFFFB703).withValues(alpha: 0.08),
               value: notificadas.toString(),
-              label: "Notif.",
+              label: l10n != null ? (Localizations.localeOf(context).languageCode == 'en' ? 'Notif.' : 'Notif.') : "Notif.",
             ),
             _buildQuickStatCard(
               icon: Icons.watch_later_outlined,
               iconColor: Colors.orange,
               iconBgColor: Colors.orange.withValues(alpha: 0.08),
               value: aplazadas.toString(),
-              label: "Aplaz.",
+              label: l10n != null ? (Localizations.localeOf(context).languageCode == 'en' ? 'Snoozed' : 'Aplaz.') : "Aplaz.",
             ),
             _buildQuickStatCard(
               icon: Icons.percent,
               iconColor: AppTheme.primaryColor,
               iconBgColor: AppTheme.primaryColor.withValues(alpha: 0.08),
               value: "${adherencia.toInt()}%",
-              label: "Adher.",
+              label: l10n != null ? (Localizations.localeOf(context).languageCode == 'en' ? 'Adher.' : 'Adher.') : "Adher.",
             ),
           ],
         ),
@@ -1081,6 +1088,7 @@ class _ReportesPageState extends State<ReportesPage> {
   }
 
   Widget _buildEvolutionCard(List<Tratamiento> tratamientos) {
+    final l10n = AppLocalizations.of(context);
     final evolutionData = _getEvolutionData(tratamientos);
     final List<FlSpot> spots = evolutionData['spots'];
     final List<String> labels = evolutionData['labels'];
@@ -1138,14 +1146,14 @@ class _ReportesPageState extends State<ReportesPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Evolución de adherencia",
+                l10n?.reportsEvolutionTitle ?? "Evolución de adherencia",
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
               ),
               TextButton(
                 onPressed: () => _showEvolutionDetails(tratamientos),
                 style: TextButton.styleFrom(minimumSize: Size.zero, padding: EdgeInsets.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                 child: Text(
-                  "Ver más",
+                  l10n?.reportsSeeMore ?? "Ver más",
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.primaryColor),
                 ),
               ),
@@ -1261,12 +1269,14 @@ class _ReportesPageState extends State<ReportesPage> {
       return sb.compareTo(sa);
     });
 
+    final l10n = AppLocalizations.of(context);
+
     if (tratamientosDelPeriodo.isEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Desglose por tratamiento",
+            l10n?.reportsBreakdownTitle ?? "Desglose por tratamiento",
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
           ),
           const SizedBox(height: 12),
@@ -1280,7 +1290,7 @@ class _ReportesPageState extends State<ReportesPage> {
             ),
             child: Center(
               child: Text(
-                "No hay tratamientos registrados en este período.",
+                l10n?.reportsNoTreatmentsInPeriod ?? "No hay tratamientos registrados en este período.",
                 style: TextStyle(color: AppTheme.secondaryTextColor, fontSize: 13),
               ),
             ),
@@ -1297,7 +1307,7 @@ class _ReportesPageState extends State<ReportesPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "Desglose por tratamiento",
+              l10n?.reportsBreakdownTitle ?? "Desglose por tratamiento",
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
             ),
             if (tratamientosDelPeriodo.length > 5)
@@ -1309,7 +1319,7 @@ class _ReportesPageState extends State<ReportesPage> {
                 },
                 style: TextButton.styleFrom(minimumSize: Size.zero, padding: EdgeInsets.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                 child: Text(
-                  _isDesgloseExpanded ? "Ver menos" : "Ver todo (${tratamientosDelPeriodo.length})",
+                  _isDesgloseExpanded ? (l10n?.reportsSeeLess ?? "Ver menos") : "${l10n?.reportsSeeAll ?? "Ver todo"} (${tratamientosDelPeriodo.length})",
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.primaryColor),
                 ),
               ),
@@ -1545,6 +1555,7 @@ class _ReportesPageState extends State<ReportesPage> {
   }
 
   Widget _buildRecentHistorySection(List<Map<String, dynamic>> recentHistory, List<Tratamiento> todosLosTratamientos) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1552,14 +1563,14 @@ class _ReportesPageState extends State<ReportesPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "Historial reciente",
+              l10n?.reportsRecentHistoryTitle ?? "Historial reciente",
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
             ),
             TextButton(
               onPressed: () => _showFullHistory(todosLosTratamientos),
               style: TextButton.styleFrom(minimumSize: Size.zero, padding: EdgeInsets.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
               child: Text(
-                "Ver todo",
+                l10n?.reportsSeeAll ?? "Ver todo",
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.primaryColor),
               ),
             ),
@@ -1570,7 +1581,7 @@ class _ReportesPageState extends State<ReportesPage> {
           Container(
             padding: const EdgeInsets.all(16),
             alignment: Alignment.center,
-            child: Text("No hay registros recientes.", style: TextStyle(color: Colors.grey[400], fontSize: 13)),
+            child: Text(l10n?.reportsNoRecentRecords ?? "No hay registros recientes.", style: TextStyle(color: Colors.grey[400], fontSize: 13)),
           )
         else
           Container(
@@ -1801,6 +1812,7 @@ class _ReportesPageState extends State<ReportesPage> {
   }
 
   Widget _buildOmissionsPatternCard(Map<String, String> info, List<Tratamiento> todosLosTratamientos) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1808,14 +1820,14 @@ class _ReportesPageState extends State<ReportesPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              "Patrón de omisiones",
+              l10n?.reportsOmissionsPatternTitle ?? "Patrón de omisiones",
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
             ),
             TextButton(
               onPressed: () => _showOmissionAnalysis(todosLosTratamientos),
               style: TextButton.styleFrom(minimumSize: Size.zero, padding: EdgeInsets.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
               child: Text(
-                "Ver análisis",
+                l10n?.reportsSeeAnalysis ?? "Ver análisis",
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.primaryColor),
               ),
             ),

@@ -1135,6 +1135,1266 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Borrar conversación'**
   String get chatBotClearHistory;
+
+  /// No description provided for @loginSlogan.
+  ///
+  /// In es, this message translates to:
+  /// **'Controla tus medicamentos\nMejora tu salud'**
+  String get loginSlogan;
+
+  /// No description provided for @loginSignIn.
+  ///
+  /// In es, this message translates to:
+  /// **'Iniciar sesión'**
+  String get loginSignIn;
+
+  /// No description provided for @loginRegister.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrarme'**
+  String get loginRegister;
+
+  /// No description provided for @loginEmailLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Correo Electrónico'**
+  String get loginEmailLabel;
+
+  /// No description provided for @loginEmailHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe tu correo electrónico'**
+  String get loginEmailHint;
+
+  /// No description provided for @loginPasswordLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Contraseña'**
+  String get loginPasswordLabel;
+
+  /// No description provided for @loginPasswordHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe tu contraseña'**
+  String get loginPasswordHint;
+
+  /// No description provided for @loginButton.
+  ///
+  /// In es, this message translates to:
+  /// **'Iniciar Sesión'**
+  String get loginButton;
+
+  /// No description provided for @loginOr.
+  ///
+  /// In es, this message translates to:
+  /// **'o'**
+  String get loginOr;
+
+  /// No description provided for @loginWithGoogle.
+  ///
+  /// In es, this message translates to:
+  /// **'Continuar con Google'**
+  String get loginWithGoogle;
+
+  /// No description provided for @loginNoAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'¿No tienes cuenta? Regístrate aquí'**
+  String get loginNoAccount;
+
+  /// No description provided for @loginErrorEmptyEmail.
+  ///
+  /// In es, this message translates to:
+  /// **'Por favor ingresa tu correo'**
+  String get loginErrorEmptyEmail;
+
+  /// No description provided for @loginErrorEmptyPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Por favor ingresa tu contraseña'**
+  String get loginErrorEmptyPassword;
+
+  /// No description provided for @loginErrorGeneral.
+  ///
+  /// In es, this message translates to:
+  /// **'Error al iniciar sesión'**
+  String get loginErrorGeneral;
+
+  /// No description provided for @loginErrorUserNotFound.
+  ///
+  /// In es, this message translates to:
+  /// **'Usuario no encontrado'**
+  String get loginErrorUserNotFound;
+
+  /// No description provided for @loginErrorWrongPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'Contraseña incorrecta'**
+  String get loginErrorWrongPassword;
+
+  /// No description provided for @loginErrorInvalidEmail.
+  ///
+  /// In es, this message translates to:
+  /// **'Formato de correo inválido'**
+  String get loginErrorInvalidEmail;
+
+  /// No description provided for @loginErrorGoogle.
+  ///
+  /// In es, this message translates to:
+  /// **'Error al iniciar sesión con Google. Inténtalo de nuevo.'**
+  String get loginErrorGoogle;
+
+  /// No description provided for @registerTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Crear cuenta'**
+  String get registerTitle;
+
+  /// No description provided for @registerSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Comienza a gestionar tus medicamentos'**
+  String get registerSubtitle;
+
+  /// No description provided for @registerPasswordHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Crea tu contraseña'**
+  String get registerPasswordHint;
+
+  /// No description provided for @registerButton.
+  ///
+  /// In es, this message translates to:
+  /// **'Registrarme'**
+  String get registerButton;
+
+  /// No description provided for @registerAlreadyHaveAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Ya tienes cuenta? Inicia sesión aquí'**
+  String get registerAlreadyHaveAccount;
+
+  /// No description provided for @registerErrorInvalidEmail.
+  ///
+  /// In es, this message translates to:
+  /// **'Por favor ingresa un correo válido'**
+  String get registerErrorInvalidEmail;
+
+  /// No description provided for @registerErrorShortPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'La contraseña debe tener al menos 6 caracteres'**
+  String get registerErrorShortPassword;
+
+  /// No description provided for @registerErrorFailed.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo crear la cuenta'**
+  String get registerErrorFailed;
+
+  /// No description provided for @registerErrorEmailInUse.
+  ///
+  /// In es, this message translates to:
+  /// **'El correo ya está en uso'**
+  String get registerErrorEmailInUse;
+
+  /// No description provided for @registerErrorWeakPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'La contraseña es demasiado débil'**
+  String get registerErrorWeakPassword;
+
+  /// No description provided for @registerErrorGoogle.
+  ///
+  /// In es, this message translates to:
+  /// **'Error al registrarse con Google. Inténtalo de nuevo.'**
+  String get registerErrorGoogle;
+
+  /// No description provided for @doseDetailDoseTime.
+  ///
+  /// In es, this message translates to:
+  /// **'Hora de esta toma'**
+  String get doseDetailDoseTime;
+
+  /// No description provided for @doseDetailTreatmentFinished.
+  ///
+  /// In es, this message translates to:
+  /// **'Tratamiento Finalizado'**
+  String get doseDetailTreatmentFinished;
+
+  /// No description provided for @doseDetailNoMoreDoses.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay más dosis programadas.'**
+  String get doseDetailNoMoreDoses;
+
+  /// No description provided for @doseDetailNextDosePrompt.
+  ///
+  /// In es, this message translates to:
+  /// **'Esta es la próxima dosis'**
+  String get doseDetailNextDosePrompt;
+
+  /// No description provided for @doseDetailNextAlarm.
+  ///
+  /// In es, this message translates to:
+  /// **'Próxima Alarma:'**
+  String get doseDetailNextAlarm;
+
+  /// No description provided for @doseDetailTimeNow.
+  ///
+  /// In es, this message translates to:
+  /// **'Es momento de tomar la dosis'**
+  String get doseDetailTimeNow;
+
+  /// No description provided for @doseDetailInSeconds.
+  ///
+  /// In es, this message translates to:
+  /// **'En {seconds} segundos'**
+  String doseDetailInSeconds(int seconds);
+
+  /// No description provided for @doseDetailInDaysHours.
+  ///
+  /// In es, this message translates to:
+  /// **'En {days} días y {hours} horas'**
+  String doseDetailInDaysHours(int days, int hours);
+
+  /// No description provided for @doseDetailInHoursMinutes.
+  ///
+  /// In es, this message translates to:
+  /// **'En {hours} horas y {minutes} minutos'**
+  String doseDetailInHoursMinutes(int hours, int minutes);
+
+  /// No description provided for @doseDetailInMinutes.
+  ///
+  /// In es, this message translates to:
+  /// **'En {minutes} minutos'**
+  String doseDetailInMinutes(int minutes);
+
+  /// No description provided for @doseDetailUpdateError.
+  ///
+  /// In es, this message translates to:
+  /// **'Error al actualizar la dosis'**
+  String get doseDetailUpdateError;
+
+  /// No description provided for @treatmentSummaryMedicine.
+  ///
+  /// In es, this message translates to:
+  /// **'Medicamento'**
+  String get treatmentSummaryMedicine;
+
+  /// No description provided for @treatmentSummaryPresentation.
+  ///
+  /// In es, this message translates to:
+  /// **'Presentación: {presentation}'**
+  String treatmentSummaryPresentation(String presentation);
+
+  /// No description provided for @treatmentSummarySchedules.
+  ///
+  /// In es, this message translates to:
+  /// **'Horarios'**
+  String get treatmentSummarySchedules;
+
+  /// No description provided for @treatmentSummaryDuration.
+  ///
+  /// In es, this message translates to:
+  /// **'Duración'**
+  String get treatmentSummaryDuration;
+
+  /// No description provided for @treatmentSummaryNotDefined.
+  ///
+  /// In es, this message translates to:
+  /// **'• No definido'**
+  String get treatmentSummaryNotDefined;
+
+  /// No description provided for @treatmentSummaryDaysInParentheses.
+  ///
+  /// In es, this message translates to:
+  /// **'({days} días)'**
+  String treatmentSummaryDaysInParentheses(int days);
+
+  /// No description provided for @treatmentSummaryEveryHours.
+  ///
+  /// In es, this message translates to:
+  /// **'Cada {hours} horas'**
+  String treatmentSummaryEveryHours(int hours);
+
+  /// No description provided for @treatmentSummaryAutoGenerated.
+  ///
+  /// In es, this message translates to:
+  /// **'• Dosis generadas automáticamente'**
+  String get treatmentSummaryAutoGenerated;
+
+  /// No description provided for @treatmentSummaryTotalDoses.
+  ///
+  /// In es, this message translates to:
+  /// **'• Total {total} dosis'**
+  String treatmentSummaryTotalDoses(String total);
+
+  /// No description provided for @treatmentSummaryUntil.
+  ///
+  /// In es, this message translates to:
+  /// **'• Hasta {date}'**
+  String treatmentSummaryUntil(String date);
+
+  /// No description provided for @treatmentSummaryStockTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Inventario y Stock'**
+  String get treatmentSummaryStockTitle;
+
+  /// No description provided for @treatmentSummaryStockAvailable.
+  ///
+  /// In es, this message translates to:
+  /// **'Disponible: {current} de {total}'**
+  String treatmentSummaryStockAvailable(int current, int total);
+
+  /// No description provided for @treatmentSummaryDosePerIntake.
+  ///
+  /// In es, this message translates to:
+  /// **'Dosis por toma: {dose}'**
+  String treatmentSummaryDosePerIntake(int dose);
+
+  /// No description provided for @treatmentSummaryRemainingIntakes.
+  ///
+  /// In es, this message translates to:
+  /// **'Tomas restantes: {count}'**
+  String treatmentSummaryRemainingIntakes(int count);
+
+  /// No description provided for @treatmentSummaryNotes.
+  ///
+  /// In es, this message translates to:
+  /// **'Notas'**
+  String get treatmentSummaryNotes;
+
+  /// No description provided for @treatmentSummaryNoNotes.
+  ///
+  /// In es, this message translates to:
+  /// **'• Ninguna'**
+  String get treatmentSummaryNoNotes;
+
+  /// No description provided for @treatmentSummaryDownloadPdfTooltip.
+  ///
+  /// In es, this message translates to:
+  /// **'Descargar PDF'**
+  String get treatmentSummaryDownloadPdfTooltip;
+
+  /// No description provided for @addPrescriptionTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar Receta'**
+  String get addPrescriptionTitle;
+
+  /// No description provided for @editTreatmentTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar Tratamiento'**
+  String get editTreatmentTitle;
+
+  /// No description provided for @addPrescriptionAiScanTooltip.
+  ///
+  /// In es, this message translates to:
+  /// **'Escanear receta con IA'**
+  String get addPrescriptionAiScanTooltip;
+
+  /// No description provided for @addPrescriptionStep0Question.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Qué medicamento vas a agregar?'**
+  String get addPrescriptionStep0Question;
+
+  /// No description provided for @addPrescriptionStep0QuestionAnimal.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Qué medicamento o tratamiento vas a agregar?'**
+  String get addPrescriptionStep0QuestionAnimal;
+
+  /// No description provided for @addPrescriptionStep0Label.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre del medicamento'**
+  String get addPrescriptionStep0Label;
+
+  /// No description provided for @addPrescriptionStep0LabelAnimal.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre del medicamento / tratamiento'**
+  String get addPrescriptionStep0LabelAnimal;
+
+  /// No description provided for @addPrescriptionStep0Hint.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe el nombre del medicamento'**
+  String get addPrescriptionStep0Hint;
+
+  /// No description provided for @addPrescriptionStep0HintAnimal.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe el nombre del fármaco o tratamiento'**
+  String get addPrescriptionStep0HintAnimal;
+
+  /// No description provided for @addPrescriptionPetPrefix.
+  ///
+  /// In es, this message translates to:
+  /// **'Mascota: {name}'**
+  String addPrescriptionPetPrefix(String name);
+
+  /// No description provided for @addPrescriptionPatientPrefix.
+  ///
+  /// In es, this message translates to:
+  /// **'Paciente: {name}'**
+  String addPrescriptionPatientPrefix(String name);
+
+  /// No description provided for @addPrescriptionStep1Question.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Cuál es la presentación del medicamento?'**
+  String get addPrescriptionStep1Question;
+
+  /// No description provided for @addPrescriptionStep1Hint.
+  ///
+  /// In es, this message translates to:
+  /// **'Selecciona una opción'**
+  String get addPrescriptionStep1Hint;
+
+  /// No description provided for @addPrescriptionStep2Question.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Cuándo será la primera dosis?'**
+  String get addPrescriptionStep2Question;
+
+  /// No description provided for @addPrescriptionStep2SelectedTime.
+  ///
+  /// In es, this message translates to:
+  /// **'Hora seleccionada: {time}'**
+  String addPrescriptionStep2SelectedTime(String time);
+
+  /// No description provided for @addPrescriptionStep3Question.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Con qué frecuencia lo tomarás?'**
+  String get addPrescriptionStep3Question;
+
+  /// No description provided for @addPrescriptionStep3QuestionAnimal.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Con qué frecuencia se administrará?'**
+  String get addPrescriptionStep3QuestionAnimal;
+
+  /// No description provided for @addPrescriptionStep3SelectedHours.
+  ///
+  /// In es, this message translates to:
+  /// **'Cada {hours} horas'**
+  String addPrescriptionStep3SelectedHours(int hours);
+
+  /// No description provided for @addPrescriptionStep4Question.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Cuánto tiempo durará el tratamiento?'**
+  String get addPrescriptionStep4Question;
+
+  /// No description provided for @addPrescriptionStep5Question.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Tienes medicamentos en inventario?'**
+  String get addPrescriptionStep5Question;
+
+  /// No description provided for @addPrescriptionStep6Question.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Quieres añadir alguna nota o indicación médica?'**
+  String get addPrescriptionStep6Question;
+
+  /// No description provided for @addPrescriptionStep6NotesHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe aquí notas adicionales...'**
+  String get addPrescriptionStep6NotesHint;
+
+  /// No description provided for @addPrescriptionStep7Summary.
+  ///
+  /// In es, this message translates to:
+  /// **'Resumen del tratamiento'**
+  String get addPrescriptionStep7Summary;
+
+  /// No description provided for @addPrescriptionSavedSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Tratamiento guardado exitosamente'**
+  String get addPrescriptionSavedSuccess;
+
+  /// No description provided for @addPrescriptionUpdatedSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Tratamiento actualizado exitosamente'**
+  String get addPrescriptionUpdatedSuccess;
+
+  /// No description provided for @addPrescriptionSaveError.
+  ///
+  /// In es, this message translates to:
+  /// **'Error al guardar el tratamiento'**
+  String get addPrescriptionSaveError;
+
+  /// No description provided for @chatBotWelcome.
+  ///
+  /// In es, this message translates to:
+  /// **'¡Hola! Soy Midi, tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?'**
+  String get chatBotWelcome;
+
+  /// No description provided for @chatBotAskAbout.
+  ///
+  /// In es, this message translates to:
+  /// **'Puedes preguntarme sobre:'**
+  String get chatBotAskAbout;
+
+  /// No description provided for @chatBotQuickMeds.
+  ///
+  /// In es, this message translates to:
+  /// **'Mis medicamentos'**
+  String get chatBotQuickMeds;
+
+  /// No description provided for @chatBotQuickMedsSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Info, dosis y horarios'**
+  String get chatBotQuickMedsSubtitle;
+
+  /// No description provided for @chatBotQuickReminders.
+  ///
+  /// In es, this message translates to:
+  /// **'Recordatorios'**
+  String get chatBotQuickReminders;
+
+  /// No description provided for @chatBotQuickRemindersSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Alarmas y notificaciones'**
+  String get chatBotQuickRemindersSubtitle;
+
+  /// No description provided for @chatBotQuickProgress.
+  ///
+  /// In es, this message translates to:
+  /// **'Mi progreso'**
+  String get chatBotQuickProgress;
+
+  /// No description provided for @chatBotQuickProgressSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Adherencia y estadísticas'**
+  String get chatBotQuickProgressSubtitle;
+
+  /// No description provided for @chatBotQuickFaq.
+  ///
+  /// In es, this message translates to:
+  /// **'Dudas frecuentes'**
+  String get chatBotQuickFaq;
+
+  /// No description provided for @chatBotQuickFaqSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Resuelve tus preguntas'**
+  String get chatBotQuickFaqSubtitle;
+
+  /// No description provided for @chatBotMedicalDisclaimer.
+  ///
+  /// In es, this message translates to:
+  /// **'Midi no reemplaza la opinión médica profesional. Ante cualquier duda de salud, consulta a tu médico.'**
+  String get chatBotMedicalDisclaimer;
+
+  /// No description provided for @chatBotInputHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Pregunta lo que necesitas...'**
+  String get chatBotInputHint;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Perfil'**
+  String get profileTitle;
+
+  /// No description provided for @profileBirthDate.
+  ///
+  /// In es, this message translates to:
+  /// **'Fecha de nacimiento'**
+  String get profileBirthDate;
+
+  /// No description provided for @profileBloodType.
+  ///
+  /// In es, this message translates to:
+  /// **'Tipo de sangre'**
+  String get profileBloodType;
+
+  /// No description provided for @profileAllergies.
+  ///
+  /// In es, this message translates to:
+  /// **'Alergias'**
+  String get profileAllergies;
+
+  /// No description provided for @profileNotSpecified.
+  ///
+  /// In es, this message translates to:
+  /// **'No especificado'**
+  String get profileNotSpecified;
+
+  /// No description provided for @profilePersonalData.
+  ///
+  /// In es, this message translates to:
+  /// **'Datos Personales'**
+  String get profilePersonalData;
+
+  /// No description provided for @profileName.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre'**
+  String get profileName;
+
+  /// No description provided for @profileNameHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu nombre completo'**
+  String get profileNameHint;
+
+  /// No description provided for @profilePhone.
+  ///
+  /// In es, this message translates to:
+  /// **'Número de Teléfono'**
+  String get profilePhone;
+
+  /// No description provided for @profilePhoneHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu número de teléfono'**
+  String get profilePhoneHint;
+
+  /// No description provided for @profileEmail.
+  ///
+  /// In es, this message translates to:
+  /// **'Correo'**
+  String get profileEmail;
+
+  /// No description provided for @profileEmailHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Tu correo electrónico'**
+  String get profileEmailHint;
+
+  /// No description provided for @profileDob.
+  ///
+  /// In es, this message translates to:
+  /// **'Fecha de Nacimiento'**
+  String get profileDob;
+
+  /// No description provided for @profileMedicalData.
+  ///
+  /// In es, this message translates to:
+  /// **'Datos Médicos'**
+  String get profileMedicalData;
+
+  /// No description provided for @profileBloodTypeHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Ej: O+'**
+  String get profileBloodTypeHint;
+
+  /// No description provided for @profileAllergiesHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Ej: Penicilina'**
+  String get profileAllergiesHint;
+
+  /// No description provided for @profileImportantMeds.
+  ///
+  /// In es, this message translates to:
+  /// **'Medicamentos Importantes'**
+  String get profileImportantMeds;
+
+  /// No description provided for @profileImportantMedsHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Los que tomas regularmente'**
+  String get profileImportantMedsHint;
+
+  /// No description provided for @profileMedicalHistory.
+  ///
+  /// In es, this message translates to:
+  /// **'Historial Médico'**
+  String get profileMedicalHistory;
+
+  /// No description provided for @profileMedicalHistoryHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Condiciones médicas relevantes'**
+  String get profileMedicalHistoryHint;
+
+  /// No description provided for @profileNearbyPharmacies.
+  ///
+  /// In es, this message translates to:
+  /// **'Farmacias Cercanas'**
+  String get profileNearbyPharmacies;
+
+  /// No description provided for @profileNearbyPharmaciesSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Buscar farmacias en el mapa'**
+  String get profileNearbyPharmaciesSubtitle;
+
+  /// No description provided for @profileInfoBannerTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Información Importante'**
+  String get profileInfoBannerTitle;
+
+  /// No description provided for @profileInfoBannerText.
+  ///
+  /// In es, this message translates to:
+  /// **'Mantener tus datos personales y médicos actualizados permite una mejor asistencia en caso de emergencias médicas.'**
+  String get profileInfoBannerText;
+
+  /// No description provided for @profileSaveSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Perfil actualizado exitosamente'**
+  String get profileSaveSuccess;
+
+  /// No description provided for @profileSaveButton.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar Cambios'**
+  String get profileSaveButton;
+
+  /// No description provided for @reportsLoginRequired.
+  ///
+  /// In es, this message translates to:
+  /// **'Inicia sesión para ver tus reportes.'**
+  String get reportsLoginRequired;
+
+  /// No description provided for @reportsLoadError.
+  ///
+  /// In es, this message translates to:
+  /// **'Error al cargar los datos para el reporte.'**
+  String get reportsLoadError;
+
+  /// No description provided for @reportsNoTreatments.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay tratamientos para generar un reporte.'**
+  String get reportsNoTreatments;
+
+  /// No description provided for @reportsQuickSummary.
+  ///
+  /// In es, this message translates to:
+  /// **'Resumen Rápido'**
+  String get reportsQuickSummary;
+
+  /// No description provided for @reportsScheduledDoses.
+  ///
+  /// In es, this message translates to:
+  /// **'Programadas'**
+  String get reportsScheduledDoses;
+
+  /// No description provided for @reportsTakenDoses.
+  ///
+  /// In es, this message translates to:
+  /// **'Tomadas'**
+  String get reportsTakenDoses;
+
+  /// No description provided for @reportsSkippedDoses.
+  ///
+  /// In es, this message translates to:
+  /// **'Omitidas'**
+  String get reportsSkippedDoses;
+
+  /// No description provided for @reportsNotifiedDoses.
+  ///
+  /// In es, this message translates to:
+  /// **'Notificadas'**
+  String get reportsNotifiedDoses;
+
+  /// No description provided for @reportsSnoozedDoses.
+  ///
+  /// In es, this message translates to:
+  /// **'Aplazadas'**
+  String get reportsSnoozedDoses;
+
+  /// No description provided for @tutorialTapToContinue.
+  ///
+  /// In es, this message translates to:
+  /// **'Toca para continuar'**
+  String get tutorialTapToContinue;
+
+  /// No description provided for @tutorialSkip.
+  ///
+  /// In es, this message translates to:
+  /// **'Saltar'**
+  String get tutorialSkip;
+
+  /// No description provided for @tutorialStep1Title.
+  ///
+  /// In es, this message translates to:
+  /// **'Menú Principal'**
+  String get tutorialStep1Title;
+
+  /// No description provided for @tutorialStep1Desc.
+  ///
+  /// In es, this message translates to:
+  /// **'Accede al menú lateral para ver tu Perfil, Reportes de Adherencia en PDF, gestionar Pacientes (Modo Cuidador) y ajustar Notificaciones.'**
+  String get tutorialStep1Desc;
+
+  /// No description provided for @tutorialStep2Title.
+  ///
+  /// In es, this message translates to:
+  /// **'Midi, tu Asistente Virtual'**
+  String get tutorialStep2Title;
+
+  /// No description provided for @tutorialStep2Desc.
+  ///
+  /// In es, this message translates to:
+  /// **'Conoce a Midi, tu asistente inteligente. Chatea con él para resolver dudas sobre medicamentos, dosis, efectos secundarios e interacciones.'**
+  String get tutorialStep2Desc;
+
+  /// No description provided for @tutorialStep3Title.
+  ///
+  /// In es, this message translates to:
+  /// **'Resumen Diario'**
+  String get tutorialStep3Title;
+
+  /// No description provided for @tutorialStep3Desc.
+  ///
+  /// In es, this message translates to:
+  /// **'Monitorea tu nivel de adherencia hoy y visualiza de un vistazo las dosis pendientes y tomadas del día.'**
+  String get tutorialStep3Desc;
+
+  /// No description provided for @tutorialStep4Title.
+  ///
+  /// In es, this message translates to:
+  /// **'Selector de Fechas'**
+  String get tutorialStep4Title;
+
+  /// No description provided for @tutorialStep4Desc.
+  ///
+  /// In es, this message translates to:
+  /// **'Navega en el tiempo: toca la fecha para planificar o registrar medicamentos de días anteriores o futuros.'**
+  String get tutorialStep4Desc;
+
+  /// No description provided for @tutorialStep5Title.
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar Receta o Tratamiento'**
+  String get tutorialStep5Title;
+
+  /// No description provided for @tutorialStep5Desc.
+  ///
+  /// In es, this message translates to:
+  /// **'Toca el botón + para registrar nuevos medicamentos, definir frecuencias de tomas y configurar recordatorios automáticos.'**
+  String get tutorialStep5Desc;
+
+  /// No description provided for @tutorialStep6Title.
+  ///
+  /// In es, this message translates to:
+  /// **'Pestaña Calendario'**
+  String get tutorialStep6Title;
+
+  /// No description provided for @tutorialStep6Desc.
+  ///
+  /// In es, this message translates to:
+  /// **'Accede al Calendario interactivo para ver tu historial de tomas organizado día por día.'**
+  String get tutorialStep6Desc;
+
+  /// No description provided for @tutorialStep7Title.
+  ///
+  /// In es, this message translates to:
+  /// **'Historial y Detalle del Día'**
+  String get tutorialStep7Title;
+
+  /// No description provided for @tutorialStep7Desc.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa cada día según tus dosis:\n🟢 Tomadas  🔴 Omitidas  🟡 Pendientes\n\nToca cualquier día para ver la lista de dosis programadas.'**
+  String get tutorialStep7Desc;
+
+  /// No description provided for @tutorialStep8Title.
+  ///
+  /// In es, this message translates to:
+  /// **'Pestaña Mi Progreso'**
+  String get tutorialStep8Title;
+
+  /// No description provided for @tutorialStep8Desc.
+  ///
+  /// In es, this message translates to:
+  /// **'Accede a la pestaña Progreso para analizar tus estadísticas de salud, cumplimiento acumulado y rachas.'**
+  String get tutorialStep8Desc;
+
+  /// No description provided for @tutorialStep9Title.
+  ///
+  /// In es, this message translates to:
+  /// **'Estadísticas y Modo Cuidador'**
+  String get tutorialStep9Title;
+
+  /// No description provided for @tutorialStep9Desc.
+  ///
+  /// In es, this message translates to:
+  /// **'Mide tu porcentaje general de adherencia, dosis tomadas vs omitidas y el cumplimiento por paciente si usas el Modo Cuidador.'**
+  String get tutorialStep9Desc;
+
+  /// No description provided for @tutorialStep10Title.
+  ///
+  /// In es, this message translates to:
+  /// **'Filtros y Resumen Desplegable'**
+  String get tutorialStep10Title;
+
+  /// No description provided for @tutorialStep10Desc.
+  ///
+  /// In es, this message translates to:
+  /// **'Filtra tu progreso por Semana, Mes o Año. Usa \"Ver más\" para desplegar la lista y cambia el orden entre \"Más recientes\" y \"Más antiguos\".'**
+  String get tutorialStep10Desc;
+
+  /// No description provided for @tutorialStep11Title.
+  ///
+  /// In es, this message translates to:
+  /// **'Navegación Principal'**
+  String get tutorialStep11Title;
+
+  /// No description provided for @tutorialStep11Desc.
+  ///
+  /// In es, this message translates to:
+  /// **'¡Todo listo! Usa la barra inferior para moverte cómodamente entre Receta, Calendario y Mi Progreso.'**
+  String get tutorialStep11Desc;
+
+  /// No description provided for @treatmentSummaryFrequency.
+  ///
+  /// In es, this message translates to:
+  /// **'Frecuencia'**
+  String get treatmentSummaryFrequency;
+
+  /// No description provided for @durationDays.
+  ///
+  /// In es, this message translates to:
+  /// **'Días'**
+  String get durationDays;
+
+  /// No description provided for @durationMonths.
+  ///
+  /// In es, this message translates to:
+  /// **'Meses'**
+  String get durationMonths;
+
+  /// No description provided for @durationYears.
+  ///
+  /// In es, this message translates to:
+  /// **'Años'**
+  String get durationYears;
+
+  /// No description provided for @durationIndefinite.
+  ///
+  /// In es, this message translates to:
+  /// **'Indefinido'**
+  String get durationIndefinite;
+
+  /// No description provided for @durationTreatmentDuration.
+  ///
+  /// In es, this message translates to:
+  /// **'Duración del tratamiento'**
+  String get durationTreatmentDuration;
+
+  /// No description provided for @durationIndefiniteTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tratamiento Indefinido - Optimizado'**
+  String get durationIndefiniteTitle;
+
+  /// No description provided for @durationIndefiniteBullet1.
+  ///
+  /// In es, this message translates to:
+  /// **'• Las dosis se generan automáticamente según sea necesario'**
+  String get durationIndefiniteBullet1;
+
+  /// No description provided for @durationIndefiniteBullet2.
+  ///
+  /// In es, this message translates to:
+  /// **'• Mejor rendimiento en el calendario y la aplicación'**
+  String get durationIndefiniteBullet2;
+
+  /// No description provided for @durationIndefiniteBullet3.
+  ///
+  /// In es, this message translates to:
+  /// **'• Puedes pausar o detener el tratamiento en cualquier momento'**
+  String get durationIndefiniteBullet3;
+
+  /// No description provided for @addPrescriptionStep3Label.
+  ///
+  /// In es, this message translates to:
+  /// **'Intervalo entre dosis'**
+  String get addPrescriptionStep3Label;
+
+  /// No description provided for @addPrescriptionStep3Hint.
+  ///
+  /// In es, this message translates to:
+  /// **'Ej: 8 (cada 8 horas)'**
+  String get addPrescriptionStep3Hint;
+
+  /// No description provided for @addPrescriptionCurrentStock.
+  ///
+  /// In es, this message translates to:
+  /// **'Cantidad actual'**
+  String get addPrescriptionCurrentStock;
+
+  /// No description provided for @addPrescriptionBoxStock.
+  ///
+  /// In es, this message translates to:
+  /// **'Cantidad total por caja'**
+  String get addPrescriptionBoxStock;
+
+  /// No description provided for @addPrescriptionDosePerTake.
+  ///
+  /// In es, this message translates to:
+  /// **'Dosis por toma'**
+  String get addPrescriptionDosePerTake;
+
+  /// No description provided for @addPrescriptionStep6Examples.
+  ///
+  /// In es, this message translates to:
+  /// **'(Ej: \"Tomar con comida\", \"No conducir\")'**
+  String get addPrescriptionStep6Examples;
+
+  /// No description provided for @addPrescriptionStep6NotesLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Notas (Opcional)'**
+  String get addPrescriptionStep6NotesLabel;
+
+  /// No description provided for @addPrescriptionStep7Review.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa los datos antes de confirmar'**
+  String get addPrescriptionStep7Review;
+
+  /// No description provided for @addPrescriptionStep7AlarmNotice.
+  ///
+  /// In es, this message translates to:
+  /// **'Al confirmar, se programarán las alarmas automáticamente para recordarte cada dosis'**
+  String get addPrescriptionStep7AlarmNotice;
+
+  /// No description provided for @addPrescriptionTreatmentUpdated.
+  ///
+  /// In es, this message translates to:
+  /// **'Tratamiento actualizado para {medicine}'**
+  String addPrescriptionTreatmentUpdated(String medicine);
+
+  /// No description provided for @addPrescriptionRemindersConfigured.
+  ///
+  /// In es, this message translates to:
+  /// **'Recordatorios configurados para {medicine}'**
+  String addPrescriptionRemindersConfigured(String medicine);
+
+  /// No description provided for @chatBotRecordingNotice.
+  ///
+  /// In es, this message translates to:
+  /// **'Grabando... Toca el mic para enviar'**
+  String get chatBotRecordingNotice;
+
+  /// No description provided for @chatBotCancelRecording.
+  ///
+  /// In es, this message translates to:
+  /// **'Cancelar grabación'**
+  String get chatBotCancelRecording;
+
+  /// No description provided for @chatBotTakeRecipePhoto.
+  ///
+  /// In es, this message translates to:
+  /// **'Tomar Foto de la Receta'**
+  String get chatBotTakeRecipePhoto;
+
+  /// No description provided for @helpSupport.
+  ///
+  /// In es, this message translates to:
+  /// **'Ayuda y Soporte'**
+  String get helpSupport;
+
+  /// No description provided for @helpGuideTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Guía de Optimización de Recordatorios'**
+  String get helpGuideTitle;
+
+  /// No description provided for @helpGuideSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Evita que el ahorro de batería o el sistema silencien tus alarmas. Diagnóstico en vivo y accesos directos a configuraciones.'**
+  String get helpGuideSubtitle;
+
+  /// No description provided for @helpHowToUseTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Cómo usar la aplicación?'**
+  String get helpHowToUseTitle;
+
+  /// No description provided for @helpHowToUseSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Aprende a registrar tratamientos, horarios e inventario.'**
+  String get helpHowToUseSubtitle;
+
+  /// No description provided for @helpTermsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Términos de uso'**
+  String get helpTermsTitle;
+
+  /// No description provided for @helpTermsSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Condiciones de servicio y responsabilidades.'**
+  String get helpTermsSubtitle;
+
+  /// No description provided for @helpPrivacyTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Política de Privacidad'**
+  String get helpPrivacyTitle;
+
+  /// No description provided for @helpPrivacySubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Cómo tratamos y protegemos tus datos médicos.'**
+  String get helpPrivacySubtitle;
+
+  /// No description provided for @helpAppVersionTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Versión de la aplicación'**
+  String get helpAppVersionTitle;
+
+  /// No description provided for @helpAppVersionSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Información de la versión y compilación actual.'**
+  String get helpAppVersionSubtitle;
+
+  /// No description provided for @helpDevelopersTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Desarrolladores'**
+  String get helpDevelopersTitle;
+
+  /// No description provided for @helpDevelopersSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Equipo creador y créditos del proyecto.'**
+  String get helpDevelopersSubtitle;
+
+  /// No description provided for @helpUnderstood.
+  ///
+  /// In es, this message translates to:
+  /// **'Entendido'**
+  String get helpUnderstood;
+
+  /// No description provided for @helpLoadingVersion.
+  ///
+  /// In es, this message translates to:
+  /// **'Cargando versión...'**
+  String get helpLoadingVersion;
+
+  /// No description provided for @helpVersionText.
+  ///
+  /// In es, this message translates to:
+  /// **'MediTime versión {version} (Build {buildNumber}).'**
+  String helpVersionText(String version, String buildNumber);
+
+  /// No description provided for @helpProgramming.
+  ///
+  /// In es, this message translates to:
+  /// **'Programación:'**
+  String get helpProgramming;
+
+  /// No description provided for @helpDesign.
+  ///
+  /// In es, this message translates to:
+  /// **'Diseño:'**
+  String get helpDesign;
+
+  /// No description provided for @helpTesting.
+  ///
+  /// In es, this message translates to:
+  /// **'Testing:'**
+  String get helpTesting;
+
+  /// No description provided for @helpSpecialThanks.
+  ///
+  /// In es, this message translates to:
+  /// **'Agradecimientos Especiales a la Universidad de Cundinamarca seccional Ubaté por incentivar el desarrollo de proyectos innovadores y el acompañamiento por parte de los docentes y directivos.\n\nUniversidad de Cundinamarca\nIngeniería en Sistemas y Computación\n©Todos los Derechos Reservados\n2022-2026'**
+  String get helpSpecialThanks;
+
+  /// No description provided for @reportsEvolutionTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Evolución de adherencia'**
+  String get reportsEvolutionTitle;
+
+  /// No description provided for @reportsSeeMore.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver más'**
+  String get reportsSeeMore;
+
+  /// No description provided for @reportsBreakdownTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Desglose por tratamiento'**
+  String get reportsBreakdownTitle;
+
+  /// No description provided for @reportsNoTreatmentsInPeriod.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay tratamientos registrados en este período.'**
+  String get reportsNoTreatmentsInPeriod;
+
+  /// No description provided for @reportsSeeLess.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver menos'**
+  String get reportsSeeLess;
+
+  /// No description provided for @reportsSeeAll.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver todo'**
+  String get reportsSeeAll;
+
+  /// No description provided for @reportsRecentHistoryTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Historial reciente'**
+  String get reportsRecentHistoryTitle;
+
+  /// No description provided for @reportsNoRecentRecords.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay registros recientes.'**
+  String get reportsNoRecentRecords;
+
+  /// No description provided for @reportsOmissionsPatternTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Patrón de omisiones'**
+  String get reportsOmissionsPatternTitle;
+
+  /// No description provided for @reportsSeeAnalysis.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver análisis'**
+  String get reportsSeeAnalysis;
+
+  /// No description provided for @cancel.
+  ///
+  /// In es, this message translates to:
+  /// **'Cancelar'**
+  String get cancel;
+
+  /// No description provided for @chatBotSelectFromGallery.
+  ///
+  /// In es, this message translates to:
+  /// **'Seleccionar de la galería'**
+  String get chatBotSelectFromGallery;
 }
 
 class _AppLocalizationsDelegate

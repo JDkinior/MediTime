@@ -19,6 +19,8 @@ import 'package:meditime/widgets/treatment_form/treatment_summary_card.dart';
 import 'package:meditime/widgets/drug_interaction_dialog.dart';
 import 'package:meditime/repositories/treatment_repository.dart';
 import 'package:meditime/services/auth_service.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
+import 'package:meditime/core/utils.dart';
 
 class AgregarRecetaPage extends StatefulWidget {
   final Tratamiento? tratamientoToEdit;
@@ -200,12 +202,15 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
     if (!mounted) return;
 
     if (success) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             isEditing
-                ? 'Tratamiento actualizado para ${notifier.formData.nombreMedicamento}'
-                : 'Recordatorios configurados para ${notifier.formData.nombreMedicamento}',
+                ? (l10n?.addPrescriptionTreatmentUpdated(notifier.formData.nombreMedicamento) ??
+                    'Tratamiento actualizado para ${notifier.formData.nombreMedicamento}')
+                : (l10n?.addPrescriptionRemindersConfigured(notifier.formData.nombreMedicamento) ??
+                    'Recordatorios configurados para ${notifier.formData.nombreMedicamento}'),
           ),
           backgroundColor: Colors.green,
         ),
@@ -224,10 +229,11 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
 
       Navigator.of(context).pop(true);
     } else {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            notifier.errorMessage ?? 'Error al guardar el tratamiento',
+            notifier.errorMessage ?? (l10n?.addPrescriptionSaveError ?? 'Error al guardar el tratamiento'),
           ),
           backgroundColor: Colors.red,
         ),
@@ -417,7 +423,9 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                 onPressed: () => _handleBack(context, notifier),
               ),
               title: Text(
-                widget.tratamientoToEdit != null ? 'Editar Tratamiento' : 'Agregar Receta',
+                widget.tratamientoToEdit != null
+                    ? (AppLocalizations.of(context)?.editTreatmentTitle ?? 'Editar Tratamiento')
+                    : (AppLocalizations.of(context)?.addPrescriptionTitle ?? 'Agregar Receta'),
                 style: TextStyle(
                   color: AppTheme.primaryTextColor,
                   fontWeight: FontWeight.bold,
@@ -439,7 +447,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                         size: 22,
                       ),
                     ),
-                    tooltip: 'Escanear receta con IA',
+                    tooltip: AppLocalizations.of(context)?.addPrescriptionAiScanTooltip ?? 'Escanear receta con IA',
                     onPressed: () => _scanPrescriptionWithAI(notifier),
                   ),
                 ),
@@ -615,15 +623,15 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
   }
 
   Widget _buildStepContent(int step, TreatmentFormNotifier notifier) {
+    final l10n = AppLocalizations.of(context);
+    final caregiverNotifier = context.watch<CaregiverNotifier>();
+    final prefNotifier = context.watch<PreferenceNotifier>();
+    final isAnimal = prefNotifier.isAnimalMode;
+    final isManagedMode = caregiverNotifier.isCaregiverModeActive || isAnimal;
+    final activeProfile = isManagedMode ? caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimal) : null;
+    final isEffectiveAnimal = isAnimal || caregiverNotifier.modeType == CaregiverModeType.veterinario || (activeProfile?.isAnimal ?? false);
     switch (step) {
       case 0: // Nombre del medicamento
-        final caregiverNotifier = context.watch<CaregiverNotifier>();
-        final prefNotifier = context.watch<PreferenceNotifier>();
-        final isAnimal = prefNotifier.isAnimalMode;
-        final isManagedMode = caregiverNotifier.isCaregiverModeActive || isAnimal;
-        final activeProfile = isManagedMode ? caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimal) : null;
-        final isEffectiveAnimal = isAnimal || caregiverNotifier.modeType == CaregiverModeType.veterinario || (activeProfile?.isAnimal ?? false);
-
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -647,7 +655,9 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      isAnimal ? 'Mascota: ${activeProfile.name}' : 'Paciente: ${activeProfile.name}',
+                      isAnimal
+                          ? (l10n?.addPrescriptionPetPrefix(activeProfile.name) ?? 'Mascota: ${activeProfile.name}')
+                          : (l10n?.addPrescriptionPatientPrefix(activeProfile.name) ?? 'Paciente: ${activeProfile.name}'),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
@@ -658,15 +668,21 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                 ),
               ),
             ],
-            _buildQuestionText(isAnimal ? '¿Qué medicamento o tratamiento vas a agregar?' : '¿Qué medicamento vas a agregar?'),
+            _buildQuestionText(isAnimal
+                ? (l10n?.addPrescriptionStep0QuestionAnimal ?? '¿Qué medicamento o tratamiento vas a agregar?')
+                : (l10n?.addPrescriptionStep0Question ?? '¿Qué medicamento vas a agregar?')),
             const SizedBox(height: 24),
             FormFieldWrapper(
-              label: isAnimal ? 'Nombre del medicamento / tratamiento' : 'Nombre del medicamento',
+              label: isAnimal
+                  ? (l10n?.addPrescriptionStep0LabelAnimal ?? 'Nombre del medicamento / tratamiento')
+                  : (l10n?.addPrescriptionStep0Label ?? 'Nombre del medicamento'),
               child: TextFormField(
                 controller: _nombreMedicamentoController,
                 onChanged: notifier.updateNombreMedicamento,
                 decoration: AppInputDecoration.withHint(
-                  isAnimal ? 'Escribe el nombre del fármaco o tratamiento' : 'Escribe el nombre del medicamento',
+                  isAnimal
+                      ? (l10n?.addPrescriptionStep0HintAnimal ?? 'Escribe el nombre del fármaco o tratamiento')
+                      : (l10n?.addPrescriptionStep0Hint ?? 'Escribe el nombre del medicamento'),
                 ),
               ),
             ),
@@ -680,16 +696,16 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildQuestionText('¿Cuál es la presentación del medicamento?'),
+            _buildQuestionText(l10n?.addPrescriptionStep1Question ?? '¿Cuál es la presentación del medicamento?'),
             const SizedBox(height: 16),
             DropdownButton<String>(
               value: isValidPres ? currentPres : null,
-              hint: const Text('Selecciona una opción'),
+              hint: Text(l10n?.addPrescriptionStep1Hint ?? 'Selecciona una opción'),
               items:
                   notifier.presentaciones.map((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
-                      child: Text(value),
+                      child: Text(AppUtils.localizePresentation(context, value)),
                     );
                   }).toList(),
               onChanged: (value) {
@@ -706,10 +722,11 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildQuestionText('¿Cuándo será la primera dosis?'),
+            _buildQuestionText(l10n?.addPrescriptionStep2Question ?? '¿Cuándo será la primera dosis?'),
             const SizedBox(height: 16),
             Text(
-              'Hora seleccionada: ${notifier.formData.horaPrimeraDosis.format(context)}',
+              l10n?.addPrescriptionStep2SelectedTime(notifier.formData.horaPrimeraDosis.format(context)) ??
+                  'Hora seleccionada: ${notifier.formData.horaPrimeraDosis.format(context)}',
               style: const TextStyle(fontSize: 16),
             ),
             SizedBox(
@@ -749,10 +766,12 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildQuestionText('¿Cada cuántas horas debe tomarlo?'),
+            _buildQuestionText(isEffectiveAnimal
+                ? (l10n?.addPrescriptionStep3QuestionAnimal ?? '¿Con qué frecuencia se administrará?')
+                : (l10n?.addPrescriptionStep3Question ?? '¿Con qué frecuencia lo tomarás?')),
             const SizedBox(height: 24),
             FormFieldWrapper(
-              label: 'Intervalo entre dosis',
+              label: l10n?.addPrescriptionStep3Label ?? 'Intervalo entre dosis',
               child: TextFormField(
                 controller: _dosisController,
                 keyboardType: TextInputType.number,
@@ -760,7 +779,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                   final intervalo = int.tryParse(value) ?? 0;
                   notifier.updateIntervaloDosis(intervalo);
                 },
-                decoration: AppInputDecoration.withHint('Ej: 8 (cada 8 horas)'),
+                decoration: AppInputDecoration.withHint(l10n?.addPrescriptionStep3Hint ?? 'Ej: 8 (cada 8 horas)'),
               ),
             ),
           ],
@@ -771,7 +790,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildQuestionText('¿Por cuánto tiempo?'),
+            _buildQuestionText(l10n?.addPrescriptionStep4Question ?? '¿Cuánto tiempo durará el tratamiento?'),
             const SizedBox(height: 24),
             DurationSelector(
               duracionNumero: notifier.formData.duracionNumero,
@@ -792,62 +811,62 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-              _buildQuestionText('¿Cómo quieres registrar tu inventario?'),
-              const SizedBox(height: 20),
-              FormFieldWrapper(
-                label: 'Cantidad actual',
-                child: TextFormField(
-                  controller: _cantidadActualController,
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    notifier.updateCantidadActual(int.tryParse(value) ?? 0);
-                  },
-                  decoration: AppInputDecoration.withHint('Ej: 30'),
+                _buildQuestionText(l10n?.addPrescriptionStep5Question ?? '¿Tienes medicamentos en inventario?'),
+                const SizedBox(height: 20),
+                FormFieldWrapper(
+                  label: l10n?.addPrescriptionCurrentStock ?? 'Cantidad actual',
+                  child: TextFormField(
+                    controller: _cantidadActualController,
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      notifier.updateCantidadActual(int.tryParse(value) ?? 0);
+                    },
+                    decoration: const InputDecoration(hintText: 'Ej: 30'),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              FormFieldWrapper(
-                label: 'Cantidad total por caja',
-                child: TextFormField(
-                  controller: _cantidadTotalController,
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    notifier.updateCantidadTotalCaja(int.tryParse(value) ?? 0);
-                  },
-                  decoration: AppInputDecoration.withHint('Ej: 60'),
+                const SizedBox(height: 12),
+                FormFieldWrapper(
+                  label: l10n?.addPrescriptionBoxStock ?? 'Cantidad total por caja',
+                  child: TextFormField(
+                    controller: _cantidadTotalController,
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      notifier.updateCantidadTotalCaja(int.tryParse(value) ?? 0);
+                    },
+                    decoration: const InputDecoration(hintText: 'Ej: 60'),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              FormFieldWrapper(
-                label: 'Dosis por toma',
-                child: TextFormField(
-                  controller: _dosisPorTomaController,
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    notifier.updateDosisPorToma(int.tryParse(value) ?? 1);
-                  },
-                  decoration: AppInputDecoration.withHint('Ej: 1'),
+                const SizedBox(height: 12),
+                FormFieldWrapper(
+                  label: l10n?.addPrescriptionDosePerTake ?? 'Dosis por toma',
+                  child: TextFormField(
+                    controller: _dosisPorTomaController,
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      notifier.updateDosisPorToma(int.tryParse(value) ?? 1);
+                    },
+                    decoration: const InputDecoration(hintText: 'Ej: 1'),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      );
+        );
 
       case 6: // Notas
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildQuestionText('¿Alguna nota o indicación especial?'),
+            _buildQuestionText(l10n?.addPrescriptionStep6Question ?? '¿Quieres añadir alguna nota o indicación médica?'),
             const SizedBox(height: 4),
-            const Text(
-              '(Ej: "Tomar con comida", "No conducir")',
-              style: TextStyle(color: Colors.grey),
+            Text(
+              l10n?.addPrescriptionStep6Examples ?? '(Ej: "Tomar con comida", "No conducir")',
+              style: const TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 20),
             FormFieldWrapper(
-              label: 'Notas (Opcional)',
+              label: l10n?.addPrescriptionStep6NotesLabel ?? 'Notas (Opcional)',
               child: TextFormField(
                 controller: _notasController,
                 maxLines: null,
@@ -856,7 +875,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                 textInputAction: TextInputAction.newline,
                 onChanged: notifier.updateNotas,
                 decoration: AppInputDecoration.withHint(
-                  'Escribe cualquier indicación especial',
+                  l10n?.addPrescriptionStep6NotesHint ?? 'Escribe aquí notas adicionales...',
                 ),
               ),
             ),
@@ -874,7 +893,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  'Resumen de la receta',
+                  l10n?.addPrescriptionStep7Summary ?? 'Resumen del tratamiento',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
@@ -883,7 +902,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Revisa los datos antes de confirmar',
+                  l10n?.addPrescriptionStep7Review ?? 'Revisa los datos antes de confirmar',
                   style: TextStyle(
                     fontSize: 14,
                     color: AppTheme.secondaryTextColor,
@@ -919,7 +938,8 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Al confirmar, se programarán las alarmas automáticamente para recordarte cada dosis',
+                          l10n?.addPrescriptionStep7AlarmNotice ??
+                              'Al confirmar, se programarán las alarmas automáticamente para recordarte cada dosis',
                           style: TextStyle(
                             color: AppTheme.primaryTextColor,
                             fontSize: 14,

@@ -34,9 +34,42 @@ Future<void> handleNotificationActionBackground(
   try {
     DartPluginRegistrant.ensureInitialized();
     WidgetsFlutterBinding.ensureInitialized();
-    await NotificationService.initializeCore();
+
     final payload = notificationResponse.payload;
     final actionId = notificationResponse.actionId;
+    final isAlarmMode = payload != null && payload.startsWith('alarm_mode');
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CRÍTICO: Si el usuario presionó un BOTÓN DE ACCIÓN, detener sonido
+    // y cancelar notificación INMEDIATAMENTE, antes de cualquier
+    // inicialización pesada.
+    //
+    // Si el usuario tocó el CUERPO de la notificación:
+    //   - Modo Alarma: NO detener sonido, AlarmRingingPage lo gestiona.
+    //   - Otros modos: Detener sonido y cancelar notificación.
+    // ═══════════════════════════════════════════════════════════════════════
+    final bool shouldStopSoundNow = actionId != null || !isAlarmMode;
+
+    if (shouldStopSoundNow) {
+      try {
+        await AlarmSoundService.stopAlarm();
+        debugPrint('🔥 SONIDO DE ALARMA DETENIDO (pre-procesamiento)');
+      } catch (e) {
+        debugPrint('🔥 Error deteniendo sonido pre-procesamiento: $e');
+      }
+
+      if (notificationResponse.id != null) {
+        try {
+          await NotificationService.initializeCore();
+          await NotificationService.cancelFlutterLocalNotificationById(notificationResponse.id!);
+          debugPrint('🔥 NOTIFICACIÓN ${notificationResponse.id} CANCELADA (pre-procesamiento)');
+        } catch (e) {
+          debugPrint('🔥 Error cancelando notificación pre-procesamiento: $e');
+        }
+      }
+    }
+
+    await NotificationService.initializeCore();
     
     if (payload == null) {
       debugPrint('🔥 PAYLOAD NULO - SALIENDO');
@@ -46,19 +79,12 @@ Future<void> handleNotificationActionBackground(
     // Si el usuario toca el cuerpo de la notificación (no los botones de acción)
     if (actionId == null) {
       debugPrint('🔥 DEEP LINKING: El usuario pulsó la notificación.');
-      // CRÍTICO: Cancelar la notificación inmediatamente para detener el sonido FLAG_INSISTENT,
-      // EXCEPTO si es Modo Alarma, porque queremos que siga sonando en AlarmRingingPage
-      // hasta que el usuario interactúe con los botones de esa pantalla.
-      final bool isAlarm = payload.startsWith('alarm_mode');
-      if (!isAlarm && notificationResponse.id != null) {
-        await NotificationService.cancelFlutterLocalNotificationById(notificationResponse.id!);
-        debugPrint('🔥 NOTIFICACIÓN CANCELADA AL PULSAR EL CUERPO (No era alarma)');
-      }
       
       final parts = payload.split('|');
       
       // Si es una alarma de pantalla completa, navegar a AlarmRingingPage
-      if (payload.startsWith('alarm_mode')) {
+      // (el sonido sigue activo, AlarmRingingPage lo detendrá cuando el usuario actúe)
+      if (isAlarmMode) {
         NotificationService._navigateToAlarmScreen(
           payload,
           notificationId: notificationResponse.id,
@@ -74,15 +100,7 @@ Future<void> handleNotificationActionBackground(
       return;
     }
     
-    // Si el usuario presionó un botón de acción, detener inmediatamente cualquier sonido activo
-    await NotificationService.stopAlarmSound();
-    
     debugPrint('🔥 PROCESANDO ACCIÓN: $actionId');
-    
-    if (notificationResponse.id != null) {
-      await NotificationService.cancelFlutterLocalNotificationById(notificationResponse.id!);
-      debugPrint('🔥 NOTIFICACIÓN CANCELADA');
-    }
     
     await NotificationService.processNotificationActionAsync(
       payload: payload,
@@ -93,6 +111,10 @@ Future<void> handleNotificationActionBackground(
     debugPrint('🔥 CALLBACK COMPLETADO EXITOSAMENTE');
   } catch (e) {
     debugPrint('🔥 ERROR CRÍTICO EN CALLBACK: $e');
+    // Último intento de detener sonido en caso de error
+    try {
+      await AlarmSoundService.stopAlarm();
+    } catch (_) {}
   }
 }
 
@@ -447,19 +469,19 @@ class NotificationService {
         'TOMAR_ACTION',
         'Tomar',
         showsUserInterface: false,
-        cancelNotification: false,
+        cancelNotification: true, // CRÍTICO: Cancelar notificación inmediatamente para detener FLAG_INSISTENT
       ),
       AndroidNotificationAction(
         'OMITIR_ACTION',
         'Omitir',
         showsUserInterface: false,
-        cancelNotification: false,
+        cancelNotification: true, // CRÍTICO: Cancelar notificación inmediatamente para detener FLAG_INSISTENT
       ),
       AndroidNotificationAction(
         'APLAZAR_ACTION',
         snoozeLabel,
         showsUserInterface: false,
-        cancelNotification: false,
+        cancelNotification: true, // CRÍTICO: Cancelar notificación inmediatamente para detener FLAG_INSISTENT
       ),
     ];
 
@@ -490,7 +512,7 @@ class NotificationService {
       usesChronometer: false,
       channelShowBadge: true,
       onlyAlertOnce: false,
-      timeoutAfter: null,
+      timeoutAfter: 300000, // 5 minutos: auto-cancelar notificación si no hay interacción (sincronizado con AlarmSoundService.maxAlarmDuration)
       styleInformation: BigTextStyleInformation(
         body,
         contentTitle: title,
@@ -528,6 +550,11 @@ class NotificationService {
       notificationDetails,
       payload: payload,
     );
+
+    // CRÍTICO: Adjuntar deleteIntent para que al descartar la notificación
+    // (swipe, clear all, timeout) se detenga automáticamente el sonido.
+    await AlarmSoundService.attachDismissListener(id);
+
     debugPrint("Notificación MODO ALARMA mostrada - ID: $id, Título: $title");
   }
 
@@ -561,19 +588,19 @@ class NotificationService {
         'TOMAR_ACTION',
         'Tomar',
     showsUserInterface: false, // Procesar en segundo plano sin abrir la app
-        cancelNotification: false, // NO cancelar automáticamente - lo hace el callback
+        cancelNotification: true, // CRÍTICO: Cancelar inmediatamente para evitar sonido persistente
       ),
       AndroidNotificationAction(
         'OMITIR_ACTION',
         'Omitir',
     showsUserInterface: false, // Procesar en segundo plano sin abrir la app
-        cancelNotification: false, // NO cancelar automáticamente - lo hace el callback
+        cancelNotification: true, // CRÍTICO: Cancelar inmediatamente para evitar sonido persistente
       ),
       AndroidNotificationAction(
         'APLAZAR_ACTION',
         snoozeLabel,
     showsUserInterface: false, // Procesar en segundo plano sin abrir la app
-        cancelNotification: false, // NO cancelar automáticamente - lo hace el callback
+        cancelNotification: true, // CRÍTICO: Cancelar inmediatamente para evitar sonido persistente
       ),
     ];
 
@@ -708,22 +735,25 @@ class NotificationService {
               'TOMAR_ACTION',
               'Tomar',
               showsUserInterface: false,
+              cancelNotification: true,
             ),
             AndroidNotificationAction(
               'OMITIR_ACTION',
               'Omitir',
               showsUserInterface: false,
+              cancelNotification: true,
             ),
             AndroidNotificationAction(
               'APLAZAR_ACTION',
               'Aplazar',
               showsUserInterface: false,
+              cancelNotification: true,
             ),
           ],
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time,
+      // CRÍTICO: NO usar matchDateTimeComponents, el aplazamiento debe ser un disparo único
       payload: payload,
     );
     debugPrint(

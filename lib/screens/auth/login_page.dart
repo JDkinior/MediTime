@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/services/auth_service.dart'; // Importa tu servicio
+import 'package:meditime/theme/app_theme.dart';
 import 'package:provider/provider.dart'; // Importa Provider
 import 'register_page.dart';
 import 'package:meditime/widgets/primary_button.dart';
@@ -61,6 +63,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   }
 
   Future<void> _login() async {
+    final l10n = AppLocalizations.of(context);
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -71,11 +74,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
     if (email.isEmpty) {
       emailError = true;
-      emailErrorText = 'Por favor ingresa tu correo';
+      emailErrorText = l10n?.loginErrorEmptyEmail ?? 'Por favor ingresa tu correo';
     }
     if (password.isEmpty) {
       passwordError = true;
-      passwordErrorText = 'Por favor ingresa tu contraseña';
+      passwordErrorText = l10n?.loginErrorEmptyPassword ?? 'Por favor ingresa tu contraseña';
     }
 
     if (emailError || passwordError) {
@@ -104,7 +107,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     if (!mounted) return;
 
     if (result.isFailure) {
-      final error = result.error ?? 'Error al iniciar sesión';
+      final error = result.error ?? (l10n?.loginErrorGeneral ?? 'Error al iniciar sesión');
       bool newEmailError = false;
       String newEmailErrorText = '';
       bool newPasswordError = false;
@@ -114,13 +117,13 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       final normalizedError = error.toLowerCase();
       if (normalizedError.contains('user-not-found')) {
         newEmailError = true;
-        newEmailErrorText = 'Usuario no encontrado';
+        newEmailErrorText = l10n?.loginErrorUserNotFound ?? 'Usuario no encontrado';
       } else if (normalizedError.contains('wrong-password')) {
         newPasswordError = true;
-        newPasswordErrorText = 'Contraseña incorrecta';
+        newPasswordErrorText = l10n?.loginErrorWrongPassword ?? 'Contraseña incorrecta';
       } else if (normalizedError.contains('invalid-email')) {
         newEmailError = true;
-        newEmailErrorText = 'Formato de correo inválido';
+        newEmailErrorText = l10n?.loginErrorInvalidEmail ?? 'Formato de correo inválido';
       } else {
         errorMessage = error;
       }
@@ -156,9 +159,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     if (!mounted) return;
 
     if (result.isFailure) {
+      final l10n = AppLocalizations.of(context);
       setState(() {
         _isLoading = false;
-        _errorMessage = result.error ?? 'Error al iniciar sesión con Google. Inténtalo de nuevo.';
+        _errorMessage = result.error ?? (l10n?.loginErrorGoogle ?? 'Error al iniciar sesión con Google. Inténtalo de nuevo.');
       });
       return;
     }
@@ -174,6 +178,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final mediaQuery = MediaQuery.of(context);
     final screenSize = mediaQuery.size;
     final screenHeight = screenSize.height;
@@ -200,6 +206,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         behavior: HitTestBehavior.opaque,
         child: Scaffold(
         resizeToAvoidBottomInset: false,
+        backgroundColor: AppTheme.backgroundColor,
         body: Stack(
           children: [
             AnimatedBuilder(
@@ -232,9 +239,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     AnimatedBuilder(
                       animation: _animationController,
                       // El contenido del título se construye una sola vez.
-                      child: const Column(
+                      child: Column(
                         children: [
-                          Text(
+                          const Text(
                             'MediTime',
                             style: TextStyle(
                               fontSize: 55,
@@ -242,11 +249,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               color: Colors.white,
                             ),
                           ),
-                          SizedBox(height: 5),
+                          const SizedBox(height: 5),
                           Text(
-                            'Controla tus medicamentos\nMejora tu salud',
+                            l10n?.loginSlogan ?? 'Controla tus medicamentos\nMejora tu salud',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 20,
                               color: Colors.white,
                             ),
@@ -269,12 +276,12 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       child: Column(
                         children: [
                           _SingButton(
-                            text: 'Iniciar sesión',
+                            text: l10n?.loginSignIn ?? 'Iniciar sesión',
                             onPressed: _toggleLoginForm,
                           ),
                           const SizedBox(height: 20),
                           _AuthButton(
-                            text: 'Registrarme',
+                            text: l10n?.loginRegister ?? 'Registrarme',
                             onPressed: () => Navigator.push(
                               context,
                               MaterialPageRoute(builder: (context) => const RegisterPage()),
@@ -320,11 +327,26 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                   behavior: HitTestBehavior.opaque,
                   child: Container(
                     height: screenHeight * 0.63,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF3F3F3),
-                      borderRadius: BorderRadius.vertical(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(30),
                       ),
+                      boxShadow: isDark
+                          ? [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.5),
+                                blurRadius: 20,
+                                offset: const Offset(0, -4),
+                              ),
+                            ]
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 15,
+                                offset: const Offset(0, -4),
+                              ),
+                            ],
                     ),
                     padding: const EdgeInsets.all(30),
                     child: SingleChildScrollView(
@@ -337,8 +359,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                            const SizedBox(height: 5),
                           StyledTextField(
                             controller: _emailController,
-                            labelText: 'Correo Electrónico',
-                            hintText: 'Escribe tu correo electrónico',
+                            labelText: l10n?.loginEmailLabel ?? 'Correo Electrónico',
+                            hintText: l10n?.loginEmailHint ?? 'Escribe tu correo electrónico',
                             keyboardType: TextInputType.emailAddress,
                             errorText: _emailError ? _emailErrorText : null,
                             onChanged: (_) {
@@ -353,8 +375,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                           const SizedBox(height: 15),
                           StyledTextField(
                             controller: _passwordController,
-                            labelText: 'Contraseña',
-                            hintText: 'Escribe tu contraseña',
+                            labelText: l10n?.loginPasswordLabel ?? 'Contraseña',
+                            hintText: l10n?.loginPasswordHint ?? 'Escribe tu contraseña',
                             obscureText: true,
                             textInputAction: TextInputAction.done,
                             errorText: _passwordError ? _passwordErrorText : null,
@@ -369,19 +391,19 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                           ),
                           const SizedBox(height: 70),
                           PrimaryButton(
-                            text: 'Iniciar Sesión',
+                            text: l10n?.loginButton ?? 'Iniciar Sesión',
                             isLoading: _isLoading,
                             onPressed: _login,
                           ),
                           const SizedBox(height: 10),
-                          const Row(
+                          Row(
                             children: [
-                              Expanded(child: Divider(color: Color.fromARGB(255, 165, 165, 165), thickness: 1)),
+                              Expanded(child: Divider(color: AppTheme.borderColor, thickness: 1)),
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 10),
-                                child: Text('o', style: TextStyle(color: Color.fromARGB(255, 165, 165, 165), fontSize: 14)),
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                child: Text(l10n?.loginOr ?? 'o', style: TextStyle(color: AppTheme.secondaryTextColor, fontSize: 14)),
                               ),
-                              Expanded(child: Divider(color: Color.fromARGB(255, 165, 165, 165), thickness: 1)),
+                              Expanded(child: Divider(color: AppTheme.borderColor, thickness: 1)),
                             ],
                           ),
                           const SizedBox(height: 10),
@@ -390,13 +412,20 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             height: 60,
                             child: ElevatedButton.icon(
                               icon: Image.asset('assets/google_logo.png', width: 30, height: 30),
-                              label: const Text('Continuar con Google'),
+                              label: Text(
+                                l10n?.loginWithGoogle ?? 'Continuar con Google',
+                                style: TextStyle(
+                                  color: AppTheme.primaryTextColor,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFF3F3F3),
-                                foregroundColor: Colors.black,
+                                backgroundColor: Theme.of(context).cardColor,
+                                foregroundColor: AppTheme.primaryTextColor,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
-                                  side: const BorderSide(color: Color.fromARGB(255, 165, 165, 165)),
+                                  side: BorderSide(color: AppTheme.borderColor),
                                 ),
                                 elevation: 0,
                               ),
@@ -410,9 +439,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                 context,
                                 MaterialPageRoute(builder: (context) => const RegisterPage()),
                               ),
-                              child: const Text(
-                                '¿No tienes cuenta? Regístrate aquí',
-                                style: TextStyle(color: Color.fromARGB(255, 47, 109, 180), fontSize: 15, fontWeight: FontWeight.w600),
+                              child: Text(
+                                l10n?.loginNoAccount ?? '¿No tienes cuenta? Regístrate aquí',
+                                style: TextStyle(color: AppTheme.primaryColor, fontSize: 15, fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),

@@ -60,8 +60,13 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
     // Activar visibilidad sobre la pantalla de bloqueo y encender pantalla
     SystemSettingsService.setLockScreenVisibility(true);
 
-    // Asegurar que el tono de alarma y vibración continua estén activos (dual-redundancy)
-    AlarmSoundService.startAlarm();
+    // NOTA: NO re-iniciar AlarmSoundService.startAlarm() aquí.
+    // El sonido ya fue iniciado por alarmCallbackLogic en segundo plano.
+    // Re-iniciarlo aquí causaba que el sonido volviera después de ser
+    // detenido por el callback cuando el usuario tocaba la notificación.
+    if (widget.isTest) {
+      AlarmSoundService.startAlarm();
+    }
     
     // Cargar duración de aplazamiento configurada
     _loadSnoozeDuration();
@@ -116,17 +121,31 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
       _isProcessing = true;
     });
 
-    // Detener sonido de alarma inmediatamente en todos los componentes
-    await AlarmSoundService.stopAlarm();
-
-    if (widget.notificationId != null) {
-      await NotificationService.cancelFlutterLocalNotificationById(
-        widget.notificationId!,
-      );
+    // CRÍTICO: Detener sonido de alarma inmediatamente en todos los componentes
+    try {
+      await AlarmSoundService.stopAlarm();
+    } catch (e) {
+      debugPrint('Error deteniendo alarma: $e');
     }
 
-    await onDone();
+    if (widget.notificationId != null) {
+      try {
+        await NotificationService.cancelFlutterLocalNotificationById(
+          widget.notificationId!,
+        );
+      } catch (e) {
+        debugPrint('Error cancelando notificación: $e');
+      }
+    }
 
+    // Ejecutar lógica de negocio (Firestore, etc.) con protección de errores
+    try {
+      await onDone();
+    } catch (e) {
+      debugPrint('Error en lógica de negocio post-alarma: $e');
+    }
+
+    // CRÍTICO: Siempre cerrar la página, incluso si onDone() falló
     if (mounted) {
       Navigator.of(context).pop();
     }
@@ -243,9 +262,18 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
 
     return PopScope(
       canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
+      onPopInvokedWithResult: (didPop, result) async {
         if (!didPop) {
-          Navigator.of(context).pop();
+          // CRÍTICO: Detener alarma antes de salir para evitar sonido huérfano
+          await AlarmSoundService.stopAlarm();
+          if (widget.notificationId != null) {
+            await NotificationService.cancelFlutterLocalNotificationById(
+              widget.notificationId!,
+            );
+          }
+          if (context.mounted) {
+            Navigator.of(context).pop();
+          }
         }
       },
       child: Scaffold(

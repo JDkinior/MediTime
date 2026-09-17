@@ -4,6 +4,7 @@ import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/primary_button.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'guia_optimizacion_page.dart';
 import 'info_page.dart';
 import 'instrucciones_page.dart';
@@ -14,6 +15,7 @@ class AyudaPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     context.watch<PreferenceNotifier>();
+    final l10n = AppLocalizations.of(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final primaryTextColor =
         isDarkMode ? Colors.white : AppTheme.primaryTextColor;
@@ -25,7 +27,7 @@ class AyudaPage extends StatelessWidget {
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: Text(
-          'Ayuda y Soporte',
+          l10n?.helpSupport ?? 'Ayuda y Soporte',
           style: TextStyle(
             color: primaryTextColor,
             fontWeight: FontWeight.bold,
@@ -42,8 +44,8 @@ class AyudaPage extends StatelessWidget {
           // Tarjeta Destacada: Guía de Optimización de Recordatorios
           _buildSpecialCard(
             context: context,
-            title: 'Guía de Optimización de Recordatorios',
-            subtitle:
+            title: l10n?.helpGuideTitle ?? 'Guía de Optimización de Recordatorios',
+            subtitle: l10n?.helpGuideSubtitle ??
                 'Evita que el ahorro de batería o el sistema silencien tus alarmas. Diagnóstico en vivo y accesos directos a configuraciones.',
             icon: Icons.shield_outlined,
             iconColor: Colors.white,
@@ -69,8 +71,8 @@ class AyudaPage extends StatelessWidget {
             cardBg: cardBg,
             primaryTextColor: primaryTextColor,
             secondaryTextColor: secondaryTextColor,
-            title: '¿Cómo usar la aplicación?',
-            subtitle: 'Aprende a registrar tratamientos, horarios e inventario.',
+            title: l10n?.helpHowToUseTitle ?? '¿Cómo usar la aplicación?',
+            subtitle: l10n?.helpHowToUseSubtitle ?? 'Aprende a registrar tratamientos, horarios e inventario.',
             icon: Icons.menu_book_rounded,
             iconColor: Colors.teal,
             onTap: () {
@@ -89,8 +91,8 @@ class AyudaPage extends StatelessWidget {
             cardBg: cardBg,
             primaryTextColor: primaryTextColor,
             secondaryTextColor: secondaryTextColor,
-            title: 'Términos de uso',
-            subtitle: 'Condiciones de servicio y responsabilidades.',
+            title: l10n?.helpTermsTitle ?? 'Términos de uso',
+            subtitle: l10n?.helpTermsSubtitle ?? 'Condiciones de servicio y responsabilidades.',
             icon: Icons.description_outlined,
             iconColor: Colors.blueGrey,
             onTap: () {
@@ -98,7 +100,7 @@ class AyudaPage extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => InfoPage(
-                    title: 'Términos de uso',
+                    title: l10n?.helpTermsTitle ?? 'Términos de uso',
                     children: [
                       Text(
                         '1. Aceptación de los Términos\n',
@@ -190,8 +192,8 @@ class AyudaPage extends StatelessWidget {
             cardBg: cardBg,
             primaryTextColor: primaryTextColor,
             secondaryTextColor: secondaryTextColor,
-            title: 'Política de Privacidad',
-            subtitle: 'Cómo tratamos y protegemos tus datos médicos.',
+            title: l10n?.helpPrivacyTitle ?? 'Política de Privacidad',
+            subtitle: l10n?.helpPrivacySubtitle ?? 'Cómo tratamos y protegemos tus datos médicos.',
             icon: Icons.privacy_tip_outlined,
             iconColor: Colors.indigo,
             onTap: () {
@@ -199,7 +201,7 @@ class AyudaPage extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => InfoPage(
-                    title: 'Política de Privacidad',
+                    title: l10n?.helpPrivacyTitle ?? 'Política de Privacidad',
                     children: [
                       Text(
                         '1. Aceptación de los Términos\n',
@@ -291,8 +293,8 @@ class AyudaPage extends StatelessWidget {
             cardBg: cardBg,
             primaryTextColor: primaryTextColor,
             secondaryTextColor: secondaryTextColor,
-            title: 'Versión de la aplicación',
-            subtitle: 'Información de la versión y compilación actual.',
+            title: l10n?.helpAppVersionTitle ?? 'Versión de la aplicación',
+            subtitle: l10n?.helpAppVersionSubtitle ?? 'Información de la versión y compilación actual.',
             icon: Icons.info_outline_rounded,
             iconColor: Colors.blue,
             onTap: () {
@@ -302,16 +304,16 @@ class AyudaPage extends StatelessWidget {
                   return FutureBuilder<PackageInfo>(
                     future: PackageInfo.fromPlatform(),
                     builder: (context, snapshot) {
-                      String versionText = 'Cargando versión...';
+                      String versionText = l10n?.helpLoadingVersion ?? 'Cargando versión...';
                       if (snapshot.connectionState == ConnectionState.done &&
                           snapshot.hasData) {
                         final info = snapshot.data!;
-                        versionText =
+                        versionText = l10n?.helpVersionText(info.version, info.buildNumber) ??
                             'MediTime versión ${info.version} (Build ${info.buildNumber}).';
                       }
                       return AlertDialog(
                         title: Text(
-                          'Versión de la aplicación',
+                          l10n?.helpAppVersionTitle ?? 'Versión de la aplicación',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: AppTheme.primaryColor,
@@ -326,7 +328,7 @@ class AyudaPage extends StatelessWidget {
                         ),
                         actions: <Widget>[
                           PrimaryButton(
-                            text: 'Entendido',
+                            text: l10n?.helpUnderstood ?? 'Entendido',
                             onPressed: () => Navigator.of(context).pop(),
                           ),
                         ],
@@ -344,8 +346,8 @@ class AyudaPage extends StatelessWidget {
             cardBg: cardBg,
             primaryTextColor: primaryTextColor,
             secondaryTextColor: secondaryTextColor,
-            title: 'Desarrolladores',
-            subtitle: 'Equipo creador y créditos del proyecto.',
+            title: l10n?.helpDevelopersTitle ?? 'Desarrolladores',
+            subtitle: l10n?.helpDevelopersSubtitle ?? 'Equipo creador y créditos del proyecto.',
             icon: Icons.code_rounded,
             iconColor: Colors.deepPurple,
             onTap: () {
@@ -354,7 +356,7 @@ class AyudaPage extends StatelessWidget {
                 builder: (BuildContext context) {
                   return AlertDialog(
                     title: Text(
-                      'Desarrolladores',
+                      l10n?.helpDevelopersTitle ?? 'Desarrolladores',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: AppTheme.primaryColor,
@@ -368,7 +370,7 @@ class AyudaPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            'Programación:\n',
+                            '${l10n?.helpProgramming ?? 'Programación:'}\n',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: primaryTextColor,
@@ -379,7 +381,7 @@ class AyudaPage extends StatelessWidget {
                             style: TextStyle(color: primaryTextColor),
                           ),
                           Text(
-                            'Diseño:\n',
+                            '${l10n?.helpDesign ?? 'Diseño:'}\n',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: primaryTextColor,
@@ -390,7 +392,7 @@ class AyudaPage extends StatelessWidget {
                             style: TextStyle(color: primaryTextColor),
                           ),
                           Text(
-                            'Testing:\n',
+                            '${l10n?.helpTesting ?? 'Testing:'}\n',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: primaryTextColor,
@@ -407,10 +409,11 @@ class AyudaPage extends StatelessWidget {
                             style: TextStyle(color: primaryTextColor),
                           ),
                           Text(
-                            '\nAgradecimientos Especiales a la Universidad de Cundinamarca seccional Ubaté por incentivar el desarrollo de proyectos innovadores y el acompañamiento por parte de los docentes y directivos.\n\n'
-                            'Universidad de Cundinamarca\n'
-                            'Ingeniería en Sistemas y Computación\n'
-                            '©Todos los Derechos Reservados\n2022-2026',
+                            l10n?.helpSpecialThanks ??
+                                '\nAgradecimientos Especiales a la Universidad de Cundinamarca seccional Ubaté por incentivar el desarrollo de proyectos innovadores y el acompañamiento por parte de los docentes y directivos.\n\n'
+                                'Universidad de Cundinamarca\n'
+                                'Ingeniería en Sistemas y Computación\n'
+                                '©Todos los Derechos Reservados\n2022-2026',
                             style: TextStyle(color: primaryTextColor),
                           ),
                         ],
@@ -418,7 +421,7 @@ class AyudaPage extends StatelessWidget {
                     ),
                     actions: <Widget>[
                       PrimaryButton(
-                        text: 'Entendido',
+                        text: l10n?.helpUnderstood ?? 'Entendido',
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                     ],

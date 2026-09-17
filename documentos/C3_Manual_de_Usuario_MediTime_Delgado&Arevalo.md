@@ -236,6 +236,9 @@ Cuando se activa el Modo Alarma, la interfaz despliega de forma prominente el no
 | **POSPONER (Amarillo / Snooze)** | Silencia momentáneamente la alarma y programa un nuevo recordatorio tras cumplirse el intervalo de gracia configurado (ej. 10 o 15 minutos). La dosis se marca temporalmente como **Aplazada**. |
 | **OMITIR (Rojo)** | Silencia la alarma. Registra en el historial clínico que la dosis no fue consumida (estado **Omitida**), permitiendo documentar las razones ante el médico tratante. |
 
+- **Auto-apagado de Seguridad:** Si el usuario no interactúa con la alarma tras 5 minutos ininterrumpidos, el sistema ejecuta un apagado automático preventivo para proteger la batería del teléfono.
+- **Silenciamiento Instantáneo por Descarte:** Si el usuario desliza (*swipe*) o borra la notificación desde la barra de estado de Android, el audio y la vibración se detienen en tiempo real gracias a la sincronización nativa con el sistema operativo.
+
 ### 6.3. Configuración de Tiempos de Aplazamiento y Tonos
 En la sección de ajustes, se puede personalizar:
 - **Tiempo de aplazamiento:** Selección de intervalos de 5, 10, 15, 20 o 30 minutos.

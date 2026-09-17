@@ -139,9 +139,9 @@ class _HomePageState extends State<HomePage> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
-                          'Saltar',
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.of(context)?.tutorialSkip ?? 'Saltar',
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                             fontSize: 13,
@@ -364,10 +364,10 @@ class _HomePageState extends State<HomePage> {
                   height: 160,
                   width: 320,
                   disableDefaultTargetGestures: true,
-                  container: const TutorialTooltip(
+                  container: TutorialTooltip(
                     icon: Icons.smart_toy_rounded,
-                    title: 'Midi, tu Asistente Virtual',
-                    description: 'Conoce a Midi, tu asistente inteligente. Chatea con él para resolver dudas sobre medicamentos, dosis, efectos secundarios e interacciones.',
+                    title: l10n?.tutorialStep2Title ?? 'Midi, tu Asistente Virtual',
+                    description: l10n?.tutorialStep2Desc ?? 'Conoce a Midi, tu asistente inteligente. Chatea con él para resolver dudas sobre medicamentos, dosis, efectos secundarios e interacciones.',
                     stepNumber: 2,
                     totalSteps: 11,
                   ),
@@ -386,10 +386,10 @@ class _HomePageState extends State<HomePage> {
               height: 160,
               width: 320,
               disableDefaultTargetGestures: true,
-              container: const TutorialTooltip(
+              container: TutorialTooltip(
                 icon: Icons.menu_rounded,
-                title: 'Menú Principal',
-                description: 'Accede al menú lateral para ver tu Perfil, Reportes de Adherencia en PDF, gestionar Pacientes (Modo Cuidador) y ajustar Notificaciones.',
+                title: l10n?.tutorialStep1Title ?? 'Menú Principal',
+                description: l10n?.tutorialStep1Desc ?? 'Accede al menú lateral para ver tu Perfil, Reportes de Adherencia en PDF, gestionar Pacientes (Modo Cuidador) y ajustar Notificaciones.',
                 stepNumber: 1,
                 totalSteps: 11,
               ),
@@ -510,10 +510,10 @@ class _HomePageState extends State<HomePage> {
                             height: 160,
                             width: 320,
                             disableDefaultTargetGestures: true,
-                            container: const TutorialTooltip(
+                            container: TutorialTooltip(
                               icon: Icons.navigation_rounded,
-                              title: 'Navegación Principal',
-                              description: '¡Todo listo! Usa la barra inferior para moverte cómodamente entre Receta, Calendario y Mi Progreso.',
+                              title: l10n?.tutorialStep11Title ?? 'Navegación Principal',
+                              description: l10n?.tutorialStep11Desc ?? '¡Todo listo! Usa la barra inferior para moverte cómodamente entre Receta, Calendario y Mi Progreso.',
                               stepNumber: 11,
                               totalSteps: 11,
                             ),
@@ -569,10 +569,10 @@ class _HomePageState extends State<HomePage> {
                                             height: 160,
                                             width: 320,
                                             disableDefaultTargetGestures: true,
-                                            container: const TutorialTooltip(
+                                            container: TutorialTooltip(
                                               icon: Icons.calendar_month_rounded,
-                                              title: 'Pestaña Calendario',
-                                              description: 'Accede al Calendario interactivo para ver tu historial de tomas organizado día por día.',
+                                              title: l10n?.tutorialStep6Title ?? 'Pestaña Calendario',
+                                              description: l10n?.tutorialStep6Desc ?? 'Accede al Calendario interactivo para ver tu historial de tomas organizado día por día.',
                                               stepNumber: 6,
                                               totalSteps: 11,
                                             ),
@@ -588,10 +588,10 @@ class _HomePageState extends State<HomePage> {
                                             height: 160,
                                             width: 320,
                                             disableDefaultTargetGestures: true,
-                                            container: const TutorialTooltip(
+                                            container: TutorialTooltip(
                                               icon: Icons.bar_chart_rounded,
-                                              title: 'Pestaña Mi Progreso',
-                                              description: 'Accede a la pestaña Progreso para analizar tus estadísticas de salud, cumplimiento acumulado y rachas.',
+                                              title: l10n?.tutorialStep8Title ?? 'Pestaña Mi Progreso',
+                                              description: l10n?.tutorialStep8Desc ?? 'Accede a la pestaña Progreso para analizar tus estadísticas de salud, cumplimiento acumulado y rachas.',
                                               stepNumber: 8,
                                               totalSteps: 11,
                                             ),
@@ -616,11 +616,12 @@ class _HomePageState extends State<HomePage> {
                           height: 160,
                           width: 320,
                           disableDefaultTargetGestures: true,
-                          container: const TutorialTooltip(
+                          container: TutorialTooltip(
                             icon: Icons.add_circle_outline_rounded,
-                            title: 'Agregar medicamento',
-                            description: 'Toca aquí para añadir un nuevo medicamento. Podrás configurar el horario, intervalo y duración del tratamiento.',
+                            title: l10n?.tutorialStep5Title ?? 'Agregar Receta o Tratamiento',
+                            description: l10n?.tutorialStep5Desc ?? 'Toca el botón + para registrar nuevos medicamentos, definir frecuencias de tomas y configurar recordatorios automáticos.',
                             stepNumber: 5,
+                            totalSteps: 11,
                           ),
                           targetShapeBorder: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -667,10 +668,10 @@ class _HomePageState extends State<HomePage> {
                   height: 160,
                   width: 320,
                   disableDefaultTargetGestures: true,
-                  container: const TutorialTooltip(
+                  container: TutorialTooltip(
                     icon: Icons.navigation_rounded,
-                    title: 'Navegación Principal',
-                    description: '¡Todo listo! Usa la barra inferior para moverte cómodamente entre Receta, Calendario y Mi Progreso.',
+                    title: l10n?.tutorialStep11Title ?? 'Navegación Principal',
+                    description: l10n?.tutorialStep11Desc ?? '¡Todo listo! Usa la barra inferior para moverte cómodamente entre Receta, Calendario y Mi Progreso.',
                     stepNumber: 11,
                     totalSteps: 11,
                   ),
@@ -713,10 +714,10 @@ class _HomePageState extends State<HomePage> {
                                 height: 160,
                                 width: 320,
                                 disableDefaultTargetGestures: true,
-                                container: const TutorialTooltip(
+                                container: TutorialTooltip(
                                   icon: Icons.calendar_month_rounded,
-                                  title: 'Pestaña Calendario',
-                                  description: 'Accede al Calendario interactivo para ver tu historial de tomas organizado día por día.',
+                                  title: l10n?.tutorialStep6Title ?? 'Pestaña Calendario',
+                                  description: l10n?.tutorialStep6Desc ?? 'Accede al Calendario interactivo para ver tu historial de tomas organizado día por día.',
                                   stepNumber: 6,
                                   totalSteps: 11,
                                 ),
@@ -732,10 +733,10 @@ class _HomePageState extends State<HomePage> {
                                 height: 160,
                                 width: 320,
                                 disableDefaultTargetGestures: true,
-                                container: const TutorialTooltip(
+                                container: TutorialTooltip(
                                   icon: Icons.bar_chart_rounded,
-                                  title: 'Pestaña Mi Progreso',
-                                  description: 'Accede a la pestaña Progreso para analizar tus estadísticas de salud, cumplimiento acumulado y rachas.',
+                                  title: l10n?.tutorialStep8Title ?? 'Pestaña Mi Progreso',
+                                  description: l10n?.tutorialStep8Desc ?? 'Accede a la pestaña Progreso para analizar tus estadísticas de salud, cumplimiento acumulado y rachas.',
                                   stepNumber: 8,
                                   totalSteps: 11,
                                 ),

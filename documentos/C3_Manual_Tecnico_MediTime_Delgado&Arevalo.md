@@ -222,15 +222,19 @@ A continuación se detalla la responsabilidad técnica de cada uno de los archiv
 
 ### 4.5. Capa de Servicios (`lib/services/`)
 - `notification_service.dart`: Sistema integral de alarmas y notificaciones.
-  * Configura el plugin `FlutterLocalNotificationsPlugin` con canales de alta prioridad (`high_importance_channel`).
-  * Implementa el callback de segundo plano `handleNotificationActionBackground` marcado con `@pragma('vm:entry-point')`.
+  * Configura el plugin `FlutterLocalNotificationsPlugin` con canales de alta prioridad (`high_importance_channel`) y canal de alarma dedicado con reproducción nativa en bucle mediante `FLAG_INSISTENT`.
+  * Implementa el callback de segundo plano `handleNotificationActionBackground` marcado con `@pragma('vm:entry-point')`, ejecutando la detención inmediata de audio y cancelación de la notificación ante botones de acción antes de cualquier procesamiento pesado.
+  * Integra `deleteIntent` dinámico mediante `AlarmSoundService.attachDismissListener` para silenciar automáticamente la alarma cuando el usuario descarta la notificación (swipe, "Borrar todo" o expiración por timeout de 5 minutos).
   * Gestiona deep linking: si el usuario pulsa el cuerpo de una notificación, navega a `DetalleRecetaPage`; si la notificación fue disparada en Modo Alarma, invoca `_navigateToAlarmScreen` hacia `AlarmRingingPage`.
-  * Procesa de forma atómica los botones de acción (`TOMAR`, `OMITIR`, `POSPONER`).
+  * Procesa de forma atómica los botones de acción (`TOMAR`, `OMITIR`, `POSPONER`) configurados con `cancelNotification: true`.
 - `alarm_callback_handler.dart`: Punto de entrada nativo para `android_alarm_manager_plus`.
   * Se ejecuta en un Isolate independiente sin requerir interfaz de usuario ni conexión activa a internet.
   * Valida mediante `PreferenceService` si el tratamiento ha sido cancelado o revocado antes de sonar.
-  * Si el modo activo es Alarma, dispara la pantalla completa e inicia la reproducción continua de audio a través de `flutter_ringtone_player`.
-- `alarm_sound_service.dart`: Controla el ciclo de reproducción y detención de tonos de alarma y vibración rítmica.
+  * Si el modo activo es Alarma, delega la emisión del tono y la vibración al canal nativo de alta prioridad del sistema (`FLAG_INSISTENT`), evitando la ejecución de reproductores redundantes o la generación de audios huérfanos en isolates secundarios.
+- `alarm_sound_service.dart`: Controla el ciclo de reproducción y detención de tonos de alarma y vibración rítmica para pruebas y control interactivo en primer plano.
+  * Incorpora timer de seguridad de auto-detención (`maxAlarmDuration = 5 minutos`).
+  * Emite broadcasts globales del sistema (`com.example.meditime.STOP_ALARM`) para silenciar cualquier proceso secundario de manera instantánea.
+  * Interactúa con el plugin nativo Kotlin (`AlarmSoundPlugin.kt`) para adjuntar listeners de descarte (`deleteIntent`) en el NotificationManager de Android.
 - `gemini_service.dart`: Orquesta las solicitudes al motor de Groq Cloud API:
   * Implementa conexión HTTP mediante Server-Sent Events (SSE) para renderizar respuestas token a token en tiempo real.
   * Define la matriz de herramientas (*tools*) para Function Calling: `get_today_medications`, `get_tomorrow_medications`, `get_active_treatments`, `create_treatment` y `update_dose_status`.

@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/models/tratamiento.dart'; // <-- CAMBIO: Importar modelo
 import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/theme/app_theme.dart';
@@ -90,8 +91,9 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
         );
         
         if (mounted) {
+          final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Dosis aplazada por $snoozeMinutes minutos')),
+            SnackBar(content: Text(l10n?.doseSnoozedSuccess(snoozeMinutes) ?? 'Dosis aplazada por $snoozeMinutes minutos')),
           );
         }
       } else {
@@ -110,11 +112,12 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     } catch (e) {
       debugPrint('Error actualizando dosis: $e');
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         setState(() {
           _isProcessing = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al actualizar la dosis')),
+          SnackBar(content: Text(l10n?.doseDetailUpdateError ?? 'Error al actualizar la dosis')),
         );
       }
     }
@@ -157,30 +160,31 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
   }
 
   // --- PASO 4: ACTUALIZAR LA LÓGICA DEL TIEMPO RESTANTE ---
-  String _getTiempoRestante(DateTime proximaDosis) {
+  String _getTiempoRestante(DateTime proximaDosis, AppLocalizations? l10n) {
     final ahora = DateTime.now();
     final diferencia = proximaDosis.difference(ahora);
 
-    if (diferencia.isNegative) return 'Es momento de tomar la dosis';
+    if (diferencia.isNegative) return l10n?.doseDetailTimeNow ?? 'Es momento de tomar la dosis';
 
     // Si falta menos de un minuto, muestra los segundos
     if (diferencia.inMinutes < 1) {
-      return 'En ${diferencia.inSeconds} segundos';
+      return l10n?.doseDetailInSeconds(diferencia.inSeconds) ?? 'En ${diferencia.inSeconds} segundos';
     }
 
     final dias = diferencia.inDays;
     final horas = diferencia.inHours % 24;
     final minutos = diferencia.inMinutes % 60;
 
-    if (dias > 0) return 'En $dias días y $horas horas';
-    if (horas > 0) return 'En $horas horas y $minutos minutos';
-    return 'En $minutos minutos';
+    if (dias > 0) return l10n?.doseDetailInDaysHours(dias, horas) ?? 'En $dias días y $horas horas';
+    if (horas > 0) return l10n?.doseDetailInHoursMinutes(horas, minutos) ?? 'En $horas horas y $minutos minutos';
+    return l10n?.doseDetailInMinutes(minutos) ?? 'En $minutos minutos';
   }
 
   @override
   Widget build(BuildContext context) {
     final DateTime selectedDoseTime = widget.horaDosis;
     final formData = _convertToFormData();
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.tratamiento.nombreMedicamento)),
@@ -190,15 +194,15 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildSelectedDoseDisplay(selectedDoseTime),
+              _buildSelectedDoseDisplay(selectedDoseTime, l10n),
               const SizedBox(height: 32),
-              _buildNextDoseInfo(_nextUpcomingDose, selectedDoseTime),
+              _buildNextDoseInfo(_nextUpcomingDose, selectedDoseTime, l10n),
               const SizedBox(height: 32),
               const Divider(),
               const SizedBox(height: 32),
               TreatmentSummaryCard(
                 formData: formData,
-                summaryInfo: _getSummaryInfo(formData),
+                summaryInfo: _getSummaryInfo(formData, context),
               ),
             ],
           ),
@@ -250,18 +254,20 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     }
   }
 
-  String _getDoseStatusText(DoseStatus status, bool isPast) {
+  String _getDoseStatusText(DoseStatus status, bool isPast, AppLocalizations? l10n) {
     switch (status) {
       case DoseStatus.tomada:
-        return 'Tomada';
+        return l10n?.doseStatusTaken ?? 'Tomada';
       case DoseStatus.omitida:
-        return 'Omitida';
+        return l10n?.doseStatusSkipped ?? 'Omitida';
       case DoseStatus.notificada:
-        return 'Notificada';
+        return l10n?.doseStatusNotified ?? 'Notificada';
       case DoseStatus.aplazada:
-        return 'Aplazada';
+        return l10n?.doseStatusSnoozed ?? 'Aplazada';
       case DoseStatus.pendiente:
-        return isPast ? 'Notificada' : 'Programada';
+        return isPast
+            ? (l10n?.doseStatusNotified ?? 'Notificada')
+            : (l10n?.doseStatusScheduled ?? 'Programada');
     }
   }
 
@@ -280,17 +286,18 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     }
   }
 
-  Widget _buildSelectedDoseDisplay(DateTime doseTime) {
+  Widget _buildSelectedDoseDisplay(DateTime doseTime, AppLocalizations? l10n) {
     final isPast = doseTime.isBefore(DateTime.now());
     final status = _getDoseStatus(doseTime);
     final statusColor = _getDoseColor(status, isPast);
-    final statusText = _getDoseStatusText(status, isPast);
+    final statusText = _getDoseStatusText(status, isPast, l10n);
     final statusIcon = _getDoseStatusIcon(status, isPast);
+    final localeStr = Localizations.localeOf(context).toString();
 
     return Column(
       children: [
         Text(
-          'Hora de esta toma',
+          l10n?.doseDetailDoseTime ?? 'Hora de esta toma',
           style: TextStyle(
             fontSize: 18,
             color: AppTheme.secondaryTextColor,
@@ -299,7 +306,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
         ),
         const SizedBox(height: 8),
         Text(
-          DateFormat('hh:mm a', 'es_ES').format(doseTime),
+          DateFormat('hh:mm a', localeStr).format(doseTime),
           style: TextStyle(
             fontSize: 52,
             fontWeight: FontWeight.bold,
@@ -307,7 +314,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
           ),
         ),
         Text(
-          DateFormat('EEEE, d MMMM', 'es_ES').format(doseTime),
+          DateFormat('EEEE, d MMMM', localeStr).format(doseTime),
           style: TextStyle(fontSize: 18, color: AppTheme.secondaryTextColor),
         ),
         const SizedBox(height: 12),
@@ -343,7 +350,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
                 child: ElevatedButton.icon(
                   onPressed: _isProcessing ? null : () => _handleDoseAction(DoseStatus.tomada),
                   icon: const Icon(Icons.check, size: 18),
-                  label: const Text('Tomar'),
+                  label: Text(l10n?.actionTake ?? 'Tomar'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.successColor,
                     foregroundColor: Colors.white,
@@ -356,7 +363,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
                 child: OutlinedButton.icon(
                   onPressed: _isProcessing ? null : () => _handleDoseAction(DoseStatus.aplazada),
                   icon: const Icon(Icons.snooze, size: 18),
-                  label: const Text('Aplazar'),
+                  label: Text(l10n?.actionSnooze ?? 'Aplazar'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.orange.shade700,
                     side: BorderSide(color: Colors.orange.shade700),
@@ -369,7 +376,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
                 child: TextButton.icon(
                   onPressed: _isProcessing ? null : () => _handleDoseAction(DoseStatus.omitida),
                   icon: const Icon(Icons.close, size: 18),
-                  label: const Text('Omitir'),
+                  label: Text(l10n?.actionSkip ?? 'Omitir'),
                   style: TextButton.styleFrom(
                     foregroundColor: AppTheme.errorColor,
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -383,13 +390,13 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     );
   }
 
-  Widget _buildNextDoseInfo(DateTime? nextDose, DateTime selectedDose) {
+  Widget _buildNextDoseInfo(DateTime? nextDose, DateTime selectedDose, AppLocalizations? l10n) {
     if (nextDose == null) {
       return _buildInfoCard(
         icon: Icons.check_circle,
         color: AppTheme.successColor,
-        title: 'Tratamiento Finalizado',
-        subtitle: 'No hay más dosis programadas.',
+        title: l10n?.doseDetailTreatmentFinished ?? 'Tratamiento Finalizado',
+        subtitle: l10n?.doseDetailNoMoreDoses ?? 'No hay más dosis programadas.',
       );
     }
 
@@ -397,17 +404,18 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       return _buildInfoCard(
         icon: Icons.notifications_active,
         color: AppTheme.primaryColor,
-        title: 'Esta es la próxima dosis',
-        subtitle: _getTiempoRestante(nextDose),
+        title: l10n?.doseDetailNextDosePrompt ?? 'Esta es la próxima dosis',
+        subtitle: _getTiempoRestante(nextDose, l10n),
       );
     }
 
+    final localeStr = Localizations.localeOf(context).toString();
     return _buildInfoCard(
       icon: Icons.update,
       color: Colors.orange.shade700,
-      title: 'Próxima Alarma:',
+      title: l10n?.doseDetailNextAlarm ?? 'Próxima Alarma:',
       subtitle:
-          '${DateFormat('hh:mm a, d MMM', 'es_ES').format(nextDose)}\n${_getTiempoRestante(nextDose)}',
+          '${DateFormat('hh:mm a, d MMM', localeStr).format(nextDose)}\n${_getTiempoRestante(nextDose, l10n)}',
     );
   }
 
@@ -495,8 +503,9 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     );
   }
 
-  Map<String, String> _getSummaryInfo(TreatmentFormData formData) {
-    final DateFormat formatter = DateFormat('d \'de\' MMMM \'de\' y', 'es_ES');
+  Map<String, String> _getSummaryInfo(TreatmentFormData formData, BuildContext context) {
+    final localeStr = Localizations.localeOf(context).toString();
+    final DateFormat formatter = DateFormat.yMMMMd(localeStr);
     final fechaFin = widget.tratamiento.fechaFinTratamiento;
 
     return {

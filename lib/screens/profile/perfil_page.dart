@@ -13,6 +13,7 @@ import 'package:meditime/notifiers/profile_notifier.dart'; // Se importa el noti
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart'; // Se importa el tema para estilos consistentes
 import 'package:meditime/screens/shared/localizador_farmacias_page.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 
 class PerfilPage extends StatefulWidget {
   final GlobalKey? profileKey;
@@ -407,7 +408,7 @@ class _PerfilPageState extends State<PerfilPage> {
       child: Scaffold(
         backgroundColor: AppTheme.backgroundColor,
         appBar: AppBar(
-          title: const Text('Perfil'),
+          title: Text(AppLocalizations.of(context)?.profileTitle ?? 'Perfil'),
           elevation: 0,
           backgroundColor: Colors.transparent,
           foregroundColor: AppTheme.primaryTextColor,
@@ -424,9 +425,9 @@ class _PerfilPageState extends State<PerfilPage> {
                         color: AppTheme.errorColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text(
-                        'Cancelar',
-                        style: TextStyle(
+                      child: Text(
+                        AppLocalizations.of(context)?.cancel ?? 'Cancelar',
+                        style: const TextStyle(
                           color: AppTheme.errorColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -534,98 +535,113 @@ class _PerfilPageState extends State<PerfilPage> {
                     Divider(color: AppTheme.borderColor),
                     const SizedBox(height: 12),
                     // Stat row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildHeaderStatItem(
-                          icon: Icons.calendar_month_rounded,
-                          label: 'Fecha de nacimiento',
-                          value: _dobController.text.isNotEmpty ? _dobController.text : 'No especificado',
-                        ),
-                        _buildStatDivider(),
-                        _buildHeaderStatItem(
-                          icon: Icons.water_drop_rounded,
-                          label: 'Tipo de sangre',
-                          value: _bloodTypeController.text.isNotEmpty ? _bloodTypeController.text : 'No especificado',
-                        ),
-                        _buildStatDivider(),
-                        _buildHeaderStatItem(
-                          icon: Icons.shield_rounded,
-                          label: 'Alergias',
-                          value: _allergiesController.text.isNotEmpty ? _allergiesController.text : 'No especificado',
-                        ),
-                      ],
+                    Builder(
+                      builder: (context) {
+                        final l10n = AppLocalizations.of(context);
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildHeaderStatItem(
+                              icon: Icons.calendar_month_rounded,
+                              label: l10n?.profileBirthDate ?? 'Fecha de nacimiento',
+                              value: _dobController.text.isNotEmpty ? _dobController.text : (l10n?.profileNotSpecified ?? 'No especificado'),
+                            ),
+                            _buildStatDivider(),
+                            _buildHeaderStatItem(
+                              icon: Icons.water_drop_rounded,
+                              label: l10n?.profileBloodType ?? 'Tipo de sangre',
+                              value: _bloodTypeController.text.isNotEmpty ? _bloodTypeController.text : (l10n?.profileNotSpecified ?? 'No especificado'),
+                            ),
+                            _buildStatDivider(),
+                            _buildHeaderStatItem(
+                              icon: Icons.shield_rounded,
+                              label: l10n?.profileAllergies ?? 'Alergias',
+                              value: _allergiesController.text.isNotEmpty ? _allergiesController.text : (l10n?.profileNotSpecified ?? 'No especificado'),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
 
-              _buildSectionTitle('Datos Personales', Icons.person_outline_rounded),
-              const SizedBox(height: 8),
-              _buildEditableOrDisplayField(
-                controller: _nameController,
-                labelText: 'Nombre',
-                hintText: 'Tu nombre completo',
-                icon: Icons.person_outline_rounded,
-                focusNode: _nameFocusNode,
-              ),
-              _buildEditableOrDisplayField(
-                controller: _phoneController,
-                labelText: 'Número de Teléfono',
-                hintText: 'Tu número de teléfono',
-                keyboardType: TextInputType.phone,
-                icon: Icons.phone_outlined,
-                focusNode: _phoneFocusNode,
-              ),
-              _buildEditableOrDisplayField(
-                controller: _emailController,
-                labelText: 'Correo',
-                hintText: 'Tu correo electrónico',
-                enabled: false,
-                icon: Icons.email_outlined,
-                focusNode: FocusNode(), // Always disabled, mock node
-              ),
-              _buildEditableOrDisplayField(
-                controller: _dobController,
-                labelText: 'Fecha de Nacimiento',
-                hintText: 'Ej: 01/01/1990',
-                icon: Icons.calendar_month_outlined,
-                focusNode: _dobFocusNode,
-                readOnly: true,
-                onTap: () => _selectDate(context),
-              ),
+              Builder(
+                builder: (context) {
+                  final l10n = AppLocalizations.of(context);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionTitle(l10n?.profilePersonalData ?? 'Datos Personales', Icons.person_outline_rounded),
+                      const SizedBox(height: 8),
+                      _buildEditableOrDisplayField(
+                        controller: _nameController,
+                        labelText: l10n?.profileName ?? 'Nombre',
+                        hintText: l10n?.profileNameHint ?? 'Tu nombre completo',
+                        icon: Icons.person_outline_rounded,
+                        focusNode: _nameFocusNode,
+                      ),
+                      _buildEditableOrDisplayField(
+                        controller: _phoneController,
+                        labelText: l10n?.profilePhone ?? 'Número de Teléfono',
+                        hintText: l10n?.profilePhoneHint ?? 'Tu número de teléfono',
+                        keyboardType: TextInputType.phone,
+                        icon: Icons.phone_outlined,
+                        focusNode: _phoneFocusNode,
+                      ),
+                      _buildEditableOrDisplayField(
+                        controller: _emailController,
+                        labelText: l10n?.profileEmail ?? 'Correo',
+                        hintText: l10n?.profileEmailHint ?? 'Tu correo electrónico',
+                        enabled: false,
+                        icon: Icons.email_outlined,
+                        focusNode: FocusNode(), // Always disabled, mock node
+                      ),
+                      _buildEditableOrDisplayField(
+                        controller: _dobController,
+                        labelText: l10n?.profileDob ?? 'Fecha de Nacimiento',
+                        hintText: 'Ej: 01/01/1990',
+                        icon: Icons.calendar_month_outlined,
+                        focusNode: _dobFocusNode,
+                        readOnly: true,
+                        onTap: () => _selectDate(context),
+                      ),
 
-              const SizedBox(height: 24),
-              _buildSectionTitle('Datos Médicos', Icons.favorite_border_rounded),
-              const SizedBox(height: 8),
-              _buildEditableOrDisplayField(
-                controller: _bloodTypeController,
-                labelText: 'Tipo de Sangre',
-                hintText: 'Ej: O+',
-                icon: Icons.water_drop_outlined,
-                focusNode: _bloodTypeFocusNode,
-              ),
-              _buildEditableOrDisplayField(
-                controller: _allergiesController,
-                labelText: 'Alergias',
-                hintText: 'Ej: Penicilina',
-                icon: Icons.shield_outlined,
-                focusNode: _allergiesFocusNode,
-              ),
-              _buildEditableOrDisplayField(
-                controller: _medicationsController,
-                labelText: 'Medicamentos Importantes',
-                hintText: 'Los que tomas regularmente',
-                icon: Icons.link_rounded,
-                focusNode: _medicationsFocusNode,
-              ),
-              _buildEditableOrDisplayField(
-                controller: _medicalHistoryController,
-                labelText: 'Historial Médico',
-                hintText: 'Condiciones médicas relevantes',
-                icon: Icons.description_outlined,
-                focusNode: _medicalHistoryFocusNode,
+                      const SizedBox(height: 24),
+                      _buildSectionTitle(l10n?.profileMedicalData ?? 'Datos Médicos', Icons.favorite_border_rounded),
+                      const SizedBox(height: 8),
+                      _buildEditableOrDisplayField(
+                        controller: _bloodTypeController,
+                        labelText: l10n?.profileBloodType ?? 'Tipo de Sangre',
+                        hintText: l10n?.profileBloodTypeHint ?? 'Ej: O+',
+                        icon: Icons.water_drop_outlined,
+                        focusNode: _bloodTypeFocusNode,
+                      ),
+                      _buildEditableOrDisplayField(
+                        controller: _allergiesController,
+                        labelText: l10n?.profileAllergies ?? 'Alergias',
+                        hintText: l10n?.profileAllergiesHint ?? 'Ej: Penicilina',
+                        icon: Icons.shield_outlined,
+                        focusNode: _allergiesFocusNode,
+                      ),
+                      _buildEditableOrDisplayField(
+                        controller: _medicationsController,
+                        labelText: l10n?.profileImportantMeds ?? 'Medicamentos Importantes',
+                        hintText: l10n?.profileImportantMedsHint ?? 'Los que tomas regularmente',
+                        icon: Icons.link_rounded,
+                        focusNode: _medicationsFocusNode,
+                      ),
+                      _buildEditableOrDisplayField(
+                        controller: _medicalHistoryController,
+                        labelText: l10n?.profileMedicalHistory ?? 'Historial Médico',
+                        hintText: l10n?.profileMedicalHistoryHint ?? 'Condiciones médicas relevantes',
+                        icon: Icons.description_outlined,
+                        focusNode: _medicalHistoryFocusNode,
+                      ),
+                    ],
+                  );
+                },
               ),
 
               const SizedBox(height: 24),
@@ -795,31 +811,31 @@ class _PerfilPageState extends State<PerfilPage> {
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.local_pharmacy_outlined, color: Colors.white, size: 28),
-            SizedBox(width: 12),
+            const Icon(Icons.local_pharmacy_outlined, color: Colors.white, size: 28),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Farmacias Cercanas',
-                    style: TextStyle(
+                    AppLocalizations.of(context)?.profileNearbyPharmacies ?? 'Farmacias Cercanas',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    'Busca farmacias abiertas cerca de tu ubicación.',
-                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                    AppLocalizations.of(context)?.profileNearbyPharmaciesSubtitle ?? 'Busca farmacias abiertas cerca de tu ubicación.',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: Colors.white),
+            const Icon(Icons.chevron_right, color: Colors.white),
           ],
         ),
       ),
@@ -952,7 +968,7 @@ class _PerfilPageState extends State<PerfilPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Información importante',
+                  AppLocalizations.of(context)?.profileInfoBannerTitle ?? 'Información importante',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -961,7 +977,8 @@ class _PerfilPageState extends State<PerfilPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Mantén tus datos actualizados para ayudarte mejor.',
+                  AppLocalizations.of(context)?.profileInfoBannerText ??
+                      'Mantener tus datos personales y médicos actualizados permite una mejor asistencia en caso de emergencias médicas.',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppTheme.secondaryTextColor,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/services/auth_service.dart';
+import 'package:meditime/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 
 // CAMBIO: Importar los nuevos widgets reutilizables
@@ -28,8 +30,9 @@ class _RegisterPageState extends State<RegisterPage> {
   String _passwordErrorText = '';
 
   Future<void> _register() async {
-  final email = _emailController.text.trim();
-  final password = _passwordController.text.trim();
+    final l10n = AppLocalizations.of(context);
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
     bool emailError = false;
     String emailErrorText = '';
@@ -38,11 +41,11 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (email.isEmpty || !email.contains('@')) {
       emailError = true;
-      emailErrorText = 'Por favor ingresa un correo válido';
+      emailErrorText = l10n?.registerErrorInvalidEmail ?? 'Por favor ingresa un correo válido';
     }
     if (password.isEmpty || password.length < 6) {
       passwordError = true;
-      passwordErrorText = 'La contraseña debe tener al menos 6 caracteres';
+      passwordErrorText = l10n?.registerErrorShortPassword ?? 'La contraseña debe tener al menos 6 caracteres';
     }
 
     if (emailError || passwordError) {
@@ -74,16 +77,16 @@ class _RegisterPageState extends State<RegisterPage> {
     if (!mounted) return;
 
     if (result.isFailure) {
-      final error = result.error ?? 'No se pudo crear la cuenta';
+      final error = result.error ?? (l10n?.registerErrorFailed ?? 'No se pudo crear la cuenta');
       final normalized = error.toLowerCase();
       String message;
 
       if (normalized.contains('email-already-in-use')) {
-        message = 'El correo ya está en uso';
+        message = l10n?.registerErrorEmailInUse ?? 'El correo ya está en uso';
       } else if (normalized.contains('weak-password')) {
-        message = 'La contraseña es demasiado débil';
+        message = l10n?.registerErrorWeakPassword ?? 'La contraseña es demasiado débil';
       } else if (normalized.contains('invalid-email')) {
-        message = 'Formato de correo inválido';
+        message = l10n?.loginErrorInvalidEmail ?? 'Formato de correo inválido';
       } else {
         message = error;
       }
@@ -120,21 +123,22 @@ class _RegisterPageState extends State<RegisterPage> {
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } else {
+      final l10n = AppLocalizations.of(context);
       setState(() {
         _errorMessage = result.error ??
-            'Error al registrarse con Google. Inténtalo de nuevo.';
+            (l10n?.registerErrorGoogle ?? 'Error al registrarse con Google. Inténtalo de nuevo.');
       });
     }
   }
-  
-  // ELIMINAMOS los métodos _buildEmailField() y _buildPasswordField() de aquí
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: const Color(0xFFF3F3F3),
+        backgroundColor: AppTheme.backgroundColor,
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(30),
@@ -142,30 +146,30 @@ class _RegisterPageState extends State<RegisterPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Color(0xFF2F71B6)),
+                  icon: Icon(Icons.arrow_back, color: AppTheme.primaryColor),
                   onPressed: () => Navigator.pop(context),
                 ),
                 const SizedBox(height: 40),
-                const Text(
-                  'Crear cuenta',
+                Text(
+                  l10n?.registerTitle ?? 'Crear cuenta',
                   style: TextStyle(
                     fontSize: 34,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF2F71B6),
+                    color: AppTheme.primaryColor,
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'Comienza a gestionar tus medicamentos',
-                  style: TextStyle(fontSize: 16, color: Colors.black54),
+                Text(
+                  l10n?.registerSubtitle ?? 'Comienza a gestionar tus medicamentos',
+                  style: TextStyle(fontSize: 16, color: AppTheme.secondaryTextColor),
                 ),
                 const SizedBox(height: 40),
                 
                 // CAMBIO: Usamos nuestro widget reutilizable
                 StyledTextField(
                   controller: _emailController,
-                  labelText: 'Correo Electrónico',
-                  hintText: 'Escribe tu correo electrónico',
+                  labelText: l10n?.loginEmailLabel ?? 'Correo Electrónico',
+                  hintText: l10n?.loginEmailHint ?? 'Escribe tu correo electrónico',
                   keyboardType: TextInputType.emailAddress,
                   errorText: _emailError ? _emailErrorText : null,
                   onChanged: (_) {
@@ -182,8 +186,8 @@ class _RegisterPageState extends State<RegisterPage> {
                 // CAMBIO: Usamos nuestro widget reutilizable
                 StyledTextField(
                   controller: _passwordController,
-                  labelText: 'Contraseña',
-                  hintText: 'Crea tu contraseña',
+                  labelText: l10n?.loginPasswordLabel ?? 'Contraseña',
+                  hintText: l10n?.registerPasswordHint ?? 'Crea tu contraseña',
                   obscureText: true,
                   textInputAction: TextInputAction.done,
                   errorText: _passwordError ? _passwordErrorText : null,
@@ -200,32 +204,32 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 // CAMBIO: Usamos nuestro botón reutilizable
                 PrimaryButton(
-                  text: 'Registrarme',
+                  text: l10n?.registerButton ?? 'Registrarme',
                   isLoading: _isLoading,
                   onPressed: _register,
                 ),
                 const SizedBox(height: 20),
-                const Row(
+                Row(
                   children: [
                     Expanded(
                       child: Divider(
-                        color: Color.fromARGB(255, 165, 165, 165),
+                        color: AppTheme.borderColor,
                         thickness: 1,
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Text(
-                        'o',
+                        l10n?.loginOr ?? 'o',
                         style: TextStyle(
-                          color: Color.fromARGB(255, 165, 165, 165),
+                          color: AppTheme.secondaryTextColor,
                           fontSize: 14,
                         ),
                       ),
                     ),
                     Expanded(
                       child: Divider(
-                        color: Color.fromARGB(255, 165, 165, 165),
+                        color: AppTheme.borderColor,
                         thickness: 1,
                       ),
                     ),
@@ -241,14 +245,21 @@ class _RegisterPageState extends State<RegisterPage> {
                       width: 30,
                       height: 30,
                     ),
-                    label: const Text('Continuar con Google'),
+                    label: Text(
+                      l10n?.loginWithGoogle ?? 'Continuar con Google',
+                      style: TextStyle(
+                        color: AppTheme.primaryTextColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF3F3F3),
-                      foregroundColor: Colors.black,
+                      backgroundColor: Theme.of(context).cardColor,
+                      foregroundColor: AppTheme.primaryTextColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
-                        side: const BorderSide(
-                          color: Color.fromARGB(255, 165, 165, 165),
+                        side: BorderSide(
+                          color: AppTheme.borderColor,
                         ),
                       ),
                       elevation: 0,
@@ -265,10 +276,10 @@ class _RegisterPageState extends State<RegisterPage> {
                         builder: (context) => const LoginPage(openLoginPanel: true),
                       ),
                     ),
-                    child: const Text(
-                      '¿Ya tienes cuenta? Inicia sesión aquí',
+                    child: Text(
+                      l10n?.registerAlreadyHaveAccount ?? '¿Ya tienes cuenta? Inicia sesión aquí',
                       style: TextStyle(
-                          color: Color(0xFF2F71B6),
+                          color: AppTheme.primaryColor,
                           fontSize: 15,
                           fontWeight: FontWeight.w600),
                     ),

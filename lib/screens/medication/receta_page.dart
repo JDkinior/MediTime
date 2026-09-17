@@ -816,7 +816,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                 initialDate: _selectedDate,
                 firstDate: DateTime.now().subtract(const Duration(days: 365)),
                 lastDate: DateTime.now().add(const Duration(days: 365)),
-                locale: const Locale('es', 'ES'),
+                locale: Localizations.localeOf(context),
                 builder: (context, child) {
                   final isDark = Theme.of(context).brightness == Brightness.dark;
                   return Theme(
@@ -976,10 +976,10 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                           height: 160,
                           width: 320,
                           disableDefaultTargetGestures: true,
-                          container: const TutorialTooltip(
+                          container: TutorialTooltip(
                             icon: Icons.date_range_rounded,
-                            title: 'Selector de Fechas',
-                            description: 'Navega en el tiempo: toca la fecha para planificar o registrar medicamentos de días anteriores o futuros.',
+                            title: l10n?.tutorialStep4Title ?? 'Selector de Fechas',
+                            description: l10n?.tutorialStep4Desc ?? 'Navega en el tiempo: toca la fecha para planificar o registrar medicamentos de días anteriores o futuros.',
                             stepNumber: 4,
                             totalSteps: 11,
                           ),
@@ -1001,10 +1001,10 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                       height: 160,
                       width: 320,
                       disableDefaultTargetGestures: true,
-                      container: const TutorialTooltip(
+                      container: TutorialTooltip(
                         icon: Icons.assessment_rounded,
-                        title: 'Resumen Diario',
-                        description: 'Monitorea tu nivel de adherencia hoy y visualiza de un vistazo las dosis pendientes y tomadas del día.',
+                        title: l10n?.tutorialStep3Title ?? 'Resumen Diario',
+                        description: l10n?.tutorialStep3Desc ?? 'Monitorea tu nivel de adherencia hoy y visualiza de un vistazo las dosis pendientes y tomadas del día.',
                         stepNumber: 3,
                         totalSteps: 11,
                       ),
@@ -1090,7 +1090,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
     final Tratamiento tratamiento = dose['tratamiento'];
     final DateTime doseTime = dose['doseTime'];
     final DoseStatus status = dose['status'];
-    final timeStr = DateFormat('hh:mm a', 'es_ES').format(doseTime);
+    final timeStr = DateFormat('hh:mm a', Localizations.localeOf(context).toString()).format(doseTime);
 
     final l10n = AppLocalizations.of(context);
     // Determinar estilo visual según el estado
@@ -1309,11 +1309,12 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
   }
 
   Widget _buildFab(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final fab = FloatingActionButton(
       onPressed: () {
         Navigator.push(context, MaterialPageRoute(builder: (context) => const AgregarRecetaPage()));
       },
-      tooltip: 'Agregar Medicamento',
+      tooltip: l10n?.tutorialStep5Title ?? 'Agregar Medicamento',
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: AppTheme.primaryColor,
       heroTag: 'uniqueTag1',
@@ -1326,10 +1327,10 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
         height: 160,
         width: 320,
         disableDefaultTargetGestures: true,
-        container: const TutorialTooltip(
+        container: TutorialTooltip(
           icon: Icons.add_circle_outline_rounded,
-          title: 'Agregar Receta o Tratamiento',
-          description: 'Toca el botón + para registrar nuevos medicamentos, definir frecuencias de tomas y configurar recordatorios automáticos.',
+          title: l10n?.tutorialStep5Title ?? 'Agregar Receta o Tratamiento',
+          description: l10n?.tutorialStep5Desc ?? 'Toca el botón + para registrar nuevos medicamentos, definir frecuencias de tomas y configurar recordatorios automáticos.',
           stepNumber: 5,
           totalSteps: 11,
         ),

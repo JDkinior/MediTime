@@ -4,6 +4,8 @@ import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/widgets/treatment_form/form_field_wrapper.dart';
 import 'package:meditime/theme/app_theme.dart';
 
+import 'package:meditime/l10n/generated/app_localizations.dart';
+
 /// Widget para seleccionar la duración del tratamiento
 class DurationSelector extends StatelessWidget {
   final int duracionNumero;
@@ -25,12 +27,24 @@ class DurationSelector extends StatelessWidget {
     required this.onEsIndefinidoChanged,
   });
 
+  String _getUnitLabel(DurationUnit unit, AppLocalizations? l10n) {
+    switch (unit) {
+      case DurationUnit.days:
+        return l10n?.durationDays ?? 'Días';
+      case DurationUnit.months:
+        return l10n?.durationMonths ?? 'Meses';
+      case DurationUnit.years:
+        return l10n?.durationYears ?? 'Años';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return FormFieldWrapper(
-      label: 'Duración del tratamiento',
+      label: l10n?.durationTreatmentDuration ?? 'Duración del tratamiento',
       child: Column(
         children: [
           Row(
@@ -66,12 +80,12 @@ class DurationSelector extends StatelessWidget {
                     ...DurationUnit.values.map((unit) => 
                       DropdownMenuItem<String>(
                         value: unit.displayName,
-                        child: Text(unit.displayName),
+                        child: Text(_getUnitLabel(unit, l10n)),
                       )
                     ),
-                    const DropdownMenuItem<String>(
+                    DropdownMenuItem<String>(
                       value: 'Indefinido',
-                      child: Text('Indefinido'),
+                      child: Text(l10n?.durationIndefinite ?? 'Indefinido'),
                     ),
                   ],
                   onChanged: (String? newValue) {
@@ -124,7 +138,7 @@ class DurationSelector extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Tratamiento Indefinido - Optimizado',
+                          l10n?.durationIndefiniteTitle ?? 'Tratamiento Indefinido - Optimizado',
                           style: TextStyle(
                             color: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryColor,
                             fontSize: 16,
@@ -138,9 +152,9 @@ class DurationSelector extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(left: 32),
                     child: Text(
-                      '• Las dosis se generan automáticamente según sea necesario\n'
-                      '• Mejor rendimiento en el calendario y la aplicación\n'
-                      '• Puedes pausar o detener el tratamiento en cualquier momento',
+                      '${l10n?.durationIndefiniteBullet1 ?? "• Las dosis se generan automáticamente según sea necesario"}\n'
+                      '${l10n?.durationIndefiniteBullet2 ?? "• Mejor rendimiento en el calendario y la aplicación"}\n'
+                      '${l10n?.durationIndefiniteBullet3 ?? "• Puedes pausar o detener el tratamiento en cualquier momento"}',
                       style: TextStyle(
                         color: isDark ? const Color(0xFF93C5FD) : AppTheme.secondaryTextColor,
                         fontSize: 13,

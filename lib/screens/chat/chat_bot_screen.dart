@@ -22,6 +22,7 @@ import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/widgets/drug_interaction_dialog.dart';
 import 'package:meditime/repositories/treatment_repository.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 class ChatBotScreen extends StatefulWidget {
@@ -81,6 +82,14 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     precacheImage(const AssetImage(_midiOpenAsset), context);
     precacheImage(const AssetImage(_midiBlinkAsset), context);
 
+    final l10n = AppLocalizations.of(context);
+    if (_messages.length == 1 && !_messages[0].isUser && l10n != null) {
+      _messages[0] = _ChatMessage(
+        text: l10n.chatBotWelcome,
+        isUser: false,
+      );
+    }
+
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUser;
     if (user != null && user.uid != _lastStreamUserId) {
@@ -136,6 +145,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   }
 
   Future<void> _scanPrescription() async {
+    final l10n = AppLocalizations.of(context);
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -147,12 +157,12 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Tomar Foto de la Receta'),
+              title: Text(l10n?.chatBotTakeRecipePhoto ?? 'Tomar Foto de la Receta'),
               onTap: () => Navigator.pop(context, ImageSource.camera),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Seleccionar de la Galería'),
+              title: Text(l10n?.chatBotSelectFromGallery ?? 'Seleccionar de la Galería'),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
             ),
           ],
@@ -781,7 +791,8 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
       _messages.clear();
       _messages.add(
         _ChatMessage(
-          text: '¡Hola! Soy Midi, tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?',
+          text: AppLocalizations.of(context)?.chatBotWelcome ??
+              '¡Hola! Soy Midi, tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?',
           isUser: false,
         ),
       );
@@ -889,6 +900,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   }
 
   Widget _buildDisclaimerCard() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
       padding: const EdgeInsets.all(14),
@@ -903,7 +915,8 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Midi no reemplaza la opinión médica profesional. Ante cualquier duda de salud, consulta a tu médico.',
+              l10n?.chatBotMedicalDisclaimer ??
+                  'Midi no reemplaza la opinión médica profesional. Ante cualquier duda de salud, consulta a tu médico.',
               style: TextStyle(
                 fontSize: 12,
                 color: AppTheme.secondaryTextColor,
@@ -917,6 +930,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   }
 
   Widget _buildInitialOptions() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -924,7 +938,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6),
           child: Text(
-            'Puedes preguntarme sobre:',
+            l10n?.chatBotAskAbout ?? 'Puedes preguntarme sobre:',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -936,15 +950,15 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         Row(
           children: [
             _buildQuickActionCard(
-              title: 'Mis medicamentos',
-              subtitle: 'Info, dosis y horarios',
+              title: l10n?.chatBotQuickMeds ?? 'Mis medicamentos',
+              subtitle: l10n?.chatBotQuickMedsSubtitle ?? 'Info, dosis y horarios',
               icon: Icons.medication_rounded,
               color: const Color(0xFF2F6DB4),
               onTap: () => _sendSuggestion('Háblame de mis medicamentos activos'),
             ),
             _buildQuickActionCard(
-              title: 'Recordatorios',
-              subtitle: 'Alarmas y notificaciones',
+              title: l10n?.chatBotQuickReminders ?? 'Recordatorios',
+              subtitle: l10n?.chatBotQuickRemindersSubtitle ?? 'Alarmas y notificaciones',
               icon: Icons.notifications_active_rounded,
               color: Colors.green,
               onTap: () => _sendSuggestion('¿Cuáles son mis próximos recordatorios para hoy?'),
@@ -954,15 +968,15 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         Row(
           children: [
             _buildQuickActionCard(
-              title: 'Mi progreso',
-              subtitle: 'Adherencia y estadísticas',
+              title: l10n?.chatBotQuickProgress ?? 'Mi progreso',
+              subtitle: l10n?.chatBotQuickProgressSubtitle ?? 'Adherencia y estadísticas',
               icon: Icons.bar_chart_rounded,
               color: Colors.purple,
               onTap: () => _sendSuggestion('Muéstrame mi reporte de progreso y estadísticas de adherencia'),
             ),
             _buildQuickActionCard(
-              title: 'Dudas frecuentes',
-              subtitle: 'Resuelve tus preguntas',
+              title: l10n?.chatBotQuickFaq ?? 'Dudas frecuentes',
+              subtitle: l10n?.chatBotQuickFaqSubtitle ?? 'Resuelve tus preguntas',
               icon: Icons.help_outline_rounded,
               color: Colors.orange,
               onTap: () => _sendSuggestion('¿Cuáles son las dudas frecuentes sobre el uso de la aplicación?'),
@@ -976,6 +990,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   }
 
   Widget _buildComposer() {
+    final l10n = AppLocalizations.of(context);
     final isEnabled = (_hasText || _isGenerating == false) && !_isGenerating;
     return SafeArea(
       top: false,
@@ -1010,9 +1025,9 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                     },
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    'Grabando... Toca el mic para enviar',
-                    style: TextStyle(
+                  Text(
+                    l10n?.chatBotRecordingNotice ?? 'Grabando... Toca el mic para enviar',
+                    style: const TextStyle(
                       color: Colors.red,
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
@@ -1022,7 +1037,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                   IconButton(
                     icon: const Icon(Icons.cancel, color: Colors.red),
                     onPressed: _cancelVoiceRecording,
-                    tooltip: 'Cancelar grabación',
+                    tooltip: l10n?.chatBotCancelRecording ?? 'Cancelar grabación',
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
@@ -1057,7 +1072,9 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                         textCapitalization: TextCapitalization.sentences,
                         style: TextStyle(color: AppTheme.primaryTextColor),
                         decoration: InputDecoration(
-                          hintText: _isRecording ? 'Escuchando...' : 'Pregunta lo que necesitas...',
+                          hintText: _isRecording
+                              ? (l10n?.chatBotListening ?? 'Escuchando...')
+                              : (l10n?.chatBotInputHint ?? 'Pregunta lo que necesitas...'),
                           hintStyle: TextStyle(
                             color: _isRecording ? Colors.red.withOpacity(0.6) : AppTheme.secondaryTextColor.withOpacity(0.6),
                             fontSize: 16,

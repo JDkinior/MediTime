@@ -8,7 +8,6 @@ import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/preference_service.dart';
-import 'package:meditime/services/alarm_sound_service.dart';
 import 'package:meditime/firebase_options.dart';
 
 /// Punto de entrada para la ejecución de alarmas en segundo plano.
@@ -131,8 +130,12 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       final alarmPayload =
           'alarm_mode|$userId|$docId|${doseTime.toIso8601String()}|$nombreMedicamento|$dosisPorToma|$presentacion|${pacienteNombre ?? ""}|${habitacion ?? ""}';
 
-      // Disparar sonido continuo en el flujo de alarma del sistema y vibración en bucle
-      await AlarmSoundService.startAlarm();
+      // NOTA: NotificationService.showAlarmModeNotification usa FLAG_INSISTENT y
+      // audioAttributesUsage: AudioAttributesUsage.alarm en el canal de alarma.
+      // El sistema operativo Android se encarga de reproducir el tono de alarma
+      // y la vibración en bucle nativamente, y los detiene al instante cuando
+      // la notificación se descarta o se presiona un botón de acción.
+      // NO iniciar reproductores secundarios en este isolate para evitar sonidos fantasma.
 
       // Mostrar notificación de alta prioridad en pantalla completa
       await NotificationService.showAlarmModeNotification(

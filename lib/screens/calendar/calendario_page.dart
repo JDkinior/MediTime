@@ -1211,15 +1211,16 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
 
     final keyToUse = widget.calendarViewKey ?? widget.calendarKey;
     if (keyToUse != null) {
+      final l10n = AppLocalizations.of(context);
       return Showcase.withWidget(
         key: keyToUse,
         height: 200,
         width: 320,
         disableDefaultTargetGestures: true,
-        container: const TutorialTooltip(
+        container: TutorialTooltip(
           icon: Icons.today_rounded,
-          title: 'Historial y Detalle del Día',
-          description: 'Revisa cada día según tus dosis:\n🟢 Tomadas  🔴 Omitidas  🟡 Pendientes\n\nToca cualquier día para ver la lista de dosis programadas.',
+          title: l10n?.tutorialStep7Title ?? 'Historial y Detalle del Día',
+          description: l10n?.tutorialStep7Desc ?? 'Revisa cada día según tus dosis:\n🟢 Tomadas  🔴 Omitidas  🟡 Pendientes\n\nToca cualquier día para ver la lista de dosis programadas.',
           stepNumber: 7,
           totalSteps: 11,
         ),

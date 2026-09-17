@@ -734,10 +734,10 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
         height: 220,
         width: 320,
         disableDefaultTargetGestures: true,
-        container: const TutorialTooltip(
+        container: TutorialTooltip(
           icon: Icons.donut_large_rounded,
-          title: 'Estadísticas y Modo Cuidador',
-          description: 'Mide tu porcentaje general de adherencia, dosis tomadas vs omitidas y el cumplimiento por paciente si usas el Modo Cuidador.',
+          title: l10n?.tutorialStep9Title ?? 'Estadísticas y Modo Cuidador',
+          description: l10n?.tutorialStep9Desc ?? 'Mide tu porcentaje general de adherencia, dosis tomadas vs omitidas y el cumplimiento por paciente si usas el Modo Cuidador.',
           stepNumber: 9,
           totalSteps: 11,
         ),
@@ -1220,10 +1220,10 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
         height: 220,
         width: 320,
         disableDefaultTargetGestures: true,
-        container: const TutorialTooltip(
+        container: TutorialTooltip(
           icon: Icons.filter_list_rounded,
-          title: 'Filtros y Resumen Desplegable',
-          description: 'Filtra tu progreso por Semana, Mes o Año. Usa "Ver más" para desplegar la lista y cambia el orden entre "Más recientes" y "Más antiguos".',
+          title: l10n?.tutorialStep10Title ?? 'Filtros y Resumen Desplegable',
+          description: l10n?.tutorialStep10Desc ?? 'Filtra tu progreso por Semana, Mes o Año. Usa "Ver más" para desplegar la lista y cambia el orden entre "Más recientes" y "Más antiguos".',
           stepNumber: 10,
           totalSteps: 11,
         ),
