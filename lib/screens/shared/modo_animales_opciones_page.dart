@@ -262,15 +262,17 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
               ),
             ),
             const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(20),
-                border: (preferenceNotifier.showCardBorder || preferenceNotifier.highContrast)
-                    ? Border.all(color: AppTheme.borderColor)
-                    : null,
-              ),
-              child: ListTile(
+            Material(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: (preferenceNotifier.showCardBorder || preferenceNotifier.highContrast)
+                      ? Border.all(color: AppTheme.borderColor)
+                      : null,
+                ),
+                child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 leading: Container(
                   padding: const EdgeInsets.all(10),
@@ -304,6 +306,7 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
                 },
               ),
             ),
+          ),
           ],
         ],
       ),
