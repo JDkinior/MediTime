@@ -14,6 +14,7 @@ import 'package:meditime/screens/profile/perfil_page.dart';
 import 'package:meditime/screens/caregiver/manage_caregiver_profiles_page.dart';
 import 'package:meditime/screens/shared/modo_cuidador_opciones_page.dart';
 import 'package:meditime/screens/shared/modo_animales_opciones_page.dart';
+import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 
 class CustomDrawer extends StatelessWidget {
@@ -54,7 +55,13 @@ class CustomDrawer extends StatelessWidget {
     final isCaregiverActive = caregiver.isCaregiverModeActive;
     final isAnimalActive = preferences.isAnimalMode;
 
-    final headerBgColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF0F6FE);
+    final headerBgColor = isDark
+        ? const Color(0xFF1E293B)
+        : (isAnimalActive
+            ? const Color(0xFFF3FAF6)
+            : (isCaregiverActive
+                ? const Color(0xFFFAF5FF)
+                : const Color(0xFFF0F6FE)));
     final sectionHeaderColor = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
     final dividerColor = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
 
@@ -88,9 +95,9 @@ class CustomDrawer extends StatelessWidget {
                   backgroundImage: canLoadProfileImage ? NetworkImage(profileImagePath) : null,
                   child: !canLoadProfileImage
                       ? Icon(
-                          Icons.person,
+                          isAnimalActive ? Icons.pets_rounded : Icons.person,
                           size: 36,
-                          color: isDark ? Colors.white70 : const Color(0xFF004AC6),
+                          color: isDark ? Colors.white70 : AppTheme.primaryColor,
                         )
                       : null,
                 ),
@@ -153,7 +160,7 @@ class CustomDrawer extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E2A47) : const Color(0xFFDBEAFE),
+                            color: isDark ? const Color(0xFF3B185F) : const Color(0xFFEDE9FE),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
@@ -162,7 +169,7 @@ class CustomDrawer extends StatelessWidget {
                               Icon(
                                 Icons.shield_outlined,
                                 size: 14,
-                                color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
+                                color: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
                               ),
                               const SizedBox(width: 5),
                               Text(
@@ -170,7 +177,7 @@ class CustomDrawer extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
+                                  color: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
                                 ),
                               ),
                             ],
@@ -331,8 +338,8 @@ class CustomDrawer extends StatelessWidget {
                     icon: Icons.people_outline_rounded,
                     title: l10n?.drawerManagePatients ?? 'Gestionar Pacientes',
                     subtitle: l10n?.drawerManagePatientsSubtitle ?? 'Agregar, editar o eliminar',
-                    iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
-                    iconBgColor: isDark ? const Color(0xFF1E2D4A) : const Color(0xFFEFF6FF),
+                    iconColor: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
+                    iconBgColor: isDark ? const Color(0xFF3B185F) : const Color(0xFFEDE9FE),
                     isDark: isDark,
                     onTap: () {
                       Navigator.pop(context);
@@ -348,8 +355,8 @@ class CustomDrawer extends StatelessWidget {
                     icon: Icons.tune_rounded,
                     title: l10n?.drawerCaregiverSettings ?? 'Configuración Cuidador',
                     subtitle: l10n?.drawerCaregiverSettingsSubtitle ?? 'Preferencias del modo cuidador',
-                    iconColor: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0D9488),
-                    iconBgColor: isDark ? const Color(0xFF183B38) : const Color(0xFFF0FDFA),
+                    iconColor: isDark ? const Color(0xFFC084FC) : const Color(0xFF9333EA),
+                    iconBgColor: isDark ? const Color(0xFF2E1B4E) : const Color(0xFFF5F3FF),
                     isDark: isDark,
                     onTap: () {
                       Navigator.pop(context);

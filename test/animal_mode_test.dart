@@ -57,6 +57,25 @@ void main() {
       expect(AppTheme.primaryColor, const Color(0xFF004AC6));
     });
 
+    test('AppTheme switches to purple in caregiver mode and reverts when deactivated', () {
+      // Normal mode (light)
+      AppTheme.updateThemeColors(false, highContrast: false, isCaregiverMode: false);
+      expect(AppTheme.primaryColor, const Color(0xFF004AC6));
+
+      // Caregiver mode (light) - should be purple
+      AppTheme.updateThemeColors(false, highContrast: false, isCaregiverMode: true);
+      expect(AppTheme.primaryColor, const Color(0xFF7C3AED));
+      expect(AppTheme.secondaryColor, const Color(0xFF5B21B6));
+
+      // Caregiver mode (dark) - should also be purple
+      AppTheme.updateThemeColors(true, highContrast: false, isCaregiverMode: true);
+      expect(AppTheme.primaryColor, const Color(0xFF7C3AED));
+
+      // Back to normal mode (light)
+      AppTheme.updateThemeColors(false, highContrast: false, isCaregiverMode: false);
+      expect(AppTheme.primaryColor, const Color(0xFF004AC6));
+    });
+
     testWidgets('AppLocalizations contains animal mode translations', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(

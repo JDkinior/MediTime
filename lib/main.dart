@@ -141,8 +141,8 @@ class MyApp extends StatelessWidget {
               )..loadProfiles(context.read<AuthService>().currentUser?.uid ?? ''),
         ),
       ],
-      child: Consumer<PreferenceNotifier>(
-        builder: (context, preferenceNotifier, child) {
+      child: Consumer2<PreferenceNotifier, CaregiverNotifier>(
+        builder: (context, preferenceNotifier, caregiverNotifier, child) {
           final themeModeStr = preferenceNotifier.themeMode;
           final isDark = themeModeStr == 'dark' ||
               (themeModeStr == 'system' &&
@@ -151,6 +151,7 @@ class MyApp extends StatelessWidget {
             isDark,
             highContrast: preferenceNotifier.highContrast,
             isAnimalMode: preferenceNotifier.isAnimalMode,
+            isCaregiverMode: caregiverNotifier.isCaregiverModeActive,
           );
 
           return MaterialApp(

@@ -45,17 +45,27 @@ class AppTheme {
   /// Track current theme mode state
   static bool currentIsDark = false;
   static bool currentIsAnimalMode = false;
+  static bool currentIsCaregiverMode = false;
 
-  /// Updates static colors to match light or dark mode, high contrast, and animal mode.
-  static void updateThemeColors(bool isDark, {bool highContrast = false, bool isAnimalMode = false}) {
+  /// Updates static colors to match light or dark mode, high contrast, animal mode, and caregiver mode.
+  static void updateThemeColors(
+    bool isDark, {
+    bool highContrast = false,
+    bool isAnimalMode = false,
+    bool isCaregiverMode = false,
+  }) {
     currentIsDark = isDark;
     currentIsAnimalMode = isAnimalMode;
+    currentIsCaregiverMode = isCaregiverMode;
 
     if (isAnimalMode) {
       primaryColor = const Color(0xFF15803D); // Verde veterinario esmeralda/médico
       secondaryColor = const Color(0xFF047857);
+    } else if (isCaregiverMode) {
+      primaryColor = const Color(0xFF7C3AED); // Morado cuidador / Violet 600
+      secondaryColor = const Color(0xFF5B21B6); // Violet 800
     } else {
-      primaryColor = const Color(0xFF004AC6);
+      primaryColor = const Color(0xFF004AC6); // Azul institucional
       secondaryColor = const Color(0xFF006C49);
     }
 
@@ -73,6 +83,13 @@ class AppTheme {
       surfaceColor = isDark ? const Color(0xFF132219) : const Color(0xFFEDF8F1);
       cardColor = isDark ? const Color(0xFF18291F) : Colors.white;
       borderColor = isDark ? const Color(0xFF233E2F) : const Color(0xFFD6EFE0);
+    } else if (isCaregiverMode) {
+      backgroundColor = isDark ? const Color(0xFF100C1A) : const Color(0xFFFBF8FF);
+      primaryTextColor = isDark ? const Color(0xFFF1EEFA) : const Color(0xFF1E1135);
+      secondaryTextColor = isDark ? const Color(0xFFA594C2) : const Color(0xFF52436A);
+      surfaceColor = isDark ? const Color(0xFF181226) : const Color(0xFFF4EEFD);
+      cardColor = isDark ? const Color(0xFF221A36) : Colors.white;
+      borderColor = isDark ? const Color(0xFF352654) : const Color(0xFFEADBFF);
     } else {
       backgroundColor = isDark ? const Color(0xFF111318) : const Color(0xFFF8F9FF);
       primaryTextColor = isDark ? const Color(0xFFE2E2E9) : const Color(0xFF0B1C30);
@@ -93,7 +110,9 @@ class AppTheme {
     end: Alignment.bottomCenter,
     colors: [
       primaryColor,
-      currentIsAnimalMode ? const Color(0xFF22C55E) : const Color(0xFF2563EB),
+      currentIsAnimalMode
+          ? const Color(0xFF22C55E)
+          : (currentIsCaregiverMode ? const Color(0xFF9333EA) : const Color(0xFF2563EB)),
     ],
   );
 
@@ -103,7 +122,9 @@ class AppTheme {
     end: Alignment.centerRight,
     colors: [
       primaryColor,
-      currentIsAnimalMode ? const Color(0xFF16A34A) : const Color(0xFF2563EB),
+      currentIsAnimalMode
+          ? const Color(0xFF16A34A)
+          : (currentIsCaregiverMode ? const Color(0xFF8B5CF6) : const Color(0xFF2563EB)),
     ],
   );
 
