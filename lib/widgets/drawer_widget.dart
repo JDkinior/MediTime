@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/screens/shared/ayuda_page.dart';
 import 'package:meditime/screens/shared/opciones_page.dart';
 import 'package:meditime/screens/reports/reportes_page.dart';
@@ -12,6 +13,8 @@ import 'package:meditime/screens/chat/chat_bot_screen.dart';
 import 'package:meditime/screens/profile/perfil_page.dart';
 import 'package:meditime/screens/caregiver/manage_caregiver_profiles_page.dart';
 import 'package:meditime/screens/shared/modo_cuidador_opciones_page.dart';
+import 'package:meditime/screens/shared/modo_animales_opciones_page.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 
 class CustomDrawer extends StatelessWidget {
   final VoidCallback onLogout;
@@ -23,9 +26,8 @@ class CustomDrawer extends StatelessWidget {
     this.onStartTutorial,
   });
 
-  String _obtenerSaludo() {
-    final greeting = AppUtils.getTimeBasedGreeting();
-    return '¡$greeting!';
+  String _obtenerSaludo(BuildContext context) {
+    return AppUtils.getLocalizedGreeting(context);
   }
 
   bool _isDeprecatedFirebaseStorageUrl(String? url) {
@@ -35,9 +37,11 @@ class CustomDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     final profile = context.watch<ProfileNotifier>();
     final caregiver = context.watch<CaregiverNotifier>();
+    final preferences = context.watch<PreferenceNotifier>();
 
     final nameParts = profile.userName?.split(' ');
     final displayName = nameParts?.take(2).join(' ') ?? AppConstants.defaultUserName;
@@ -48,47 +52,31 @@ class CustomDrawer extends StatelessWidget {
         !_isDeprecatedFirebaseStorageUrl(profileImagePath);
 
     final isCaregiverActive = caregiver.isCaregiverModeActive;
+    final isAnimalActive = preferences.isAnimalMode;
 
-    // Background matching the rest of the application
-    final drawerBgColor = Theme.of(context).scaffoldBackgroundColor;
-
-    final headerGradient = isDark
-        ? const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1B2236), Color(0xFF14192A)],
-          )
-        : const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFEBF3FF), Color(0xFFE2EDFF)],
-          );
-
-    final sectionHeaderColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final dividerColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF3F9);
+    final headerBgColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF0F6FE);
+    final sectionHeaderColor = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+    final dividerColor = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
 
     return Drawer(
-      backgroundColor: drawerBgColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topRight: Radius.circular(28),
-          bottomRight: Radius.circular(28),
-        ),
-      ),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       child: Column(
         children: [
           // HEADER
           Container(
             padding: EdgeInsets.only(
               top: MediaQuery.of(context).padding.top + 20,
-              bottom: 20,
-              left: 16,
-              right: 16,
+              left: 20,
+              right: 20,
+              bottom: 24,
             ),
             decoration: BoxDecoration(
-              gradient: headerGradient,
-              borderRadius: const BorderRadius.only(
-                topRight: Radius.circular(28),
+              color: headerBgColor,
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  width: 1,
+                ),
               ),
             ),
             child: Row(
@@ -113,7 +101,7 @@ class CustomDrawer extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        _obtenerSaludo(),
+                        _obtenerSaludo(context),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -130,7 +118,36 @@ class CustomDrawer extends StatelessWidget {
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (isCaregiverActive) ...[
+                      if (isAnimalActive) ...[
+                        const SizedBox(height: 8),
+                        // Animal Mode Chip Badge (green)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF14532D) : const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.pets_rounded,
+                                size: 14,
+                                color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                l10n?.drawerAnimalsMode ?? 'Modo Animales',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else if (isCaregiverActive) ...[
                         const SizedBox(height: 8),
                         // Caregiver Mode Chip Badge (only shown when active)
                         Container(
@@ -149,7 +166,7 @@ class CustomDrawer extends StatelessWidget {
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                'Modo Cuidador',
+                                l10n?.drawerCaregiverMode ?? 'Modo Cuidador',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -173,11 +190,11 @@ class CustomDrawer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               children: [
                 // PRINCIPAL SECTION
-                _buildSectionHeader('PRINCIPAL', sectionHeaderColor),
+                _buildSectionHeader(l10n?.drawerSectionMain ?? 'PRINCIPAL', sectionHeaderColor),
                 _DrawerTile(
                   icon: Icons.person_outline_rounded,
-                  title: 'Mi Perfil',
-                  subtitle: 'Ver y editar tu información',
+                  title: l10n?.drawerProfile ?? 'Mi Perfil',
+                  subtitle: l10n?.drawerProfileSubtitle ?? 'Ver y editar tu información',
                   iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
                   iconBgColor: isDark ? const Color(0xFF1E2D4A) : const Color(0xFFEFF6FF),
                   isDark: isDark,
@@ -191,8 +208,8 @@ class CustomDrawer extends StatelessWidget {
                 ),
                 _DrawerTile(
                   icon: Icons.bar_chart_rounded,
-                  title: 'Reporte de Adherencia',
-                  subtitle: 'Estadísticas y reportes',
+                  title: l10n?.drawerAdherenceReport ?? 'Reporte de Adherencia',
+                  subtitle: l10n?.drawerAdherenceReportSubtitle ?? 'Estadísticas y reportes',
                   iconColor: isDark ? const Color(0xFFC084FC) : const Color(0xFF9333EA),
                   iconBgColor: isDark ? const Color(0xFF2E1B4E) : const Color(0xFFF5F3FF),
                   isDark: isDark,
@@ -206,8 +223,8 @@ class CustomDrawer extends StatelessWidget {
                 ),
                 _DrawerTile(
                   icon: Icons.settings_outlined,
-                  title: 'Opciones',
-                  subtitle: 'Ajustes de la aplicación',
+                  title: l10n?.optionsTitle ?? 'Opciones',
+                  subtitle: l10n?.drawerOptionsSubtitle ?? 'Ajustes de la aplicación',
                   iconColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
                   iconBgColor: isDark ? const Color(0xFF1B382B) : const Color(0xFFECFDF5),
                   isDark: isDark,
@@ -223,11 +240,11 @@ class CustomDrawer extends StatelessWidget {
                 Divider(height: 24, thickness: 1, color: dividerColor),
 
                 // AYUDA SECTION
-                _buildSectionHeader('AYUDA', sectionHeaderColor),
+                _buildSectionHeader(l10n?.drawerSectionHelp ?? 'AYUDA', sectionHeaderColor),
                 _DrawerTile(
                   icon: Icons.help_outline_rounded,
-                  title: 'Ayuda',
-                  subtitle: 'Centro de ayuda y soporte',
+                  title: l10n?.drawerHelp ?? 'Ayuda',
+                  subtitle: l10n?.drawerHelpSubtitle ?? 'Centro de ayuda y soporte',
                   iconColor: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
                   iconBgColor: isDark ? const Color(0xFF16324A) : const Color(0xFFF0F9FF),
                   isDark: isDark,
@@ -241,8 +258,8 @@ class CustomDrawer extends StatelessWidget {
                 ),
                 _DrawerTile(
                   icon: Icons.school_outlined,
-                  title: 'Tutorial',
-                  subtitle: 'Guías y consejos de uso',
+                  title: l10n?.drawerTutorial ?? 'Tutorial',
+                  subtitle: l10n?.drawerTutorialSubtitle ?? 'Guías y consejos de uso',
                   iconColor: isDark ? const Color(0xFFFB923C) : const Color(0xFFEA580C),
                   iconBgColor: isDark ? const Color(0xFF3D2418) : const Color(0xFFFFF7ED),
                   isDark: isDark,
@@ -255,8 +272,8 @@ class CustomDrawer extends StatelessWidget {
                 ),
                 _DrawerTile(
                   icon: Icons.smart_toy_outlined,
-                  title: 'Chatbot MediTime',
-                  subtitle: 'Asistente inteligente',
+                  title: l10n?.drawerChatbot ?? 'Chatbot MediTime',
+                  subtitle: l10n?.drawerChatbotSubtitle ?? 'Asistente inteligente',
                   iconColor: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
                   iconBgColor: isDark ? const Color(0xFF2A1C4E) : const Color(0xFFF5F3FF),
                   isDark: isDark,
@@ -266,15 +283,54 @@ class CustomDrawer extends StatelessWidget {
                   },
                 ),
 
-                if (isCaregiverActive) ...[
+                if (isAnimalActive) ...[
+                  Divider(height: 24, thickness: 1, color: dividerColor),
+
+                  // GESTIÓN VETERINARIA SECTION
+                  _buildSectionHeader('GESTIÓN VETERINARIA', sectionHeaderColor),
+                  _DrawerTile(
+                    icon: Icons.pets_rounded,
+                    title: l10n?.drawerManageAnimals ?? 'Gestionar Mascotas / Animales',
+                    subtitle: l10n?.drawerManageAnimalsSubtitle ?? 'Agregar, editar o dar de alta',
+                    iconColor: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
+                    iconBgColor: isDark ? const Color(0xFF14532D) : const Color(0xFFDCFCE7),
+                    isDark: isDark,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ManageCaregiverProfilesPage(isAnimalMode: true),
+                        ),
+                      );
+                    },
+                  ),
+                  _DrawerTile(
+                    icon: Icons.tune_rounded,
+                    title: l10n?.drawerAnimalsSettings ?? 'Configuración Modo Animales',
+                    subtitle: l10n?.drawerAnimalsSettingsSubtitle ?? 'Preferencias veterinarias y de mascotas',
+                    iconColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                    iconBgColor: isDark ? const Color(0xFF133E2B) : const Color(0xFFECFDF5),
+                    isDark: isDark,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ModoAnimalesOpcionesPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ] else if (isCaregiverActive) ...[
                   Divider(height: 24, thickness: 1, color: dividerColor),
 
                   // GESTIÓN SECTION
-                  _buildSectionHeader('GESTIÓN', sectionHeaderColor),
+                  _buildSectionHeader(l10n?.drawerSectionManage ?? 'GESTIÓN', sectionHeaderColor),
                   _DrawerTile(
                     icon: Icons.people_outline_rounded,
-                    title: 'Gestionar Pacientes',
-                    subtitle: 'Agregar, editar o eliminar',
+                    title: l10n?.drawerManagePatients ?? 'Gestionar Pacientes',
+                    subtitle: l10n?.drawerManagePatientsSubtitle ?? 'Agregar, editar o eliminar',
                     iconColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
                     iconBgColor: isDark ? const Color(0xFF1E2D4A) : const Color(0xFFEFF6FF),
                     isDark: isDark,
@@ -290,8 +346,8 @@ class CustomDrawer extends StatelessWidget {
                   ),
                   _DrawerTile(
                     icon: Icons.tune_rounded,
-                    title: 'Configuración Cuidador',
-                    subtitle: 'Preferencias del modo cuidador',
+                    title: l10n?.drawerCaregiverSettings ?? 'Configuración Cuidador',
+                    subtitle: l10n?.drawerCaregiverSettingsSubtitle ?? 'Preferencias del modo cuidador',
                     iconColor: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0D9488),
                     iconBgColor: isDark ? const Color(0xFF183B38) : const Color(0xFFF0FDFA),
                     isDark: isDark,
@@ -312,8 +368,8 @@ class CustomDrawer extends StatelessWidget {
                 // SALIR
                 _DrawerTile(
                   icon: Icons.logout_rounded,
-                  title: 'Salir',
-                  subtitle: 'Cerrar sesión',
+                  title: l10n?.drawerLogout ?? 'Salir',
+                  subtitle: l10n?.drawerLogoutSubtitle ?? 'Cerrar sesión',
                   iconColor: const Color(0xFFEF4444),
                   iconBgColor: isDark ? const Color(0xFF3D1B1F) : const Color(0xFFFEF2F2),
                   titleColor: const Color(0xFFEF4444),

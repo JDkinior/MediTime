@@ -9,7 +9,9 @@ import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/caregiver/add_edit_caregiver_profile_page.dart';
 
 class ManageCaregiverProfilesPage extends StatefulWidget {
-  const ManageCaregiverProfilesPage({super.key});
+  final bool isAnimalMode;
+
+  const ManageCaregiverProfilesPage({super.key, this.isAnimalMode = false});
 
   @override
   State<ManageCaregiverProfilesPage> createState() => _ManageCaregiverProfilesPageState();
@@ -18,20 +20,29 @@ class ManageCaregiverProfilesPage extends StatefulWidget {
 class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPage> {
   bool _isLoading = false;
 
+  bool _getEffectiveAnimalMode() {
+    return widget.isAnimalMode ||
+        context.read<PreferenceNotifier>().isAnimalMode ||
+        context.read<CaregiverNotifier>().modeType == CaregiverModeType.veterinario;
+  }
+
   Future<void> _deleteProfile(String profileId, String profileName) async {
+    final isAnimal = _getEffectiveAnimalMode();
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: AppTheme.errorColor),
-            SizedBox(width: 8),
-            Text('Eliminar Paciente'),
+            const Icon(Icons.warning_amber_rounded, color: AppTheme.errorColor),
+            const SizedBox(width: 8),
+            Text(isAnimal ? 'Eliminar Mascota' : 'Eliminar Paciente'),
           ],
         ),
         content: Text(
-          '¿Estás seguro de que deseas eliminar a "$profileName"?\n\nEsta acción borrará permanentemente sus medicamentos e historial asociados.',
+          isAnimal
+              ? '¿Estás seguro de que deseas eliminar a "$profileName"?\n\nEsta acción borrará permanentemente sus medicamentos y tratamientos asociados.'
+              : '¿Estás seguro de que deseas eliminar a "$profileName"?\n\nEsta acción borrará permanentemente sus medicamentos e historial asociados.',
         ),
         actions: [
           TextButton(
@@ -68,7 +79,13 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Paciente eliminado exitosamente.')),
+          SnackBar(
+            content: Text(
+              isAnimal
+                  ? 'Mascota eliminada exitosamente.'
+                  : 'Paciente eliminado exitosamente.',
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -83,10 +100,14 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
   }
 
   Future<void> _editProfile(CaregiverProfile profile) async {
+    final isAnimal = _getEffectiveAnimalMode();
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AddEditCaregiverProfilePage(initialProfile: profile),
+        builder: (context) => AddEditCaregiverProfilePage(
+          initialProfile: profile,
+          isAnimalMode: isAnimal,
+        ),
       ),
     );
     if (mounted) {
@@ -98,10 +119,13 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
   }
 
   Future<void> _addProfile() async {
+    final isAnimal = _getEffectiveAnimalMode();
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const AddEditCaregiverProfilePage(),
+        builder: (context) => AddEditCaregiverProfilePage(
+          isAnimalMode: isAnimal,
+        ),
       ),
     );
     if (mounted) {
@@ -114,19 +138,28 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
 
   @override
   Widget build(BuildContext context) {
-    context.watch<PreferenceNotifier>();
+    final prefNotifier = context.watch<PreferenceNotifier>();
     final caregiverNotifier = context.watch<CaregiverNotifier>();
-    final profiles = caregiverNotifier.managedProfiles;
-    final isClinico = caregiverNotifier.modeType == CaregiverModeType.clinico;
+    final isAnimal = widget.isAnimalMode ||
+        prefNotifier.isAnimalMode ||
+        caregiverNotifier.modeType == CaregiverModeType.veterinario;
+    final isClinico = caregiverNotifier.modeType == CaregiverModeType.clinico || caregiverNotifier.modeType == CaregiverModeType.veterinario;
+
+    // Si estamos en modo animales, mostramos perfiles de animales si existen; de lo contrario todos
+    final allProfiles = caregiverNotifier.managedProfiles;
+    final profiles = isAnimal
+        ? allProfiles.where((p) => p.isAnimal).toList()
+        : allProfiles.where((p) => !p.isAnimal).toList();
 
     final countTotal = profiles.length;
     final countWithRoom = profiles.where((p) => p.roomNumber != null && p.roomNumber!.isNotEmpty).length;
+    final countWithMicrochip = profiles.where((p) => p.microchip != null && p.microchip!.isNotEmpty).length;
     final countLinked = profiles.where((p) => p.isExternalUser).length;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: const Text('Gestión de Pacientes'),
+        title: Text(isAnimal ? 'Gestión de Mascotas / Pacientes' : 'Gestión de Pacientes'),
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: AppTheme.primaryTextColor,
@@ -134,8 +167,11 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addProfile,
         backgroundColor: AppTheme.primaryColor,
-        icon: const Icon(Icons.person_add_rounded, color: Colors.white),
-        label: const Text('Agregar Paciente', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        icon: Icon(isAnimal ? Icons.pets_rounded : Icons.person_add_rounded, color: Colors.white),
+        label: Text(
+          isAnimal ? 'Agregar Mascota' : 'Agregar Paciente',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
       body: Stack(
         children: [
@@ -165,10 +201,10 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.analytics_rounded, color: AppTheme.primaryColor, size: 22),
+                            Icon(isAnimal ? Icons.pets_rounded : Icons.analytics_rounded, color: AppTheme.primaryColor, size: 22),
                             const SizedBox(width: 8),
                             Text(
-                              'Resumen de Pacientes',
+                              isAnimal ? 'Resumen de Mascotas' : 'Resumen de Pacientes',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -184,7 +220,7 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            isClinico ? 'Modo Clínico' : 'Modo Familiar',
+                            isAnimal ? 'Modo Animales' : (isClinico ? 'Modo Clínico' : 'Modo Familiar'),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 11,
@@ -197,8 +233,10 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        _buildStatItem('Total', countTotal.toString(), Icons.people_alt_rounded, Colors.blue),
-                        if (isClinico)
+                        _buildStatItem('Total', countTotal.toString(), isAnimal ? Icons.pets_rounded : Icons.people_alt_rounded, Colors.blue),
+                        if (isAnimal)
+                          _buildStatItem('Con Microchip', countWithMicrochip.toString(), Icons.qr_code_rounded, Colors.teal)
+                        else if (isClinico)
                           _buildStatItem('En Habitación', countWithRoom.toString(), Icons.hotel_rounded, Colors.amber.shade700)
                         else
                           _buildStatItem('Vinculados', countLinked.toString(), Icons.link_rounded, Colors.teal),
@@ -210,7 +248,7 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
               const SizedBox(height: 24),
 
               Text(
-                'Listado de Pacientes',
+                isAnimal ? 'Listado de Mascotas' : 'Listado de Pacientes',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -231,10 +269,14 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
                   ),
                   child: Column(
                     children: [
-                      Icon(Icons.person_search_rounded, size: 56, color: AppTheme.secondaryTextColor.withOpacity(0.5)),
+                      Icon(
+                        isAnimal ? Icons.pets_rounded : Icons.person_search_rounded,
+                        size: 56,
+                        color: AppTheme.secondaryTextColor.withOpacity(0.5),
+                      ),
                       const SizedBox(height: 12),
                       Text(
-                        'No tienes pacientes registrados',
+                        isAnimal ? 'No tienes mascotas registradas' : 'No tienes pacientes registrados',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -243,7 +285,9 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Agrega pacientes familiares o de hospital para gestionar sus medicamentos.',
+                        isAnimal
+                            ? 'Agrega a tus mascotas o pacientes veterinarios para gestionar sus medicamentos y dosis.'
+                            : 'Agrega pacientes familiares o de hospital para gestionar sus medicamentos.',
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 13, color: AppTheme.secondaryTextColor),
                       ),
@@ -251,10 +295,10 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
                       OutlinedButton.icon(
                         onPressed: _addProfile,
                         icon: const Icon(Icons.add_rounded),
-                        label: const Text('Agregar Primer Paciente'),
+                        label: Text(isAnimal ? 'Agregar Primera Mascota' : 'Agregar Primer Paciente'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppTheme.primaryColor,
-                          side: const BorderSide(color: AppTheme.primaryColor),
+                          side: BorderSide(color: AppTheme.primaryColor),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
@@ -296,10 +340,12 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
                               CircleAvatar(
                                 radius: 22,
                                 backgroundColor: color.withOpacity(0.2),
-                                child: Text(
-                                  profile.name.isNotEmpty ? profile.name[0].toUpperCase() : '?',
-                                  style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 18),
-                                ),
+                                child: profile.isAnimal
+                                    ? Icon(Icons.pets_rounded, color: color, size: 22)
+                                    : Text(
+                                        profile.name.isNotEmpty ? profile.name[0].toUpperCase() : '?',
+                                        style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 18),
+                                      ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -316,14 +362,18 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      profile.relationship,
+                                      profile.isAnimal
+                                          ? [profile.species, profile.breed, profile.relationship]
+                                              .where((s) => s != null && s.isNotEmpty)
+                                              .join(' • ')
+                                          : profile.relationship,
                                       style: TextStyle(fontSize: 13, color: AppTheme.secondaryTextColor),
                                     ),
                                   ],
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.edit_outlined, color: AppTheme.primaryColor),
+                                icon: Icon(Icons.edit_outlined, color: AppTheme.primaryColor),
                                 tooltip: 'Editar',
                                 onPressed: () => _editProfile(profile),
                               ),
@@ -339,16 +389,26 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
                             spacing: 8,
                             runSpacing: 6,
                             children: [
+                              if (profile.species != null && profile.species!.isNotEmpty)
+                                _buildBadge(Icons.pets_rounded, profile.species!, AppTheme.primaryColor),
+                              if (profile.breed != null && profile.breed!.isNotEmpty)
+                                _buildBadge(Icons.info_outline_rounded, profile.breed!, Colors.teal),
+                              if (profile.weight != null)
+                                _buildBadge(Icons.scale_rounded, '${profile.weight} kg', Colors.purple),
+                              if (profile.microchip != null && profile.microchip!.isNotEmpty)
+                                _buildBadge(Icons.qr_code_rounded, 'Chip: ${profile.microchip}', Colors.indigo),
                               if (profile.category != null && profile.category!.isNotEmpty)
                                 _buildBadge(Icons.category_outlined, profile.category!, AppTheme.primaryColor),
                               if (profile.roomNumber != null && profile.roomNumber!.isNotEmpty)
-                                _buildBadge(Icons.hotel_outlined, 'Hab: ${profile.roomNumber}', Colors.amber.shade800),
+                                _buildBadge(Icons.meeting_room_outlined, profile.isAnimal ? 'Box: ${profile.roomNumber}' : 'Hab: ${profile.roomNumber}', Colors.amber.shade800),
                               if (profile.bloodType != null && profile.bloodType!.isNotEmpty)
                                 _buildBadge(Icons.bloodtype_outlined, profile.bloodType!, Colors.redAccent),
                               if (profile.isExternalUser)
                                 _buildBadge(Icons.link_rounded, 'Vinculado', Colors.teal),
                               if (profile.allergies != null && profile.allergies!.isNotEmpty)
                                 _buildBadge(Icons.warning_amber_rounded, 'Alergias: ${profile.allergies}', Colors.orange.shade800),
+                              if (profile.notes != null && profile.notes!.isNotEmpty)
+                                _buildBadge(Icons.note_alt_outlined, 'Con notas', Colors.blueGrey),
                             ],
                           ),
                         ],

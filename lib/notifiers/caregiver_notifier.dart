@@ -40,7 +40,9 @@ class CaregiverNotifier extends ChangeNotifier {
   Future<void> _loadPreferences() async {
     _isCaregiverModeActive = await _preferenceService.getCaregiverModeActive();
     final typeStr = await _preferenceService.getCaregiverModeType();
-    _modeType = typeStr == 'clinico' ? CaregiverModeType.clinico : CaregiverModeType.familiar;
+    _modeType = typeStr == 'clinico'
+        ? CaregiverModeType.clinico
+        : (typeStr == 'veterinario' ? CaregiverModeType.veterinario : CaregiverModeType.familiar);
     _activeProfileId = await _preferenceService.getCaregiverActiveProfile();
     _notifyPatientDoses = await _preferenceService.getCaregiverNotifyPatientDoses();
     _includeLocationInNotifications = await _preferenceService.getCaregiverIncludeLocation();
@@ -77,9 +79,19 @@ class CaregiverNotifier extends ChangeNotifier {
 
   Future<void> setModeType(CaregiverModeType type) async {
     _modeType = type;
-    await _preferenceService.saveCaregiverModeType(
-      type == CaregiverModeType.clinico ? 'clinico' : 'familiar'
-    );
+    String typeStr;
+    switch (type) {
+      case CaregiverModeType.clinico:
+        typeStr = 'clinico';
+        break;
+      case CaregiverModeType.veterinario:
+        typeStr = 'veterinario';
+        break;
+      case CaregiverModeType.familiar:
+        typeStr = 'familiar';
+        break;
+    }
+    await _preferenceService.saveCaregiverModeType(typeStr);
     notifyListeners();
   }
 

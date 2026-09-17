@@ -13,6 +13,7 @@ import 'package:meditime/repositories/user_repository.dart';
 // Importar pantallas
 import 'package:meditime/screens/auth/login_page.dart';
 import 'package:meditime/screens/home/home_page.dart';
+import 'package:meditime/screens/onboarding/onboarding_page.dart';
 import 'package:meditime/services/widget_service.dart';
 
 /// Un widget "guardián" que controla qué pantalla se muestra al usuario.
@@ -30,6 +31,7 @@ class AuthWrapper extends StatefulWidget {
 
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _initialSetupDone = false;
+  bool _onboardingCompleted = true;
 
   bool _isDeprecatedFirebaseStorageUrl(String? url) {
     return url != null && url.contains('firebasestorage.googleapis.com');
@@ -152,10 +154,25 @@ class _AuthWrapperState extends State<AuthWrapper> {
       await WidgetService.handleWidgetLaunch(context);
     }
 
+    // Verificar si ya completó el onboarding inicial
+    bool completed = await PreferenceService().hasCompletedOnboarding(user.uid);
+    if (!completed) {
+      final res = await loadUserProfileUseCase.execute(user.uid);
+      if (res.isSuccess) {
+        completed = res.data?['onboardingCompleted'] == true;
+        if (completed) {
+          await PreferenceService().saveOnboardingCompleted(user.uid, true);
+        }
+      }
+    }
+
     // Marcamos que la configuración inicial ya se realizó.
-    setState(() {
-      _initialSetupDone = true;
-    });
+    if (mounted) {
+      setState(() {
+        _onboardingCompleted = completed;
+        _initialSetupDone = true;
+      });
+    }
   }
 
 
@@ -193,18 +210,43 @@ class _AuthWrapperState extends State<AuthWrapper> {
                     ),
                   );
                 }
-                // Una vez completada la configuración, vamos a la HomePage.
+                // Una vez completada la configuración, comprobar si requiere onboarding
+                if (!_onboardingCompleted) {
+                  return OnboardingPage(
+                    user: user,
+                    onCompleted: () {
+                      if (mounted) {
+                        setState(() {
+                          _onboardingCompleted = true;
+                        });
+                      }
+                    },
+                  );
+                }
                 return const HomePage();
               },
             );
           }
-          // Si la configuración ya se hizo, vamos directamente a la HomePage.
+          // Si la configuración ya se hizo:
+          if (!_onboardingCompleted) {
+            return OnboardingPage(
+              user: user,
+              onCompleted: () {
+                if (mounted) {
+                  setState(() {
+                    _onboardingCompleted = true;
+                  });
+                }
+              },
+            );
+          }
           return const HomePage();
         }
 
         // Si el usuario no ha iniciado sesión, reiniciamos el estado
-        // de `_initialSetupDone` para la próxima vez que alguien inicie sesión.
+        // de `_initialSetupDone` y `_onboardingCompleted`
         _initialSetupDone = false;
+        _onboardingCompleted = true;
         return const LoginPage();
       },
     );

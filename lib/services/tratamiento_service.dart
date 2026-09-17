@@ -28,10 +28,13 @@ class TratamientoService {
   /// Es mucho más eficiente que generarDosisTotales para períodos cortos.
   static List<DateTime> generarDosisEnRango(Tratamiento tratamiento, DateTime inicio, DateTime fin) {
     List<DateTime> dosis = [];
-    DateTime dosisActual = tratamiento.fechaInicioTratamiento;
     final int intervalo = tratamiento.intervaloDosis.inHours;
 
     if (intervalo <= 0) return dosis;
+    if (tratamiento.fechaInicioTratamiento.isAfter(fin)) return dosis;
+    if (tratamiento.fechaFinTratamiento.isBefore(inicio)) return dosis;
+
+    DateTime dosisActual = tratamiento.fechaInicioTratamiento;
 
     // Fast-forward si inicio es muy posterior al inicio del tratamiento
     if (dosisActual.isBefore(inicio)) {

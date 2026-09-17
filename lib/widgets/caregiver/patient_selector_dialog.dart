@@ -45,6 +45,8 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
   @override
   Widget build(BuildContext context) {
     final caregiverNotifier = context.watch<CaregiverNotifier>();
+    final preferenceNotifier = context.watch<PreferenceNotifier>();
+    final isAnimalMode = preferenceNotifier.isAnimalMode || caregiverNotifier.modeType == CaregiverModeType.veterinario;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isClinico = caregiverNotifier.modeType == CaregiverModeType.clinico;
     final profiles = caregiverNotifier.managedProfiles;
@@ -53,7 +55,9 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
       if (_searchQuery.isEmpty) return true;
       final nameMatches = p.name.toLowerCase().contains(_searchQuery);
       final roomMatches = p.roomNumber?.toLowerCase().contains(_searchQuery) ?? false;
-      return nameMatches || roomMatches;
+      final speciesMatches = p.species?.toLowerCase().contains(_searchQuery) ?? false;
+      final breedMatches = p.breed?.toLowerCase().contains(_searchQuery) ?? false;
+      return nameMatches || roomMatches || speciesMatches || breedMatches;
     }).toList();
 
     filteredProfiles.sort((a, b) {
@@ -96,9 +100,9 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                         controller: _searchController,
                         style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 14),
                         decoration: InputDecoration(
-                          hintText: 'Buscar paciente o habitación...',
+                          hintText: isAnimalMode ? 'Buscar mascota, especie o box...' : 'Buscar paciente o habitación...',
                           hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.6), fontSize: 13),
-                          prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.primaryColor),
+                          prefixIcon: Icon(isAnimalMode ? Icons.pets_rounded : Icons.search_rounded, size: 20, color: AppTheme.primaryColor),
                           filled: true,
                           fillColor: searchBg,
                           border: OutlineInputBorder(
@@ -174,7 +178,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                 color: AppTheme.primaryColor.withOpacity(isDark ? 0.3 : 0.15),
                                 borderRadius: BorderRadius.circular(14),
                               ),
-                              child: const Icon(Icons.person_pin_rounded, color: AppTheme.primaryColor, size: 22),
+                              child: Icon(Icons.person_pin_rounded, color: AppTheme.primaryColor, size: 22),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -203,7 +207,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                               ),
                             ),
                             if (caregiverNotifier.activeProfileId == null)
-                              const Icon(Icons.check_circle_rounded, color: AppTheme.primaryColor, size: 20),
+                              Icon(Icons.check_circle_rounded, color: AppTheme.primaryColor, size: 20),
                           ],
                         ),
                       ),
@@ -238,7 +242,11 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                 color: AppTheme.primaryColor.withOpacity(isDark ? 0.3 : 0.15),
                                 borderRadius: BorderRadius.circular(14),
                               ),
-                              child: const Icon(Icons.grid_view_rounded, color: AppTheme.primaryColor, size: 22),
+                              child: Icon(
+                                isAnimalMode ? Icons.pets_rounded : Icons.grid_view_rounded,
+                                color: AppTheme.primaryColor,
+                                size: 22,
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -246,7 +254,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Vista General (Todos)',
+                                    isAnimalMode ? 'Todas las mascotas' : 'Vista General (Todos)',
                                     style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
@@ -257,7 +265,9 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Ver el plan de todos tus pacientes',
+                                    isAnimalMode
+                                        ? 'Ver el plan de todas tus mascotas'
+                                        : 'Ver el plan de todos tus pacientes',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: AppTheme.secondaryTextColor,
@@ -274,7 +284,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                               ),
                               child: Text(
                                 '${profiles.length}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                   color: AppTheme.primaryColor,
@@ -294,7 +304,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'PACIENTES',
+                            isAnimalMode ? 'MASCOTAS Y ANIMALES' : 'PACIENTES',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -304,7 +314,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                           ),
                           Text(
                             _isSortAscending ? 'Nombre (A-Z)' : 'Nombre (Z-A)',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: AppTheme.primaryColor,
@@ -329,7 +339,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                             Padding(
                               padding: const EdgeInsets.all(24.0),
                               child: Text(
-                                'No se encontraron pacientes',
+                                isAnimalMode ? 'No se encontraron mascotas' : 'No se encontraron pacientes',
                                 style: TextStyle(color: AppTheme.secondaryTextColor, fontSize: 13),
                               ),
                             )
@@ -358,7 +368,9 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                               borderRadius: BorderRadius.circular(14),
                                             ),
                                             child: Icon(
-                                              isClinico ? Icons.hotel_rounded : Icons.person_rounded,
+                                              (profile.isAnimal || isAnimalMode)
+                                                  ? Icons.pets_rounded
+                                                  : (isClinico ? Icons.hotel_rounded : Icons.person_rounded),
                                               color: color,
                                               size: 20,
                                             ),
@@ -378,9 +390,16 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                                 ),
                                                 const SizedBox(height: 2),
                                                 Text(
-                                                  profile.roomNumber != null && profile.roomNumber!.isNotEmpty
-                                                      ? 'Hab. ${profile.roomNumber}'
-                                                      : profile.relationship,
+                                                  (profile.isAnimal || isAnimalMode)
+                                                      ? [
+                                                          if (profile.species != null && profile.species!.isNotEmpty) profile.species!,
+                                                          if (profile.breed != null && profile.breed!.isNotEmpty) profile.breed!,
+                                                          if (profile.roomNumber != null && profile.roomNumber!.isNotEmpty) 'Box ${profile.roomNumber}',
+                                                          if ((profile.species == null || profile.species!.isEmpty) && profile.relationship.isNotEmpty) profile.relationship,
+                                                        ].join(' • ')
+                                                      : (profile.roomNumber != null && profile.roomNumber!.isNotEmpty
+                                                          ? 'Hab. ${profile.roomNumber}'
+                                                          : profile.relationship),
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     color: AppTheme.secondaryTextColor,
@@ -430,12 +449,14 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                         Navigator.pop(context);
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const ManageCaregiverProfilesPage()),
+                          MaterialPageRoute(
+                            builder: (context) => ManageCaregiverProfilesPage(isAnimalMode: isAnimalMode),
+                          ),
                         );
                       },
                       borderRadius: BorderRadius.circular(18),
                       child: Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
                           color: isDark ? AppTheme.backgroundColor : const Color(0xFFFAFCFF),
                           borderRadius: BorderRadius.circular(18),
@@ -451,7 +472,11 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                 color: AppTheme.primaryColor.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(14),
                               ),
-                              child: const Icon(Icons.people_alt_rounded, color: AppTheme.primaryColor, size: 20),
+                              child: Icon(
+                                isAnimalMode ? Icons.pets_rounded : Icons.people_alt_rounded,
+                                color: AppTheme.primaryColor,
+                                size: 20,
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -459,7 +484,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Gestionar pacientes',
+                                    isAnimalMode ? 'Gestionar mascotas y animales' : 'Gestionar pacientes',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
@@ -468,7 +493,9 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Agregar, editar o eliminar pacientes',
+                                    isAnimalMode
+                                        ? 'Agregar, editar o dar de alta mascotas'
+                                        : 'Agregar, editar o eliminar pacientes',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: AppTheme.secondaryTextColor,

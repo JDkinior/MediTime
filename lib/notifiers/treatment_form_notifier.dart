@@ -1,5 +1,6 @@
 // lib/notifiers/treatment_form_notifier.dart
 import 'package:flutter/material.dart';
+import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/services/treatment_service.dart';
@@ -22,7 +23,7 @@ class TreatmentFormNotifier extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   // Lista de presentaciones disponibles
-  final List<String> presentaciones = [
+  static const List<String> _presentacionesBase = [
     'Comprimidos',
     'Grageas',
     'Cápsulas',
@@ -32,6 +33,58 @@ class TreatmentFormNotifier extends ChangeNotifier {
     'Suspensiones',
     'Emulsiones',
   ];
+
+  List<String> get presentaciones {
+    final list = List<String>.from(_presentacionesBase);
+    if (_formData.presentacion.isNotEmpty && !list.contains(_formData.presentacion)) {
+      list.add(_formData.presentacion);
+    }
+    return list;
+  }
+
+  /// Inicializa el formulario con los datos de un tratamiento existente para edición
+  void initializeWithTreatment(Tratamiento tratamiento) {
+    _formData = TreatmentFormData.fromTratamiento(tratamiento);
+    _clearError();
+    notifyListeners();
+  }
+
+  /// Actualiza un tratamiento existente
+  Future<bool> updateExistingTreatment({
+    required Tratamiento originalTratamiento,
+    CaregiverProfile? profile,
+  }) async {
+    final user = _authService.currentUser;
+    if (user == null) {
+      _setError('Error: Usuario no encontrado.');
+      return false;
+    }
+
+    // Validar datos
+    final validationError = _treatmentService.validateFormData(_formData);
+    if (validationError != null) {
+      _setError(validationError);
+      return false;
+    }
+
+    _setLoading(true);
+    try {
+      await _treatmentService.updateTreatment(
+        userId: user.uid,
+        profile: profile,
+        docId: originalTratamiento.id,
+        formData: _formData,
+        originalTratamiento: originalTratamiento,
+      );
+
+      _setLoading(false);
+      return true;
+    } catch (e) {
+      _setError('Error al actualizar el tratamiento: $e');
+      _setLoading(false);
+      return false;
+    }
+  }
 
   /// Actualiza el nombre del medicamento
   void updateNombreMedicamento(String nombre) {

@@ -15,10 +15,10 @@ class AppTheme {
   // -------------------
 
   /// Primary color for active elements.
-  static const Color primaryColor = Color(0xFF004AC6);
+  static Color primaryColor = const Color(0xFF004AC6);
 
   /// Secondary color for secondary active elements.
-  static const Color secondaryColor = Color(0xFF006C49);
+  static Color secondaryColor = const Color(0xFF006C49);
 
   /// Main background color for most screens.
   static Color backgroundColor = const Color(0xFFF8F9FF);
@@ -44,10 +44,21 @@ class AppTheme {
 
   /// Track current theme mode state
   static bool currentIsDark = false;
+  static bool currentIsAnimalMode = false;
 
-  /// Updates static colors to match light or dark mode and high contrast.
-  static void updateThemeColors(bool isDark, {bool highContrast = false}) {
+  /// Updates static colors to match light or dark mode, high contrast, and animal mode.
+  static void updateThemeColors(bool isDark, {bool highContrast = false, bool isAnimalMode = false}) {
     currentIsDark = isDark;
+    currentIsAnimalMode = isAnimalMode;
+
+    if (isAnimalMode) {
+      primaryColor = const Color(0xFF15803D); // Verde veterinario esmeralda/médico
+      secondaryColor = const Color(0xFF047857);
+    } else {
+      primaryColor = const Color(0xFF004AC6);
+      secondaryColor = const Color(0xFF006C49);
+    }
+
     if (highContrast) {
       backgroundColor = isDark ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
       primaryTextColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
@@ -55,6 +66,13 @@ class AppTheme {
       surfaceColor = isDark ? const Color(0xFF16181F) : const Color(0xFFF0F0F0);
       cardColor = isDark ? const Color(0xFF1F232D) : const Color(0xFFFFFFFF);
       borderColor = isDark ? const Color(0xFF444444) : const Color(0xFFBBBBBB);
+    } else if (isAnimalMode) {
+      backgroundColor = isDark ? const Color(0xFF0D1711) : const Color(0xFFF3FAF6);
+      primaryTextColor = isDark ? const Color(0xFFE2EBE5) : const Color(0xFF0B2618);
+      secondaryTextColor = isDark ? const Color(0xFF8CA595) : const Color(0xFF3A5445);
+      surfaceColor = isDark ? const Color(0xFF132219) : const Color(0xFFEDF8F1);
+      cardColor = isDark ? const Color(0xFF18291F) : Colors.white;
+      borderColor = isDark ? const Color(0xFF233E2F) : const Color(0xFFD6EFE0);
     } else {
       backgroundColor = isDark ? const Color(0xFF111318) : const Color(0xFFF8F9FF);
       primaryTextColor = isDark ? const Color(0xFFE2E2E9) : const Color(0xFF0B1C30);
@@ -70,19 +88,22 @@ class AppTheme {
   // -------------------
 
   /// Primary gradient used throughout the app
-  static const LinearGradient primaryGradient = LinearGradient(
+  static LinearGradient get primaryGradient => LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [primaryColor, Color(0xFF2563EB)],
+    colors: [
+      primaryColor,
+      currentIsAnimalMode ? const Color(0xFF22C55E) : const Color(0xFF2563EB),
+    ],
   );
 
   /// Header gradient for app bars and headers
-  static const LinearGradient headerGradient = LinearGradient(
+  static LinearGradient get headerGradient => LinearGradient(
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
     colors: [
-      Color(0xFF004AC6),
-      Color(0xFF2563EB),
+      primaryColor,
+      currentIsAnimalMode ? const Color(0xFF16A34A) : const Color(0xFF2563EB),
     ],
   );
 
@@ -119,14 +140,14 @@ class AppTheme {
   // -------------------
 
   /// Page title style
-  static const TextStyle pageTitleStyle = TextStyle(
+  static TextStyle get pageTitleStyle => TextStyle(
     fontSize: 24,
     fontWeight: FontWeight.bold,
     color: secondaryColor,
   );
 
   /// Section title style
-  static const TextStyle sectionTitleStyle = TextStyle(
+  static TextStyle get sectionTitleStyle => TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.bold,
     color: primaryColor,
@@ -184,7 +205,7 @@ class AppTheme {
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(defaultBorderRadius),
-      borderSide: const BorderSide(color: primaryColor, width: 2),
+      borderSide: BorderSide(color: primaryColor, width: 2),
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(defaultBorderRadius),
@@ -265,7 +286,7 @@ class AppTheme {
     inputDecorationTheme: inputDecorationTheme,
     elevatedButtonTheme: getElevatedButtonTheme(largeButtons: largeButtons),
     cardTheme: getCardTheme(showCardBorder: showCardBorder),
-    textTheme: const TextTheme(
+    textTheme: TextTheme(
       headlineLarge: pageTitleStyle,
       headlineMedium: sectionTitleStyle,
       bodyLarge: bodyTextStyle,
@@ -301,7 +322,7 @@ class AppTheme {
     inputDecorationTheme: inputDecorationTheme,
     elevatedButtonTheme: getElevatedButtonTheme(largeButtons: largeButtons),
     cardTheme: getCardTheme(showCardBorder: showCardBorder),
-    textTheme: const TextTheme(
+    textTheme: TextTheme(
       headlineLarge: pageTitleStyle,
       headlineMedium: sectionTitleStyle,
       bodyLarge: bodyTextStyle,
@@ -317,10 +338,10 @@ class AppTheme {
 // -------------------
 
 /// @deprecated Use AppTheme.primaryColor instead
-const kPrimaryColor = AppTheme.primaryColor;
+Color get kPrimaryColor => AppTheme.primaryColor;
 
 /// @deprecated Use AppTheme.secondaryColor instead
-const kSecondaryColor = AppTheme.secondaryColor;
+Color get kSecondaryColor => AppTheme.secondaryColor;
 
 /// @deprecated Use AppTheme.backgroundColor instead
 final kBackgroundColor = AppTheme.backgroundColor;

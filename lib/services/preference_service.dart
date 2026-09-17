@@ -1,8 +1,42 @@
-// En el archivo lib/services/preference_service.dart
-
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Modos de recordatorio para la gestión de tomas de medicamentos.
+enum DoseReminderMode {
+  /// Notificación informativa breve. La toma se marca como tomada automáticamente.
+  automatic,
+
+  /// Notificación interactiva estándar con botones de acción (Tomar, Omitir, Aplazar).
+  active,
+
+  /// Alarma sonora continua (tono en bucle y vibración) con pantalla completa interactiva.
+  alarm;
+
+  static DoseReminderMode fromString(String? val) {
+    switch (val) {
+      case 'active':
+        return DoseReminderMode.active;
+      case 'alarm':
+        return DoseReminderMode.alarm;
+      case 'automatic':
+      default:
+        return DoseReminderMode.automatic;
+    }
+  }
+
+  String toValue() {
+    switch (this) {
+      case DoseReminderMode.active:
+        return 'active';
+      case DoseReminderMode.alarm:
+        return 'alarm';
+      case DoseReminderMode.automatic:
+        return 'automatic';
+    }
+  }
+}
+
 class PreferenceService {
+  static const String _reminderModeKey = 'reminder_mode_type';
   static const String _notificationModeKey = 'notification_mode_active';
   static const String _snoozeDurationKey = 'snooze_duration_minutes';
   static const String _currentUserIdKey = 'current_user_id';
@@ -11,6 +45,7 @@ class PreferenceService {
   static const String _calendarFormatKey = 'calendar_format_string';
   static const String _interfaceStyleKey = 'interface_style_string';
   static const String _themeModeKey = 'theme_mode_string';
+  static const String _languageCodeKey = 'app_language_code';
 
   // Accessibility keys
   static const String _highContrastKey = 'high_contrast_active';
@@ -26,6 +61,19 @@ class PreferenceService {
   static const String _caregiverNotifyPatientDosesKey = 'caregiver_notify_patient_doses';
   static const String _caregiverIncludeLocationKey = 'caregiver_include_location';
 
+  // Privacy keys
+  static const String _hideMedicineNameOnLockScreenKey = 'hide_medicine_name_on_lock_screen';
+
+  // Animal / Veterinary Mode keys
+  static const String _animalModeActiveKey = 'animal_mode_active';
+  static const String _animalModeTypeKey = 'animal_mode_type';
+  static const String _animalActiveProfileKey = 'animal_active_profile';
+  static const String _animalNotifyDosesKey = 'animal_notify_doses';
+  static const String _animalIncludeLocationKey = 'animal_include_location';
+
+  // Onboarding key
+  static const String _onboardingCompletedPrefix = 'onboarding_completed_';
+
   Future<void> saveThemeMode(String themeStr) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_themeModeKey, themeStr);
@@ -35,6 +83,17 @@ class PreferenceService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.reload();
     return prefs.getString(_themeModeKey) ?? 'system';
+  }
+
+  Future<void> saveLanguageCode(String code) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_languageCodeKey, code);
+  }
+
+  Future<String> getLanguageCode() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getString(_languageCodeKey) ?? 'system';
   }
 
   Future<void> saveInterfaceStyle(String style) async {
@@ -59,9 +118,35 @@ class PreferenceService {
     return prefs.getString(_calendarFormatKey) ?? 'weekly';
   }
 
+  Future<void> saveReminderMode(DoseReminderMode mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_reminderModeKey, mode.toValue());
+    // Mantener sincronizado el valor legacy para retrocompatibilidad
+    await prefs.setBool(_notificationModeKey, mode == DoseReminderMode.active);
+  }
+
+  Future<DoseReminderMode> getReminderMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    final modeStr = prefs.getString(_reminderModeKey);
+    if (modeStr != null && modeStr.isNotEmpty) {
+      return DoseReminderMode.fromString(modeStr);
+    }
+    // Fallback a la clave legacy booleana si existe
+    final legacyActive = prefs.getBool(_notificationModeKey);
+    if (legacyActive != null) {
+      return legacyActive ? DoseReminderMode.active : DoseReminderMode.automatic;
+    }
+    return DoseReminderMode.automatic;
+  }
+
   Future<void> saveNotificationMode(bool isActive) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_notificationModeKey, isActive);
+    await prefs.setString(
+      _reminderModeKey,
+      isActive ? DoseReminderMode.active.toValue() : DoseReminderMode.automatic.toValue(),
+    );
   }
 
   // --- INICIO DE LA MODIFICACIÓN ---
@@ -72,7 +157,13 @@ class PreferenceService {
     // Esto es crucial para que el proceso en segundo plano obtenga el valor más reciente.
     await prefs.reload(); 
     
-    // 2. Ahora leemos el valor, que está garantizado que es el más actual.
+    // 2. Si se guardó el nuevo modo, revisamos si es 'active'
+    final modeStr = prefs.getString(_reminderModeKey);
+    if (modeStr != null) {
+      return modeStr == DoseReminderMode.active.toValue();
+    }
+    
+    // 3. De lo contrario leemos el valor legacy
     return prefs.getBool(_notificationModeKey) ?? false;
   }
 
@@ -267,4 +358,85 @@ class PreferenceService {
     return prefs.getBool(_caregiverIncludeLocationKey) ?? true;
   }
 
+  Future<void> saveHideMedicineNameOnLockScreen(bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_hideMedicineNameOnLockScreenKey, val);
+  }
+
+  Future<bool> getHideMedicineNameOnLockScreen() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool(_hideMedicineNameOnLockScreenKey) ?? false;
+  }
+
+  Future<void> saveOnboardingCompleted(String userId, bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('$_onboardingCompletedPrefix$userId', val);
+  }
+
+  Future<bool> hasCompletedOnboarding(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool('$_onboardingCompletedPrefix$userId') ?? false;
+  }
+
+  // --- Animal / Veterinary Mode ---
+  Future<void> saveAnimalModeActive(bool isActive) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_animalModeActiveKey, isActive);
+  }
+
+  Future<bool> getAnimalModeActive() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool(_animalModeActiveKey) ?? false;
+  }
+
+  Future<void> saveAnimalModeType(String type) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_animalModeTypeKey, type);
+  }
+
+  Future<String> getAnimalModeType() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getString(_animalModeTypeKey) ?? 'individual';
+  }
+
+  Future<void> saveAnimalActiveProfile(String? profileId) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (profileId == null) {
+      await prefs.remove(_animalActiveProfileKey);
+    } else {
+      await prefs.setString(_animalActiveProfileKey, profileId);
+    }
+  }
+
+  Future<String?> getAnimalActiveProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getString(_animalActiveProfileKey);
+  }
+
+  Future<void> saveAnimalNotifyDoses(bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_animalNotifyDosesKey, val);
+  }
+
+  Future<bool> getAnimalNotifyDoses() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool(_animalNotifyDosesKey) ?? true;
+  }
+
+  Future<void> saveAnimalIncludeLocation(bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_animalIncludeLocationKey, val);
+  }
+
+  Future<bool> getAnimalIncludeLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool(_animalIncludeLocationKey) ?? true;
+  }
 }

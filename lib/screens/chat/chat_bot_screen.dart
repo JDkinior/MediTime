@@ -21,6 +21,7 @@ import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/widgets/drug_interaction_dialog.dart';
 import 'package:meditime/repositories/treatment_repository.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:intl/intl.dart';
 
 class ChatBotScreen extends StatefulWidget {
@@ -330,6 +331,9 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         // TTS: speak response if message came from voice input
         if (fromVoice && botMsg.text.isNotEmpty) {
           _voiceService ??= VoiceService();
+          final lang = context.read<PreferenceNotifier>().languageCode;
+          final effectiveLang = lang == 'system' ? Localizations.localeOf(context).languageCode : lang;
+          _voiceService!.updateLanguage(effectiveLang);
           _voiceService!.speak(botMsg.text);
         }
 
@@ -395,6 +399,9 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     
     if (_voiceService == null) {
       _voiceService = VoiceService();
+      final lang = context.read<PreferenceNotifier>().languageCode;
+      final effectiveLang = lang == 'system' ? Localizations.localeOf(context).languageCode : lang;
+      _voiceService!.updateLanguage(effectiveLang);
       _voiceService!.onTtsComplete = () {
         if (!mounted || _isRecording || _isTranscribing || _isGenerating || !_wasLastInputVoice || _messages.isEmpty) return;
         final lastMsg = _messages.last.text.trim();
@@ -402,6 +409,10 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
           _startVoiceRecording();
         }
       };
+    } else {
+      final lang = context.read<PreferenceNotifier>().languageCode;
+      final effectiveLang = lang == 'system' ? Localizations.localeOf(context).languageCode : lang;
+      _voiceService!.updateLanguage(effectiveLang);
     }
 
     try {
@@ -1195,8 +1206,8 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.add, color: AppTheme.primaryColor),
-            title: const Text(
+            leading: Icon(Icons.add, color: AppTheme.primaryColor),
+            title: Text(
               'Nuevo Chat',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
@@ -1876,7 +1887,7 @@ class _AdherenceChartCard extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 child: Row(
                   children: [
-                    const Icon(Icons.insights_rounded, color: AppTheme.primaryColor, size: 20),
+                    Icon(Icons.insights_rounded, color: AppTheme.primaryColor, size: 20),
                     const SizedBox(width: 8),
                     const Expanded(
                       child: Text(
@@ -1938,7 +1949,7 @@ class _AdherenceChartCard extends StatelessWidget {
                           ),
                           Text(
                             '${overallAdherence.toInt()}%',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: AppTheme.primaryColor,
@@ -2500,7 +2511,7 @@ class _PrescriptionFormCardState extends State<_PrescriptionFormCard> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: AppTheme.primaryColor),
+                borderSide: BorderSide(color: AppTheme.primaryColor),
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -2612,7 +2623,7 @@ class _PrescriptionFormCardState extends State<_PrescriptionFormCard> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppTheme.primaryColor),
+              borderSide: BorderSide(color: AppTheme.primaryColor),
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),

@@ -65,6 +65,8 @@ dependencies:
   record: ^6.0.0
   path_provider: ^2.1.4
   home_widget: ^0.7.0
+  flutter_ringtone_player: ^4.0.0+4
+  android_intent_plus: ^6.1.0
 
 dev_dependencies:
   flutter_test:
@@ -87,6 +89,7 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  generate: true
   assets:
     - assets/google_logo.png  # Asegúrate de que la ruta sea correcta
     - assets/chatbot/midi_open.png

@@ -1,0 +1,234 @@
+{
+  "@@locale": "es",
+  "appTitle": "MediTime",
+  "@appTitle": {
+    "description": "Nombre de la aplicación"
+  },
+  
+  "commonAccept": "Aceptar",
+  "commonCancel": "Cancelar",
+  "commonSave": "Guardar",
+  "commonClose": "Cerrar",
+  "commonDelete": "Eliminar",
+  "commonEdit": "Editar",
+  "commonConfirm": "Confirmar",
+  "commonError": "Error",
+  "commonSuccess": "Éxito",
+  "commonLoading": "Cargando...",
+  "commonRetry": "Reintentar",
+
+  "navHome": "Inicio",
+  "navCalendar": "Calendario",
+  "navMedications": "Medicamentos",
+  "navPrescription": "Receta",
+  "navProgress": "Progreso",
+  "navProfile": "Perfil",
+  "navChatBot": "Midi Chat",
+
+  "appBarProgress": "Mi Progreso",
+  "appBarCalendar": "Calendario",
+  "appBarMedications": "Medicamentos",
+  "appBarProfile": "Mi Perfil",
+  "appBarAdherenceReport": "Reporte de Adherencia",
+  "appBarHelp": "Ayuda y Soporte",
+
+  "drawerCaregiverMode": "Modo Cuidador",
+  "drawerSectionMain": "PRINCIPAL",
+  "drawerProfile": "Mi Perfil",
+  "drawerProfileSubtitle": "Ver y editar tu información",
+  "drawerAdherenceReport": "Reporte de Adherencia",
+  "drawerAdherenceReportSubtitle": "Estadísticas y reportes",
+  "drawerOptions": "Opciones",
+  "drawerOptionsSubtitle": "Ajustes de la aplicación",
+  "drawerSectionHelp": "AYUDA",
+  "drawerHelp": "Ayuda",
+  "drawerHelpSubtitle": "Centro de ayuda y soporte",
+  "drawerTutorial": "Tutorial",
+  "drawerTutorialSubtitle": "Guías y consejos de uso",
+  "drawerChatbot": "Chatbot MediTime",
+  "drawerChatbotSubtitle": "Asistente inteligente",
+  "drawerSectionManage": "GESTIÓN",
+  "drawerManagePatients": "Gestionar Pacientes",
+  "drawerManagePatientsSubtitle": "Agregar, editar o eliminar",
+  "drawerCaregiverSettings": "Configuración Cuidador",
+  "drawerCaregiverSettingsSubtitle": "Preferencias del modo cuidador",
+  "drawerLogout": "Salir",
+  "drawerLogoutSubtitle": "Cerrar sesión",
+
+  "optionsTitle": "Opciones",
+  "optionsAccessibility": "Accesibilidad",
+  "optionsAccessibilitySubtitle": "Oculta opciones secundarias y se enfoca solo en lo más importante.",
+  "optionsAppearance": "Diseño y Apariencia",
+  "optionsAppearanceSubtitle": "Personaliza la apariencia de la app a tu gusto.",
+  "optionsNotifications": "Notificaciones y Alarmas",
+  "optionsNotificationsSubtitle": "Configura cómo quieres recibir tus recordatorios.",
+  "optionsPrivacy": "Datos y Privacidad",
+  "optionsPrivacySubtitle": "Gestiona tu historial médico y de chats.",
+  "optionsCaregiver": "Modo Cuidador",
+  "optionsCaregiverSubtitle": "Configura la gestión multi-perfil para familiares o sector clínico.",
+  "optionsAnimals": "Modo Animales (Veterinaria)",
+  "optionsAnimalsSubtitle": "Adapta la aplicación para veterinarias y mascotas (individual o múltiple).",
+  "drawerAnimalsMode": "Modo Animales",
+  "drawerManageAnimals": "Gestionar Mascotas / Animales",
+  "drawerManageAnimalsSubtitle": "Agregar, editar o dar de alta",
+  "drawerAnimalsSettings": "Configuración Modo Animales",
+  "drawerAnimalsSettingsSubtitle": "Preferencias del modo animales y veterinaria",
+  "optionsLanguage": "Idioma",
+  "optionsLanguageSubtitle": "Selecciona el idioma de la aplicación.",
+
+  "languageTitle": "Idioma",
+  "languageSubtitle": "Selecciona tu idioma preferido para la interfaz.",
+  "languageSystem": "Automático (Sistema)",
+  "languageSystemDesc": "Seguir la configuración del dispositivo",
+  "languageSpanish": "Español",
+  "languageSpanishDesc": "Español (predeterminado)",
+  "languageEnglish": "English",
+  "languageEnglishDesc": "Inglés",
+  "languageChangedSnackbar": "Idioma actualizado correctamente.",
+
+  "homeGreetingMorning": "¡Buenos días!",
+  "homeGreetingAfternoon": "¡Buenas tardes!",
+  "homeGreetingEvening": "¡Buenas noches!",
+  "homeNextDose": "Próxima toma",
+  "homeTodayDoses": "Tomas de hoy",
+  "homeCompleted": "Completadas",
+  "homePending": "Pendientes",
+  "homeNoPendingDoses": "No tienes tomas pendientes por ahora.",
+  "homeAddTreatment": "Agregar Tratamiento",
+
+  "helloUser": "Hola, {name}",
+  "@helloUser": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "planForToday": "Aquí está tu plan para hoy",
+  "planForDay": "Aquí está tu plan para este día",
+  "summaryToday": "Resumen de hoy",
+  "summaryDay": "Resumen del día",
+  "pendingUppercase": "PENDIENTES",
+  "takenUppercase": "TOMADAS",
+  "adherenceUppercase": "ADHERENCIA",
+  "upcomingDoses": "Próximas dosis",
+  "dosesOfTheDay": "Dosis del día",
+  "noDosesToday": "No tienes dosis programadas para hoy.",
+  "noDosesDay": "No tienes dosis programadas para este día.",
+  "everyHours": "Cada {hours} horas",
+  "@everyHours": {
+    "placeholders": {
+      "hours": { "type": "int" }
+    }
+  },
+  "everyHourSingle": "Cada hora",
+
+  "actionTake": "Tomar",
+  "actionSkip": "Omitir",
+  "actionSnooze": "Aplazar",
+  "doseTakenSuccess": "Toma registrada exitosamente",
+  "doseSkippedSuccess": "Toma omitida",
+  "doseSnoozedSuccess": "Toma aplazada por {minutes} minutos",
+  "@doseSnoozedSuccess": {
+    "description": "Mensaje cuando se aplaza una toma",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+
+  "doseStatusPending": "Pendiente",
+  "doseStatusNotified": "Notificada",
+  "doseStatusTaken": "Tomada",
+  "doseStatusSkipped": "Omitida",
+  "doseStatusSnoozed": "Aplazada",
+  "doseStatusScheduled": "Programada",
+
+  "presentationComprimidos": "Comprimidos",
+  "presentationGrageas": "Grageas",
+  "presentationCapsulas": "Cápsulas",
+  "presentationSobres": "Sobres",
+  "presentationJarabes": "Jarabes",
+  "presentationGotas": "Gotas",
+  "presentationSuspensiones": "Suspensiones",
+  "presentationEmulsiones": "Emulsiones",
+
+  "daySummary": "Resumen del día",
+  "dosesCompletedSummary": "{taken} de {total} dosis completadas",
+  "@dosesCompletedSummary": {
+    "placeholders": {
+      "taken": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "medicationsOfTheDay": "Medicamentos del día",
+
+  "treatmentDetailTitle": "Detalle del Tratamiento",
+  "treatmentMedicineName": "Medicamento",
+  "treatmentDose": "Dosis",
+  "treatmentFrequency": "Frecuencia",
+  "treatmentInstructions": "Instrucciones",
+  "treatmentActive": "Activo",
+  "treatmentFinished": "Finalizado",
+
+  "calendarTitle": "Calendario",
+  "calendarToday": "Hoy",
+  "calendarNoEvents": "No hay dosis programadas para este día.",
+
+  "intervalWeek": "Semana",
+  "intervalMonth": "Mes",
+  "intervalYear": "Año",
+  "intervalAll": "Todo",
+  "overallPerformance": "Tu desempeño general",
+  "adherence": "Adherencia",
+  "taken": "Tomadas",
+  "skipped": "Omitidas",
+  "activeStreak": "Racha activa",
+  "streakDays": "{count} {count, plural, =1{día} other{días}}",
+  "@streakDays": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "insightNoDataTitle": "Sin datos",
+  "insightNoDataText": "No hay dosis programadas. Agrega medicamentos para ver tu progreso.",
+  "insightGoodTitle": "¡Buen ritmo!",
+  "insightGoodText": "Pequeños hábitos, grandes resultados. ¡Sigue así!",
+  "insightAttentionTitle": "Atención",
+  "insightAttentionText": "Buen ritmo, pero has tenido algunas omisiones.",
+  "insightAlertTitle": "¡Alerta!",
+  "insightAlertText": "Tu nivel de adherencia actual es bajo. Revisa tus alarmas.",
+  "weekSummary": "Resumen de la semana",
+  "monthSummary": "Resumen del mes",
+  "yearSummary": "Resumen del año",
+  "cumulativeSummary": "Resumen acumulado",
+  "dosesInPeriod": "{count} dosis en periodo",
+  "@dosesInPeriod": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "mostRecent": "Más recientes",
+  "oldestFirst": "Más antiguos",
+  "seeMore": "Ver más ({count} dosis más)",
+  "@seeMore": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "seeLess": "Ver menos",
+  "complianceWeekly": "Cumplimiento de la semana",
+  "complianceMonthly": "Cumplimiento del mes",
+  "complianceYearly": "Cumplimiento del año",
+  "complianceHistorical": "Cumplimiento histórico",
+  "complianceWeeklySubtitle": "Porcentaje de tomas por día",
+  "complianceMonthlySubtitle": "Porcentaje de tomas por bloques de 5 días",
+  "complianceYearlySubtitle": "Porcentaje de tomas por mes",
+  "complianceHistoricalSubtitle": "Porcentaje de tomas en los últimos 6 meses",
+  "complianceChartTitle": "Gráfico de cumplimiento",
+  "progressByPatient": "Progreso por paciente",
+
+  "chatBotGreeting": "¡Hola! Soy Midi, tu asistente de salud en MediTime.",
+  "chatBotPlaceholder": "Escribe un mensaje o haz una pregunta médica...",
+  "chatBotListening": "Escuchando...",
+  "chatBotClearHistory": "Borrar conversación"
+}

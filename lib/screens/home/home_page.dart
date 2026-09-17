@@ -13,7 +13,6 @@ import 'package:meditime/screens/medication/agregar_receta_page.dart';
 import 'package:meditime/screens/calendar/calendario_page.dart';
 import 'package:meditime/screens/medication/receta_page.dart';
 import 'package:meditime/screens/medication/general_caregiver_page.dart';
-import 'package:meditime/screens/shared/ayuda_page.dart';
 import 'package:meditime/screens/chat/chat_bot_screen.dart';
 import 'package:meditime/screens/reports/progreso_page.dart';
 import 'package:meditime/widgets/drawer_widget.dart';
@@ -21,6 +20,7 @@ import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/tutorial_tooltip.dart';
 import 'package:meditime/widgets/midi_blinking_icon.dart';
 import 'package:meditime/widgets/caregiver/patient_selector_dialog.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -195,52 +195,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _onSelectedHelpMenu(BuildContext context, int item) {
-    switch (item) {
-      case 0:
-        // En lugar de navegar a InstruccionesPage, pregunta si repetir el tutorial
-        showDialog(
-          context: context,
-          builder:
-              (ctx) => AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                title: const Text('Repetir tutorial'),
-                content: const Text(
-                  '¿Deseas volver a ver el tutorial interactivo de la aplicación?',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Cancelar'),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 47, 109, 180),
-                      foregroundColor: Colors.white,
-                    ),
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _startTutorial();
-                    },
-                    child: const Text('Sí, ver tutorial'),
-                  ),
-                ],
-              ),
-        );
-        break;
-      case 1:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const AyudaPage()),
-        );
-        break;
-      case 2:
-        Navigator.pushNamed(context, ChatBotScreen.routeName);
-        break;
-    }
-  }
+
 
   void _handleLogout() async {
     final authService = context.read<AuthService>();
@@ -257,7 +212,12 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> titles = ['Medicamentos', 'Calendario', 'Mi Progreso'];
+    final l10n = AppLocalizations.of(context);
+    final List<String> titles = [
+      l10n?.appBarMedications ?? 'Medicamentos',
+      l10n?.appBarCalendar ?? 'Calendario',
+      l10n?.appBarProgress ?? 'Mi Progreso',
+    ];
 
     return ShowCaseWidget(
       blurValue: 3.0,
@@ -299,19 +259,15 @@ class _HomePageState extends State<HomePage> {
         // para poder llamar startShowCase / dismiss desde métodos externos.
         _showcaseContext = ctx;
 
-        final profile = ctx.watch<ProfileNotifier>();
+        final l10n = AppLocalizations.of(ctx);
         final preferenceNotifier = ctx.watch<PreferenceNotifier>();
         final isModern = preferenceNotifier.interfaceStyle == 'modern';
-        final profileImagePath = profile.profileImageUrl;
-        final canLoadProfileImage = profileImagePath != null &&
-            profileImagePath.isNotEmpty &&
-            !profileImagePath.contains('firebasestorage.googleapis.com');
-            
         final caregiverNotifier = ctx.watch<CaregiverNotifier>();
         final isCaregiverActive = caregiverNotifier.isCaregiverModeActive;
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return Scaffold(
+          extendBody: isModern,
           appBar: AppBar(
             centerTitle: true,
             title: isCaregiverActive
@@ -346,9 +302,11 @@ class _HomePageState extends State<HomePage> {
                             caregiverNotifier.isGeneralMode
                                 ? Icons.grid_view_rounded
                                 : (caregiverNotifier.activeProfile != null
-                                    ? (caregiverNotifier.modeType == CaregiverModeType.clinico
-                                        ? Icons.hotel_rounded
-                                        : Icons.person_rounded)
+                                    ? (caregiverNotifier.activeProfile!.isAnimal || caregiverNotifier.modeType == CaregiverModeType.veterinario || context.watch<PreferenceNotifier>().isAnimalMode
+                                        ? Icons.pets_rounded
+                                        : (caregiverNotifier.modeType == CaregiverModeType.clinico
+                                            ? Icons.hotel_rounded
+                                            : Icons.person_rounded))
                                     : Icons.person_pin_rounded),
                             color: caregiverNotifier.activeProfile != null
                                 ? Color(int.parse(caregiverNotifier.activeProfile!.colorHex.replaceFirst('#', 'FF'), radix: 16))
@@ -359,7 +317,9 @@ class _HomePageState extends State<HomePage> {
                           Flexible(
                             child: Text(
                               caregiverNotifier.isGeneralMode
-                                  ? 'Vista General (Todos)'
+                                  ? (caregiverNotifier.modeType == CaregiverModeType.veterinario || context.watch<PreferenceNotifier>().isAnimalMode
+                                      ? 'Vista General (Mascotas)'
+                                      : 'Vista General (Todos)')
                                   : (caregiverNotifier.activeProfile != null
                                       ? caregiverNotifier.activeProfile!.name
                                       : 'Mi Perfil'),
@@ -447,58 +407,86 @@ class _HomePageState extends State<HomePage> {
             onLogout: _handleLogout,
             onStartTutorial: _startTutorial,
           ),
-          body: Column(
+          body: Stack(
             children: [
-              if (isCaregiverActive && caregiverNotifier.isGeneralMode)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-                  color: AppTheme.primaryColor,
-                  child: const Text(
-                    'Vista General: Todos los pacientes',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                    textAlign: TextAlign.center,
-                  ),
-                )
-              else if (isCaregiverActive && caregiverNotifier.activeProfile != null)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-                  color: Color(int.parse(caregiverNotifier.activeProfile!.colorHex.replaceFirst('#', 'FF'), radix: 16)),
-                  child: Text(
-                    'Viendo agenda médica de: ${caregiverNotifier.activeProfile!.name}',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              Expanded(
-                child: PageView(
-                  physics: const PageScrollPhysics(parent: ClampingScrollPhysics()),
-                  controller: _pageController,
-                  onPageChanged: (index) {
-                    if (_currentIndexNotifier.value != index) {
-                      _currentIndexNotifier.value = index;
-                    }
-                  },
-                  children: [
-                    caregiverNotifier.isGeneralMode 
-                        ? const GeneralCaregiverPage()
-                        : RecetaPage(
-                            fabKey: isModern ? null : _fabKey,
-                            summaryKey: _summaryKey,
-                            dateKey: _dateKey,
-                          ),
-                    CalendarioPage(
-                      calendarKey: _calendarKey,
-                      calendarViewKey: _calendarViewKey,
+              Column(
+                children: [
+                  if (isCaregiverActive && caregiverNotifier.isGeneralMode)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                      color: AppTheme.primaryColor,
+                      child: const Text(
+                        'Vista General: Todos los pacientes',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  else if (isCaregiverActive && caregiverNotifier.activeProfile != null)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                      color: Color(int.parse(caregiverNotifier.activeProfile!.colorHex.replaceFirst('#', 'FF'), radix: 16)),
+                      child: Text(
+                        'Viendo agenda médica de: ${caregiverNotifier.activeProfile!.name}',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                    ProgresoPage(
-                      progressRingKey: _progressRingKey,
-                      progressTimelineKey: _progressTimelineKey,
+                  Expanded(
+                    child: PageView(
+                      physics: const PageScrollPhysics(parent: ClampingScrollPhysics()),
+                      controller: _pageController,
+                      onPageChanged: (index) {
+                        if (_currentIndexNotifier.value != index) {
+                          _currentIndexNotifier.value = index;
+                        }
+                      },
+                      children: [
+                        caregiverNotifier.isGeneralMode 
+                            ? const GeneralCaregiverPage()
+                            : RecetaPage(
+                                fabKey: isModern ? null : _fabKey,
+                                summaryKey: _summaryKey,
+                                dateKey: _dateKey,
+                              ),
+                        CalendarioPage(
+                          calendarKey: _calendarKey,
+                          calendarViewKey: _calendarViewKey,
+                        ),
+                        ProgresoPage(
+                          progressRingKey: _progressRingKey,
+                          progressTimelineKey: _progressTimelineKey,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+              if (isModern)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 160,
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            AppTheme.backgroundColor.withValues(alpha: 0.0),
+                            AppTheme.backgroundColor.withValues(alpha: 0.35),
+                            AppTheme.backgroundColor.withValues(alpha: 0.8),
+                            AppTheme.backgroundColor.withValues(alpha: 0.98),
+                          ],
+                          stops: const [0.0, 0.35, 0.7, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
           bottomNavigationBar: isModern
@@ -564,9 +552,9 @@ class _HomePageState extends State<HomePage> {
                                       elevation: 0,
                                       type: BottomNavigationBarType.fixed,
                                       items: [
-                                        const BottomNavigationBarItem(
-                                          icon: Icon(Icons.medication_rounded),
-                                          label: 'Receta',
+                                        BottomNavigationBarItem(
+                                          icon: const Icon(Icons.medication_rounded),
+                                          label: l10n?.navPrescription ?? 'Receta',
                                         ),
                                         BottomNavigationBarItem(
                                           icon: Showcase.withWidget(
@@ -585,7 +573,7 @@ class _HomePageState extends State<HomePage> {
                                             targetPadding: const EdgeInsets.all(4),
                                             child: const Icon(Icons.calendar_today),
                                           ),
-                                          label: 'Calendario',
+                                          label: l10n?.navCalendar ?? 'Calendario',
                                         ),
                                         BottomNavigationBarItem(
                                           icon: Showcase.withWidget(
@@ -604,7 +592,7 @@ class _HomePageState extends State<HomePage> {
                                             targetPadding: const EdgeInsets.all(4),
                                             child: const Icon(Icons.bar_chart_rounded),
                                           ),
-                                          label: 'Progreso',
+                                          label: l10n?.navProgress ?? 'Progreso',
                                         ),
                                       ],
                                     );
@@ -708,9 +696,9 @@ class _HomePageState extends State<HomePage> {
                           backgroundColor: Colors.transparent,
                           elevation: 0,
                           items: [
-                            const BottomNavigationBarItem(
-                              icon: Icon(Icons.medication_rounded),
-                              label: 'Receta',
+                            BottomNavigationBarItem(
+                              icon: const Icon(Icons.medication_rounded),
+                              label: l10n?.navPrescription ?? 'Receta',
                             ),
                             BottomNavigationBarItem(
                               icon: Showcase.withWidget(
@@ -729,7 +717,7 @@ class _HomePageState extends State<HomePage> {
                                 targetPadding: const EdgeInsets.all(4),
                                 child: const Icon(Icons.calendar_today),
                               ),
-                              label: 'Calendario',
+                              label: l10n?.navCalendar ?? 'Calendario',
                             ),
                             BottomNavigationBarItem(
                               icon: Showcase.withWidget(
@@ -748,7 +736,7 @@ class _HomePageState extends State<HomePage> {
                                 targetPadding: const EdgeInsets.all(4),
                                 child: const Icon(Icons.bar_chart_rounded),
                               ),
-                              label: 'Progreso',
+                              label: l10n?.navProgress ?? 'Progreso',
                             ),
                           ],
                         );

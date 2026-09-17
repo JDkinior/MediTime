@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:meditime/core/constants.dart';
 import 'package:meditime/services/tratamiento_service.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 
 /// Alias for TratamientoService date utility functions
 typedef TreatmentDateUtils = TratamientoService;
@@ -53,6 +54,46 @@ class AppUtils {
       return AppConstants.afternoonGreeting;
     } else {
       return AppConstants.eveningGreeting;
+    }
+  }
+
+  /// Gets the appropriate greeting based on current time and app language
+  static String getLocalizedGreeting(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final hour = DateTime.now().hour;
+    if (hour >= AppConstants.morningStartHour && hour < AppConstants.afternoonStartHour) {
+      return l10n?.homeGreetingMorning ?? AppConstants.morningGreeting;
+    } else if (hour >= AppConstants.afternoonStartHour && hour < AppConstants.eveningStartHour) {
+      return l10n?.homeGreetingAfternoon ?? AppConstants.afternoonGreeting;
+    } else {
+      return l10n?.homeGreetingEvening ?? AppConstants.eveningGreeting;
+    }
+  }
+
+  /// Localizes a medication presentation (e.g. Sobres -> Sachets)
+  static String localizePresentation(BuildContext context, String presentation) {
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return presentation;
+    switch (presentation.toLowerCase().trim()) {
+      case 'comprimidos':
+        return l10n.presentationComprimidos;
+      case 'grageas':
+        return l10n.presentationGrageas;
+      case 'cápsulas':
+      case 'capsulas':
+        return l10n.presentationCapsulas;
+      case 'sobres':
+        return l10n.presentationSobres;
+      case 'jarabes':
+        return l10n.presentationJarabes;
+      case 'gotas':
+        return l10n.presentationGotas;
+      case 'suspensiones':
+        return l10n.presentationSuspensiones;
+      case 'emulsiones':
+        return l10n.presentationEmulsiones;
+      default:
+        return presentation;
     }
   }
 

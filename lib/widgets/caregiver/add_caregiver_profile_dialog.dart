@@ -276,8 +276,8 @@ class _AddCaregiverProfileDialogState extends State<AddCaregiverProfileDialog> w
         borderRadius: BorderRadius.circular(20),
         borderSide: BorderSide(color: AppTheme.borderColor),
       ),
-      focusedBorder: const OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(20)),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: const BorderRadius.all(Radius.circular(20)),
         borderSide: BorderSide(color: AppTheme.primaryColor, width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),

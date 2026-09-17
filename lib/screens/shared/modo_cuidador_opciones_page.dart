@@ -122,7 +122,7 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
                   RadioListTile<CaregiverModeType>(
                     title: const Text('Cuidador Familiar', style: TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: const Text('Gestión de familiares directos, recordatorios y perfiles personalizados.'),
-                    secondary: const Icon(Icons.family_restroom_rounded, color: AppTheme.primaryColor),
+                    secondary: Icon(Icons.family_restroom_rounded, color: AppTheme.primaryColor),
                     value: CaregiverModeType.familiar,
                     groupValue: caregiverNotifier.modeType,
                     activeColor: AppTheme.primaryColor,
@@ -134,7 +134,7 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
                   RadioListTile<CaregiverModeType>(
                     title: const Text('Cuidador Clínico / Hospitalario', style: TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: const Text('Incluye pisos, números de habitación/cama y tipo de sangre.'),
-                    secondary: const Icon(Icons.local_hospital_rounded, color: AppTheme.primaryColor),
+                    secondary: Icon(Icons.local_hospital_rounded, color: AppTheme.primaryColor),
                     value: CaregiverModeType.clinico,
                     groupValue: caregiverNotifier.modeType,
                     activeColor: AppTheme.primaryColor,
@@ -169,7 +169,7 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
                   SwitchListTile(
                     title: const Text('Notificaciones de Pacientes', style: TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: const Text('Recibir alertas programadas para las tomas de medicamentos de tus pacientes.'),
-                    secondary: const Icon(Icons.notifications_active_rounded, color: AppTheme.primaryColor),
+                    secondary: Icon(Icons.notifications_active_rounded, color: AppTheme.primaryColor),
                     value: caregiverNotifier.notifyPatientDoses,
                     activeColor: AppTheme.primaryColor,
                     onChanged: (val) {
@@ -180,7 +180,7 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
                   SwitchListTile(
                     title: const Text('Incluir Ubicación y Habitación', style: TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: const Text('Muestra el número de habitación, cama o piso en la notificación.'),
-                    secondary: const Icon(Icons.location_on_rounded, color: AppTheme.primaryColor),
+                    secondary: Icon(Icons.location_on_rounded, color: AppTheme.primaryColor),
                     value: caregiverNotifier.includeLocationInNotifications,
                     activeColor: AppTheme.primaryColor,
                     onChanged: caregiverNotifier.notifyPatientDoses
@@ -219,7 +219,7 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
                     color: AppTheme.primaryColor.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.people_alt_rounded, color: AppTheme.primaryColor),
+                  child: Icon(Icons.people_alt_rounded, color: AppTheme.primaryColor),
                 ),
                 title: const Text('Gestionar Pacientes', style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text('${caregiverNotifier.managedProfiles.length} pacientes registrados'),

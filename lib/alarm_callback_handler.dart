@@ -1,4 +1,3 @@
-// lib/alarm_callback_handler.dart
 import 'dart:ui';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,72 +8,67 @@ import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/preference_service.dart';
+import 'package:meditime/services/alarm_sound_service.dart';
 import 'package:meditime/firebase_options.dart';
 
 /// Punto de entrada para la ejecución de alarmas en segundo plano.
 ///
 /// Esta función está marcada con `@pragma('vm:entry-point')`, lo que permite
 /// que el sistema operativo Android la ejecute en un "Isolate" (hilo) separado,
-/// incluso si la aplicación está completamente cerrada.
+/// incluso si la aplicación está completamente cerrada o el dispositivo no tiene internet.
 ///
 /// [id] es el ID único de la alarma de `android_alarm_manager_plus`.
 /// [params] es un mapa que contiene toda la información necesaria para procesar
 /// la alarma, incluyendo los datos del tratamiento y del usuario. Esto es crucial
-/// para permitir el funcionamiento sin conexión.
+/// para permitir el funcionamiento 100% offline.
 @pragma('vm:entry-point')
 void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
-  debugPrint("INICIO alarmCallbackLogic - ID: $id");
+  debugPrint("🚨 INICIO alarmCallbackLogic (Offline-First) - ID: $id");
   debugPrint("Parámetros recibidos: ${params.keys.toList()}");
 
   try {
-  // Asegura que los plugins estén registrados en el isolate de fondo (Android)
-  DartPluginRegistrant.ensureInitialized();
-  WidgetsFlutterBinding.ensureInitialized();
+    // Asegura que los plugins estén registrados en el isolate de fondo (Android)
+    DartPluginRegistrant.ensureInitialized();
+    WidgetsFlutterBinding.ensureInitialized();
 
-    bool firebaseInitialized = false;
-    try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform, // Opciones críticas
-      ).timeout(const Duration(seconds: 5));
-      firebaseInitialized = true;
-      debugPrint("Firebase inicializado correctamente en callback");
-    } catch (e) {
-      debugPrint("ERROR: Firebase no se pudo inicializar en callback: $e");
-    }
-
+    // 1. Inicializar el servicio de notificaciones de inmediato
     await NotificationService.initializeCore();
 
     final preferenceService = PreferenceService();
-    
-    // CAMBIO CRÍTICO: Extraer datos del payload sin depender de Firebase con validaciones null-safe
-  final userId = params['userId'] as String?;
-  final docId = params['docId'] as String?;
+
+    // 2. Extraer datos directamente del payload (100% offline)
+    final userId = params['userId'] as String?;
+    final docId = params['docId'] as String?;
     final doseTimeString = params['doseTime'] as String?;
-    
+
     // Validaciones críticas
     if (userId == null || docId == null || doseTimeString == null) {
       debugPrint("ERROR: Parámetros críticos son null - userId: $userId, docId: $docId, doseTime: $doseTimeString");
       return;
     }
-    
+
     final doseTime = DateTime.parse(doseTimeString);
-    final notificationId = params['currentNotificationId'] ?? Random().nextInt(100000);
-    
-    // NUEVOS PARÁMETROS: Datos del tratamiento incluidos en el payload
+    final notificationId = (params['currentNotificationId'] as int?) ?? Random().nextInt(100000);
+
+    // Datos del tratamiento incluidos en el payload
     final nombreMedicamento = params['nombreMedicamento'] ?? 'Medicamento';
     final intervaloHoras = params['intervaloHoras'] ?? 8;
-    // Note: presentacion, fechaFinTratamientoString, and prescriptionAlarmId are available in params but not currently used
+    final pacienteNombre = params['pacienteNombre'] as String?;
+    final habitacion = params['habitacion'] as String?;
+    final categoria = params['categoria'] as String?;
+    final dosisPorToma = params['dosisPorToma'] ?? 1;
+    final presentacion = params['presentacion'] as String? ?? 'dosis';
 
-    // CAMBIO CRÍTICO: Leer preferencias con fallback local
-    bool isModeActive = false;
+    // 3. Leer modo de recordatorio (automático, activo o alarma)
+    DoseReminderMode reminderMode = DoseReminderMode.automatic;
     try {
-      isModeActive = await preferenceService.getNotificationMode();
+      reminderMode = await preferenceService.getReminderMode();
     } catch (e) {
-      debugPrint("ERROR leyendo preferencias: $e. Usando modo pasivo como default");
-      isModeActive = false;
+      debugPrint("ERROR leyendo preferencias: $e. Usando modo automático como default");
+      reminderMode = DoseReminderMode.automatic;
     }
 
-    // BLOQUEO CRÍTICO: Evitar notificaciones si el usuario cambió o el tratamiento fue revocado
+    // 4. Validación de usuario y revocación local (sin requerir internet)
     try {
       final currentUserId = await preferenceService.getCurrentUserId();
       final isRevoked = await preferenceService.isTreatmentRevoked(userId, docId);
@@ -88,13 +82,13 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
           await NotificationService.cancelTreatmentAlarms(seriesId);
           debugPrint("Guard: Serie de alarmas cancelada para ID: $seriesId");
         }
-        return; // No mostrar ni reprogramar nada
+        return; // No mostrar ni reprogramar nada si el tratamiento fue revocado o cambió de usuario
       }
     } catch (e) {
       debugPrint("ERROR en guard de usuario/revocado: $e");
     }
 
-    // Declaramos dummyProfile aquí para usarlo en toda la función
+    // Perfil de paciente/cuidador si aplica
     CaregiverProfile? dummyProfile;
     final profileId = params['profileId'] as String?;
     if (profileId != null && profileId.isNotEmpty) {
@@ -108,50 +102,15 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       );
     }
 
-    // Si podemos, verifiquemos que el documento aún exista (para evitar notificaciones de tratamientos eliminados remotamente)
-    try {
-      if (firebaseInitialized) {
-        bool exists = false;
-
-        if (dummyProfile != null) {
-          final firestoreService = FirestoreService();
-          final docRef = firestoreService.getMedicamentoDocRef(userId, docId, dummyProfile);
-          final snap = await docRef.get().timeout(const Duration(seconds: 3));
-          exists = snap.exists;
-        } else {
-          final firestoreService = FirestoreService();
-          final docRef = firestoreService.getMedicamentoDocRef(userId, docId);
-          final docSnap = await docRef.get().timeout(const Duration(seconds: 3));
-          exists = docSnap.exists;
-        }
-
-        if (!exists) {
-          final int seriesId = (params['prescriptionAlarmId'] as int?) ?? 0;
-          debugPrint("Guard: Documento no existe en Firestore. Cancelando serie $seriesId y saliendo.");
-          if (seriesId != 0) {
-            await NotificationService.cancelTreatmentAlarms(seriesId);
-          }
-          return;
-        }
-      }
-    } catch (e) {
-      debugPrint("Advertencia: No se pudo verificar existencia del doc: $e");
-    }
-
-    final pacienteNombre = params['pacienteNombre'] as String?;
-    final habitacion = params['habitacion'] as String?;
-    final categoria = params['categoria'] as String?;
-    final dosisPorToma = params['dosisPorToma'] ?? 1;
-    final presentacion = params['presentacion'] as String? ?? 'dosis';
-
+    // Construcción de textos de notificación
     String notificationTitle = 'Hora de tomar: $nombreMedicamento';
     String notificationBody = 'Por favor, confirma si tomaste tu dosis.';
 
     if (pacienteNombre != null && pacienteNombre.isNotEmpty) {
       notificationTitle = 'Suministrar $nombreMedicamento a $pacienteNombre';
-      
+
       String body = 'Es momento de darle $dosisPorToma $presentacion.';
-      
+
       if (habitacion != null && habitacion.isNotEmpty) {
         if (categoria != null && categoria.isNotEmpty) {
           body += ' Se encuentra en la Hab. $habitacion ($categoria).';
@@ -161,38 +120,39 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       } else if (categoria != null && categoria.isNotEmpty) {
         body += ' Ubicación: $categoria.';
       }
-      
+
       notificationBody = body;
     }
 
-    // CAMBIO CRÍTICO: Procesar notificación independientemente del estado de Firebase
-    if (isModeActive) {
-      debugPrint("Modo Activo detectado para: $nombreMedicamento");
-      
-      // Mostrar notificación activa inmediatamente
+    // 5. DISPARAR NOTIFICACIÓN Y ALARMA DE FORMA INMEDIATA (CRÍTICO: ANTES DE CUALQUIER RED)
+    if (reminderMode == DoseReminderMode.alarm) {
+      debugPrint("🚨 Modo Alarma disparándose de inmediato para: $nombreMedicamento");
+
+      final alarmPayload =
+          'alarm_mode|$userId|$docId|${doseTime.toIso8601String()}|$nombreMedicamento|$dosisPorToma|$presentacion|${pacienteNombre ?? ""}|${habitacion ?? ""}';
+
+      // Disparar sonido continuo en el flujo de alarma del sistema y vibración en bucle
+      await AlarmSoundService.startAlarm();
+
+      // Mostrar notificación de alta prioridad en pantalla completa
+      await NotificationService.showAlarmModeNotification(
+        id: notificationId,
+        title: '🚨 $notificationTitle',
+        body: notificationBody,
+        payload: alarmPayload,
+      );
+    } else if (reminderMode == DoseReminderMode.active) {
+      debugPrint("🔔 Modo Activo disparándose de inmediato para: $nombreMedicamento");
+
       await NotificationService.showActiveNotification(
         id: notificationId,
         title: notificationTitle,
         body: notificationBody,
         payload: 'active_notification|$userId|$docId|${doseTime.toIso8601String()}',
       );
-
-      // CAMBIO CRÍTICO: Actualizar Firestore solo si está disponible
-      if (firebaseInitialized) {
-        try {
-          final firestoreService = FirestoreService();
-          await firestoreService.updateDoseStatus(userId, docId, doseTime, DoseStatus.notificada, dummyProfile)
-              .timeout(Duration(seconds: 3));
-          debugPrint("Estado actualizado en Firestore: notificada");
-        } catch (e) {
-          debugPrint("ERROR actualizando Firestore (modo activo): $e");
-          // La notificación ya se mostró, continuamos
-        }
-      }
     } else {
-      debugPrint("Modo Pasivo detectado para: $nombreMedicamento");
-      
-      // Mostrar notificación simple inmediatamente
+      debugPrint("✅ Modo Automático detectado para: $nombreMedicamento");
+
       await NotificationService.showSimpleNotification(
         id: notificationId,
         title: notificationTitle,
@@ -200,37 +160,58 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
             ? notificationBody
             : 'Dosis registrada automáticamente. Próxima dosis en $intervaloHoras horas.',
       );
+    }
 
-      // CAMBIO CRÍTICO: Actualizar Firestore y reprogramar solo si está disponible
-      if (firebaseInitialized) {
-        try {
-          final firestoreService = FirestoreService();
-          await firestoreService.updateDoseStatus(userId, docId, doseTime, DoseStatus.tomada, dummyProfile)
-              .timeout(Duration(seconds: 3));
-          debugPrint("Estado actualizado en Firestore: tomada");
-
-          // Reprogramar siguiente dosis
-          await _reprogramarSiguienteDosis(params, userId, firestoreService, dummyProfile);
-        } catch (e) {
-          debugPrint("ERROR actualizando Firestore (modo pasivo): $e");
-          // FALLBACK: Reprogramar siguiente dosis usando solo parámetros
-          await _reprogramarSiguienteDosisOffline(params);
-        }
-      } else {
-        // FALLBACK: Reprogramar siguiente dosis usando solo parámetros
-        await _reprogramarSiguienteDosisOffline(params);
+    // 6. SINCRONIZACIÓN ASÍNCRONA CON FIREBASE (NO BLOQUEANTE, CON TIMEOUT CORTO)
+    bool syncSuccess = false;
+    try {
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        ).timeout(const Duration(seconds: 2));
       }
+
+      final firestoreService = FirestoreService();
+      final statusToUpdate = reminderMode == DoseReminderMode.automatic
+          ? DoseStatus.tomada
+          : DoseStatus.notificada;
+
+      await firestoreService
+          .updateDoseStatus(
+            userId,
+            docId,
+            doseTime,
+            statusToUpdate,
+            dummyProfile,
+          )
+          .timeout(const Duration(seconds: 2));
+
+      debugPrint("Estado sincronizado en Firestore: $statusToUpdate");
+      syncSuccess = true;
+
+      // Si es modo automático y hay red, reprogramar la siguiente con datos de Firestore
+      if (reminderMode == DoseReminderMode.automatic) {
+        await _reprogramarSiguienteDosis(params, userId, firestoreService, dummyProfile);
+      }
+    } catch (syncError) {
+      debugPrint("Sincronización en segundo plano omitida o en cola offline (sin conexión): $syncError");
+    }
+
+    // 7. SI ES MODO AUTOMÁTICO Y NO HUBO SINCRONIZACIÓN EXITOSA, REPROGRAMAR OFFLINE INMEDIATAMENTE
+    if (reminderMode == DoseReminderMode.automatic && !syncSuccess) {
+      debugPrint("Reprogramando siguiente dosis en modo offline para modo automático...");
+      await _reprogramarSiguienteDosisOffline(params);
     }
 
     debugPrint("FIN alarmCallbackLogic - ID: $id - SUCCESS");
   } catch (e) {
     debugPrint("ERROR CRÍTICO en alarmCallbackLogic: $e");
-    
+
     // FALLBACK DE EMERGENCIA: Mostrar notificación básica
     try {
       final notificationId = (params['currentNotificationId'] as int?) ?? Random().nextInt(100000);
       final nombreMedicamento = (params['nombreMedicamento'] as String?) ?? 'Medicamento';
-      
+
       await NotificationService.showSimpleNotification(
         id: notificationId,
         title: 'Hora de tomar: $nombreMedicamento',
@@ -297,9 +278,17 @@ Future<void> _reprogramarSiguienteDosisOffline(Map<String, dynamic> params) asyn
     }
 
     final fechaFinTratamiento = DateTime.parse(fechaFinTratamientoString);
-    final siguienteDosis = doseTime.add(Duration(hours: intervaloHoras));
+    DateTime siguienteDosis = doseTime.add(Duration(hours: intervaloHoras));
+    final now = DateTime.now();
 
-    // Solo reprogramar si no hemos pasado la fecha de fin
+    // CRÍTICO: Si la siguiente dosis calculada ya pasó (ej. dispositivo apagado),
+    // adelantamos el cálculo hasta encontrar la próxima dosis en el futuro.
+    // Esto evita un bucle infinito de alarmas disparándose inmediatamente.
+    while (siguienteDosis.isBefore(now) && siguienteDosis.isBefore(fechaFinTratamiento)) {
+      siguienteDosis = siguienteDosis.add(Duration(hours: intervaloHoras));
+    }
+
+    // Solo reprogramar si la dosis futura calculada no pasa la fecha de fin
     if (siguienteDosis.isBefore(fechaFinTratamiento)) {
       await NotificationService.scheduleOfflineAlarm(
         scheduleTime: siguienteDosis,
@@ -312,7 +301,7 @@ Future<void> _reprogramarSiguienteDosisOffline(Map<String, dynamic> params) asyn
       );
       debugPrint("Siguiente dosis reprogramada offline para: $siguienteDosis");
     } else {
-      debugPrint("Tratamiento completado, no se reprograma más");
+      debugPrint("Tratamiento completado, no se reprograma más de forma offline");
     }
   } catch (e) {
     debugPrint("ERROR en reprogramación offline: $e");

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/services/firestore_service.dart';
+import 'package:meditime/services/tratamiento_service.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'package:meditime/enums/view_state.dart';
 import 'package:meditime/screens/medication/detalle_receta_page.dart';
@@ -48,17 +49,40 @@ class PacienteRecetaPage extends StatelessWidget {
 
           final todosLosTratamientos = snapshot.data!;
           final List<Map<String, dynamic>> dosisPendientes = [];
+          final now = DateTime.now();
+          final endOfHorizon = now.add(const Duration(days: 30));
 
           for (var tratamiento in todosLosTratamientos) {
+            final List<DateTime> recordedTimes = [];
             tratamiento.doseStatus.forEach((dateString, status) {
-              final doseTime = DateTime.parse(dateString);
-              if (status == DoseStatus.pendiente && doseTime.isAfter(DateTime.now())) {
-                dosisPendientes.add({
-                  'tratamiento': tratamiento,
-                  'doseTime': doseTime,
-                });
+              final doseTime = DateTime.tryParse(dateString);
+              if (doseTime != null && doseTime.isAfter(now) && doseTime.isBefore(endOfHorizon)) {
+                recordedTimes.add(doseTime);
+                if (status == DoseStatus.pendiente || status == DoseStatus.aplazada || status == DoseStatus.notificada) {
+                  dosisPendientes.add({
+                    'tratamiento': tratamiento,
+                    'doseTime': doseTime,
+                  });
+                }
               }
             });
+
+            final dosisCalculadas = TratamientoService.generarDosisPendientes(tratamiento);
+            for (var doseTime in dosisCalculadas) {
+              final isAlreadyAdded = dosisPendientes.any((d) =>
+                  d['tratamiento'] == tratamiento &&
+                  (d['doseTime'] as DateTime).isAtSameMomentAs(doseTime));
+              if (!isAlreadyAdded) {
+                final key = doseTime.toIso8601String();
+                final status = tratamiento.doseStatus[key] ?? DoseStatus.pendiente;
+                if (status == DoseStatus.pendiente || status == DoseStatus.aplazada || status == DoseStatus.notificada) {
+                  dosisPendientes.add({
+                    'tratamiento': tratamiento,
+                    'doseTime': doseTime,
+                  });
+                }
+              }
+            }
           }
 
           dosisPendientes.sort((a, b) => (a['doseTime'] as DateTime).compareTo(b['doseTime'] as DateTime));

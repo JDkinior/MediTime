@@ -9,6 +9,8 @@ class PdfReportService {
     required String intervalText,
     required int tomadas,
     required int omitidas,
+    int notificadas = 0,
+    int aplazadas = 0,
     required List<Map<String, dynamic>> tratamientos,
     required Uint8List chartImage,
   }) async {
@@ -34,7 +36,7 @@ class PdfReportService {
               pw.SizedBox(height: 20),
               _buildTitle(intervalText, boldFont),
               pw.SizedBox(height: 20),
-              _buildSummaryCard(tomadas, omitidas, chartImage, font, boldFont),
+              _buildSummaryCard(tomadas, omitidas, notificadas, aplazadas, chartImage, font, boldFont),
               pw.SizedBox(height: 20),
               pw.Text("Desglose por Tratamiento", style: pw.TextStyle(font: boldFont, fontSize: 18)),
               pw.Divider(height: 20),
@@ -71,8 +73,8 @@ class PdfReportService {
     return pw.Text("Periodo del Reporte: $intervalText", style: pw.TextStyle(font: boldFont, fontSize: 20));
   }
   
-  pw.Widget _buildSummaryCard(int tomadas, int omitidas, Uint8List chartImage, pw.Font font, pw.Font boldFont) {
-    final total = tomadas + omitidas;
+  pw.Widget _buildSummaryCard(int tomadas, int omitidas, int notificadas, int aplazadas, Uint8List chartImage, pw.Font font, pw.Font boldFont) {
+    final total = tomadas + omitidas + notificadas + aplazadas;
     final adherencia = total > 0 ? (tomadas / total) * 100 : 0.0;
     
     return pw.Container(
@@ -91,6 +93,8 @@ class PdfReportService {
               pw.SizedBox(height: 10),
               pw.Text("Dosis Tomadas: $tomadas", style: pw.TextStyle(font: font)),
               pw.Text("Dosis Omitidas: $omitidas", style: pw.TextStyle(font: font)),
+              if (notificadas > 0) pw.Text("Dosis Notificadas: $notificadas", style: pw.TextStyle(font: font)),
+              if (aplazadas > 0) pw.Text("Dosis Aplazadas: $aplazadas", style: pw.TextStyle(font: font)),
             ]
           ),
           pw.Spacer(),

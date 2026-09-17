@@ -2,8 +2,10 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/models/caregiver_profile.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 
-Color _parseColorHex(String hexString, {Color defaultColor = AppTheme.primaryColor}) {
+Color _parseColorHex(String hexString, {Color? defaultColor}) {
+  final fallback = defaultColor ?? AppTheme.primaryColor;
   try {
     String cleanHex = hexString.replaceFirst('#', '');
     if (cleanHex.length == 6) {
@@ -11,7 +13,7 @@ Color _parseColorHex(String hexString, {Color defaultColor = AppTheme.primaryCol
     }
     return Color(int.parse(cleanHex, radix: 16));
   } catch (_) {
-    return defaultColor;
+    return fallback;
   }
 }
 
@@ -45,7 +47,7 @@ class AdherenceBarChart extends StatelessWidget {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              getTitlesWidget: getTitles,
+              getTitlesWidget: (val, meta) => getTitles(context, val, meta),
               reservedSize: 38,
             ),
           ),
@@ -76,7 +78,8 @@ class AdherenceBarChart extends StatelessWidget {
     );
   }
 
-  Widget getTitles(double value, TitleMeta meta) {
+  Widget getTitles(BuildContext context, double value, TitleMeta meta) {
+    final l10n = AppLocalizations.of(context);
     final style = TextStyle(
       color: Colors.grey.shade600,
       fontWeight: FontWeight.bold,
@@ -85,10 +88,10 @@ class AdherenceBarChart extends StatelessWidget {
     String text;
     switch (value.toInt()) {
       case 0:
-        text = 'Tomadas';
+        text = l10n?.taken ?? 'Tomadas';
         break;
       case 1:
-        text = 'Omitidas';
+        text = l10n?.skipped ?? 'Omitidas';
         break;
       default:
         text = '';
@@ -132,7 +135,10 @@ class WeeklyComplianceChart extends StatelessWidget {
     final int currentDayOfWeek = DateTime.now().weekday;
     final primaryBarColor = barColor ?? AppTheme.primaryColor;
 
-    final defaultLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    final langCode = Localizations.localeOf(context).languageCode;
+    final defaultLabels = langCode == 'en'
+        ? ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+        : ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
     final labels = (customLabels != null && customLabels!.length == itemCount)
         ? customLabels!
         : (itemCount == 7 ? defaultLabels : List.generate(itemCount, (i) => '${i + 1}'));

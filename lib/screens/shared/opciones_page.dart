@@ -6,17 +6,24 @@ import 'package:meditime/screens/shared/accesibilidad_page.dart';
 import 'package:meditime/screens/shared/diseno_apariencia_page.dart';
 import 'package:meditime/screens/shared/notificaciones_opciones_page.dart';
 import 'package:meditime/screens/shared/datos_privacidad_page.dart';
+import 'package:meditime/services/auth_service.dart';
+import 'package:meditime/screens/onboarding/onboarding_page.dart';
 import 'package:meditime/screens/shared/modo_cuidador_opciones_page.dart';
+import 'package:meditime/screens/shared/modo_animales_opciones_page.dart';
+import 'package:meditime/screens/shared/idioma_opciones_page.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 
 class OpcionesPage extends StatelessWidget {
   const OpcionesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: const Text('Opciones'),
+        title: Text(l10n?.optionsTitle ?? 'Opciones'),
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: AppTheme.primaryTextColor,
@@ -26,43 +33,84 @@ class OpcionesPage extends StatelessWidget {
         children: [
           _buildCategoryCard(
             context: context,
-            title: 'Accesibilidad',
-            subtitle: 'Oculta opciones secundarias y se enfoca solo en lo más importante.',
+            title: l10n?.optionsLanguage ?? 'Idioma',
+            subtitle: l10n?.optionsLanguageSubtitle ?? 'Selecciona el idioma de la aplicación.',
+            icon: Icons.language_rounded,
+            iconColor: Colors.indigo,
+            page: const IdiomaOpcionesPage(),
+          ),
+          _buildCategoryCard(
+            context: context,
+            title: l10n?.optionsAccessibility ?? 'Accesibilidad',
+            subtitle: l10n?.optionsAccessibilitySubtitle ?? 'Oculta opciones secundarias y se enfoca solo en lo más importante.',
             icon: Icons.accessibility_new_rounded,
             iconColor: AppTheme.primaryColor,
             page: const AccesibilidadPage(),
           ),
           _buildCategoryCard(
             context: context,
-            title: 'Diseño y Apariencia',
-            subtitle: 'Personaliza la apariencia de la app a tu gusto.',
+            title: l10n?.optionsAppearance ?? 'Diseño y Apariencia',
+            subtitle: l10n?.optionsAppearanceSubtitle ?? 'Personaliza la apariencia de la app a tu gusto.',
             icon: Icons.palette_outlined,
             iconColor: Colors.amber,
             page: const DisenoAparienciaPage(),
           ),
           _buildCategoryCard(
             context: context,
-            title: 'Notificaciones y Alarmas',
-            subtitle: 'Configura cómo quieres recibir tus recordatorios.',
+            title: l10n?.optionsNotifications ?? 'Notificaciones y Alarmas',
+            subtitle: l10n?.optionsNotificationsSubtitle ?? 'Configura cómo quieres recibir tus recordatorios.',
             icon: Icons.notifications_active_outlined,
             iconColor: Colors.blue,
             page: const NotificacionesOpcionesPage(),
           ),
           _buildCategoryCard(
             context: context,
-            title: 'Datos y Privacidad',
-            subtitle: 'Gestiona tu historial médico y de chats.',
+            title: l10n?.optionsPrivacy ?? 'Datos y Privacidad',
+            subtitle: l10n?.optionsPrivacySubtitle ?? 'Gestiona tu historial médico y de chats.',
             icon: Icons.security_rounded,
             iconColor: AppTheme.errorColor,
             page: const DatosPrivacidadPage(),
           ),
           _buildCategoryCard(
             context: context,
-            title: 'Modo Cuidador',
-            subtitle: 'Configura la gestión multi-perfil para familiares o sector clínico.',
+            title: l10n?.optionsCaregiver ?? 'Modo Cuidador',
+            subtitle: l10n?.optionsCaregiverSubtitle ?? 'Configura la gestión multi-perfil para familiares o sector clínico.',
             icon: Icons.health_and_safety_outlined,
             iconColor: Colors.teal,
             page: const ModoCuidadorOpcionesPage(),
+          ),
+          _buildCategoryCard(
+            context: context,
+            title: l10n?.optionsAnimals ?? 'Modo Animales (Veterinaria)',
+            subtitle: l10n?.optionsAnimalsSubtitle ?? 'Adapta la aplicación para veterinarias y mascotas (individual o múltiple).',
+            icon: Icons.pets_rounded,
+            iconColor: const Color(0xFF15803D),
+            page: const ModoAnimalesOpcionesPage(),
+          ),
+          Builder(
+            builder: (ctx) {
+              final user = ctx.watch<AuthService>().currentUser;
+              if (user == null) return const SizedBox.shrink();
+              return _buildCategoryCard(
+                context: ctx,
+                title: 'Asistente de Personalización',
+                subtitle: 'Vuelve a ejecutar la configuración guiada inicial de MediTime.',
+                icon: Icons.auto_awesome_rounded,
+                iconColor: Colors.deepPurple,
+                page: OnboardingPage(
+                  user: user,
+                  onCompleted: () {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      SnackBar(
+                        content: const Text('Configuración actualizada con éxito.'),
+                        backgroundColor: AppTheme.primaryColor,
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
           ),
         ],
       ),

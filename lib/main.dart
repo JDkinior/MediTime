@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/gemini_service.dart';
@@ -53,14 +54,17 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  await NotificationService.initializeCore();
-  await NotificationService.requestAllNecessaryPermissions();
-  await AndroidAlarmManager.initialize();
-  await WidgetService.initialize();
-  await initializeDateFormatting('es_ES', null);
+  // Inicializaciones independientes en paralelo para acelerar el arranque (Splash Screen)
+  await Future.wait([
+    NotificationService.initializeCore(),
+    AndroidAlarmManager.initialize(),
+    WidgetService.initialize(),
+    initializeDateFormatting('es_ES', null),
+    initializeDateFormatting('en_US', null),
+  ]);
 
-  // PRUEBA DE CALLBACKS (comentar después de probar)
-  // await NotificationService.checkNotificationCallbacks();
+  // Solicitar permisos en segundo plano sin retrasar el pintado de la interfaz
+  NotificationService.requestAllNecessaryPermissions();
 
   runApp(const MyApp());
 }
@@ -143,7 +147,11 @@ class MyApp extends StatelessWidget {
           final isDark = themeModeStr == 'dark' ||
               (themeModeStr == 'system' &&
                   MediaQuery.platformBrightnessOf(context) == Brightness.dark);
-          AppTheme.updateThemeColors(isDark, highContrast: preferenceNotifier.highContrast);
+          AppTheme.updateThemeColors(
+            isDark,
+            highContrast: preferenceNotifier.highContrast,
+            isAnimalMode: preferenceNotifier.isAnimalMode,
+          );
 
           return MaterialApp(
             title: 'MediTime',
@@ -183,14 +191,13 @@ class MyApp extends StatelessWidget {
               );
             },
             localizationsDelegates: const [
+              AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            supportedLocales: const [
-              Locale('es', 'ES'),
-            ],
-            locale: const Locale('es', 'ES'),
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: preferenceNotifier.locale,
             routes: {ChatBotScreen.routeName: (_) => const ChatBotScreen()},
             home: const AuthWrapper(),
           );

@@ -3,13 +3,15 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
+import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:meditime/services/gemini_service.dart';
 import 'package:provider/provider.dart';
-import 'package:meditime/screens/shared/guia_optimizacion_page.dart';
 import 'package:meditime/notifiers/treatment_form_notifier.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
+import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/widgets/treatment_form/form_field_wrapper.dart';
 import 'package:meditime/widgets/treatment_form/duration_selector.dart';
@@ -19,7 +21,9 @@ import 'package:meditime/repositories/treatment_repository.dart';
 import 'package:meditime/services/auth_service.dart';
 
 class AgregarRecetaPage extends StatefulWidget {
-  const AgregarRecetaPage({super.key});
+  final Tratamiento? tratamientoToEdit;
+
+  const AgregarRecetaPage({super.key, this.tratamientoToEdit});
 
   @override
   AgregarRecetaPageState createState() => AgregarRecetaPageState();
@@ -29,9 +33,6 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
   int _currentStep = 0;
   final PageController _pageController = PageController();
   bool _isAnimating = false;
-
-  Timer? _timeUpdateTimer;
-  bool _userInteractedWithTime = false;
 
   // Controladores de texto
   final TextEditingController _nombreMedicamentoController =
@@ -48,26 +49,34 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
   @override
   void initState() {
     super.initState();
-    _startPeriodicTimeUpdater();
-  }
-
-  void _startPeriodicTimeUpdater() {
-    _timeUpdateTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      if (!mounted) return;
-      if (!_userInteractedWithTime) {
+    if (widget.tratamientoToEdit != null) {
+      _userInteractedWithTime = true;
+      final t = widget.tratamientoToEdit!;
+      _nombreMedicamentoController.text = t.nombreMedicamento;
+      _cantidadActualController.text = t.cantidadActual.toString();
+      _cantidadTotalController.text = t.cantidadTotalCaja.toString();
+      _dosisPorTomaController.text = t.dosisPorToma.toString();
+      _dosisController.text = t.intervaloDosis.inHours.toString();
+      _duracionController.text = (int.tryParse(t.duracion) ?? 7).toString();
+      _notasController.text = t.notas;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         final notifier = context.read<TreatmentFormNotifier>();
-        final now = TimeOfDay.now();
-        if (notifier.formData.horaPrimeraDosis.hour != now.hour ||
-            notifier.formData.horaPrimeraDosis.minute != now.minute) {
-          notifier.updateHoraPrimeraDosis(now);
-        }
-      }
-    });
+        notifier.initializeWithTreatment(t);
+        _duracionController.text = notifier.formData.duracionNumero.toString();
+      });
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final notifier = context.read<TreatmentFormNotifier>();
+        notifier.resetForm();
+        notifier.updateHoraPrimeraDosis(TimeOfDay.now());
+      });
+    }
   }
 
   @override
   void dispose() {
-    _timeUpdateTimer?.cancel();
     _nombreMedicamentoController.dispose();
     _cantidadActualController.dispose();
     _cantidadTotalController.dispose();
@@ -77,6 +86,54 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
     _notasController.dispose();
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleBack(BuildContext context, TreatmentFormNotifier notifier) async {
+    if (_isAnimating) return;
+    if (_currentStep > 0) {
+      setState(() {
+        _isAnimating = true;
+      });
+      await _pageController.previousPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+      if (mounted) {
+        setState(() {
+          _isAnimating = false;
+        });
+      }
+    } else {
+      final hasData = notifier.formData.nombreMedicamento.trim().isNotEmpty ||
+          _nombreMedicamentoController.text.trim().isNotEmpty;
+      if (hasData) {
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('¿Descartar receta?'),
+            content: const Text(
+              'Tienes datos ingresados en el formulario. Si sales ahora, se perderán los cambios.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Continuar editando'),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('Salir y descartar'),
+              ),
+            ],
+          ),
+        );
+        if (shouldExit == true && mounted) {
+          Navigator.of(context).pop();
+        }
+      } else {
+        Navigator.of(context).pop();
+      }
+    }
   }
 
   /// Verificación de interacciones farmacológicas con la IA
@@ -116,18 +173,27 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
     return true;
   }
 
-  /// Guarda el tratamiento usando el notifier
+  /// Guarda o actualiza el tratamiento usando el notifier
   Future<void> _saveData() async {
     if (!mounted) return;
 
     final notifier = context.read<TreatmentFormNotifier>();
     final caregiverNotifier = context.read<CaregiverNotifier>();
     final activeProfile = caregiverNotifier.isCaregiverModeActive ? caregiverNotifier.activeProfile : null;
+    final isEditing = widget.tratamientoToEdit != null;
 
     final proceed = await _checkAndWarnDrugInteractions(notifier.formData.nombreMedicamento);
     if (!proceed || !mounted) return;
 
-    final success = await notifier.saveTreatment(activeProfile);
+    final bool success;
+    if (isEditing) {
+      success = await notifier.updateExistingTreatment(
+        originalTratamiento: widget.tratamientoToEdit!,
+        profile: activeProfile,
+      );
+    } else {
+      success = await notifier.saveTreatment(activeProfile);
+    }
 
     if (!mounted) return;
 
@@ -135,13 +201,14 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Recordatorios configurados para ${notifier.formData.nombreMedicamento}',
+            isEditing
+                ? 'Tratamiento actualizado para ${notifier.formData.nombreMedicamento}'
+                : 'Recordatorios configurados para ${notifier.formData.nombreMedicamento}',
           ),
           backgroundColor: Colors.green,
         ),
       );
 
-      // Reiniciar el formulario para la próxima dosis
       notifier.resetForm();
 
       // Limpiar los controladores de texto
@@ -153,21 +220,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
       _duracionController.clear();
       _notasController.clear();
 
-      // Reiniciar el estado de la página al primer paso
-      setState(() {
-        _currentStep = 0;
-        _userInteractedWithTime = false;
-      });
-
-      // Volver al primer paso visualmente
-      _pageController.animateToPage(
-        0,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
-
-      // Mostrar consejos para optimizar las notificaciones
-      await _showBatteryOptimizationTip();
+      Navigator.of(context).pop(true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -178,43 +231,6 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
         ),
       );
     }
-  }
-
-  Future<void> _showBatteryOptimizationTip() async {
-    await showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text('Optimización de Recordatorios'),
-          content: const Text(
-            'Para asegurar que recibas tus recordatorios a tiempo, es recomendable realizar unos ajustes en tu teléfono.\n\n¿Quieres ver cómo?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Ahora no'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(); // Cierra el diálogo primero
-
-                // SOLUCIÓN: Usar el contexto del widget principal y un delay
-                Future.delayed(const Duration(milliseconds: 100), () {
-                  if (mounted) {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const GuiaOptimizacionPage(),
-                      ),
-                    );
-                  }
-                });
-              },
-              child: const Text('Ver guía'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   String _normalizePresentacion(String rawValue) {
@@ -381,76 +397,88 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
   Widget build(BuildContext context) {
     return Consumer<TreatmentFormNotifier>(
       builder: (context, notifier, child) {
-        return Scaffold(
-          backgroundColor: AppTheme.backgroundColor,
-          appBar: AppBar(
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            foregroundColor: AppTheme.primaryTextColor,
-            title: Text(
-              'Agregar Receta',
-              style: TextStyle(
-                color: AppTheme.primaryTextColor,
-                fontWeight: FontWeight.bold,
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            _handleBack(context, notifier);
+          },
+          child: Scaffold(
+            backgroundColor: AppTheme.backgroundColor,
+            resizeToAvoidBottomInset: true,
+            appBar: AppBar(
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              foregroundColor: AppTheme.primaryTextColor,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => _handleBack(context, notifier),
               ),
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.document_scanner,
-                      color: AppTheme.primaryColor,
-                      size: 22,
-                    ),
-                  ),
-                  tooltip: 'Escanear receta con IA',
-                  onPressed: () => _scanPrescriptionWithAI(notifier),
+              title: Text(
+                widget.tratamientoToEdit != null ? 'Editar Tratamiento' : 'Agregar Receta',
+                style: TextStyle(
+                  color: AppTheme.primaryTextColor,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ],
-          ),
-          body: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Expanded(
-                  child: PageView.builder(
-                    controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: 8,
-                    onPageChanged: (page) {
-                      setState(() {
-                        _currentStep = page;
-                      });
-                    },
-                    itemBuilder: (context, index) {
-                      return AnimatedBuilder(
-                        animation: _pageController,
-                        child: _buildStepContent(index, notifier),
-                        builder: (context, child) {
-                          double opacity = 1.0;
-                          if (_pageController.position.haveDimensions) {
-                            opacity = (1 -
-                                    (_pageController.page! - index).abs())
-                                .clamp(0.0, 1.0);
-                          }
-                          return Opacity(opacity: opacity, child: child);
-                        },
-                      );
-                    },
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.document_scanner,
+                        color: AppTheme.primaryColor,
+                        size: 22,
+                      ),
+                    ),
+                    tooltip: 'Escanear receta con IA',
+                    onPressed: () => _scanPrescriptionWithAI(notifier),
                   ),
                 ),
-                const SizedBox(height: 16),
-                _buildNavigationButtons(notifier),
-                const SizedBox(height: 16),
               ],
+            ),
+            body: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: PageView.builder(
+                      controller: _pageController,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: 8,
+                      onPageChanged: (page) {
+                        setState(() {
+                          _currentStep = page;
+                        });
+                      },
+                      itemBuilder: (context, index) {
+                        return AnimatedBuilder(
+                          animation: _pageController,
+                          child: _buildStepContent(index, notifier),
+                          builder: (context, child) {
+                            double opacity = 1.0;
+                            if (_pageController.position.haveDimensions) {
+                              opacity = (1 -
+                                      (_pageController.page! - index).abs())
+                                  .clamp(0.0, 1.0);
+                            }
+                            return Opacity(opacity: opacity, child: child);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildNavigationButtons(notifier),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         );
@@ -550,7 +578,9 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                         await _saveData();
 
                         if (mounted) {
-                          Navigator.of(context).pop();
+                          setState(() {
+                            _isAnimating = false;
+                          });
                         }
                       },
               child:
@@ -585,19 +615,54 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
   Widget _buildStepContent(int step, TreatmentFormNotifier notifier) {
     switch (step) {
       case 0: // Nombre del medicamento
+        final caregiverNotifier = context.watch<CaregiverNotifier>();
+        final prefNotifier = context.watch<PreferenceNotifier>();
+        final activeProfile = caregiverNotifier.isCaregiverModeActive ? caregiverNotifier.activeProfile : null;
+        final isAnimal = prefNotifier.isAnimalMode || caregiverNotifier.modeType == CaregiverModeType.veterinario || (activeProfile?.isAnimal ?? false);
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildQuestionText('¿Qué medicamento vas a agregar?'),
+            if (activeProfile != null) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isAnimal ? Icons.pets_rounded : Icons.person_rounded,
+                      size: 18,
+                      color: AppTheme.primaryColor,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isAnimal ? 'Mascota: ${activeProfile.name}' : 'Paciente: ${activeProfile.name}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            _buildQuestionText(isAnimal ? '¿Qué medicamento o tratamiento vas a agregar?' : '¿Qué medicamento vas a agregar?'),
             const SizedBox(height: 24),
             FormFieldWrapper(
-              label: 'Nombre del medicamento',
+              label: isAnimal ? 'Nombre del medicamento / tratamiento' : 'Nombre del medicamento',
               child: TextFormField(
                 controller: _nombreMedicamentoController,
                 onChanged: notifier.updateNombreMedicamento,
                 decoration: AppInputDecoration.withHint(
-                  'Escribe el nombre del medicamento',
+                  isAnimal ? 'Escribe el nombre del fármaco o tratamiento' : 'Escribe el nombre del medicamento',
                 ),
               ),
             ),
@@ -605,6 +670,8 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
         );
 
       case 1: // Presentación
+        final currentPres = notifier.formData.presentacion;
+        final isValidPres = notifier.presentaciones.contains(currentPres);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -612,10 +679,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
             _buildQuestionText('¿Cuál es la presentación del medicamento?'),
             const SizedBox(height: 16),
             DropdownButton<String>(
-              value:
-                  notifier.formData.presentacion.isEmpty
-                      ? null
-                      : notifier.formData.presentacion,
+              value: isValidPres ? currentPres : null,
               hint: const Text('Selecciona una opción'),
               items:
                   notifier.presentaciones.map((String value) {
@@ -624,7 +688,11 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                       child: Text(value),
                     );
                   }).toList(),
-              onChanged: (value) => notifier.updatePresentacion(value!),
+              onChanged: (value) {
+                if (value != null) {
+                  notifier.updatePresentacion(value);
+                }
+              },
             ),
           ],
         );
@@ -842,7 +910,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.info_outline,
                         color: AppTheme.primaryColor,
                         size: 20,

@@ -7,6 +7,9 @@ class PreferenceNotifier extends ChangeNotifier {
   bool _isLoading = true;
   bool get isLoading => _isLoading;
 
+  DoseReminderMode _reminderMode = DoseReminderMode.automatic;
+  DoseReminderMode get reminderMode => _reminderMode;
+
   bool _notificationModeActive = false;
   bool get notificationModeActive => _notificationModeActive;
 
@@ -22,6 +25,14 @@ class PreferenceNotifier extends ChangeNotifier {
   String _themeMode = 'system';
   String get themeMode => _themeMode;
 
+  String _languageCode = 'system';
+  String get languageCode => _languageCode;
+
+  Locale? get locale {
+    if (_languageCode == 'system') return null;
+    return Locale(_languageCode);
+  }
+
   bool _highContrast = false;
   bool get highContrast => _highContrast;
 
@@ -36,6 +47,15 @@ class PreferenceNotifier extends ChangeNotifier {
 
   bool _showCardBorder = false;
   bool get showCardBorder => _showCardBorder;
+
+  bool _hideMedicineNameOnLockScreen = false;
+  bool get hideMedicineNameOnLockScreen => _hideMedicineNameOnLockScreen;
+
+  bool _isAnimalMode = false;
+  bool get isAnimalMode => _isAnimalMode;
+
+  String _animalModeType = 'individual';
+  String get animalModeType => _animalModeType;
 
   ThemeMode get themeModeEnum {
     switch (_themeMode) {
@@ -56,27 +76,38 @@ class PreferenceNotifier extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    _notificationModeActive = await _preferenceService.getNotificationMode();
+    _reminderMode = await _preferenceService.getReminderMode();
+    _notificationModeActive = _reminderMode == DoseReminderMode.active;
     _snoozeDuration = await _preferenceService.getSnoozeDuration();
     _calendarFormat = await _preferenceService.getCalendarFormat();
     _interfaceStyle = await _preferenceService.getInterfaceStyle();
     _themeMode = await _preferenceService.getThemeMode();
+    _languageCode = await _preferenceService.getLanguageCode();
 
     _highContrast = await _preferenceService.getHighContrast();
     _largeText = await _preferenceService.getLargeText();
     _largeButtons = await _preferenceService.getLargeButtons();
     _simplifiedInterface = await _preferenceService.getSimplifiedInterface();
     _showCardBorder = await _preferenceService.getShowCardBorder();
+    _hideMedicineNameOnLockScreen = await _preferenceService.getHideMedicineNameOnLockScreen();
+    _isAnimalMode = await _preferenceService.getAnimalModeActive();
+    _animalModeType = await _preferenceService.getAnimalModeType();
 
     _isLoading = false;
     notifyListeners();
   }
 
-  Future<void> setNotificationModeActive(bool value) async {
-    if (_notificationModeActive == value) return;
-    _notificationModeActive = value;
+  Future<void> setReminderMode(DoseReminderMode mode) async {
+    if (_reminderMode == mode) return;
+    _reminderMode = mode;
+    _notificationModeActive = mode == DoseReminderMode.active;
     notifyListeners();
-    await _preferenceService.saveNotificationMode(value);
+    await _preferenceService.saveReminderMode(mode);
+  }
+
+  Future<void> setNotificationModeActive(bool value) async {
+    final newMode = value ? DoseReminderMode.active : DoseReminderMode.automatic;
+    await setReminderMode(newMode);
   }
 
   Future<void> setSnoozeDuration(int duration) async {
@@ -105,6 +136,13 @@ class PreferenceNotifier extends ChangeNotifier {
     _themeMode = themeStr;
     notifyListeners();
     await _preferenceService.saveThemeMode(themeStr);
+  }
+
+  Future<void> setLanguageCode(String code) async {
+    if (_languageCode == code) return;
+    _languageCode = code;
+    notifyListeners();
+    await _preferenceService.saveLanguageCode(code);
   }
 
   Future<void> setHighContrast(bool value) async {
@@ -140,5 +178,48 @@ class PreferenceNotifier extends ChangeNotifier {
     _showCardBorder = value;
     notifyListeners();
     await _preferenceService.saveShowCardBorder(value);
+  }
+
+  Future<void> setHideMedicineNameOnLockScreen(bool value) async {
+    if (_hideMedicineNameOnLockScreen == value) return;
+    _hideMedicineNameOnLockScreen = value;
+    notifyListeners();
+    await _preferenceService.saveHideMedicineNameOnLockScreen(value);
+  }
+
+  Future<void> applyOnboardingSettings({
+    required DoseReminderMode reminderMode,
+    required String interfaceStyle,
+    required bool simplifiedInterface,
+    required bool largeText,
+    required bool highContrast,
+  }) async {
+    _reminderMode = reminderMode;
+    _notificationModeActive = reminderMode == DoseReminderMode.active;
+    _interfaceStyle = interfaceStyle;
+    _simplifiedInterface = simplifiedInterface;
+    _largeText = largeText;
+    _highContrast = highContrast;
+    notifyListeners();
+
+    await _preferenceService.saveReminderMode(reminderMode);
+    await _preferenceService.saveInterfaceStyle(interfaceStyle);
+    await _preferenceService.saveSimplifiedInterface(simplifiedInterface);
+    await _preferenceService.saveLargeText(largeText);
+    await _preferenceService.saveHighContrast(highContrast);
+  }
+
+  Future<void> setAnimalMode(bool value) async {
+    if (_isAnimalMode == value) return;
+    _isAnimalMode = value;
+    notifyListeners();
+    await _preferenceService.saveAnimalModeActive(value);
+  }
+
+  Future<void> setAnimalModeType(String type) async {
+    if (_animalModeType == type) return;
+    _animalModeType = type;
+    notifyListeners();
+    await _preferenceService.saveAnimalModeType(type);
   }
 }

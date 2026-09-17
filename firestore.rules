@@ -1,0 +1,55 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAssignedCaregiver(patientUid) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(patientUid)) &&
+        get(/databases/$(database)/documents/users/$(patientUid)).data.caregiverUid == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAssignedCaregiver(userId) || isAuthenticated();
+      
+      allow create, update: if isOwner(userId) || (
+        isAuthenticated() && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['caregiverUid'])
+      );
+      
+      allow delete: if isOwner(userId);
+
+      match /managed_profiles/{profileId} {
+        allow read, write: if isOwner(userId);
+
+        match /userMedicamentos/{medicamentoId} {
+          allow read, write: if isOwner(userId);
+        }
+      }
+
+      match /chats/{chatId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    match /medicamentos/{userId} {
+      allow read, write: if isOwner(userId) || isAssignedCaregiver(userId);
+
+      match /userMedicamentos/{medicamentoId} {
+        allow read, write: if isOwner(userId) || isAssignedCaregiver(userId);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,5 +1,6 @@
 // lib/models/treatment_form_data.dart
 import 'package:flutter/material.dart';
+import 'package:meditime/models/tratamiento.dart';
 
 /// Enum para las unidades de duración del tratamiento
 enum DurationUnit {
@@ -62,6 +63,44 @@ class TreatmentFormData {
     this.esIndefinido = false,
     this.notas = '',
   }) : horaPrimeraDosis = horaPrimeraDosis ?? TimeOfDay.now();
+
+  /// Construye los datos del formulario a partir de un tratamiento existente
+  factory TreatmentFormData.fromTratamiento(Tratamiento tratamiento) {
+    final fechaInicio = tratamiento.fechaInicioTratamiento;
+    final fechaFin = tratamiento.fechaFinTratamiento;
+    final duracionEnDias = fechaFin.difference(fechaInicio).inDays;
+
+    int duracionNumero;
+    DurationUnit duracionUnidad;
+
+    if (duracionEnDias >= 365 && duracionEnDias % 365 == 0) {
+      duracionNumero = (duracionEnDias / 365).round();
+      duracionUnidad = DurationUnit.years;
+    } else if (duracionEnDias >= 30 && duracionEnDias % 30 == 0) {
+      duracionNumero = (duracionEnDias / 30).round();
+      duracionUnidad = DurationUnit.months;
+    } else if (duracionEnDias > 0) {
+      duracionNumero = duracionEnDias;
+      duracionUnidad = DurationUnit.days;
+    } else {
+      duracionNumero = int.tryParse(tratamiento.duracion) ?? 7;
+      duracionUnidad = DurationUnit.days;
+    }
+
+    return TreatmentFormData(
+      nombreMedicamento: tratamiento.nombreMedicamento,
+      presentacion: tratamiento.presentacion,
+      cantidadActual: tratamiento.cantidadActual,
+      cantidadTotalCaja: tratamiento.cantidadTotalCaja,
+      dosisPorToma: tratamiento.dosisPorToma,
+      horaPrimeraDosis: tratamiento.horaPrimeraDosis,
+      intervaloDosis: tratamiento.intervaloDosis.inHours,
+      duracionNumero: duracionNumero,
+      duracionUnidad: duracionUnidad,
+      esIndefinido: false,
+      notas: tratamiento.notas,
+    );
+  }
 
   /// Calcula la duración total en días
   int get duracionEnDias {

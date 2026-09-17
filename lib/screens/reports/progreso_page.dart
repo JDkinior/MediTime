@@ -1,5 +1,6 @@
 // lib/screens/reports/progreso_page.dart
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
@@ -11,12 +12,13 @@ import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/enums/view_state.dart';
 import 'package:meditime/widgets/estado_vista.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'adherencia_chart.dart';
 import 'package:meditime/services/tratamiento_service.dart';
 import 'package:intl/intl.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:meditime/widgets/tutorial_tooltip.dart';
+import 'package:meditime/core/utils.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 
 enum ProgresoInterval { semana, mes, anio, todo }
 
@@ -58,11 +60,19 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
   ProgresoInterval _selectedInterval = ProgresoInterval.semana;
   bool _isTimelineExpanded = false;
   bool _isSortAscending = false;
+  bool _showScrollToTop = false;
+  final ScrollController _scrollController = ScrollController();
   Stream<List<Map<String, dynamic>>>? _combinedStream;
   List<CaregiverProfile>? _lastProfiles;
   bool _lastIsGeneral = false;
   String? _lastActiveProfileId;
   String? _lastUserId;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   void _updateStreamIfNeeded(String userId, bool isGeneral, List<CaregiverProfile> profiles, CaregiverProfile? activeProfile, FirestoreService firestoreService) {
     final activeProfileId = activeProfile?.id;
@@ -133,78 +143,86 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
     };
   }
 
-  Map<String, int> _calcularEstadisticas(Tratamiento tratamiento, Map<String, DateTime> dateRange) {
-    int tomadas = 0;
-    int omitidas = 0;
-    int programadasPasadas = 0;
+  // Caché en memoria para evitar recalcular estadísticas repetidamente
+  final Map<String, Map<String, int>> _statsCache = {};
 
-    final now = DateTime.now();
+  Map<String, int> _calcularEstadisticas(Tratamiento tratamiento, Map<String, DateTime> dateRange) {
     final start = dateRange['start']!;
     final end = dateRange['end']!;
+    final cacheKey = "${tratamiento.id}_${start.millisecondsSinceEpoch}_${end.millisecondsSinceEpoch}_${tratamiento.doseStatus.length}";
+    if (_statsCache.containsKey(cacheKey)) {
+      return _statsCache[cacheKey]!;
+    }
 
-    final todasLasDosis = TratamientoService.generarDosisEnRango(tratamiento, start, end);
+    int tomadas = 0;
+    int omitidas = 0;
 
-    final Map<int, DoseStatus> statusMap = {};
+    final now = DateTime.now();
+
+    final List<DateTime> recordedTimes = [];
     tratamiento.doseStatus.forEach((key, status) {
       final parsedTime = DateTime.tryParse(key);
-      if (parsedTime != null) {
-        statusMap[parsedTime.millisecondsSinceEpoch] = status;
+      if (parsedTime != null &&
+          !parsedTime.isBefore(start) &&
+          !parsedTime.isAfter(end) &&
+          parsedTime.isBefore(now)) {
+        recordedTimes.add(parsedTime);
+        if (status == DoseStatus.tomada) {
+          tomadas++;
+        } else {
+          omitidas++;
+        }
       }
     });
 
-    for (var doseTime in todasLasDosis) {
-      if (!doseTime.isBefore(start) && !doseTime.isAfter(end)) {
-        if (doseTime.isBefore(now)) {
-          programadasPasadas++;
-          final status = statusMap[doseTime.millisecondsSinceEpoch];
-          if (status == DoseStatus.tomada) {
-            tomadas++;
-          } else {
-            omitidas++;
+    // Ordenar para búsqueda lineal optimizada O(N + M)
+    recordedTimes.sort();
+
+    final todasLasDosis = TratamientoService.generarDosisEnRango(tratamiento, start, end);
+    final intervaloMinutos = tratamiento.intervaloDosis.inMinutes > 0 ? tratamiento.intervaloDosis.inMinutes : 240;
+    final maxToleranceMinutes = (intervaloMinutos / 2).clamp(30.0, 180.0);
+
+    int recIdx = 0;
+    final int recLen = recordedTimes.length;
+
+    for (final doseTime in todasLasDosis) {
+      if (!doseTime.isBefore(start) && !doseTime.isAfter(end) && doseTime.isBefore(now)) {
+        while (recIdx < recLen && doseTime.difference(recordedTimes[recIdx]).inMinutes > maxToleranceMinutes) {
+          recIdx++;
+        }
+
+        bool isRecorded = false;
+        int checkIdx = recIdx;
+        while (checkIdx < recLen) {
+          final diffMinutes = recordedTimes[checkIdx].difference(doseTime).inMinutes;
+          if (diffMinutes.abs() <= maxToleranceMinutes) {
+            isRecorded = true;
+            break;
           }
+          if (diffMinutes > maxToleranceMinutes) {
+            break;
+          }
+          checkIdx++;
+        }
+
+        if (!isRecorded) {
+          omitidas++;
         }
       }
     }
 
-    return {
+    final int programadasPasadas = tomadas + omitidas;
+
+    final result = {
       'tomadas': tomadas,
       'omitidas': omitidas,
       'programadasPasadas': programadasPasadas,
     };
+    _statsCache[cacheKey] = result;
+    return result;
   }
 
-  Map<String, int> _calcularEstadisticasCompletasDelDia(Tratamiento tratamiento, Map<String, DateTime> dateRange) {
-    int tomadas = 0;
-    int totalProgramadas = 0;
 
-    final start = dateRange['start']!;
-    final end = dateRange['end']!;
-
-    final todasLasDosis = TratamientoService.generarDosisEnRango(tratamiento, start, end);
-
-    final Map<int, DoseStatus> statusMap = {};
-    tratamiento.doseStatus.forEach((key, status) {
-      final parsedTime = DateTime.tryParse(key);
-      if (parsedTime != null) {
-        statusMap[parsedTime.millisecondsSinceEpoch] = status;
-      }
-    });
-
-    for (var doseTime in todasLasDosis) {
-      if (!doseTime.isBefore(start) && !doseTime.isAfter(end)) {
-        totalProgramadas++;
-        final status = statusMap[doseTime.millisecondsSinceEpoch];
-        if (status == DoseStatus.tomada) {
-          tomadas++;
-        }
-      }
-    }
-
-    return {
-      'tomadas': tomadas,
-      'totalProgramadas': totalProgramadas,
-    };
-  }
 
 
 
@@ -236,8 +254,8 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
             final t = item['tratamiento'] as Tratamiento;
             final p = item['profile'] as CaregiverProfile?;
             if (p == null) continue;
-            final stats = _calcularEstadisticasCompletasDelDia(t, range);
-            totalProg += stats['totalProgramadas']!;
+            final stats = _calcularEstadisticas(t, range);
+            totalProg += stats['programadasPasadas']!;
             tomadasMap.putIfAbsent(p, () => 0);
             tomadasMap[p] = tomadasMap[p]! + stats['tomadas']!;
           }
@@ -253,11 +271,11 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
           int tomadas = 0;
           int programadas = 0;
           for (var t in tratamientos) {
-            final stats = _calcularEstadisticasCompletasDelDia(t, range);
+            final stats = _calcularEstadisticas(t, range);
             tomadas += stats['tomadas']!;
-            programadas += stats['totalProgramadas']!;
+            programadas += stats['programadasPasadas']!;
           }
-          values.add(programadas > 0 ? (tomadas / programadas) * 100 : (day.isAfter(now) ? 0.0 : 100.0));
+          values.add(programadas > 0 ? (tomadas / programadas) * 100 : 0.0);
         }
       }
     } else if (_selectedInterval == ProgresoInterval.mes) {
@@ -271,7 +289,9 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
           stackedValues.add({});
           continue;
         }
-        final weekEnd = weekStart.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
+        final weekEnd = (i == 4)
+            ? DateTime(now.year, now.month + 1, 0, 23, 59, 59)
+            : weekStart.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
         final range = {'start': weekStart, 'end': weekEnd};
 
         if (isGeneralMode) {
@@ -281,8 +301,8 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
             final t = item['tratamiento'] as Tratamiento;
             final p = item['profile'] as CaregiverProfile?;
             if (p == null) continue;
-            final stats = _calcularEstadisticasCompletasDelDia(t, range);
-            totalProg += stats['totalProgramadas']!;
+            final stats = _calcularEstadisticas(t, range);
+            totalProg += stats['programadasPasadas']!;
             tomadasMap.putIfAbsent(p, () => 0);
             tomadasMap[p] = tomadasMap[p]! + stats['tomadas']!;
           }
@@ -298,9 +318,9 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
           int tomadas = 0;
           int programadas = 0;
           for (var t in tratamientos) {
-            final stats = _calcularEstadisticasCompletasDelDia(t, range);
+            final stats = _calcularEstadisticas(t, range);
             tomadas += stats['tomadas']!;
-            programadas += stats['totalProgramadas']!;
+            programadas += stats['programadasPasadas']!;
           }
           values.add(programadas > 0 ? (tomadas / programadas) * 100 : 0.0);
         }
@@ -310,7 +330,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
       final targetYear = now.year;
 
       for (int m = 1; m <= 12; m++) {
-        final monthStart = DateTime(targetYear, m, 1);
+        final monthStart = DateTime(targetYear, m, 1, 0, 0, 0);
         final monthEnd = DateTime(targetYear, m + 1, 0, 23, 59, 59);
         final range = {'start': monthStart, 'end': monthEnd};
 
@@ -321,8 +341,8 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
             final t = item['tratamiento'] as Tratamiento;
             final p = item['profile'] as CaregiverProfile?;
             if (p == null) continue;
-            final stats = _calcularEstadisticasCompletasDelDia(t, range);
-            totalProg += stats['totalProgramadas']!;
+            final stats = _calcularEstadisticas(t, range);
+            totalProg += stats['programadasPasadas']!;
             tomadasMap.putIfAbsent(p, () => 0);
             tomadasMap[p] = tomadasMap[p]! + stats['tomadas']!;
           }
@@ -338,9 +358,9 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
           int tomadas = 0;
           int programadas = 0;
           for (var t in tratamientos) {
-            final stats = _calcularEstadisticasCompletasDelDia(t, range);
+            final stats = _calcularEstadisticas(t, range);
             tomadas += stats['tomadas']!;
-            programadas += stats['totalProgramadas']!;
+            programadas += stats['programadasPasadas']!;
           }
           values.add(programadas > 0 ? (tomadas / programadas) * 100 : 0.0);
         }
@@ -359,29 +379,28 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
     int racha = 0;
     final now = DateTime.now();
 
+    // Agrupar estados por fecha (YYYY-MM-DD) en una sola pasada rápida O(TotalDosis)
+    final Map<String, List<DoseStatus>> dayStatuses = {};
+
+    for (var t in tratamientos) {
+      t.doseStatus.forEach((key, status) {
+        final parsed = DateTime.tryParse(key);
+        if (parsed != null && parsed.isBefore(now)) {
+          final dateStr =
+              "${parsed.year}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}";
+          dayStatuses.putIfAbsent(dateStr, () => []).add(status);
+        }
+      });
+    }
+
     for (int i = 0; i < 30; i++) {
       final dateToCheck = now.subtract(Duration(days: i));
       final dateStr =
           "${dateToCheck.year}-${dateToCheck.month.toString().padLeft(2, '0')}-${dateToCheck.day.toString().padLeft(2, '0')}";
 
-      bool perfectDay = true;
-      bool hasDosesOnDay = false;
-
-      for (var t in tratamientos) {
-        t.doseStatus.forEach((key, status) {
-          if (key.startsWith(dateStr)) {
-            hasDosesOnDay = true;
-            final doseTime = DateTime.parse(key);
-            if (doseTime.isBefore(now)) {
-              if (status != DoseStatus.tomada) {
-                perfectDay = false;
-              }
-            }
-          }
-        });
-      }
-
-      if (hasDosesOnDay) {
+      final statuses = dayStatuses[dateStr];
+      if (statuses != null && statuses.isNotEmpty) {
+        final bool perfectDay = statuses.every((s) => s == DoseStatus.tomada);
         if (perfectDay) {
           racha++;
         } else {
@@ -428,7 +447,8 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
     return list;
   }
 
-  Color _parseProfileColorHex(String hexString, {Color defaultColor = AppTheme.primaryColor}) {
+  Color _parseProfileColorHex(String hexString, {Color? defaultColor}) {
+    final fallback = defaultColor ?? AppTheme.primaryColor;
     try {
       String cleanHex = hexString.replaceFirst('#', '');
       if (cleanHex.length == 6) {
@@ -436,7 +456,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
       }
       return Color(int.parse(cleanHex, radix: 16));
     } catch (_) {
-      return defaultColor;
+      return fallback;
     }
   }
 
@@ -447,19 +467,14 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
     bool isGeneralMode = false,
     Map<CaregiverProfile, Map<String, int>>? statsPorPaciente,
   }) {
+    final l10n = AppLocalizations.of(context);
     final hasData = percentage != null;
-    final color = !hasData
-        ? Colors.grey.shade400
-        : (percentage >= 80
-            ? AppTheme.successColor
-            : (percentage >= 50 ? Colors.orange : AppTheme.errorColor));
 
     Widget chartWidget;
     Widget legendWidget;
 
     if (isGeneralMode && statsPorPaciente != null && statsPorPaciente.isNotEmpty) {
-      // Donut chart with colors for each patient
-      final List<PieChartSectionData> sections = [];
+      final List<RingSegment> segments = [];
       final totalDosis = tomadas + omitidas;
 
       statsPorPaciente.forEach((profile, stats) {
@@ -471,13 +486,10 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
             ? pTomadas.toDouble()
             : (totalDosis == 0 ? 1.0 : (pProg > 0 ? 0.3 : 0.1));
 
-        sections.add(
-          PieChartSectionData(
-            color: pColor,
+        segments.add(
+          RingSegment(
             value: value,
-            title: '',
-            radius: 12,
-            showTitle: false,
+            color: pColor,
           ),
         );
       });
@@ -489,12 +501,10 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
             width: 105,
             height: 105,
             child: RepaintBoundary(
-              child: PieChart(
-                PieChartData(
-                  sectionsSpace: 3,
-                  centerSpaceRadius: 40,
-                  startDegreeOffset: 270,
-                  sections: sections,
+              child: CustomPaint(
+                painter: SegmentRingPainter(
+                  segments: segments,
+                  trackColor: AppTheme.surfaceColor,
                 ),
               ),
             ),
@@ -511,7 +521,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
                 ),
               ),
               Text(
-                "Adherencia",
+                l10n?.adherence ?? "Adherencia",
                 style: TextStyle(
                   color: AppTheme.secondaryTextColor,
                   fontSize: 10,
@@ -571,18 +581,24 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
         }).toList(),
       );
     } else {
+      final segments = <RingSegment>[
+        if (tomadas > 0) RingSegment(value: tomadas.toDouble(), color: AppTheme.successColor),
+        if (omitidas > 0) RingSegment(value: omitidas.toDouble(), color: AppTheme.errorColor),
+      ];
+
       chartWidget = Stack(
         alignment: Alignment.center,
         children: [
           SizedBox(
-            width: 100,
-            height: 100,
-            child: CircularProgressIndicator(
-              value: hasData ? percentage / 100 : 0.0,
-              strokeWidth: 12,
-              strokeCap: StrokeCap.round,
-              backgroundColor: AppTheme.surfaceColor,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
+            width: 105,
+            height: 105,
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: SegmentRingPainter(
+                  segments: segments,
+                  trackColor: AppTheme.surfaceColor,
+                ),
+              ),
             ),
           ),
           Column(
@@ -592,12 +608,12 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
                 hasData ? "${percentage.toStringAsFixed(0)}%" : "N/A",
                 style: TextStyle(
                   color: AppTheme.primaryTextColor,
-                  fontSize: 26,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Text(
-                "Adherencia",
+                l10n?.adherence ?? "Adherencia",
                 style: TextStyle(
                   color: AppTheme.secondaryTextColor,
                   fontSize: 10,
@@ -613,7 +629,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Tomadas",
+            l10n?.taken ?? "Tomadas",
             style: TextStyle(
               color: AppTheme.secondaryTextColor,
               fontSize: 14,
@@ -644,7 +660,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
           ),
           const SizedBox(height: 16),
           Text(
-            "Omitidas",
+            l10n?.skipped ?? "Omitidas",
             style: TextStyle(
               color: AppTheme.secondaryTextColor,
               fontSize: 14,
@@ -691,7 +707,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Tu desempeño general",
+            l10n?.overallPerformance ?? "Tu desempeño general",
             style: TextStyle(
               color: AppTheme.primaryTextColor,
               fontWeight: FontWeight.bold,
@@ -736,29 +752,30 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
   }
 
   Widget _buildStreakAndInsightCard(int racha, double? percentage) {
+    final l10n = AppLocalizations.of(context);
     String insightTitle = "Info";
     String insightText = "";
     Color insightColor = AppTheme.primaryColor;
     IconData insightIcon = Icons.info_outline;
 
     if (percentage == null) {
-      insightTitle = "Sin datos";
-      insightText = "No hay dosis programadas. Agrega medicamentos para ver tu progreso.";
+      insightTitle = l10n?.insightNoDataTitle ?? "Sin datos";
+      insightText = l10n?.insightNoDataText ?? "No hay dosis programadas. Agrega medicamentos para ver tu progreso.";
       insightColor = Colors.grey;
       insightIcon = Icons.info_outline;
     } else if (percentage >= 80) {
-      insightTitle = "¡Buen ritmo!";
-      insightText = "Pequeños hábitos, grandes resultados. ¡Sigue así!";
+      insightTitle = l10n?.insightGoodTitle ?? "¡Buen ritmo!";
+      insightText = l10n?.insightGoodText ?? "Pequeños hábitos, grandes resultados. ¡Sigue así!";
       insightColor = AppTheme.successColor;
       insightIcon = Icons.lightbulb_outline;
     } else if (percentage >= 50) {
-      insightTitle = "Atención";
-      insightText = "Buen ritmo, pero has tenido algunas omisiones.";
+      insightTitle = l10n?.insightAttentionTitle ?? "Atención";
+      insightText = l10n?.insightAttentionText ?? "Buen ritmo, pero has tenido algunas omisiones.";
       insightColor = Colors.orange;
       insightIcon = Icons.lightbulb_outline;
     } else {
-      insightTitle = "¡Alerta!";
-      insightText = "Tu nivel de adherencia actual es bajo. Revisa tus alarmas.";
+      insightTitle = l10n?.insightAlertTitle ?? "¡Alerta!";
+      insightText = l10n?.insightAlertText ?? "Tu nivel de adherencia actual es bajo. Revisa tus alarmas.";
       insightColor = AppTheme.errorColor;
       insightIcon = Icons.warning_amber_rounded;
     }
@@ -793,7 +810,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "$racha ${racha == 1 ? 'día' : 'días'}",
+                          l10n?.streakDays(racha) ?? "$racha ${racha == 1 ? 'día' : 'días'}",
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -801,7 +818,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
                           ),
                         ),
                         Text(
-                          "Racha activa",
+                          l10n?.activeStreak ?? "Racha activa",
                           style: TextStyle(fontSize: 11, color: AppTheme.secondaryTextColor),
                         ),
                       ],
@@ -860,19 +877,21 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
   }
 
   Widget _buildTodayTimeline(List<TodayDose> doses) {
-    String title = "Resumen de la semana";
+    final l10n = AppLocalizations.of(context);
+    final langCode = Localizations.localeOf(context).languageCode;
+    String title = l10n?.weekSummary ?? "Resumen de la semana";
     switch (_selectedInterval) {
       case ProgresoInterval.semana:
-        title = "Resumen de la semana";
+        title = l10n?.weekSummary ?? "Resumen de la semana";
         break;
       case ProgresoInterval.mes:
-        title = "Resumen del mes";
+        title = l10n?.monthSummary ?? "Resumen del mes";
         break;
       case ProgresoInterval.anio:
-        title = "Resumen del año";
+        title = l10n?.yearSummary ?? "Resumen del año";
         break;
       case ProgresoInterval.todo:
-        title = "Resumen acumulado";
+        title = l10n?.cumulativeSummary ?? "Resumen acumulado";
         break;
     }
 
@@ -928,8 +947,8 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          "${doses.length} ${doses.length == 1 ? 'dosis en periodo' : 'dosis en periodo'}",
-                          style: const TextStyle(color: AppTheme.primaryColor, fontSize: 12, fontWeight: FontWeight.w600),
+                          l10n?.dosesInPeriod(doses.length) ?? "${doses.length} dosis en periodo",
+                          style: TextStyle(color: AppTheme.primaryColor, fontSize: 12, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -964,8 +983,8 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          _isSortAscending ? "Más antiguos" : "Más recientes",
-                          style: const TextStyle(
+                          _isSortAscending ? (l10n?.oldestFirst ?? "Más antiguos") : (l10n?.mostRecent ?? "Más recientes"),
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                             color: AppTheme.primaryColor,
@@ -981,175 +1000,171 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
           if (doses.isEmpty)
             Center(
               child: Text(
-                "No hay dosis programadas para este periodo.",
+                l10n?.calendarNoEvents ?? "No hay dosis programadas para este periodo.",
                 style: TextStyle(color: AppTheme.secondaryTextColor, fontSize: 13),
               ),
             )
           else ...[
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: visibleDoses.length,
-              itemBuilder: (context, index) {
-                final dose = visibleDoses[index];
-                final isTodayDose = dose.hora.year == now.year && dose.hora.month == now.month && dose.hora.day == now.day;
-                final timeStr = isTodayDose 
-                    ? DateFormat('hh:mm a', 'es_ES').format(dose.hora)
-                    : DateFormat('d MMM, hh:mm a', 'es_ES').format(dose.hora);
-                final isLast = index == visibleDoses.length - 1;
+            ...visibleDoses.asMap().entries.map((entry) {
+              final index = entry.key;
+              final dose = entry.value;
+              final isTodayDose = dose.hora.year == now.year && dose.hora.month == now.month && dose.hora.day == now.day;
+              final timeStr = isTodayDose 
+                  ? DateFormat('hh:mm a', langCode == 'en' ? 'en_US' : 'es_ES').format(dose.hora)
+                  : DateFormat('d MMM, hh:mm a', langCode == 'en' ? 'en_US' : 'es_ES').format(dose.hora);
+              final isLast = index == visibleDoses.length - 1;
 
-                // Estilo según estado
-                Color nodeColor = const Color(0xFFC3C6D7);
-                Widget nodeWidget = Container(
-                  width: 14,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                    border: Border.all(color: nodeColor, width: 2),
-                  ),
+              // Estilo según estado
+              Color nodeColor = const Color(0xFFC3C6D7);
+              Widget nodeWidget = Container(
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  border: Border.all(color: nodeColor, width: 2),
+                ),
+              );
+              String displayStatus = l10n?.doseStatusScheduled ?? 'Programada';
+
+              final isPast = dose.hora.isBefore(DateTime.now());
+
+              if (dose.status == DoseStatus.tomada) {
+                nodeColor = AppTheme.successColor;
+                nodeWidget = Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: nodeColor),
+                  child: const Icon(Icons.check, color: Colors.white, size: 12),
                 );
-                String displayStatus = 'Programada';
+                displayStatus = l10n?.doseStatusTaken ?? 'Tomada';
+              } else if (dose.status == DoseStatus.omitida) {
+                nodeColor = AppTheme.errorColor;
+                nodeWidget = Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: nodeColor),
+                  child: const Icon(Icons.close, color: Colors.white, size: 12),
+                );
+                displayStatus = l10n?.doseStatusSkipped ?? 'Omitida';
+              } else if (dose.status == DoseStatus.aplazada) {
+                nodeColor = Colors.orange;
+                nodeWidget = Container(
+                  width: 18,
+                  height: 18,
+                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.orange),
+                  child: const Icon(Icons.watch_later_outlined, color: Colors.white, size: 12),
+                );
+                displayStatus = l10n?.doseStatusSnoozed ?? 'Aplazada';
+              } else if (dose.status == DoseStatus.notificada || (dose.status == DoseStatus.pendiente && isPast)) {
+                nodeColor = Colors.amber;
+                nodeWidget = Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: nodeColor),
+                  child: const Icon(Icons.notifications, color: Colors.white, size: 12),
+                );
+                displayStatus = l10n?.doseStatusNotified ?? 'Notificada';
+              }
 
-                final isPast = dose.hora.isBefore(DateTime.now());
-
-                if (dose.status == DoseStatus.tomada) {
-                  nodeColor = AppTheme.successColor;
-                  nodeWidget = Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: nodeColor),
-                    child: const Icon(Icons.check, color: Colors.white, size: 12),
-                  );
-                  displayStatus = 'Tomada';
-                } else if (dose.status == DoseStatus.omitida) {
-                  nodeColor = AppTheme.errorColor;
-                  nodeWidget = Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: nodeColor),
-                    child: const Icon(Icons.close, color: Colors.white, size: 12),
-                  );
-                  displayStatus = 'Omitida';
-                } else if (dose.status == DoseStatus.aplazada) {
-                  nodeColor = Colors.orange;
-                  nodeWidget = Container(
-                    width: 18,
-                    height: 18,
-                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.orange),
-                    child: const Icon(Icons.watch_later_outlined, color: Colors.white, size: 12),
-                  );
-                  displayStatus = 'Aplazada';
-                } else if (dose.status == DoseStatus.notificada || (dose.status == DoseStatus.pendiente && isPast)) {
-                  nodeColor = Colors.amber;
-                  nodeWidget = Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: nodeColor),
-                    child: const Icon(Icons.notifications, color: Colors.white, size: 12),
-                  );
-                  displayStatus = 'Notificada';
-                }
-
-                return IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 4),
-                            nodeWidget,
-                            if (!isLast)
-                              Expanded(
-                                child: Container(
-                                  width: 2,
-                                  color: const Color(0xFFC3C6D7).withOpacity(0.4),
-                                ),
+              return IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 20,
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 4),
+                          nodeWidget,
+                          if (!isLast)
+                            Expanded(
+                              child: Container(
+                                width: 2,
+                                color: const Color(0xFFC3C6D7).withValues(alpha: 0.4),
                               ),
-                          ],
-                        ),
+                            ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      dose.nombreMedicamento,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                        color: AppTheme.primaryTextColor,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    timeStr,
-                                    style: const TextStyle(
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: isLast ? 0.0 : 16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    dose.nombreMedicamento,
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                      color: AppTheme.primaryColor,
+                                      fontSize: 14,
+                                      color: AppTheme.primaryTextColor,
                                     ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                "${dose.presentacion} • $displayStatus",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppTheme.secondaryTextColor,
                                 ),
-                              ),
-                              if (dose.profile != null) ...[
-                                const SizedBox(height: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Color(int.parse(dose.profile!.colorHex.replaceFirst('#', 'FF'), radix: 16)).withOpacity(0.05),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: Color(int.parse(dose.profile!.colorHex.replaceFirst('#', 'FF'), radix: 16)).withOpacity(0.2)),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.person, size: 12, color: Color(int.parse(dose.profile!.colorHex.replaceFirst('#', 'FF'), radix: 16))),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        dose.profile!.name,
-                                        style: TextStyle(
-                                          fontSize: 11, 
-                                          fontWeight: FontWeight.bold, 
-                                          color: Color(int.parse(dose.profile!.colorHex.replaceFirst('#', 'FF'), radix: 16)),
-                                        ),
-                                      ),
-                                    ],
+                                const SizedBox(width: 8),
+                                Text(
+                                  timeStr,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: AppTheme.primaryColor,
                                   ),
                                 ),
                               ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              "${AppUtils.localizePresentation(context, dose.presentacion)} • $displayStatus",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.secondaryTextColor,
+                              ),
+                            ),
+                            if (dose.profile != null) ...[
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Color(int.parse(dose.profile!.colorHex.replaceFirst('#', 'FF'), radix: 16)).withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: Color(int.parse(dose.profile!.colorHex.replaceFirst('#', 'FF'), radix: 16)).withValues(alpha: 0.2)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.person, size: 12, color: Color(int.parse(dose.profile!.colorHex.replaceFirst('#', 'FF'), radix: 16))),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      dose.profile!.name,
+                                      style: TextStyle(
+                                        fontSize: 11, 
+                                        fontWeight: FontWeight.bold, 
+                                        color: Color(int.parse(dose.profile!.colorHex.replaceFirst('#', 'FF'), radix: 16)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
-                          ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                    ),
+                  ],
+                ),
+              );
+            }),
             if (doses.length > 3) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 16),
               Center(
                 child: InkWell(
                   onTap: () {
@@ -1161,10 +1176,10 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.08),
+                      color: AppTheme.primaryColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: AppTheme.primaryColor.withOpacity(0.2),
+                        color: AppTheme.primaryColor.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Row(
@@ -1172,9 +1187,9 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
                       children: [
                         Text(
                           _isTimelineExpanded
-                              ? 'Ver menos'
-                              : 'Ver más (${doses.length - 3} dosis más)',
-                          style: const TextStyle(
+                              ? (l10n?.seeLess ?? 'Ver menos')
+                              : (l10n?.seeMore(doses.length - 3) ?? 'Ver más (${doses.length - 3} dosis más)'),
+                          style: TextStyle(
                             color: AppTheme.primaryColor,
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
@@ -1224,6 +1239,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
 
 
   Widget _buildIntervalSelector() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       padding: const EdgeInsets.all(5),
@@ -1246,16 +1262,16 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
           String text = '';
           switch (interval) {
             case ProgresoInterval.semana:
-              text = 'Semana';
+              text = l10n?.intervalWeek ?? 'Semana';
               break;
             case ProgresoInterval.mes:
-              text = 'Mes';
+              text = l10n?.intervalMonth ?? 'Mes';
               break;
             case ProgresoInterval.anio:
-              text = 'Año';
+              text = l10n?.intervalYear ?? 'Año';
               break;
             case ProgresoInterval.todo:
-              text = 'Todo';
+              text = l10n?.intervalAll ?? 'Todo';
               break;
           }
 
@@ -1308,9 +1324,12 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final l10n = AppLocalizations.of(context);
     final authService = context.watch<AuthService>();
     final firestoreService = context.watch<FirestoreService>();
     final caregiverNotifier = context.watch<CaregiverNotifier>();
+    final preferenceNotifier = context.watch<PreferenceNotifier>();
+    final isModern = preferenceNotifier.interfaceStyle == 'modern';
     final user = authService.currentUser;
     final isGeneralMode = caregiverNotifier.isCaregiverModeActive && caregiverNotifier.isGeneralMode;
     final activeProfile = caregiverNotifier.isCaregiverModeActive ? caregiverNotifier.activeProfile : null;
@@ -1328,244 +1347,337 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      body: Column(
+      body: Stack(
         children: [
-          _buildIntervalSelector(),
-          Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              key: ValueKey('${isGeneralMode}_${activeProfile?.id}_${caregiverNotifier.isCaregiverModeActive}'),
-              stream: _combinedStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                  return const EstadoVista(state: ViewState.loading, child: SizedBox.shrink());
-                }
-                if (snapshot.hasError) {
-                  return EstadoVista(
-                    state: ViewState.error,
-                    errorMessage: "Error al cargar los datos de progreso.",
-                    onRetry: () => setState(() {}),
-                    child: const SizedBox.shrink(),
-                  );
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const EstadoVista(
-                    state: ViewState.empty,
-                    emptyMessage: 'Aún no tienes tratamientos registrados.',
-                    child: SizedBox.shrink(),
-                  );
-                }
+          Column(
+            children: [
+              _buildIntervalSelector(),
+              Expanded(
+                child: StreamBuilder<List<Map<String, dynamic>>>(
+                  key: ValueKey('${isGeneralMode}_${activeProfile?.id}_${caregiverNotifier.isCaregiverModeActive}'),
+                  stream: _combinedStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                      return const EstadoVista(state: ViewState.loading, child: SizedBox.shrink());
+                    }
+                    if (snapshot.hasError) {
+                      return EstadoVista(
+                        state: ViewState.error,
+                        errorMessage: "Error al cargar los datos de progreso.",
+                        onRetry: () => setState(() {}),
+                        child: const SizedBox.shrink(),
+                      );
+                    }
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const EstadoVista(
+                        state: ViewState.empty,
+                        emptyMessage: 'Aún no tienes tratamientos registrados.',
+                        child: SizedBox.shrink(),
+                      );
+                    }
 
-                int totalDosisProgramadas = 0;
-                int totalDosisOmitidas = 0;
-                int totalDosisTomadas = 0;
-                final items = snapshot.data!;
-                final tratamientos = items.map((i) => i['tratamiento'] as Tratamiento).toList();
-                
-                final Map<CaregiverProfile, Map<String, int>> statsPorPaciente = {};
-
-                for (var item in items) {
-                  final Tratamiento tratamiento = item['tratamiento'];
-                  final CaregiverProfile? profile = item['profile'];
-                  final stats = _calcularEstadisticas(tratamiento, dateRange);
-                  
-                  totalDosisProgramadas += stats['programadasPasadas']!;
-                  totalDosisOmitidas += stats['omitidas']!;
-                  totalDosisTomadas += stats['tomadas']!;
-                  
-                  if (profile != null) {
-                    statsPorPaciente.putIfAbsent(profile, () => {'programadas': 0, 'tomadas': 0, 'omitidas': 0});
-                    statsPorPaciente[profile]!['programadas'] = statsPorPaciente[profile]!['programadas']! + stats['programadasPasadas']!;
-                    statsPorPaciente[profile]!['tomadas'] = statsPorPaciente[profile]!['tomadas']! + stats['tomadas']!;
-                    statsPorPaciente[profile]!['omitidas'] = statsPorPaciente[profile]!['omitidas']! + stats['omitidas']!;
-                  }
-                }
-
-                final double? adherencia = totalDosisProgramadas > 0
-                    ? (totalDosisTomadas / totalDosisProgramadas) * 100
-                    : null;
-
-                final racha = _calcularRacha(tratamientos);
-                final dosisDelPeriodo = _obtenerDosisDelPeriodo(items, dateRange);
-
-                return ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  children: [
-                    _buildAdherenceRingCard(
-                      adherencia,
-                      totalDosisTomadas,
-                      totalDosisOmitidas,
-                      isGeneralMode: isGeneralMode,
-                      statsPorPaciente: statsPorPaciente,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStreakAndInsightCard(racha, adherencia),
-                    const SizedBox(height: 20),
+                    int totalDosisProgramadas = 0;
+                    int totalDosisOmitidas = 0;
+                    int totalDosisTomadas = 0;
+                    final items = snapshot.data!;
+                    final tratamientos = items.map((i) => i['tratamiento'] as Tratamiento).toList();
                     
-                    if (isGeneralMode && statsPorPaciente.isNotEmpty) ...[
-                      Text(
-                        "Progreso por paciente",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: AppTheme.primaryTextColor,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ...statsPorPaciente.entries.map((entry) {
-                        final profile = entry.key;
-                        final stats = entry.value;
-                        final pct = stats['programadas']! > 0 
-                            ? (stats['tomadas']! / stats['programadas']!) * 100 
-                            : null;
-                        final profileColor = _parseProfileColorHex(profile.colorHex);
-                        final pTomadas = stats['tomadas']!;
-                        final pProg = stats['programadas']!;
+                    final Map<CaregiverProfile, Map<String, int>> statsPorPaciente = {};
 
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).cardColor,
-                            borderRadius: BorderRadius.circular(16),
-                            border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-                                ? Border.all(color: AppTheme.borderColor)
-                                : null,
-                            boxShadow: AppTheme.cardShadow,
+                    for (var item in items) {
+                      final Tratamiento tratamiento = item['tratamiento'];
+                      final CaregiverProfile? profile = item['profile'];
+                      final stats = _calcularEstadisticas(tratamiento, dateRange);
+                      
+                      totalDosisProgramadas += stats['programadasPasadas']!;
+                      totalDosisOmitidas += stats['omitidas']!;
+                      totalDosisTomadas += stats['tomadas']!;
+                      
+                      if (profile != null) {
+                        statsPorPaciente.putIfAbsent(profile, () => {'programadas': 0, 'tomadas': 0, 'omitidas': 0});
+                        statsPorPaciente[profile]!['programadas'] = statsPorPaciente[profile]!['programadas']! + stats['programadasPasadas']!;
+                        statsPorPaciente[profile]!['tomadas'] = statsPorPaciente[profile]!['tomadas']! + stats['tomadas']!;
+                        statsPorPaciente[profile]!['omitidas'] = statsPorPaciente[profile]!['omitidas']! + stats['omitidas']!;
+                      }
+                    }
+
+                    final double? adherencia = totalDosisProgramadas > 0
+                        ? (totalDosisTomadas / totalDosisProgramadas) * 100
+                        : null;
+
+                    final racha = _calcularRacha(tratamientos);
+                    final dosisDelPeriodo = _obtenerDosisDelPeriodo(items, dateRange);
+
+                    return NotificationListener<ScrollNotification>(
+                      onNotification: (notification) {
+                        if (notification.metrics.axis == Axis.vertical) {
+                          final show = notification.metrics.pixels > 120;
+                          if (show != _showScrollToTop) {
+                            setState(() {
+                              _showScrollToTop = show;
+                            });
+                          }
+                        }
+                        return false;
+                      },
+                      child: ListView(
+                        controller: _scrollController,
+                        padding: EdgeInsets.only(
+                          left: 16.0,
+                          right: 16.0,
+                          top: 8.0,
+                          bottom: isModern ? 100.0 : 8.0,
+                        ),
+                        children: [
+                          _buildAdherenceRingCard(
+                            adherencia,
+                            totalDosisTomadas,
+                            totalDosisOmitidas,
+                            isGeneralMode: isGeneralMode,
+                            statsPorPaciente: statsPorPaciente,
                           ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: profileColor.withOpacity(0.1),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.person,
-                                  color: profileColor,
-                                ),
+                          const SizedBox(height: 16),
+                          _buildStreakAndInsightCard(racha, adherencia),
+                          const SizedBox(height: 20),
+                          
+                          if (isGeneralMode && statsPorPaciente.isNotEmpty) ...[
+                            Text(
+                              l10n?.progressByPatient ?? "Progreso por paciente",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: AppTheme.primaryTextColor,
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                            ),
+                            const SizedBox(height: 12),
+                            ...statsPorPaciente.entries.map((entry) {
+                              final profile = entry.key;
+                              final stats = entry.value;
+                              final pct = stats['programadas']! > 0 
+                                  ? (stats['tomadas']! / stats['programadas']!) * 100 
+                                  : null;
+                              final profileColor = _parseProfileColorHex(profile.colorHex);
+                              final pTomadas = stats['tomadas']!;
+                              final pProg = stats['programadas']!;
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).cardColor,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: profileColor.withValues(alpha: 0.3),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Row(
                                   children: [
-                                    Text(
-                                      profile.name,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
-                                        color: AppTheme.primaryTextColor,
+                                    CircleAvatar(
+                                      radius: 16,
+                                      backgroundColor: profileColor.withValues(alpha: 0.15),
+                                      child: Text(
+                                        profile.name.isNotEmpty ? profile.name[0].toUpperCase() : '?',
+                                        style: TextStyle(
+                                          color: profileColor,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      pct != null ? "${pct.round()}% de adherencia" : "Sin datos",
-                                      style: TextStyle(
-                                        color: AppTheme.secondaryTextColor,
-                                        fontSize: 12,
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            profile.name,
+                                            style: TextStyle(
+                                              color: AppTheme.primaryTextColor,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                          Text(
+                                            pct != null ? "${pct.round()}% de adherencia" : "Sin datos",
+                                            style: TextStyle(
+                                              color: AppTheme.secondaryTextColor,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
                                       ),
+                                    ),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          pProg > 0 ? "$pTomadas de $pProg dosis" : "0 dosis",
+                                          style: TextStyle(
+                                            color: AppTheme.primaryTextColor,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        SizedBox(
+                                          width: 70,
+                                          height: 6,
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(3),
+                                            child: LinearProgressIndicator(
+                                              value: (pct != null && pProg > 0) ? (pct / 100).clamp(0.0, 1.0) : 0.0,
+                                              backgroundColor: profileColor.withOpacity(0.15),
+                                              valueColor: AlwaysStoppedAnimation<Color>(profileColor),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
+                              );
+                            }),
+                            const SizedBox(height: 20),
+                          ],
+
+                          _buildTodayTimeline(dosisDelPeriodo),
+                          const SizedBox(height: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                l10n?.complianceChartTitle ?? "Gráfico de cumplimiento",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: AppTheme.primaryTextColor,
+                                ),
                               ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    pProg > 0 ? "$pTomadas de $pProg dosis" : "0 dosis",
-                                    style: TextStyle(
-                                      color: AppTheme.primaryTextColor,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  SizedBox(
-                                    width: 70,
-                                    height: 6,
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(3),
-                                      child: LinearProgressIndicator(
-                                        value: (pct != null && pProg > 0) ? (pct / 100).clamp(0.0, 1.0) : 0.0,
-                                        backgroundColor: profileColor.withOpacity(0.15),
-                                        valueColor: AlwaysStoppedAnimation<Color>(profileColor),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                adherencia != null ? "${adherencia.round()}%" : "0%",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.secondaryTextColor,
+                                ),
                               ),
                             ],
                           ),
-                        );
-                      }),
-                      const SizedBox(height: 20),
-                    ],
-
-                    _buildTodayTimeline(dosisDelPeriodo),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Gráfico de cumplimiento",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: AppTheme.primaryTextColor,
-                          ),
-                        ),
-                        Text(
-                          adherencia != null ? "${adherencia.round()}%" : "0%",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.secondaryTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
-                      decoration: BoxDecoration(color: Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(20),
-                        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-                            ? Border.all(color: AppTheme.borderColor)
-                            : null,
-                        boxShadow: AppTheme.cardShadow,
-                      ),
-                      child: Column(
-                        children: [
-                          Builder(
-                            builder: (context) {
-                              final data = _calcularCumplimientoSegunIntervalo(
-                                tratamientos,
-                                items,
-                                isGeneralMode && statsPorPaciente.isNotEmpty,
-                              );
-                              return SizedBox(
-                                height: 180,
-                                child: RepaintBoundary(
-                                  child: WeeklyComplianceChart(
-                                    values: data['values'] as List<double>,
-                                    customLabels: data['labels'] as List<String>,
-                                    barColor: activeProfile != null ? _parseProfileColorHex(activeProfile.colorHex) : null,
-                                    stackedValues: data['stackedValues'] as List<Map<CaregiverProfile, double>>?,
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
+                            decoration: BoxDecoration(color: Theme.of(context).cardColor,
+                              borderRadius: BorderRadius.circular(20),
+                              border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                                  ? Border.all(color: AppTheme.borderColor)
+                                  : null,
+                              boxShadow: AppTheme.cardShadow,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _selectedInterval == ProgresoInterval.semana 
+                                      ? (l10n?.complianceWeekly ?? "Cumplimiento de la semana")
+                                      : _selectedInterval == ProgresoInterval.mes
+                                          ? (l10n?.complianceMonthly ?? "Cumplimiento del mes")
+                                          : _selectedInterval == ProgresoInterval.anio
+                                              ? (l10n?.complianceYearly ?? "Cumplimiento del año")
+                                              : (l10n?.complianceHistorical ?? "Cumplimiento histórico"),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: AppTheme.primaryTextColor,
                                   ),
                                 ),
-                              );
-                            },
+                                const SizedBox(height: 4),
+                                Text(
+                                  _selectedInterval == ProgresoInterval.semana 
+                                      ? (l10n?.complianceWeeklySubtitle ?? "Porcentaje de tomas por día")
+                                      : _selectedInterval == ProgresoInterval.mes
+                                          ? (l10n?.complianceMonthlySubtitle ?? "Porcentaje de tomas por bloques de 5 días")
+                                          : _selectedInterval == ProgresoInterval.anio
+                                              ? (l10n?.complianceYearlySubtitle ?? "Porcentaje de tomas por mes")
+                                              : (l10n?.complianceHistoricalSubtitle ?? "Porcentaje de tomas en los últimos 6 meses"),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.secondaryTextColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                Builder(
+                                  builder: (context) {
+                                    final data = _calcularCumplimientoSegunIntervalo(
+                                      tratamientos,
+                                      items,
+                                      isGeneralMode && statsPorPaciente.isNotEmpty,
+                                    );
+                                    return SizedBox(
+                                      height: 180,
+                                      child: RepaintBoundary(
+                                        child: WeeklyComplianceChart(
+                                          values: data['values'] as List<double>,
+                                          customLabels: data['labels'] as List<String>,
+                                          barColor: activeProfile != null ? _parseProfileColorHex(activeProfile.colorHex) : null,
+                                          stackedValues: data['stackedValues'] as List<Map<CaregiverProfile, double>>?,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(height: 20),
                         ],
                       ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          Positioned(
+            bottom: isModern ? 124.0 : 24.0,
+            right: 16.0,
+            child: AnimatedScale(
+              scale: (_isTimelineExpanded && _showScrollToTop) ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutBack,
+              child: AnimatedOpacity(
+                opacity: (_isTimelineExpanded && _showScrollToTop) ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 200),
+                child: IgnorePointer(
+                  ignoring: !(_isTimelineExpanded && _showScrollToTop),
+                  child: Material(
+                    elevation: 6,
+                    shape: const CircleBorder(),
+                    color: AppTheme.primaryColor,
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () {
+                        setState(() {
+                          _isTimelineExpanded = false;
+                        });
+                        if (_scrollController.hasClients) {
+                          _scrollController.animateTo(
+                            380,
+                            duration: const Duration(milliseconds: 350),
+                            curve: Curves.easeOut,
+                          );
+                        }
+                      },
+                      child: const SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Icon(Icons.keyboard_arrow_up, color: Colors.white, size: 26),
+                      ),
                     ),
-                    const SizedBox(height: 20),
-                  ],
-                );
-              },
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -1617,4 +1729,105 @@ Stream<List<T>> _combineLatest<T>(List<Stream<T>> streams) {
   );
   
   return controller.stream;
+}
+
+class RingSegment {
+  final double value;
+  final Color color;
+
+  const RingSegment({required this.value, required this.color});
+}
+
+class SegmentRingPainter extends CustomPainter {
+  final List<RingSegment> segments;
+  final Color trackColor;
+
+  SegmentRingPainter({
+    required this.segments,
+    required this.trackColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    const strokeWidth = 12.0;
+    final radius = (size.width - strokeWidth) / 2;
+
+    // Background track ring
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    canvas.drawCircle(center, radius, trackPaint);
+
+    final validSegments = segments.where((s) => s.value > 0).toList();
+    if (validSegments.isEmpty) return;
+
+    final double total = validSegments.fold(0.0, (sum, s) => sum + s.value);
+    if (total <= 0) return;
+
+    final n = validSegments.length;
+
+    if (n == 1) {
+      final paint = Paint()
+        ..color = validSegments.first.color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -pi / 2,
+        2 * pi,
+        false,
+        paint,
+      );
+      return;
+    }
+
+    // Gap angle to ensure distinct rounded caps
+    final capRadiusAngle = (strokeWidth / 2) / radius;
+    final gapAngle = (2 * capRadiusAngle) + 0.08;
+    final totalGap = n * gapAngle;
+    final availableAngle = (2 * pi) - totalGap;
+
+    double currentAngle = -pi / 2;
+
+    for (final seg in validSegments) {
+      final fraction = seg.value / total;
+      final sweepAngle = (fraction * availableAngle).clamp(0.02, availableAngle);
+
+      final segmentPaint = Paint()
+        ..color = seg.color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        currentAngle + (gapAngle / 2),
+        sweepAngle,
+        false,
+        segmentPaint,
+      );
+
+      currentAngle += sweepAngle + gapAngle;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant SegmentRingPainter oldDelegate) {
+    if (oldDelegate.segments.length != segments.length ||
+        oldDelegate.trackColor != trackColor) {
+      return true;
+    }
+    for (int i = 0; i < segments.length; i++) {
+      if (oldDelegate.segments[i].value != segments[i].value ||
+          oldDelegate.segments[i].color != segments[i].color) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

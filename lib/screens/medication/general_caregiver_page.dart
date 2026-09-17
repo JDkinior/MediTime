@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/models/tratamiento.dart';
@@ -8,6 +7,7 @@ import 'package:meditime/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
+import 'package:meditime/services/tratamiento_service.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/widgets/estado_vista.dart';
@@ -71,7 +71,8 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
 
   @override
   Widget build(BuildContext context) {
-    context.watch<PreferenceNotifier>();
+    final preferenceNotifier = context.watch<PreferenceNotifier>();
+    final isModern = preferenceNotifier.interfaceStyle == 'modern';
     final authService = context.watch<AuthService>();
     final firestoreService = context.watch<FirestoreService>();
     final caregiverNotifier = context.watch<CaregiverNotifier>();
@@ -170,7 +171,12 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
           );
 
           return ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            padding: EdgeInsets.only(
+              left: 20.0,
+              right: 20.0,
+              top: 16.0,
+              bottom: isModern ? 100.0 : 16.0,
+            ),
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,9 +304,55 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
         }
       }
       
+      // 1. Recopilar todas las dosis explícitamente registradas en doseStatus para este día
+      final List<DateTime> recordedTimes = [];
       tratamiento.doseStatus.forEach((dateString, status) {
-        final doseTime = DateTime.parse(dateString);
-        if (!doseTime.isBefore(startOfDay) && !doseTime.isAfter(endOfDay)) {
+        final parsedTime = DateTime.tryParse(dateString);
+        if (parsedTime != null &&
+            !parsedTime.isBefore(startOfDay) &&
+            !parsedTime.isAfter(endOfDay)) {
+          recordedTimes.add(parsedTime);
+          hoyDosis.add({
+            'tratamiento': tratamiento,
+            'profile': profile,
+            'doseTime': parsedTime,
+            'status': status,
+          });
+        }
+      });
+
+      recordedTimes.sort();
+
+      // 2. Generar dosis programadas del día y agregar aquellas que no tienen registro asociado
+      final dosisCalculadas = TratamientoService.generarDosisEnRango(tratamiento, startOfDay, endOfDay);
+      final intervaloMinutos = tratamiento.intervaloDosis.inMinutes > 0 ? tratamiento.intervaloDosis.inMinutes : 240;
+      final maxToleranceMinutes = (intervaloMinutos / 2).clamp(30.0, 180.0);
+
+      int recIdx = 0;
+      final int recLen = recordedTimes.length;
+
+      for (var doseTime in dosisCalculadas) {
+        while (recIdx < recLen && doseTime.difference(recordedTimes[recIdx]).inMinutes > maxToleranceMinutes) {
+          recIdx++;
+        }
+
+        bool isRecorded = false;
+        int checkIdx = recIdx;
+        while (checkIdx < recLen) {
+          final diffMinutes = recordedTimes[checkIdx].difference(doseTime).inMinutes;
+          if (diffMinutes.abs() <= maxToleranceMinutes) {
+            isRecorded = true;
+            break;
+          }
+          if (diffMinutes > maxToleranceMinutes) {
+            break;
+          }
+          checkIdx++;
+        }
+
+        if (!isRecorded) {
+          final key = doseTime.toIso8601String();
+          final status = tratamiento.doseStatus[key] ?? DoseStatus.pendiente;
           hoyDosis.add({
             'tratamiento': tratamiento,
             'profile': profile,
@@ -308,7 +360,7 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
             'status': status,
           });
         }
-      });
+      }
     }
 
     hoyDosis.sort((a, b) => (a['doseTime'] as DateTime).compareTo(b['doseTime'] as DateTime));
@@ -325,7 +377,6 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
     final bool isOmitted = status == DoseStatus.omitida;
     final bool isSkipped = status == DoseStatus.aplazada;
     final bool isNotified = status == DoseStatus.notificada;
-    final bool isPending = status == DoseStatus.pendiente;
     final bool isPast = doseTime.isBefore(DateTime.now()) && !isCompleted && !isOmitted;
     
     Color statusColor;

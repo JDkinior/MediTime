@@ -2,7 +2,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:meditime/models/tratamiento.dart';
-import 'package:meditime/services/tratamiento_service.dart';
 import 'package:meditime/services/widget_service.dart';
 import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/core/stream_cache.dart';
@@ -138,6 +137,45 @@ class FirestoreService {
         debugPrint('Error actualizando widget tras guardar medicamento: $e');
       }
       return ref;
+    });
+  }
+
+  /// Actualiza los datos de un tratamiento existente.
+  Future<void> updateMedicamento({
+    required String userId,
+    CaregiverProfile? profile,
+    required String docId,
+    required String nombreMedicamento,
+    required String presentacion,
+    required String duracion,
+    required int cantidadActual,
+    required int cantidadTotalCaja,
+    required int dosisPorToma,
+    required TimeOfDay horaPrimeraDosis,
+    required Duration intervaloDosis,
+    required DateTime fechaInicioTratamiento,
+    required DateTime fechaFinTratamiento,
+    required String notas,
+  }) {
+    final ref = _getMedicamentosCollection(userId, profile).doc(docId);
+    return ref.update({
+      'nombreMedicamento': nombreMedicamento,
+      'presentacion': presentacion,
+      'duracion': duracion,
+      'cantidadActual': cantidadActual,
+      'cantidadTotalCaja': cantidadTotalCaja,
+      'dosisPorToma': dosisPorToma,
+      'horaPrimeraDosis': '${horaPrimeraDosis.hour}:${horaPrimeraDosis.minute}',
+      'intervaloDosis': intervaloDosis.inHours.toString(),
+      'fechaInicioTratamiento': Timestamp.fromDate(fechaInicioTratamiento),
+      'fechaFinTratamiento': Timestamp.fromDate(fechaFinTratamiento),
+      'notas': notas,
+    }).then((_) {
+      try {
+        WidgetService.updateWidgetData(userId: userId);
+      } catch (e) {
+        debugPrint('Error actualizando widget tras editar medicamento: $e');
+      }
     });
   }
 

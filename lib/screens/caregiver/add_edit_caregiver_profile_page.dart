@@ -11,8 +11,13 @@ import 'package:meditime/widgets/styled_text_field.dart';
 
 class AddEditCaregiverProfilePage extends StatefulWidget {
   final CaregiverProfile? initialProfile;
+  final bool isAnimalMode;
 
-  const AddEditCaregiverProfilePage({super.key, this.initialProfile});
+  const AddEditCaregiverProfilePage({
+    super.key,
+    this.initialProfile,
+    this.isAnimalMode = false,
+  });
 
   @override
   State<AddEditCaregiverProfilePage> createState() => _AddEditCaregiverProfilePageState();
@@ -33,7 +38,16 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
   final _bloodTypeController = TextEditingController();
   final _allergiesController = TextEditingController();
 
+  // Campos específicos de Animales / Veterinaria
+  final _speciesController = TextEditingController();
+  final _breedController = TextEditingController();
+  final _weightController = TextEditingController();
+  final _microchipController = TextEditingController();
+  final _notesController = TextEditingController();
+
   final List<String> _presetColors = [
+    '#15803D', // Verde Veterinario
+    '#047857', // Esmeralda Oscuro
     '#4F46E5', // Indigo Suave
     '#F43F5E', // Rosa Coral
     '#10B981', // Verde Esmeralda
@@ -43,16 +57,29 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
     '#14B8A6', // Menta Turquesa
     '#F97316', // Terracota
   ];
-  String _selectedColorHex = '#4F46E5';
+  String _selectedColorHex = '#15803D';
 
   String? _selectedRelationship;
   String? _selectedBloodType;
   String? _selectedCategory;
+  String? _selectedSpecies;
 
   final List<String> _bloodTypes = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-', 'No lo sé', 'Personalizado'];
   final List<String> _familyRelationships = ['Hijo/a', 'Padre/Madre', 'Abuelo/a', 'Pareja', 'Hermano/a', 'Personalizado'];
   final List<String> _clinicRelationships = ['Paciente', 'Residente', 'Personalizado'];
+  final List<String> _animalRoleOptions = ['Mascota propia', 'Paciente en clínica', 'En observación', 'En adopción', 'Personalizado'];
   final List<String> _clinicCategories = ['Piso 1', 'Piso 2', 'Piso 3', 'Piso 4', 'Pabellón A', 'Pabellón B', 'Personalizado'];
+  final List<String> _speciesOptions = [
+    'Canino (Perro)',
+    'Felino (Gato)',
+    'Equino (Caballo)',
+    'Bovino',
+    'Ave',
+    'Roedor / Conejo',
+    'Porcino',
+    'Exótico',
+    'Personalizado',
+  ];
 
   @override
   void initState() {
@@ -73,7 +100,7 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
         _bloodTypeController.text = p.bloodType!;
       }
 
-      if (_familyRelationships.contains(p.relationship) || _clinicRelationships.contains(p.relationship)) {
+      if (_familyRelationships.contains(p.relationship) || _clinicRelationships.contains(p.relationship) || _animalRoleOptions.contains(p.relationship)) {
         _selectedRelationship = p.relationship;
       } else if (p.relationship.isNotEmpty) {
         _selectedRelationship = 'Personalizado';
@@ -85,6 +112,22 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
       } else if (p.category != null && p.category!.isNotEmpty) {
         _selectedCategory = 'Personalizado';
         _categoryController.text = p.category!;
+      }
+
+      if (_speciesOptions.contains(p.species)) {
+        _selectedSpecies = p.species;
+      } else if (p.species != null && p.species!.isNotEmpty) {
+        _selectedSpecies = 'Personalizado';
+        _speciesController.text = p.species!;
+      }
+
+      _breedController.text = p.breed ?? '';
+      _weightController.text = p.weight != null ? p.weight.toString() : '';
+      _microchipController.text = p.microchip ?? '';
+      _notesController.text = p.notes ?? '';
+    } else {
+      if (!widget.isAnimalMode) {
+        _selectedColorHex = '#4F46E5';
       }
     }
   }
@@ -99,6 +142,11 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
     _categoryController.dispose();
     _bloodTypeController.dispose();
     _allergiesController.dispose();
+    _speciesController.dispose();
+    _breedController.dispose();
+    _weightController.dispose();
+    _microchipController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -122,7 +170,7 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
+        borderSide: BorderSide(color: AppTheme.primaryColor, width: 2),
       ),
     );
   }
@@ -206,17 +254,29 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
 
   Future<void> _submitLocalUser() async {
     final name = _nameController.text.trim();
+    final prefNotifier = context.read<PreferenceNotifier>();
+    final caregiverNotifier = context.read<CaregiverNotifier>();
+    final isAnimal = widget.isAnimalMode ||
+        (widget.initialProfile?.isAnimal ?? false) ||
+        prefNotifier.isAnimalMode ||
+        caregiverNotifier.modeType == CaregiverModeType.veterinario;
+
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('El nombre del paciente es obligatorio.')),
+        SnackBar(
+          content: Text(
+            isAnimal ? 'El nombre de la mascota es obligatorio.' : 'El nombre del paciente es obligatorio.',
+          ),
+        ),
       );
       return;
     }
 
-    String relationship = _selectedRelationship ?? 'Paciente';
+    final defaultRel = isAnimal ? 'Mascota' : 'Paciente';
+    String relationship = _selectedRelationship ?? defaultRel;
     if (relationship == 'Personalizado') {
       relationship = _relationshipController.text.trim();
-      if (relationship.isEmpty) relationship = 'Paciente';
+      if (relationship.isEmpty) relationship = defaultRel;
     }
 
     String? category = _selectedCategory;
@@ -229,11 +289,15 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
       bloodType = _bloodTypeController.text.trim();
     }
 
+    String? species = _selectedSpecies;
+    if (species == 'Personalizado') {
+      species = _speciesController.text.trim();
+    }
+
     setState(() => _isLoading = true);
     try {
       final authService = context.read<AuthService>();
       final firestoreService = context.read<FirestoreService>();
-      final caregiverNotifier = context.read<CaregiverNotifier>();
       final currentUser = authService.currentUser;
 
       if (currentUser == null) return;
@@ -251,6 +315,12 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
         category: category?.isEmpty ?? true ? null : category,
         bloodType: bloodType?.isEmpty ?? true ? null : bloodType,
         allergies: _allergiesController.text.trim().isEmpty ? null : _allergiesController.text.trim(),
+        isAnimal: isAnimal,
+        species: species?.isEmpty ?? true ? null : species,
+        breed: _breedController.text.trim().isEmpty ? null : _breedController.text.trim(),
+        weight: _weightController.text.trim().isEmpty ? null : _weightController.text.trim(),
+        microchip: _microchipController.text.trim().isEmpty ? null : _microchipController.text.trim(),
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
       );
 
       await firestoreService.saveCaregiverProfile(currentUser.uid, profile);
@@ -260,7 +330,9 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              widget.initialProfile != null ? '¡Paciente actualizado con éxito!' : '¡Paciente agregado con éxito!',
+              widget.initialProfile != null
+                  ? (isAnimal ? '¡Mascota/Animal actualizada con éxito!' : '¡Paciente actualizado con éxito!')
+                  : (isAnimal ? '¡Mascota/Animal agregada con éxito!' : '¡Paciente agregado con éxito!'),
             ),
           ),
         );
@@ -279,11 +351,17 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
 
   @override
   Widget build(BuildContext context) {
-    context.watch<PreferenceNotifier>();
+    final prefNotifier = context.watch<PreferenceNotifier>();
     final caregiverNotifier = context.watch<CaregiverNotifier>();
+    final isAnimal = widget.isAnimalMode ||
+        (widget.initialProfile?.isAnimal ?? false) ||
+        prefNotifier.isAnimalMode ||
+        caregiverNotifier.modeType == CaregiverModeType.veterinario;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isClinico = caregiverNotifier.modeType == CaregiverModeType.clinico;
-    final relationshipOptions = isClinico ? _clinicRelationships : _familyRelationships;
+    final isClinico = caregiverNotifier.modeType == CaregiverModeType.clinico || caregiverNotifier.modeType == CaregiverModeType.veterinario;
+    final relationshipOptions = isAnimal
+        ? _animalRoleOptions
+        : (isClinico ? _clinicRelationships : _familyRelationships);
 
     final cardBg = Theme.of(context).cardColor;
 
@@ -298,7 +376,9 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          widget.initialProfile != null ? 'Editar Paciente' : 'Agregar Paciente',
+          widget.initialProfile != null
+              ? (isAnimal ? 'Editar Mascota / Animal' : 'Editar Paciente')
+              : (isAnimal ? 'Agregar Mascota / Animal' : 'Agregar Paciente'),
           style: TextStyle(
             color: AppTheme.primaryTextColor,
             fontWeight: FontWeight.bold,
@@ -319,20 +399,20 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
                   indicatorColor: AppTheme.primaryColor,
                   indicatorWeight: 3,
                   labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  tabs: const [
-                    Tab(text: 'Perfil Gestionado'),
-                    Tab(text: 'Vincular por Correo'),
+                  tabs: [
+                    Tab(text: isAnimal ? 'Perfil de Mascota' : 'Perfil Gestionado'),
+                    Tab(text: isAnimal ? 'Vincular Tutor' : 'Vincular por Correo'),
                   ],
                 ),
               ),
 
             Expanded(
               child: widget.initialProfile != null
-                  ? _buildLocalForm(isDark, isClinico, relationshipOptions)
+                  ? _buildLocalForm(isDark, isClinico, isAnimal, relationshipOptions)
                   : TabBarView(
                       controller: _tabController,
                       children: [
-                        _buildLocalForm(isDark, isClinico, relationshipOptions),
+                        _buildLocalForm(isDark, isClinico, isAnimal, relationshipOptions),
                         _buildLinkUserForm(isDark),
                       ],
                     ),
@@ -367,7 +447,7 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
                       color: AppTheme.primaryColor.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(Icons.link_rounded, color: AppTheme.primaryColor, size: 22),
+                    child: Icon(Icons.link_rounded, color: AppTheme.primaryColor, size: 22),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -421,7 +501,7 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
     );
   }
 
-  Widget _buildLocalForm(bool isDark, bool isClinico, List<String> relationshipOptions) {
+  Widget _buildLocalForm(bool isDark, bool isClinico, bool isAnimal, List<String> relationshipOptions) {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -446,11 +526,17 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
                       color: AppTheme.primaryColor.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(isClinico ? Icons.hotel_rounded : Icons.person_rounded, color: AppTheme.primaryColor, size: 22),
+                    child: Icon(
+                      isAnimal
+                          ? Icons.pets_rounded
+                          : (isClinico ? Icons.hotel_rounded : Icons.person_rounded),
+                      color: AppTheme.primaryColor,
+                      size: 22,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Información Principal',
+                    isAnimal ? 'Información de la Mascota' : 'Información Principal',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -463,15 +549,76 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
 
               StyledTextField(
                 controller: _nameController,
-                labelText: 'Nombre / Alias del Paciente',
-                hintText: 'Ej: Juan David',
+                labelText: isAnimal ? 'Nombre de la Mascota / Animal' : 'Nombre / Alias del Paciente',
+                hintText: isAnimal ? 'Ej: Max, Luna, Toby' : 'Ej: Juan David',
               ),
               const SizedBox(height: 20),
+
+              if (isAnimal) ...[
+                DropdownButtonFormField<String>(
+                  dropdownColor: Theme.of(context).cardColor,
+                  style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 15),
+                  decoration: _buildDropdownDecoration('Especie', isDark),
+                  initialValue: _selectedSpecies,
+                  items: _speciesOptions.map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    setState(() {
+                      _selectedSpecies = newValue;
+                    });
+                  },
+                ),
+                if (_selectedSpecies == 'Personalizado') ...[
+                  const SizedBox(height: 16),
+                  StyledTextField(
+                    controller: _speciesController,
+                    labelText: 'Especificar Especie',
+                    hintText: 'Ej: Hurón, Loro, Erizo',
+                  ),
+                ],
+                const SizedBox(height: 20),
+
+                StyledTextField(
+                  controller: _breedController,
+                  labelText: 'Raza / Cruce (Opcional)',
+                  hintText: 'Ej: Golden Retriever, Siamés, Mestizo',
+                ),
+                const SizedBox(height: 20),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: StyledTextField(
+                        controller: _weightController,
+                        labelText: 'Peso en kg (Opcional)',
+                        hintText: 'Ej: 14.5',
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: StyledTextField(
+                        controller: _microchipController,
+                        labelText: 'Microchip / ID (Opcional)',
+                        hintText: 'Ej: 981098...',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+              ],
 
               DropdownButtonFormField<String>(
                 dropdownColor: Theme.of(context).cardColor,
                 style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 15),
-                decoration: _buildDropdownDecoration(isClinico ? 'Relación / Rol' : 'Relación Familiar', isDark),
+                decoration: _buildDropdownDecoration(
+                  isAnimal ? 'Rol / Estado' : (isClinico ? 'Relación / Rol' : 'Relación Familiar'),
+                  isDark,
+                ),
                 initialValue: _selectedRelationship,
                 items: relationshipOptions.map((String value) {
                   return DropdownMenuItem<String>(
@@ -489,8 +636,8 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
                 const SizedBox(height: 16),
                 StyledTextField(
                   controller: _relationshipController,
-                  labelText: 'Especificar Relación',
-                  hintText: 'Ej: Tío, Cuidador',
+                  labelText: 'Especificar Relación / Rol',
+                  hintText: isAnimal ? 'Ej: En acogida temporal' : 'Ej: Tío, Cuidador',
                 ),
               ],
 
@@ -499,7 +646,10 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
                 DropdownButtonFormField<String>(
                   dropdownColor: Theme.of(context).cardColor,
                   style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 15),
-                  decoration: _buildDropdownDecoration('Categoría / Piso', isDark),
+                  decoration: _buildDropdownDecoration(
+                    isAnimal ? 'Área / Sala Veterinaria' : 'Categoría / Piso',
+                    isDark,
+                  ),
                   initialValue: _selectedCategory,
                   items: _clinicCategories.map((String value) {
                     return DropdownMenuItem<String>(
@@ -517,15 +667,15 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
                   const SizedBox(height: 16),
                   StyledTextField(
                     controller: _categoryController,
-                    labelText: 'Especificar Categoría/Piso',
-                    hintText: 'Ej: Pabellón Sur, Terapia Intensiva',
+                    labelText: isAnimal ? 'Especificar Área/Sala' : 'Especificar Categoría/Piso',
+                    hintText: isAnimal ? 'Ej: Quirófano, Hospitalización' : 'Ej: Pabellón Sur, Terapia Intensiva',
                   ),
                 ],
                 const SizedBox(height: 20),
                 StyledTextField(
                   controller: _roomNumberController,
-                  labelText: 'Habitación / Cama',
-                  hintText: 'Ej: 204B',
+                  labelText: isAnimal ? 'Jaula / Box / Canil (Opcional)' : 'Habitación / Cama',
+                  hintText: isAnimal ? 'Ej: Box 3, Jaula B' : 'Ej: 204B',
                 ),
               ],
             ],
@@ -555,11 +705,15 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
                       color: AppTheme.primaryColor.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(Icons.medical_services_rounded, color: AppTheme.primaryColor, size: 22),
+                    child: Icon(
+                      isAnimal ? Icons.healing_rounded : Icons.medical_services_rounded,
+                      color: AppTheme.primaryColor,
+                      size: 22,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Información Médica (Opcional)',
+                    isAnimal ? 'Información Veterinaria (Opcional)' : 'Información Médica (Opcional)',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -570,37 +724,49 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
               ),
               const SizedBox(height: 20),
 
-              DropdownButtonFormField<String>(
-                dropdownColor: Theme.of(context).cardColor,
-                style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 15),
-                decoration: _buildDropdownDecoration('Tipo de Sangre', isDark),
-                initialValue: _selectedBloodType,
-                items: _bloodTypes.map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-                onChanged: (newValue) {
-                  setState(() {
-                    _selectedBloodType = newValue;
-                  });
-                },
-              ),
-              if (_selectedBloodType == 'Personalizado') ...[
-                const SizedBox(height: 16),
-                StyledTextField(
-                  controller: _bloodTypeController,
-                  labelText: 'Especificar Tipo de Sangre',
-                  hintText: 'Ej: O+',
+              if (!isAnimal) ...[
+                DropdownButtonFormField<String>(
+                  dropdownColor: Theme.of(context).cardColor,
+                  style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 15),
+                  decoration: _buildDropdownDecoration('Tipo de Sangre', isDark),
+                  initialValue: _selectedBloodType,
+                  items: _bloodTypes.map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    setState(() {
+                      _selectedBloodType = newValue;
+                    });
+                  },
                 ),
+                if (_selectedBloodType == 'Personalizado') ...[
+                  const SizedBox(height: 16),
+                  StyledTextField(
+                    controller: _bloodTypeController,
+                    labelText: 'Especificar Tipo de Sangre',
+                    hintText: 'Ej: O+',
+                  ),
+                ],
+                const SizedBox(height: 20),
               ],
-              const SizedBox(height: 20),
+
               StyledTextField(
                 controller: _allergiesController,
-                labelText: 'Alergias o Observaciones',
-                hintText: 'Ej: Penicilina, Intolerancia a la lactosa',
+                labelText: isAnimal ? 'Alergias o Contraindicaciones' : 'Alergias o Observaciones',
+                hintText: isAnimal ? 'Ej: Ivermectina, Alergia al pollo' : 'Ej: Penicilina, Intolerancia a la lactosa',
               ),
+
+              if (isAnimal) ...[
+                const SizedBox(height: 20),
+                StyledTextField(
+                  controller: _notesController,
+                  labelText: 'Notas Clínicas / Indicaciones del Veterinario',
+                  hintText: 'Ej: No bañar por 10 días, suministrar pastillas con paté...',
+                ),
+              ],
             ],
           ),
         ),
@@ -628,7 +794,7 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
                       color: AppTheme.primaryColor.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(Icons.palette_rounded, color: AppTheme.primaryColor, size: 22),
+                    child: Icon(Icons.palette_rounded, color: AppTheme.primaryColor, size: 22),
                   ),
                   const SizedBox(width: 12),
                   Text(
@@ -696,7 +862,9 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
             child: _isLoading
                 ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                 : Text(
-                    widget.initialProfile != null ? 'Guardar Cambios' : 'Guardar Paciente',
+                    widget.initialProfile != null
+                        ? 'Guardar Cambios'
+                        : (isAnimal ? 'Guardar Mascota' : 'Guardar Paciente'),
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
           ),

@@ -16,6 +16,8 @@ class VoiceService {
   final String _whisperUrl =
       'https://api.groq.com/openai/v1/audio/transcriptions';
 
+  String _currentLanguage = 'es';
+
   VoiceService({String? apiKey})
       : _apiKey = apiKey ??
             const String.fromEnvironment('GROQ_API_KEY') {
@@ -25,7 +27,8 @@ class VoiceService {
   void Function()? onTtsComplete;
 
   Future<void> _initTts() async {
-    await _flutterTts.setLanguage('es-MX');
+    final ttsLang = _currentLanguage == 'en' ? 'en-US' : 'es-MX';
+    await _flutterTts.setLanguage(ttsLang);
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
@@ -33,6 +36,12 @@ class VoiceService {
       _isSpeaking = false;
       onTtsComplete?.call();
     });
+  }
+
+  Future<void> updateLanguage(String languageCode) async {
+    _currentLanguage = languageCode.startsWith('en') ? 'en' : 'es';
+    final ttsLang = _currentLanguage == 'en' ? 'en-US' : 'es-MX';
+    await _flutterTts.setLanguage(ttsLang);
   }
 
   bool get isRecording => _isRecording;
@@ -129,7 +138,7 @@ class VoiceService {
       request.files
           .add(await http.MultipartFile.fromPath('file', path));
       request.fields['model'] = _whisperModel;
-      request.fields['language'] = 'es';
+      request.fields['language'] = _currentLanguage;
       request.fields['response_format'] = 'json';
 
       final streamedResponse = await request.send();

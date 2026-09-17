@@ -6,7 +6,6 @@ import 'package:meditime/core/stream_cache.dart';
 import 'package:meditime/core/constants.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/repositories/treatment_repository.dart';
-import 'package:meditime/services/tratamiento_service.dart';
 
 /// Firestore implementation of the TreatmentRepository.
 /// 

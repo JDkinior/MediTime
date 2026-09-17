@@ -81,7 +81,7 @@ class AccesibilidadPage extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Icon(Icons.elderly_rounded, color: AppTheme.primaryColor, size: 28),
+            Icon(Icons.elderly_rounded, color: AppTheme.primaryColor, size: 28),
             const SizedBox(width: 8),
             Text(
               'Modo Adulto Mayor',
@@ -253,7 +253,7 @@ class AccesibilidadPage extends StatelessWidget {
               color: AppTheme.primaryColor.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.medication_rounded, color: AppTheme.primaryColor, size: 20),
+            child: Icon(Icons.medication_rounded, color: AppTheme.primaryColor, size: 20),
           ),
           const SizedBox(width: 12),
           Column(
@@ -289,7 +289,7 @@ class AccesibilidadPage extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.medication_rounded, color: AppTheme.primaryColor),
+              Icon(Icons.medication_rounded, color: AppTheme.primaryColor),
               const SizedBox(width: 8),
               Text(
                 'Próxima toma: Paracetamol',

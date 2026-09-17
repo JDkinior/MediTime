@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:meditime/models/caregiver_profile.dart';
+import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/notification_service.dart';
@@ -32,9 +33,19 @@ class TreatmentService {
       formData.horaPrimeraDosis.minute,
     );
 
-    // Si la primera dosis es en el pasado, programarla para mañana
-    if (primeraDosisDateTime.isBefore(now)) {
-      primeraDosisDateTime = primeraDosisDateTime.add(const Duration(days: 1));
+    final int intervaloHoras = formData.intervaloDosis > 0 ? formData.intervaloDosis : 8;
+
+    // Si la hora seleccionada coincide con el minuto actual o fue hace menos de 5 minutos:
+    // Programar para HOY de inmediato (en 5 segundos) para no aplazar al día siguiente.
+    final difference = now.difference(primeraDosisDateTime);
+    if (difference.inSeconds >= 0 && difference.inMinutes < 5) {
+      primeraDosisDateTime = now.add(const Duration(seconds: 5));
+    } else if (primeraDosisDateTime.isBefore(now)) {
+      // Si la hora base ya pasó hoy por más de 5 minutos, avanzar las dosis del ciclo de hoy
+      // según el intervalo (ej. 8:00 AM + 8h = 4:00 PM hoy)
+      while (primeraDosisDateTime.isBefore(now)) {
+        primeraDosisDateTime = primeraDosisDateTime.add(Duration(hours: intervaloHoras));
+      }
     }
 
     final DateTime fechaInicioTratamiento = primeraDosisDateTime;
@@ -72,6 +83,71 @@ class TreatmentService {
     );
 
     return docRef;
+  }
+
+  /// Actualiza un tratamiento existente y reprograma sus notificaciones
+  Future<void> updateTreatment({
+    required String userId,
+    CaregiverProfile? profile,
+    required String docId,
+    required TreatmentFormData formData,
+    required Tratamiento originalTratamiento,
+  }) async {
+    final now = DateTime.now();
+    final DateTime fechaInicioTratamiento = originalTratamiento.fechaInicioTratamiento;
+    final DateTime fechaFinTratamiento = formData.calculateEndDate(fechaInicioTratamiento);
+
+    DateTime proximaAlarma = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      formData.horaPrimeraDosis.hour,
+      formData.horaPrimeraDosis.minute,
+    );
+
+    final int intervaloHoras = formData.intervaloDosis > 0 ? formData.intervaloDosis : 8;
+    final difference = now.difference(proximaAlarma);
+    if (difference.inSeconds >= 0 && difference.inMinutes < 5) {
+      proximaAlarma = now.add(const Duration(seconds: 5));
+    } else {
+      while (proximaAlarma.isBefore(now)) {
+        proximaAlarma = proximaAlarma.add(Duration(hours: intervaloHoras));
+      }
+    }
+
+    await _firestoreService.updateMedicamento(
+      userId: userId,
+      profile: profile,
+      docId: docId,
+      nombreMedicamento: formData.nombreMedicamento,
+      presentacion: formData.presentacion,
+      duracion: formData.duracionEnDias.toString(),
+      cantidadActual: formData.cantidadActual,
+      cantidadTotalCaja: formData.cantidadTotalCaja,
+      dosisPorToma: formData.dosisPorToma,
+      horaPrimeraDosis: formData.horaPrimeraDosis,
+      intervaloDosis: Duration(hours: formData.intervaloDosis),
+      fechaInicioTratamiento: fechaInicioTratamiento,
+      fechaFinTratamiento: fechaFinTratamiento,
+      notas: formData.notas,
+    );
+
+    // Cancelar alarmas anteriores y reprogramar
+    try {
+      await NotificationService.cancelTreatmentAlarms(originalTratamiento.prescriptionAlarmId);
+    } catch (e) {
+      debugPrint('Error al cancelar alarmas previas del tratamiento: $e');
+    }
+
+    await _scheduleNotifications(
+      formData: formData,
+      primeraDosisDateTime: proximaAlarma,
+      fechaFinTratamiento: fechaFinTratamiento,
+      prescriptionAlarmManagerId: originalTratamiento.prescriptionAlarmId,
+      userId: userId,
+      docId: docId,
+      profile: profile,
+    );
   }
 
   /// Programa las notificaciones para el tratamiento

@@ -6,7 +6,10 @@ import 'package:meditime/models/tratamiento.dart'; // <-- CAMBIO: Importar model
 import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/treatment_form/treatment_summary_card.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:meditime/services/firestore_service.dart';
+import 'package:meditime/services/notification_service.dart';
+import 'package:meditime/services/preference_service.dart';
 
 // CAMBIO: Convertimos a StatefulWidget para manejar el temporizador de la cuenta regresiva
 class DetalleRecetaPage extends StatefulWidget {
@@ -27,6 +30,7 @@ class DetalleRecetaPage extends StatefulWidget {
 class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
   Timer? _timer;
   late DateTime? _nextUpcomingDose;
+  bool _isProcessing = false;
 
   @override
   void initState() {
@@ -50,6 +54,70 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _handleDoseAction(DoseStatus newStatus) async {
+    if (_isProcessing) return;
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      final docId = widget.tratamiento.id;
+      final doseTime = widget.horaDosis;
+      final firestoreService = FirestoreService();
+
+      await firestoreService.updateDoseStatus(
+        userId,
+        docId,
+        doseTime,
+        newStatus,
+      );
+
+      if (newStatus == DoseStatus.aplazada) {
+        final snoozeMinutes = await PreferenceService().getSnoozeDuration();
+        final payload =
+            'active_notification|$userId|$docId|${doseTime.toIso8601String()}';
+        // Enviar id ficticio para aplazar
+        await NotificationService.snoozeNotification(
+          doseTime.hashCode.abs(), // Generar un ID único basado en la hora
+          payload,
+          doseTime,
+          snoozeMinutes,
+        );
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Dosis aplazada por $snoozeMinutes minutos')),
+          );
+        }
+      } else {
+        // Reprogramar próxima dosis
+        final docRef = firestoreService.getMedicamentoDocRef(userId, docId);
+        final docSnap = await docRef.get();
+        if (docSnap.exists) {
+          final tratamiento = Tratamiento.fromFirestore(docSnap as dynamic);
+          await NotificationService.rescheduleNextPendingDose(tratamiento, userId);
+        }
+      }
+
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      debugPrint('Error actualizando dosis: $e');
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al actualizar la dosis')),
+        );
+      }
+    }
   }
 
   DateTime? _findNextUpcomingDose() {
@@ -139,9 +207,86 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     );
   }
 
-  // --- El resto de los widgets de construcción (sin cambios) ---
+  // --- El resto de los widgets de construcción ---
+
+  DoseStatus _getDoseStatus(DateTime doseTime) {
+    // 1. Coincidencia directa por clave ISO
+    final directStatus = widget.tratamiento.doseStatus[doseTime.toIso8601String()];
+    if (directStatus != null) return directStatus;
+
+    // 2. Coincidencia aproximada dentro de una tolerancia (30 min)
+    for (final entry in widget.tratamiento.doseStatus.entries) {
+      final dt = DateTime.tryParse(entry.key);
+      if (dt != null && dt.difference(doseTime).inMinutes.abs() <= 30) {
+        return entry.value;
+      }
+    }
+
+    // 3. Revisar si está en dosis omitidas
+    if (widget.tratamiento.skippedDoses.any((d) => d.difference(doseTime).inMinutes.abs() <= 30)) {
+      return DoseStatus.omitida;
+    }
+
+    // 4. Si la hora ya pasó y no tiene interacción previa
+    if (doseTime.isBefore(DateTime.now())) {
+      return DoseStatus.notificada;
+    }
+
+    return DoseStatus.pendiente;
+  }
+
+  Color _getDoseColor(DoseStatus status, bool isPast) {
+    switch (status) {
+      case DoseStatus.tomada:
+        return AppTheme.successColor;
+      case DoseStatus.omitida:
+        return AppTheme.errorColor;
+      case DoseStatus.notificada:
+        return const Color(0xFFFFB703);
+      case DoseStatus.aplazada:
+        return Colors.orange;
+      case DoseStatus.pendiente:
+        return isPast ? const Color(0xFFFFB703) : AppTheme.primaryColor;
+    }
+  }
+
+  String _getDoseStatusText(DoseStatus status, bool isPast) {
+    switch (status) {
+      case DoseStatus.tomada:
+        return 'Tomada';
+      case DoseStatus.omitida:
+        return 'Omitida';
+      case DoseStatus.notificada:
+        return 'Notificada';
+      case DoseStatus.aplazada:
+        return 'Aplazada';
+      case DoseStatus.pendiente:
+        return isPast ? 'Notificada' : 'Programada';
+    }
+  }
+
+  IconData _getDoseStatusIcon(DoseStatus status, bool isPast) {
+    switch (status) {
+      case DoseStatus.tomada:
+        return Icons.check_circle_outline;
+      case DoseStatus.omitida:
+        return Icons.cancel_outlined;
+      case DoseStatus.notificada:
+        return Icons.notifications_none;
+      case DoseStatus.aplazada:
+        return Icons.schedule;
+      case DoseStatus.pendiente:
+        return isPast ? Icons.notifications_none : Icons.alarm;
+    }
+  }
 
   Widget _buildSelectedDoseDisplay(DateTime doseTime) {
+    final isPast = doseTime.isBefore(DateTime.now());
+    final status = _getDoseStatus(doseTime);
+    final statusColor = _getDoseColor(status, isPast);
+    final statusText = _getDoseStatusText(status, isPast);
+    final statusIcon = _getDoseStatusIcon(status, isPast);
+
     return Column(
       children: [
         Text(
@@ -155,16 +300,85 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
         const SizedBox(height: 8),
         Text(
           DateFormat('hh:mm a', 'es_ES').format(doseTime),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 52,
             fontWeight: FontWeight.bold,
-            color: Colors.blue,
+            color: statusColor,
           ),
         ),
         Text(
           DateFormat('EEEE, d MMMM', 'es_ES').format(doseTime),
           style: TextStyle(fontSize: 18, color: AppTheme.secondaryTextColor),
         ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(statusIcon, color: statusColor, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                statusText,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: statusColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (status == DoseStatus.notificada) ...[
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _isProcessing ? null : () => _handleDoseAction(DoseStatus.tomada),
+                  icon: const Icon(Icons.check, size: 18),
+                  label: const Text('Tomar'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.successColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isProcessing ? null : () => _handleDoseAction(DoseStatus.aplazada),
+                  icon: const Icon(Icons.snooze, size: 18),
+                  label: const Text('Aplazar'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.orange.shade700,
+                    side: BorderSide(color: Colors.orange.shade700),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextButton.icon(
+                  onPressed: _isProcessing ? null : () => _handleDoseAction(DoseStatus.omitida),
+                  icon: const Icon(Icons.close, size: 18),
+                  label: const Text('Omitir'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.errorColor,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -173,7 +387,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     if (nextDose == null) {
       return _buildInfoCard(
         icon: Icons.check_circle,
-        color: Colors.green,
+        color: AppTheme.successColor,
         title: 'Tratamiento Finalizado',
         subtitle: 'No hay más dosis programadas.',
       );
@@ -182,7 +396,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     if (nextDose.isAtSameMomentAs(selectedDose)) {
       return _buildInfoCard(
         icon: Icons.notifications_active,
-        color: Colors.blue,
+        color: AppTheme.primaryColor,
         title: 'Esta es la próxima dosis',
         subtitle: _getTiempoRestante(nextDose),
       );

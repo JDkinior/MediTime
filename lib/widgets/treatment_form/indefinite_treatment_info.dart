@@ -24,7 +24,7 @@ class IndefiniteTreatmentInfo extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
+              Icon(
                 Icons.info_outline,
                 color: AppTheme.primaryColor,
                 size: 20,
