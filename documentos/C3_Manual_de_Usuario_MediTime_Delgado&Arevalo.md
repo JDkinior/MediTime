@@ -38,7 +38,8 @@
    - 4.2. Inicio de Sesión Estándar y Acceso Federado con Google
    - 4.3. Recuperación de Credenciales de Acceso
    - 4.4. Diligenciamiento y Actualización del Perfil Médico
-   - 4.5. Tutorial Interactivo Guiado (Showcase)
+   - 4.5. Flujo de Bienvenida y Personalización Inicial (Onboarding)
+   - 4.6. Tutorial Interactivo Guiado (Showcase)
 5. [GESTIÓN INTEGRAL DE TRATAMIENTOS Y MEDICAMENTOS](#5-gestión-integral-de-tratamientos-y-medicamentos)
    - 5.1. Registro y Alta de un Tratamiento Farmacológico
    - 5.2. Selección de Presentación, Dosis e Intervalos Horarios
@@ -160,8 +161,19 @@ MediTime integra una ficha clínica personal fundamental para situaciones de eme
    - **Contacto de emergencia:** Nombre y número de teléfono de contacto para auxilio inmediato.
 3. Presione el botón **"Guardar Cambios"** para sincronizar la información con Cloud Firestore.
 
-### 4.5. Tutorial Interactivo Guiado (Showcase)
-Al ingresar a la aplicación por primera vez, el sistema activa de forma automática una secuencia de orientación interactiva (*Showcase View*). Esta herramienta resalta visualmente los elementos primordiales de la pantalla principal (menú de navegación, botón flotante de nueva receta, asistente Midi, tarjeta de resumen y calendario) con globos explicativos. El usuario puede seguir las indicaciones paso a paso o pulsar el botón **"Saltar"** en cualquier instante.
+### 4.5. Flujo de Bienvenida y Personalización Inicial (Onboarding)
+Al registrarse o ingresar por primera vez, MediTime despliega un asistente interactivo de 5 pasos para calibrar la experiencia a las necesidades del usuario:
+1. **Configuración de Identidad:** Ingreso de nombre preferido, fecha de nacimiento y fotografía opcional de perfil.
+2. **Propósito de Uso de la Aplicación:** Selección del perfil operativo primario, identificado con el código de color y estilo propio de cada modalidad:
+   - **Para mí (Uso Personal) [Azul]:** Enfoque personal para registrar medicamentos propios, recetas médicas y monitorear la adherencia.
+   - **Soy Cuidador / Familiar [Morado]:** Diseñado para familiares o cuidadores que supervisan la administración de tomas a padres, hijos o adultos mayores (activa automáticamente el Modo Cuidador).
+   - **Mascotas y Animales (Veterinaria) [Verde]:** Destinado a tutores de mascotas y profesionales veterinarios para gestionar tratamientos, dosis y esquemas farmacológicos de animales (activa automáticamente el Modo Animales en modalidad veterinaria y garantiza exclusividad mutua).
+3. **Estilo de Interfaz:** Selección del estilo visual entre Moderna, Clásica o Accesible/Simplificada.
+4. **Modalidad de Recordatorios:** Elección del tipo de alerta (Alarma Despertador con sonido continuo y pantalla completa, Modo Activo con aviso sonoro, o Informativo).
+5. **Confirmación y Resumen:** Visualización integral de los parámetros escogidos antes de acceder al panel principal.
+
+### 4.6. Tutorial Interactivo Guiado (Showcase)
+Al ingresar a la aplicación por primera vez tras completar la configuración inicial, el sistema activa de forma automática una secuencia de orientación interactiva (*Showcase View*). Esta herramienta resalta visualmente los elementos primordiales de la pantalla principal (menú de navegación, botón flotante de nueva receta, asistente Midi, tarjeta de resumen y calendario) con globos explicativos. El usuario puede seguir las indicaciones paso a paso o pulsar el botón **"Saltar"** en cualquier instante.
 
 ---
 

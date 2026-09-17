@@ -98,6 +98,7 @@ Al iniciar la aplicación, se deben autorizar los siguientes permisos esenciales
 - **Inicio de Sesión:** Admite acceso estándar o mediante **Google Sign-In** en un solo toque.
 - **Recuperación de Contraseña:** Envío automático de enlace de restablecimiento al correo institucional o personal.
 - **Perfil Médico:** Registro de tipo de sangre, alergias farmacológicas, antecedentes clínicos y contacto de emergencia.
+- **Flujo de Onboarding:** Asistente interactivo guiado en 5 pasos para seleccionar el propósito operativo diferenciado cromáticamente (Uso Personal en azul, Modo Cuidador en morado y Modo Animales en verde con exclusividad mutua), configurar el estilo de interfaz y el tipo de recordatorios.
 - **Tutorial Guiado (Showcase):** Recorrido interactivo con globos explicativos al abrir la aplicación por primera vez.
 
 ## 5. GESTIÓN INTEGRAL DE TRATAMIENTOS Y MEDICAMENTOS

@@ -264,6 +264,7 @@ A continuación se detalla la responsabilidad técnica de cada uno de los archiv
 - `screens/home/home_page.dart`: Dashboard principal con vista de dosis del día, indicador de perfil de mascota/paciente activo (`Icons.pets_rounded`), resumen de progreso y tutorial `showcaseview`.
 - `screens/medication/`: Flujos de creación adaptados para mascotas (`agregar_receta_page.dart`), inspección (`detalle_receta_page.dart`), listado general y resúmenes.
 - `screens/reports/`: Vistas de análisis de adherencia (`progreso_page.dart`, `reportes_page.dart`, `adherencia_chart.dart`).
+- `screens/onboarding/onboarding_page.dart`: Asistente de bienvenida y calibración inicial en 5 pasos (perfil/foto, propósito con colores temáticos dinámicos: azul para uso personal, morado para modo cuidador y verde para modo animales con garantía de exclusividad mutua, estilo visual y modalidad de alarmas).
 - `screens/shared/`: Pantallas de configuración, accesibilidad, **Modo Animales (`modo_animales_opciones_page.dart`)**, localización de farmacias, datos de privacidad y guía de optimización por fabricante.
 - `widgets/`: Componentes modulares reutilizables: botones estilizados (`primary_button.dart`), campos de texto (`styled_text_field.dart`), menú lateral con sincronización cromática dinámica en todos los iconos de navegación y badge de modo (`drawer_widget.dart`), diálogos de cuidador/mascotas con aislamiento estricto de perfiles (`patient_selector_dialog.dart`) e indicador de avatar parpadeante (`midi_blinking_icon.dart`).
 

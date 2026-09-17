@@ -101,7 +101,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final ImagePicker _picker = ImagePicker();
 
   // Step 2: Propósito de uso
-  String _selectedPurpose = 'personal'; // 'personal', 'cuidador', 'ambos'
+  String _selectedPurpose = 'personal'; // 'personal', 'cuidador', 'animales'
 
   // Step 3: Estilo de interfaz
   String _selectedInterfaceStyle = 'modern'; // 'modern', 'classic', 'simplified'
@@ -225,10 +225,29 @@ class _OnboardingPageState extends State<OnboardingPage> {
         );
       }
 
-      // 4. Configurar Modo Cuidador si aplica
-      final isCaregiver = _selectedPurpose != 'personal';
+      // 4. Configurar Modo Cuidador o Modo Animales según el propósito seleccionado
+      final isCaregiver = _selectedPurpose == 'cuidador';
+      final isAnimal = _selectedPurpose == 'animales';
+
       if (mounted) {
-        await context.read<CaregiverNotifier>().setCaregiverModeActive(isCaregiver);
+        final caregiverNotifier = context.read<CaregiverNotifier>();
+        final preferenceNotifier = context.read<PreferenceNotifier>();
+
+        if (isCaregiver) {
+          await preferenceNotifier.setAnimalMode(false);
+          await caregiverNotifier.setCaregiverModeActive(true);
+          caregiverNotifier.ensureActiveProfileForMode(isAnimalMode: false);
+        } else if (isAnimal) {
+          await caregiverNotifier.setCaregiverModeActive(false);
+          await preferenceNotifier.setAnimalMode(true);
+          await caregiverNotifier.setModeType(CaregiverModeType.veterinario);
+          caregiverNotifier.ensureActiveProfileForMode(isAnimalMode: true);
+        } else {
+          // Personal
+          await caregiverNotifier.setCaregiverModeActive(false);
+          await preferenceNotifier.setAnimalMode(false);
+          caregiverNotifier.clearActiveProfile();
+        }
       }
 
       // 5. Configurar Preferencias de Interfaz y Recordatorios
@@ -732,7 +751,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               isSelected: _selectedPurpose == 'personal',
               onTap: () => setState(() => _selectedPurpose = 'personal'),
               icon: Icons.person_rounded,
-              color: AppTheme.primaryColor,
+              color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF004AC6),
               title: 'Para mí (Uso Personal)',
               subtitle: 'Registrar mis propios medicamentos, recetas y seguir mi adherencia diaria.',
             ),
@@ -744,7 +763,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               isSelected: _selectedPurpose == 'cuidador',
               onTap: () => setState(() => _selectedPurpose = 'cuidador'),
               icon: Icons.health_and_safety_rounded,
-              color: Colors.teal,
+              color: isDark ? const Color(0xFFBCA2F3) : const Color(0xFF8B62D4),
               title: 'Soy Cuidador / Familiar',
               subtitle: 'Gestionar las tomas de mis padres, hijos, pacientes u otros familiares a mi cargo.',
             ),
@@ -753,12 +772,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
           FadeSlideCard(
             delayMs: 280,
             child: _buildSelectionCard(
-              isSelected: _selectedPurpose == 'ambos',
-              onTap: () => setState(() => _selectedPurpose = 'ambos'),
-              icon: Icons.people_alt_rounded,
-              color: Colors.deepPurple,
-              title: 'Ambos (Mis medicinas y las de otros)',
-              subtitle: 'Controlar mis tratamientos personales y también supervisar a mis seres queridos.',
+              isSelected: _selectedPurpose == 'animales',
+              onTap: () => setState(() => _selectedPurpose = 'animales'),
+              icon: Icons.pets_rounded,
+              color: isDark ? const Color(0xFF65C895) : const Color(0xFF389E6A),
+              title: 'Mascotas y Animales (Veterinaria)',
+              subtitle: 'Gestionar tratamientos, dosis y recordatorios para mascotas o en clínica veterinaria.',
             ),
           ),
         ],
@@ -980,11 +999,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   ),
                   const Divider(height: 24),
                   _buildSummaryRow(
-                    icon: Icons.health_and_safety_outlined,
+                    icon: _selectedPurpose == 'animales'
+                        ? Icons.pets_rounded
+                        : (_selectedPurpose == 'cuidador' ? Icons.health_and_safety_outlined : Icons.person_outline_rounded),
                     label: 'Propósito',
                     value: _selectedPurpose == 'personal'
                         ? 'Uso Personal'
-                        : (_selectedPurpose == 'cuidador' ? 'Modo Cuidador' : 'Personal y Cuidador'),
+                        : (_selectedPurpose == 'cuidador' ? 'Modo Cuidador' : 'Modo Animales'),
                   ),
                   const Divider(height: 24),
                   _buildSummaryRow(
