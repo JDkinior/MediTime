@@ -103,11 +103,29 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
                   activeColor: Colors.white,
                   activeTrackColor: Colors.white.withValues(alpha: 0.4),
                   onChanged: (val) async {
-                    await preferenceNotifier.setAnimalMode(val);
                     if (val) {
+                      // Exclusividad mutua: desactivar Modo Cuidador
+                      if (caregiverNotifier.isCaregiverModeActive) {
+                        await caregiverNotifier.setCaregiverModeActive(false);
+                      }
+                      await preferenceNotifier.setAnimalMode(true);
                       await caregiverNotifier.setModeType(CaregiverModeType.veterinario);
+                      caregiverNotifier.ensureActiveProfileForMode(
+                        isAnimalMode: true,
+                        animalModeType: animalModeType,
+                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Modo Animales activado (Modo Cuidador desactivado).'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
                     } else {
+                      await preferenceNotifier.setAnimalMode(false);
                       await caregiverNotifier.setModeType(CaregiverModeType.familiar);
+                      caregiverNotifier.clearActiveProfile();
                     }
                   },
                 ),

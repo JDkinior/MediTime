@@ -77,7 +77,10 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
     final firestoreService = context.watch<FirestoreService>();
     final caregiverNotifier = context.watch<CaregiverNotifier>();
     final user = authService.currentUser;
-    final profiles = caregiverNotifier.managedProfiles;
+    final isAnimal = preferenceNotifier.isAnimalMode || caregiverNotifier.modeType == CaregiverModeType.veterinario;
+    final profiles = isAnimal
+        ? caregiverNotifier.managedProfiles.where((p) => p.isAnimal).toList()
+        : caregiverNotifier.managedProfiles.where((p) => !p.isAnimal).toList();
 
     if (user == null) {
       return const Scaffold(
@@ -86,10 +89,12 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
     }
 
     if (profiles.isEmpty) {
-      return const EstadoVista(
+      return EstadoVista(
         state: ViewState.empty,
-        emptyMessage: 'No tienes pacientes asignados. Agrega uno desde el menú desplegable.',
-        child: SizedBox.shrink(),
+        emptyMessage: isAnimal
+            ? 'No tienes mascotas registradas. Agrega una desde el selector.'
+            : 'No tienes pacientes asignados. Agrega uno desde el menú desplegable.',
+        child: const SizedBox.shrink(),
       );
     }
 
@@ -191,7 +196,9 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Medicamentos de todos los pacientes',
+                    isAnimal
+                        ? 'Tratamientos de todas las mascotas'
+                        : 'Medicamentos de todos los pacientes',
                     style: TextStyle(
                       fontSize: 15,
                       color: AppTheme.secondaryTextColor,
@@ -206,7 +213,9 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
               const SizedBox(height: 24),
               
               Text(
-                _esHoy(_selectedDate) ? 'Próximas dosis (Todos)' : 'Dosis del día (Todos)',
+                _esHoy(_selectedDate)
+                    ? (isAnimal ? 'Próximas dosis (Todas las mascotas)' : 'Próximas dosis (Todos)')
+                    : (isAnimal ? 'Dosis del día (Todas las mascotas)' : 'Dosis del día (Todos)'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -221,8 +230,12 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
                     padding: const EdgeInsets.symmetric(vertical: 32.0),
                     child: Text(
                       _esHoy(_selectedDate)
-                          ? 'No hay dosis programadas para hoy en ningún paciente.'
-                          : 'No hay dosis programadas para este día en ningún paciente.',
+                          ? (isAnimal
+                              ? 'No hay dosis programadas para hoy en ninguna mascota.'
+                              : 'No hay dosis programadas para hoy en ningún paciente.')
+                          : (isAnimal
+                              ? 'No hay dosis programadas para este día en ninguna mascota.'
+                              : 'No hay dosis programadas para este día en ningún paciente.'),
                       style: TextStyle(color: AppTheme.secondaryTextColor),
                     ),
                   ),

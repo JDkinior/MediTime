@@ -99,10 +99,15 @@ class _CalendarioPageState extends State<CalendarioPage> with AutomaticKeepAlive
     final authService = context.watch<AuthService>();
     final firestoreService = context.watch<FirestoreService>();
     final caregiverNotifier = context.watch<CaregiverNotifier>();
+    final preferenceNotifier = context.watch<PreferenceNotifier>();
     final user = authService.currentUser;
-    final isGeneralMode = caregiverNotifier.isCaregiverModeActive && caregiverNotifier.isGeneralMode;
-    final activeProfile = caregiverNotifier.isCaregiverModeActive ? caregiverNotifier.activeProfile : null;
-    final profiles = caregiverNotifier.managedProfiles;
+    final isAnimal = preferenceNotifier.isAnimalMode;
+    final isManagedMode = caregiverNotifier.isCaregiverModeActive || isAnimal;
+    final isGeneralMode = isManagedMode && caregiverNotifier.isGeneralMode;
+    final activeProfile = isManagedMode ? caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimal) : null;
+    final profiles = isAnimal
+        ? caregiverNotifier.managedProfiles.where((p) => p.isAnimal).toList()
+        : caregiverNotifier.managedProfiles.where((p) => !p.isAnimal).toList();
 
     if (user == null) {
       return Scaffold(
@@ -116,7 +121,7 @@ class _CalendarioPageState extends State<CalendarioPage> with AutomaticKeepAlive
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        key: ValueKey('${isGeneralMode}_${activeProfile?.id}_${caregiverNotifier.isCaregiverModeActive}'),
+        key: ValueKey('${isGeneralMode}_${activeProfile?.id}_$isManagedMode'),
         initialData: !isGeneralMode
             ? firestoreService.getCachedMedicamentos(user.uid, activeProfile)?.map((t) => {'tratamiento': t, 'profile': activeProfile}).toList()
             : null,

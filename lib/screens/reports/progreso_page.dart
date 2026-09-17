@@ -1331,9 +1331,13 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
     final preferenceNotifier = context.watch<PreferenceNotifier>();
     final isModern = preferenceNotifier.interfaceStyle == 'modern';
     final user = authService.currentUser;
-    final isGeneralMode = caregiverNotifier.isCaregiverModeActive && caregiverNotifier.isGeneralMode;
-    final activeProfile = caregiverNotifier.isCaregiverModeActive ? caregiverNotifier.activeProfile : null;
-    final profiles = caregiverNotifier.managedProfiles;
+    final isAnimal = preferenceNotifier.isAnimalMode;
+    final isManagedMode = caregiverNotifier.isCaregiverModeActive || isAnimal;
+    final isGeneralMode = isManagedMode && caregiverNotifier.isGeneralMode;
+    final activeProfile = isManagedMode ? caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimal) : null;
+    final profiles = isAnimal
+        ? caregiverNotifier.managedProfiles.where((p) => p.isAnimal).toList()
+        : caregiverNotifier.managedProfiles.where((p) => !p.isAnimal).toList();
     final dateRange = _getDateRange();
 
     if (user == null) {
@@ -1354,7 +1358,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
               _buildIntervalSelector(),
               Expanded(
                 child: StreamBuilder<List<Map<String, dynamic>>>(
-                  key: ValueKey('${isGeneralMode}_${activeProfile?.id}_${caregiverNotifier.isCaregiverModeActive}'),
+                  key: ValueKey('${isGeneralMode}_${activeProfile?.id}_$isManagedMode'),
                   stream: _combinedStream,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {

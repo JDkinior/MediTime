@@ -277,17 +277,23 @@ El Modo Cuidador es una funcionalidad innovadora orientada a personas que tienen
 ### 8.3. Vinculación Remota de Cuentas
 MediTime permite vincular perfiles locales con cuentas reales de Firebase mediante la dirección de correo electrónico (`linkedUid`). De este modo, cuando el cuidador programa una receta en su propio teléfono, esta se replica automáticamente en el dispositivo del paciente, o viceversa, garantizando supervisión a distancia en tiempo real.
 
+### 8.4. Tema Cromático Morado Suave y Exclusividad Operativa
+- **Identidad Visual Morada Pastel:** Al habilitar el Modo Cuidador, la aplicación adopta un esquema visual armónico en tono **Morado Lavanda Suave / Crema Lila (`#8B62D4` / `#A582E2`)**, con fondos crema pastel (`#FAF8F5` en claro y `#14111B` en oscuro) y superficies adaptadas, permitiendo al cuidador identificar inmediatamente que se encuentra operando en la gestión asistencial de pacientes.
+- **Exclusividad Mutua con Modo Animales:** Para preservar la integridad del historial clínico y evitar confusiones operativas entre pacientes humanos y animales, **el Modo Cuidador y el Modo Animales son mutuamente excluyentes**. Al activar el Modo Cuidador, el Modo Animales se desactiva de forma automática e inmediata (y viceversa), garantizando que el selector superior, el calendario, las recetas y el seguimiento de dosis correspondan estrictamente al ámbito seleccionado.
+
 ---
 
 ## 9. MODO ANIMALES Y VETERINARIA (GESTIÓN DE MASCOTAS Y CLÍNICAS VETERINARIAS)
 
 El **Modo Animales (Veterinaria)** es un módulo adaptativo de vanguardia diseñado para propietarios de mascotas, refugios, rescatistas y profesionales de clínicas y centros veterinarios, permitiendo gestionar tratamientos farmacológicos en animales con exactitud posológica, personalización zootécnica y una interfaz de usuario completamente adaptada.
 
-### 9.1. Activación y Adaptación Visual Dinámica (Tema Verde Veterinario)
+### 9.1. Activación y Adaptación Visual Dinámica (Tema Verde Salvia / Crema Menta)
 1. Ingrese a la sección **"Ajustes y Opciones"** desde el menú principal y seleccione la tarjeta **"Modo Animales (Veterinaria)"**.
 2. Active el interruptor **"Habilitar Modo Animales"**.
-3. **Transformación cromática instantánea:** MediTime transformará de manera inmediata y reactiva toda la paleta de colores de la aplicación, sustituyendo el azul clínico tradicional por una gama armónica de **Verde Esmeralda Médico (`#15803D`)** y **Verde Bosque Oscuro (`#047857`)**, con gradientes biológicos, fondos claros u oscuros optimizados y superficies de contraste accesible. Al desactivar el modo, la aplicación restaura automáticamente la identidad azul estándar.
-4. **Distintivos visuales en el sistema:** El cajón de navegación lateral (*Drawer*) expone la insignia destacada **`🐾 Modo Animales`**, habilitando accesos directos exclusivos para la gestión veterinaria.
+3. **Transformación cromática instantánea:** MediTime transformará de manera inmediata y reactiva toda la paleta de colores de la aplicación, sustituyendo el azul clínico tradicional por una gama armónica y relajante de **Verde Salvia Suave / Crema Menta (`#389E6A` / `#52B788`)**, con fondos crema pastel (`#F9FAF5` en claro y `#101713` en oscuro), superficies optimizadas y alto confort visual. Al desactivar el modo, la aplicación restaura automáticamente la identidad azul estándar.
+4. **Exclusividad Mutua Garantizada:** Al encender el Modo Animales, el Modo Cuidador se desactiva automáticamente para evitar mezclas entre tratamientos humanos y zootécnicos.
+5. **Autonomía Operativa Completa:** El Modo Animales opera de manera 100% independiente sin requerir tener activo el Modo Cuidador. Proporciona su propio selector de mascotas en la barra superior con icono de huella (`Icons.pets_rounded`), vista general de tratamientos animales, sincronización con el calendario y filtrado estricto de perfiles veterinarios.
+6. **Distintivos visuales en el sistema:** El cajón de navegación lateral (*Drawer*) expone la insignia destacada **`🐾 Modo Animales`**, habilitando accesos directos exclusivos para la gestión veterinaria.
 
 ### 9.2. Modalidades: Mascota Individual vs. Múltiples Animales (Clínica Veterinaria)
 El usuario puede alternar entre dos filosofías operativas según su rol o contexto:

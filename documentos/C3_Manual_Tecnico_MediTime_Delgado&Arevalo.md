@@ -245,13 +245,17 @@ A continuación se detalla la responsabilidad técnica de cada uno de los archiv
 
 ### 4.6. Notificadores de Estado (`lib/notifiers/`)
 - `profile_notifier.dart`: Notificador reactivo del perfil de usuario.
-- `preference_notifier.dart`: Notificador de opciones de accesibilidad, temas dinámicos y **Modo Animales** (`isAnimalMode`, `animalModeType`), orquestando la reactividad cromática del árbol de widgets en runtime.
-- `caregiver_notifier.dart`: Notificador para selección de paciente activo y filtros clínicos y veterinarios (`CaregiverModeType.veterinario`).
+- `preference_notifier.dart`: Notificador de opciones de accesibilidad, temas dinámicos y **Modo Animales** (`isAnimalMode`, `animalModeType`), orquestando la reactividad cromática del árbol de widgets en runtime y garantizando la exclusividad mutua con Modo Cuidador.
+- `caregiver_notifier.dart`: Notificador para selección de paciente o mascota activa, soporte asistencial familiar, clínico y veterinario (`CaregiverModeType.veterinario`, perfiles zootécnicos `isAnimal`), método `getEffectiveActiveProfile(isAnimalMode)` y persistencia de exclusividad mutua con Modo Animales.
 - `treatment_form_notifier.dart`: Gestor del estado del formulario de creación y edición de medicamentos.
 - `calendar_notifier.dart`: Gestor del mes seleccionado y cálculo de dosis en el calendario.
 
 ### 4.7. Módulos de Interfaz de Usuario (`lib/screens/`, `lib/widgets/`, `lib/theme/`)
-- `theme/app_theme.dart`: Motor dinámico de temas en tiempo de ejecución. El método `updateThemeColors(isDark, {highContrast, isAnimalMode})` adapta la paleta global de forma reactiva al Verde Esmeralda Veterinario (`#15803D`) y Verde Bosque (`#047857`) con gradientes biológicos cuando el Modo Animales está activo, restaurando el azul institucional estándar al desactivarse.
+- `theme/app_theme.dart`: Motor dinámico de temas en tiempo de ejecución. El método `updateThemeColors(isDark, {highContrast, isAnimalMode, isCaregiverMode})` implementa una arquitectura tri-modal cromática adaptativa:
+  - **Modo Animales:** Verde salvia suave (`#389E6A`) y crema menta (`#52B788`) con fondos crema pastel (`#F9FAF5` en claro, `#101713` en oscuro) y superficies orgánicas.
+  - **Modo Cuidador:** Morado lavanda suave (`#8B62D4`) y crema lila (`#A582E2`) con fondos crema pastel (`#FAF8F5` en claro, `#14111B` en oscuro) para clara diferenciación asistencial.
+  - **Modo Personal Estándar:** Azul institucional (`#004AC6`).
+  Al conmutar entre modos, el sistema ejecuta una transición fluida en todo el árbol de componentes sin reiniciar la aplicación.
 - `screens/alarm/alarm_ringing_page.dart`: Pantalla completa que se superpone a la pantalla de bloqueo cuando suena una alarma crítica.
 - `screens/auth/`: Vistas de autenticación (`login_page.dart`, `register_page.dart`).
 - `screens/calendar/calendario_page.dart`: Vista de calendario interactivo mensual y lista diaria con sincronización de perfiles.

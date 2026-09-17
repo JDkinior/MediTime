@@ -263,14 +263,17 @@ class _HomePageState extends State<HomePage> {
         final preferenceNotifier = ctx.watch<PreferenceNotifier>();
         final isModern = preferenceNotifier.interfaceStyle == 'modern';
         final caregiverNotifier = ctx.watch<CaregiverNotifier>();
+        final isAnimalMode = preferenceNotifier.isAnimalMode;
         final isCaregiverActive = caregiverNotifier.isCaregiverModeActive;
+        final isManagedModeActive = isCaregiverActive || isAnimalMode;
+        final activeProfile = caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimalMode);
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return Scaffold(
           extendBody: isModern,
           appBar: AppBar(
             centerTitle: true,
-            title: isCaregiverActive
+            title: isManagedModeActive
                 ? InkWell(
                     onTap: () {
                       showDialog(
@@ -300,29 +303,29 @@ class _HomePageState extends State<HomePage> {
                         children: [
                           Icon(
                             caregiverNotifier.isGeneralMode
-                                ? Icons.grid_view_rounded
-                                : (caregiverNotifier.activeProfile != null
-                                    ? (caregiverNotifier.activeProfile!.isAnimal || caregiverNotifier.modeType == CaregiverModeType.veterinario || context.watch<PreferenceNotifier>().isAnimalMode
+                                ? (isAnimalMode ? Icons.pets_rounded : Icons.grid_view_rounded)
+                                : (activeProfile != null
+                                    ? (activeProfile.isAnimal || isAnimalMode
                                         ? Icons.pets_rounded
                                         : (caregiverNotifier.modeType == CaregiverModeType.clinico
                                             ? Icons.hotel_rounded
                                             : Icons.person_rounded))
-                                    : Icons.person_pin_rounded),
-                            color: caregiverNotifier.activeProfile != null
-                                ? Color(int.parse(caregiverNotifier.activeProfile!.colorHex.replaceFirst('#', 'FF'), radix: 16))
-                                : AppTheme.primaryTextColor,
+                                    : (isAnimalMode ? Icons.pets_rounded : Icons.person_pin_rounded)),
+                            color: activeProfile != null
+                                ? Color(int.parse(activeProfile.colorHex.replaceFirst('#', 'FF'), radix: 16))
+                                : AppTheme.primaryColor,
                             size: 20,
                           ),
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
                               caregiverNotifier.isGeneralMode
-                                  ? (caregiverNotifier.modeType == CaregiverModeType.veterinario || context.watch<PreferenceNotifier>().isAnimalMode
+                                  ? (isAnimalMode
                                       ? 'Vista General (Mascotas)'
                                       : 'Vista General (Todos)')
-                                  : (caregiverNotifier.activeProfile != null
-                                      ? caregiverNotifier.activeProfile!.name
-                                      : 'Mi Perfil'),
+                                  : (activeProfile != null
+                                      ? activeProfile.name
+                                      : (isAnimalMode ? 'Seleccionar Mascota' : 'Mi Perfil')),
                               style: TextStyle(
                                 color: AppTheme.primaryTextColor,
                                 fontWeight: FontWeight.bold,
@@ -411,24 +414,28 @@ class _HomePageState extends State<HomePage> {
             children: [
               Column(
                 children: [
-                  if (isCaregiverActive && caregiverNotifier.isGeneralMode)
+                  if (isManagedModeActive && caregiverNotifier.isGeneralMode)
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
                       color: AppTheme.primaryColor,
-                      child: const Text(
-                        'Vista General: Todos los pacientes',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                      child: Text(
+                        isAnimalMode
+                            ? 'Vista General: Todas las mascotas'
+                            : 'Vista General: Todos los pacientes',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                         textAlign: TextAlign.center,
                       ),
                     )
-                  else if (isCaregiverActive && caregiverNotifier.activeProfile != null)
+                  else if (isManagedModeActive && activeProfile != null)
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-                      color: Color(int.parse(caregiverNotifier.activeProfile!.colorHex.replaceFirst('#', 'FF'), radix: 16)),
+                      color: Color(int.parse(activeProfile.colorHex.replaceFirst('#', 'FF'), radix: 16)),
                       child: Text(
-                        'Viendo agenda médica de: ${caregiverNotifier.activeProfile!.name}',
+                        isAnimalMode
+                            ? 'Viendo tratamientos de: ${activeProfile.name}'
+                            : 'Viendo agenda médica de: ${activeProfile.name}',
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                         textAlign: TextAlign.center,
                       ),
@@ -443,7 +450,7 @@ class _HomePageState extends State<HomePage> {
                         }
                       },
                       children: [
-                        caregiverNotifier.isGeneralMode 
+                        (isManagedModeActive && caregiverNotifier.isGeneralMode)
                             ? const GeneralCaregiverPage()
                             : RecetaPage(
                                 fabKey: isModern ? null : _fabKey,

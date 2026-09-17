@@ -129,12 +129,15 @@ Al iniciar la aplicación, se deben autorizar los siguientes permisos esenciales
 
 ## 8. MODO CUIDADOR (FAMILIAR Y ASISTENCIAL / CLÍNICO)
 - **Supervisión Multi-Paciente:** Creación de múltiples perfiles bajo el cuidado del usuario principal con asignación de color temático individual.
-- **Modalidad Familiar:** Nombres afectivos y simplificación para el hogar.
-- **Modalidad Clínica:** Asignación de número de cama/habitación, categoría por piso y notas especiales para enfermería.
+- **Tema Morado Suave:** Paleta en Morado Lavanda Suave (`#8B62D4`) y fondos crema pastel (`#FAF8F5`) para inmediata diferenciación asistencial.
+- **Exclusividad Mutua:** Conmutación automática con Modo Animales; encender Modo Cuidador desactiva Modo Animales para prevenir mezclas de pacientes.
+- **Modalidad Familiar y Asistencial:** Nombres afectivos, asignación de cama/habitación, categoría por piso y notas para enfermería.
 - **Vinculación Remota:** Sincronización en tiempo real mediante correo electrónico (`linkedUid`).
 
 ## 9. MODO ANIMALES Y VETERINARIA (GESTIÓN DE MASCOTAS Y CLÍNICAS VETERINARIAS)
-- **Tema Verde Veterinario Dinámico:** Conmutación reactiva e instantánea de la paleta cromática a Verde Esmeralda Médico (`#15803D`) y Verde Bosque (`#047857`) con gradientes adaptados, y restauración inmediata del azul corporativo al desactivarse.
+- **Tema Verde Salvia / Crema Menta:** Paleta suave y relajante (`#389E6A` / `#52B788`) con fondos claros y oscuros de confort visual (`#F9FAF5` / `#101713`).
+- **Autonomía Operativa Completa:** Funciona de manera 100% independiente sin requerir Modo Cuidador. Incluye selector superior de mascotas (`Icons.pets_rounded`), vista general de tratamientos animales y sincronización con calendario.
+- **Exclusividad Mutua:** Al activarse desactiva Modo Cuidador garantizando aislamiento estricto entre historiales de mascotas y pacientes humanos.
 - **Mascota Individual vs. Clínica Veterinaria:** Configuración para dueños de un único animal de compañía o para clínicas veterinarias, albergues y centros de rescate con múltiples pacientes hospitalizados.
 - **Ficha Zootécnica Completa:** Registro exhaustivo de especie (canino, felino, equino, bovino, ave, conejo, etc.), raza, peso en kilogramos, código oficial de microchip o tatuaje, y ubicación de jaula o box.
 - **Posología y Notificaciones Veterinarias:** Asociación directa de fármacos a la mascota, recordatorios personalizados y control riguroso de inventario de medicamentos veterinarios.

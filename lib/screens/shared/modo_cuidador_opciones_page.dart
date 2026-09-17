@@ -11,7 +11,7 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    context.watch<PreferenceNotifier>();
+    final preferenceNotifier = context.watch<PreferenceNotifier>();
     final caregiverNotifier = context.watch<CaregiverNotifier>();
     final isActive = caregiverNotifier.isCaregiverModeActive;
 
@@ -90,8 +90,28 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
                   value: isActive,
                   activeColor: Colors.white,
                   activeTrackColor: Colors.white.withOpacity(0.4),
-                  onChanged: (val) {
-                    caregiverNotifier.setCaregiverModeActive(val);
+                  onChanged: (val) async {
+                    if (val) {
+                      // Exclusividad mutua: desactivar Modo Animales
+                      if (preferenceNotifier.isAnimalMode) {
+                        await preferenceNotifier.setAnimalMode(false);
+                      }
+                      if (caregiverNotifier.modeType == CaregiverModeType.veterinario) {
+                        await caregiverNotifier.setModeType(CaregiverModeType.familiar);
+                      }
+                      await caregiverNotifier.setCaregiverModeActive(true);
+                      caregiverNotifier.ensureActiveProfileForMode(isAnimalMode: false);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Modo Cuidador activado (Modo Animales desactivado).'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    } else {
+                      await caregiverNotifier.setCaregiverModeActive(false);
+                    }
                   },
                 ),
               ],

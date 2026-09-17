@@ -178,7 +178,10 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
 
     final notifier = context.read<TreatmentFormNotifier>();
     final caregiverNotifier = context.read<CaregiverNotifier>();
-    final activeProfile = caregiverNotifier.isCaregiverModeActive ? caregiverNotifier.activeProfile : null;
+    final prefNotifier = context.read<PreferenceNotifier>();
+    final isAnimal = prefNotifier.isAnimalMode;
+    final isManagedMode = caregiverNotifier.isCaregiverModeActive || isAnimal;
+    final activeProfile = isManagedMode ? caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimal) : null;
     final isEditing = widget.tratamientoToEdit != null;
 
     final proceed = await _checkAndWarnDrugInteractions(notifier.formData.nombreMedicamento);
@@ -616,8 +619,10 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
       case 0: // Nombre del medicamento
         final caregiverNotifier = context.watch<CaregiverNotifier>();
         final prefNotifier = context.watch<PreferenceNotifier>();
-        final activeProfile = caregiverNotifier.isCaregiverModeActive ? caregiverNotifier.activeProfile : null;
-        final isAnimal = prefNotifier.isAnimalMode || caregiverNotifier.modeType == CaregiverModeType.veterinario || (activeProfile?.isAnimal ?? false);
+        final isAnimal = prefNotifier.isAnimalMode;
+        final isManagedMode = caregiverNotifier.isCaregiverModeActive || isAnimal;
+        final activeProfile = isManagedMode ? caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimal) : null;
+        final isEffectiveAnimal = isAnimal || caregiverNotifier.modeType == CaregiverModeType.veterinario || (activeProfile?.isAnimal ?? false);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,

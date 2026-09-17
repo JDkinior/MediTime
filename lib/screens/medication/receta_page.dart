@@ -138,10 +138,13 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
     final authService = Provider.of<AuthService>(context, listen: false);
     final firestoreService = Provider.of<FirestoreService>(context, listen: false);
     final caregiverNotifier = Provider.of<CaregiverNotifier>(context, listen: false);
+    final preferenceNotifier = Provider.of<PreferenceNotifier>(context, listen: false);
     final user = authService.currentUser;
     if (user == null) return;
 
-    final activeProfile = caregiverNotifier.isCaregiverModeActive ? caregiverNotifier.activeProfile : null;
+    final isAnimal = preferenceNotifier.isAnimalMode;
+    final isManagedMode = caregiverNotifier.isCaregiverModeActive || isAnimal;
+    final activeProfile = isManagedMode ? caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimal) : null;
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     Widget buildDeferOption(BuildContext ctx, int minutes, String label) {
@@ -746,7 +749,9 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
     final caregiverNotifier = context.watch<CaregiverNotifier>();
     final isModern = preferenceNotifier.interfaceStyle == 'modern';
     final user = authService.currentUser;
-    final activeProfile = caregiverNotifier.isCaregiverModeActive ? caregiverNotifier.activeProfile : null;
+    final isAnimal = preferenceNotifier.isAnimalMode;
+    final isManagedMode = caregiverNotifier.isCaregiverModeActive || isAnimal;
+    final activeProfile = isManagedMode ? caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimal) : null;
     final l10n = AppLocalizations.of(context);
 
     if (user == null) {

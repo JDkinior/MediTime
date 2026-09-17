@@ -37,6 +37,54 @@ class CaregiverNotifier extends ChangeNotifier {
     }
   }
 
+  /// Retorna el perfil activo validando que pertenezca al modo actual (animal vs humano)
+  CaregiverProfile? getEffectiveActiveProfile({required bool isAnimalMode}) {
+    if (_activeProfileId == 'general') return null;
+    if (_activeProfileId != null) {
+      try {
+        final p = _managedProfiles.firstWhere((p) => p.id == _activeProfileId);
+        if (isAnimalMode && p.isAnimal) return p;
+        if (!isAnimalMode && !p.isAnimal) return p;
+      } catch (_) {}
+    }
+    // Si estamos en modo animales y no hay selección específica, auto-seleccionar la primera mascota
+    if (isAnimalMode) {
+      final animals = _managedProfiles.where((p) => p.isAnimal).toList();
+      if (animals.isNotEmpty && _activeProfileId != 'general') {
+        return animals.first;
+      }
+    }
+    return null;
+  }
+
+  void clearActiveProfile() {
+    _activeProfileId = null;
+    _preferenceService.saveCaregiverActiveProfile(null);
+    notifyListeners();
+  }
+
+  void ensureActiveProfileForMode({required bool isAnimalMode, String animalModeType = 'individual'}) {
+    final relevantProfiles = isAnimalMode
+        ? _managedProfiles.where((p) => p.isAnimal).toList()
+        : _managedProfiles.where((p) => !p.isAnimal).toList();
+
+    if (relevantProfiles.isEmpty) {
+      _activeProfileId = null;
+      _preferenceService.saveCaregiverActiveProfile(null);
+      notifyListeners();
+      return;
+    }
+
+    final current = activeProfile;
+    final isCurrentValid = current != null && (isAnimalMode ? current.isAnimal : !current.isAnimal);
+
+    if (!isCurrentValid && _activeProfileId != 'general') {
+      _activeProfileId = relevantProfiles.first.id;
+      _preferenceService.saveCaregiverActiveProfile(_activeProfileId);
+      notifyListeners();
+    }
+  }
+
   Future<void> _loadPreferences() async {
     _isCaregiverModeActive = await _preferenceService.getCaregiverModeActive();
     final typeStr = await _preferenceService.getCaregiverModeType();
@@ -70,7 +118,10 @@ class CaregiverNotifier extends ChangeNotifier {
   Future<void> setCaregiverModeActive(bool isActive) async {
     _isCaregiverModeActive = isActive;
     await _preferenceService.saveCaregiverModeActive(isActive);
-    if (!isActive) {
+    if (isActive) {
+      // Exclusividad mutua: desactiva modo animales en persistencia
+      await _preferenceService.saveAnimalModeActive(false);
+    } else {
       _activeProfileId = null;
       await _preferenceService.saveCaregiverActiveProfile(null);
     }

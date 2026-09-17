@@ -49,7 +49,9 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
     final isAnimalMode = preferenceNotifier.isAnimalMode || caregiverNotifier.modeType == CaregiverModeType.veterinario;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isClinico = caregiverNotifier.modeType == CaregiverModeType.clinico;
-    final profiles = caregiverNotifier.managedProfiles;
+    final profiles = isAnimalMode
+        ? caregiverNotifier.managedProfiles.where((p) => p.isAnimal).toList()
+        : caregiverNotifier.managedProfiles.where((p) => !p.isAnimal).toList();
 
     final filteredProfiles = profiles.where((p) {
       if (_searchQuery.isEmpty) return true;
@@ -150,71 +152,73 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [
-                    // Mi Perfil (Mis Medicamentos) Option
-                    InkWell(
-                      onTap: () {
-                        caregiverNotifier.setActiveProfileId(null);
-                        Navigator.pop(context);
-                      },
-                      borderRadius: BorderRadius.circular(18),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: caregiverNotifier.activeProfileId == null
-                              ? (isDark ? AppTheme.primaryColor.withOpacity(0.18) : const Color(0xFFEBF3FE))
-                              : (isDark ? AppTheme.backgroundColor : const Color(0xFFFAFCFF)),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
+                    // Mi Perfil (Mis Medicamentos) Option - Solo visible cuando NO está en modo animales
+                    if (!isAnimalMode) ...[
+                      InkWell(
+                        onTap: () {
+                          caregiverNotifier.setActiveProfileId(null);
+                          Navigator.pop(context);
+                        },
+                        borderRadius: BorderRadius.circular(18),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
                             color: caregiverNotifier.activeProfileId == null
-                                ? AppTheme.primaryColor.withOpacity(isDark ? 0.3 : 0.2)
-                                : AppTheme.borderColor,
+                                ? (isDark ? AppTheme.primaryColor.withOpacity(0.18) : const Color(0xFFEBF3FE))
+                                : (isDark ? AppTheme.backgroundColor : const Color(0xFFFAFCFF)),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: caregiverNotifier.activeProfileId == null
+                                  ? AppTheme.primaryColor.withOpacity(isDark ? 0.3 : 0.2)
+                                  : AppTheme.borderColor,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryColor.withOpacity(isDark ? 0.3 : 0.15),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Icon(Icons.person_pin_rounded, color: AppTheme.primaryColor, size: 22),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Mi Perfil (Mis Medicamentos)',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: caregiverNotifier.activeProfileId == null
+                                            ? (isDark ? Colors.white : AppTheme.primaryColor)
+                                            : AppTheme.primaryTextColor,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Mis medicamentos y recordatorios personales',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppTheme.secondaryTextColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (caregiverNotifier.activeProfileId == null)
+                                Icon(Icons.check_circle_rounded, color: AppTheme.primaryColor, size: 20),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: AppTheme.primaryColor.withOpacity(isDark ? 0.3 : 0.15),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Icon(Icons.person_pin_rounded, color: AppTheme.primaryColor, size: 22),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Mi Perfil (Mis Medicamentos)',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                      color: caregiverNotifier.activeProfileId == null
-                                          ? (isDark ? Colors.white : AppTheme.primaryColor)
-                                          : AppTheme.primaryTextColor,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Mis medicamentos y recordatorios personales',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppTheme.secondaryTextColor,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (caregiverNotifier.activeProfileId == null)
-                              Icon(Icons.check_circle_rounded, color: AppTheme.primaryColor, size: 20),
-                          ],
-                        ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
+                      const SizedBox(height: 10),
+                    ],
 
-                    // Vista General (Todos) Option
+                    // Vista General (Todos / Todas las mascotas) Option
                     InkWell(
                       onTap: () {
                         caregiverNotifier.setActiveProfileId('general');
@@ -291,6 +295,10 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                 ),
                               ),
                             ),
+                            if (caregiverNotifier.isGeneralMode) ...[
+                              const SizedBox(width: 8),
+                              Icon(Icons.check_circle_rounded, color: AppTheme.primaryColor, size: 20),
+                            ],
                           ],
                         ),
                       ),
@@ -349,6 +357,8 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                               final profile = entry.value;
                               final hexColor = profile.colorHex.toUpperCase().replaceAll('#', '');
                               final color = Color(int.parse(hexColor.length == 6 ? 'FF$hexColor' : hexColor, radix: 16));
+                              final effectiveActive = caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimalMode);
+                              final isSelected = !caregiverNotifier.isGeneralMode && effectiveActive?.id == profile.id;
 
                               return Column(
                                 children: [
@@ -357,7 +367,13 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                       caregiverNotifier.setActiveProfileId(profile.id);
                                       Navigator.pop(context);
                                     },
-                                    child: Padding(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? (isDark ? color.withOpacity(0.15) : color.withOpacity(0.08))
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                       child: Row(
                                         children: [
@@ -385,7 +401,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                                   style: TextStyle(
                                                     fontSize: 14,
                                                     fontWeight: FontWeight.bold,
-                                                    color: AppTheme.primaryTextColor,
+                                                    color: isSelected ? color : AppTheme.primaryTextColor,
                                                   ),
                                                 ),
                                                 const SizedBox(height: 2),
@@ -408,27 +424,35 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                               ],
                                             ),
                                           ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: color.withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(10),
-                                            ),
-                                            child: Text(
-                                              'Dosis hoy',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                                color: color,
+                                          if (isSelected)
+                                            Icon(
+                                              Icons.check_circle_rounded,
+                                              color: color,
+                                              size: 20,
+                                            )
+                                          else ...[
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: color.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              child: Text(
+                                                'Dosis hoy',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: color,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Icon(
-                                            Icons.chevron_right_rounded,
-                                            size: 18,
-                                            color: AppTheme.secondaryTextColor.withOpacity(0.5),
-                                          ),
+                                            const SizedBox(width: 6),
+                                            Icon(
+                                              Icons.chevron_right_rounded,
+                                              size: 18,
+                                              color: AppTheme.secondaryTextColor.withOpacity(0.5),
+                                            ),
+                                          ],
                                         ],
                                       ),
                                     ),
