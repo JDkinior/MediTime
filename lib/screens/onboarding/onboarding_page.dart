@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
