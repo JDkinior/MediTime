@@ -2,6 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:intl/intl.dart';
 import 'package:meditime/models/tratamiento.dart';
@@ -15,6 +16,7 @@ import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/tratamiento_service.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
+import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
 import 'package:showcaseview/showcaseview.dart';
@@ -23,6 +25,10 @@ import 'detalle_receta_page.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'package:meditime/enums/view_state.dart';
 import 'package:meditime/widgets/tutorial_tooltip.dart';
+import 'package:meditime/core/subscription_guard.dart';
+import 'package:meditime/services/gemini_service.dart';
+import 'package:meditime/notifiers/subscription_notifier.dart';
+import 'package:meditime/screens/subscription/subscription_page.dart';
 
 class RecetaPage extends StatefulWidget {
   final GlobalKey? fabKey;
@@ -40,26 +46,99 @@ class RecetaPage extends StatefulWidget {
   State<RecetaPage> createState() => _RecetaPageState();
 }
 
-class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
   DateTime _selectedDate = DateTime.now();
-  late AnimationController _waveController;
+  List<Map<String, String>> _aiTips = [];
+  bool _isLoadingAiTips = false;
+  String _lastTipsCacheKey = '';
 
-  @override
-  void initState() {
-    super.initState();
-    _waveController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    )..repeat();
-  }
 
-  @override
-  void dispose() {
-    _waveController.dispose();
-    super.dispose();
+
+  Future<void> _fetchAiTipsIfNeeded({
+    required List<Tratamiento> treatments,
+    required int pendingCount,
+    required int takenCount,
+    required double adherenceRate,
+    required bool isPremium,
+  }) async {
+    if (!isPremium) return;
+
+    // Fingerprint based on active treatments (invalidates if treatments change)
+    final sortedMeds = treatments.map((t) => '${t.id}_${t.nombreMedicamento}').toList()..sort();
+    final fingerprint = '${sortedMeds.join('|')}_${DateTime.now().day}';
+
+    if (fingerprint == _lastTipsCacheKey && _aiTips.isNotEmpty) return;
+    if (_isLoadingAiTips) return;
+
+    _lastTipsCacheKey = fingerprint;
+
+    final prefService = context.read<PreferenceService>();
+    final geminiService = context.read<GeminiService>();
+
+    // 1. Check persistent disk cache first (persists across app restarts and navigation, TTL 12 hours)
+    final cachedTips = await prefService.getCachedAiTips(
+      currentFingerprint: fingerprint,
+      maxAge: const Duration(hours: 12),
+    );
+
+    if (cachedTips != null && cachedTips.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          _aiTips = cachedTips;
+        });
+      }
+      return; // ZERO NETWORK REQUESTS! Reuses cached tips, saving tokens and quota!
+    }
+
+    // 2. If no cache, populate with instant clinical heuristics immediately so user never sees empty
+    final fallbackTips = geminiService.getFallbackTips(
+      treatments: treatments,
+      pendingCount: pendingCount,
+      takenCount: takenCount,
+      adherenceRate: adherenceRate,
+    );
+
+    if (_aiTips.isEmpty && mounted) {
+      setState(() {
+        _aiTips = fallbackTips;
+      });
+    }
+
+    // 3. Fetch fresh tips from API with strict token limits and short timeout
+    _isLoadingAiTips = true;
+    try {
+      final freshTips = await geminiService.generateTreatmentTips(
+        treatments: treatments,
+        pendingCount: pendingCount,
+        takenCount: takenCount,
+        adherenceRate: adherenceRate,
+      );
+
+      if (mounted && freshTips.isNotEmpty) {
+        setState(() {
+          _aiTips = freshTips;
+          _isLoadingAiTips = false;
+        });
+        // Save to persistent storage for 12 hours
+        await prefService.saveCachedAiTips(
+          fingerprint: fingerprint,
+          tips: freshTips,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error or offline fetching AI tips: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingAiTips = false;
+          if (_aiTips.isEmpty) {
+            _aiTips = fallbackTips;
+          }
+        });
+      }
+    }
   }
 
   bool _esHoy(DateTime date) {
@@ -671,8 +750,8 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                         borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
                       ),
                       leading: CircleAvatar(
-                        backgroundColor: Colors.purple.withValues(alpha: 0.1),
-                        child: const Icon(Icons.medication_outlined, color: Colors.purple, size: 20),
+                        backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                        child: Icon(Icons.medication_outlined, color: AppTheme.primaryColor, size: 20),
                       ),
                       title: Text(
                         'Editar tratamiento completo',
@@ -781,10 +860,17 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
             return const EstadoVista(state: ViewState.loading, child: SizedBox.shrink());
           }
           if (snapshot.hasError) {
+            debugPrint("Error loading recetas stream: ${snapshot.error}");
             return EstadoVista(
               state: ViewState.error,
               errorMessage: 'Ocurrió un error al cargar las recetas.',
-              onRetry: () => setState(() {}),
+              onRetry: () async {
+                firestoreService.clearMedicamentosCache(user.uid, activeProfile);
+                if (activeProfile != null && activeProfile.isExternalUser && activeProfile.linkedUid != null) {
+                  await firestoreService.ensureCaregiverLink(user.uid, activeProfile.linkedUid!);
+                }
+                if (mounted) setState(() {});
+              },
               child: const SizedBox.shrink(),
             );
           }
@@ -877,65 +963,37 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
             ),
           );
 
-          // Summary Card widget (wrapped in RepaintBoundary for smooth transitions)
-          Widget summaryCard = RepaintBoundary(
-            child: Container(
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x22004AC6),
-                    blurRadius: 15,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: RepaintBoundary(
-                      child: AnimatedBuilder(
-                        animation: _waveController,
-                        builder: (context, child) {
-                          return CustomPaint(
-                            painter: WavePainter(animationValue: _waveController.value),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _esHoy(_selectedDate)
-                              ? (l10n?.summaryToday ?? 'Resumen de hoy')
-                              : (l10n?.summaryDay ?? 'Resumen del día'),
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white.withValues(alpha: 0.9),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildSummaryItem(pendientesHoy.toString(), l10n?.pendingUppercase ?? 'PENDIENTES'),
-                            _buildSummaryItem(tomadasHoy.toString(), l10n?.takenUppercase ?? 'TOMADAS'),
-                            _buildSummaryItem('${adherenciaHoy.toStringAsFixed(0)}%', l10n?.adherenceUppercase ?? 'ADHERENCIA'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          final isPremium = context.watch<SubscriptionNotifier>().isPremium;
+          if (isPremium) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _fetchAiTipsIfNeeded(
+                treatments: todosLosTratamientos,
+                pendingCount: pendientesHoy,
+                takenCount: tomadasHoy,
+                adherenceRate: adherenciaHoy,
+                isPremium: isPremium,
+              );
+            });
+          }
+
+          final effectiveTips = _aiTips.isNotEmpty
+              ? _aiTips
+              : context.read<GeminiService>().getFallbackTips(
+                  treatments: todosLosTratamientos,
+                  pendingCount: pendientesHoy,
+                  takenCount: tomadasHoy,
+                  adherenceRate: adherenciaHoy,
+                );
+
+          final Widget summaryCard = _RecetaSummaryCard(
+            key: const PageStorageKey('receta_summary_card'),
+            selectedDate: _selectedDate,
+            pendientesHoy: pendientesHoy,
+            tomadasHoy: tomadasHoy,
+            adherenciaHoy: adherenciaHoy,
+            isPremium: isPremium,
+            effectiveTips: effectiveTips,
+            l10n: l10n,
           );
 
           return ListView(
@@ -1049,7 +1107,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                     final dose = hoyDosis[index];
                     final isFirst = index == 0;
                     final isLast = index == hoyDosis.length - 1;
-                    return _buildTimelineRow(dose, isFirst, isLast);
+                    return _buildTimelineRow(dose, isFirst, isLast, activeProfile);
                   }),
                 ),
             ],
@@ -1060,33 +1118,9 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildSummaryItem(String number, String label) {
-    return Column(
-      children: [
-        Text(
-          number,
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: Colors.white.withOpacity(0.8),
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildTimelineRow(Map<String, dynamic> dose, bool isFirst, bool isLast) {
+
+  Widget _buildTimelineRow(Map<String, dynamic> dose, bool isFirst, bool isLast, [CaregiverProfile? activeProfile]) {
     final Tratamiento tratamiento = dose['tratamiento'];
     final DateTime doseTime = dose['doseTime'];
     final DoseStatus status = dose['status'];
@@ -1213,6 +1247,7 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
                   MaterialPageRoute(builder: (context) => DetalleRecetaPage(
                     tratamiento: tratamiento,
                     horaDosis: doseTime,
+                    profile: activeProfile,
                   )),
                 ),
                 child: Container(
@@ -1311,7 +1346,9 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
   Widget _buildFab(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final fab = FloatingActionButton(
-      onPressed: () {
+      onPressed: () async {
+        final canProceed = await SubscriptionGuard.canAddTreatment(context);
+        if (!canProceed || !context.mounted) return;
         Navigator.push(context, MaterialPageRoute(builder: (context) => const AgregarRecetaPage()));
       },
       tooltip: l10n?.tutorialStep5Title ?? 'Agregar Medicamento',
@@ -1340,6 +1377,481 @@ class _RecetaPageState extends State<RecetaPage> with SingleTickerProviderStateM
       );
     }
     return fab;
+  }
+}
+
+class _RecetaSummaryCard extends StatefulWidget {
+  final DateTime selectedDate;
+  final int pendientesHoy;
+  final int tomadasHoy;
+  final double adherenciaHoy;
+  final bool isPremium;
+  final List<Map<String, String>> effectiveTips;
+  final AppLocalizations? l10n;
+
+  const _RecetaSummaryCard({
+    super.key,
+    required this.selectedDate,
+    required this.pendientesHoy,
+    required this.tomadasHoy,
+    required this.adherenciaHoy,
+    required this.isPremium,
+    required this.effectiveTips,
+    required this.l10n,
+  });
+
+  @override
+  State<_RecetaSummaryCard> createState() => _RecetaSummaryCardState();
+}
+
+class _RecetaSummaryCardState extends State<_RecetaSummaryCard>
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  late final AnimationController _waveController;
+  late final PageController _summaryPageController;
+  int _currentSummaryIndex = 0;
+  Timer? _autoSlideTimer;
+  Timer? _dotsFadeTimer;
+  bool _showDotsIndicator = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _waveController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat();
+    _summaryPageController = PageController();
+
+    _dotsFadeTimer = Timer(const Duration(milliseconds: 2200), () {
+      if (mounted) {
+        setState(() {
+          _showDotsIndicator = false;
+        });
+      }
+    });
+
+    if (widget.isPremium) {
+      _startAutoSlideTimer();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _RecetaSummaryCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isPremium != widget.isPremium) {
+      if (widget.isPremium) {
+        _startAutoSlideTimer();
+      } else {
+        _autoSlideTimer?.cancel();
+        _autoSlideTimer = null;
+      }
+    }
+
+    final total = _getTotalSlides();
+    if (_currentSummaryIndex >= total) {
+      _currentSummaryIndex = 0;
+      if (_summaryPageController.hasClients) {
+        _summaryPageController.jumpToPage(0);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _autoSlideTimer?.cancel();
+    _dotsFadeTimer?.cancel();
+    _waveController.dispose();
+    _summaryPageController.dispose();
+    super.dispose();
+  }
+
+  int _getTotalSlides() {
+    if (!widget.isPremium) return 2;
+    if (widget.effectiveTips.isEmpty) return 1;
+    return 1000;
+  }
+
+  int _getCycleLength() {
+    if (!widget.isPremium) return 2;
+    if (widget.effectiveTips.isEmpty) return 1;
+    return widget.effectiveTips.length * 2;
+  }
+
+  void _startAutoSlideTimer() {
+    _autoSlideTimer?.cancel();
+    if (!widget.isPremium) return;
+
+    _autoSlideTimer = Timer(const Duration(milliseconds: 6000), () {
+      if (!mounted || !_summaryPageController.hasClients) return;
+
+      final total = _getTotalSlides();
+      if (_currentSummaryIndex >= total - 1) {
+        _summaryPageController.animateToPage(
+          0,
+          duration: const Duration(milliseconds: 650),
+          curve: Curves.easeInOutCubic,
+        );
+      } else {
+        _summaryPageController.nextPage(
+          duration: const Duration(milliseconds: 650),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
+  }
+
+  void _onSummaryPageChanged(int idx) {
+    _dotsFadeTimer?.cancel();
+    setState(() {
+      _currentSummaryIndex = idx;
+      _showDotsIndicator = true;
+    });
+
+    _dotsFadeTimer = Timer(const Duration(milliseconds: 1800), () {
+      if (mounted) {
+        setState(() {
+          _showDotsIndicator = false;
+        });
+      }
+    });
+
+    _startAutoSlideTimer();
+  }
+
+  bool _esHoy(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year && date.month == now.month && date.day == now.day;
+  }
+
+  Widget _buildSummaryItem(String number, String label) {
+    return Column(
+      children: [
+        Text(
+          number,
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: Colors.white.withValues(alpha: 0.8),
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryMetricsSlide() {
+    final l10n = widget.l10n;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            _esHoy(widget.selectedDate)
+                ? (l10n?.summaryToday ?? 'Resumen de hoy')
+                : (l10n?.summaryDay ?? 'Resumen del día'),
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.white.withValues(alpha: 0.95),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildSummaryItem(widget.pendientesHoy.toString(), l10n?.pendingUppercase ?? 'PENDIENTES'),
+              _buildSummaryItem(widget.tomadasHoy.toString(), l10n?.takenUppercase ?? 'TOMADAS'),
+              _buildSummaryItem('${widget.adherenciaHoy.toStringAsFixed(0)}%', l10n?.adherenceUppercase ?? 'ADHERENCIA'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiTipSlide({
+    required Map<String, String> tip,
+    required int tipNumber,
+    required int totalTips,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+      child: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: Icon(
+                Icons.auto_awesome_rounded,
+                color: Colors.white.withValues(alpha: 0.25),
+                size: 20,
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              tip['content'] ?? '',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 17.5,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+                letterSpacing: -0.2,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProTeaserSlide(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.auto_awesome_rounded, color: Colors.amberAccent, size: 13),
+                    SizedBox(width: 5),
+                    Text(
+                      'Consejos de Salud con IA',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'PRO',
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Recibe recomendaciones y precauciones personalizadas para tus medicamentos.',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    height: 1.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SubscriptionPage(
+                        sourceFeature: 'los consejos de tratamiento con Inteligencia Artificial',
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppTheme.primaryColor,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  visualDensity: VisualDensity.compact,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  'Ver PRO',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+
+    final cycleLength = _getCycleLength();
+    final totalSlides = _getTotalSlides();
+    final dotsCount = cycleLength;
+    final activeDot = _currentSummaryIndex % dotsCount;
+
+    return Container(
+      height: 154,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        gradient: AppTheme.primaryGradient,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryColor.withValues(alpha: 0.18),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: _waveController,
+                builder: (context, child) {
+                  return CustomPaint(
+                    painter: WavePainter(animationValue: _waveController.value),
+                  );
+                },
+              ),
+            ),
+          ),
+          PageView.builder(
+            controller: _summaryPageController,
+            itemCount: totalSlides,
+            onPageChanged: _onSummaryPageChanged,
+            itemBuilder: (context, index) {
+              Widget slideContent;
+              if (!widget.isPremium) {
+                if (index == 0) {
+                  slideContent = _buildSummaryMetricsSlide();
+                } else {
+                  slideContent = _buildProTeaserSlide(context);
+                }
+              } else {
+                if (widget.effectiveTips.isEmpty || index % 2 == 0) {
+                  slideContent = _buildSummaryMetricsSlide();
+                } else {
+                  final tips = widget.effectiveTips;
+                  final tipIdx = (index % cycleLength) ~/ 2;
+                  final tip = tips[tipIdx % tips.length];
+                  slideContent = _buildAiTipSlide(
+                    tip: tip,
+                    tipNumber: (tipIdx % tips.length) + 1,
+                    totalTips: tips.length,
+                  );
+                }
+              }
+
+              // Robust slide transition that NEVER hides the active slide:
+              return AnimatedBuilder(
+                animation: _summaryPageController,
+                builder: (context, child) {
+                  // If controller is not ready or has no dimensions, ALWAYS show child at 100% opacity!
+                  if (!_summaryPageController.hasClients ||
+                      !_summaryPageController.position.haveDimensions) {
+                    return child!;
+                  }
+
+                  final double? page = _summaryPageController.page;
+                  if (page == null || page.isNaN) {
+                    return child!;
+                  }
+
+                  final double diff = (index - page).clamp(-1.0, 1.0);
+                  // Gentle opacity: never 0 for the active or settling page
+                  final double opacity = (1.0 - (diff.abs() * 0.6)).clamp(0.0, 1.0);
+                  final double extraSlide = diff * 24.0;
+
+                  return Opacity(
+                    opacity: opacity,
+                    child: Transform.translate(
+                      offset: Offset(extraSlide, 0),
+                      child: child,
+                    ),
+                  );
+                },
+                child: slideContent,
+              );
+            },
+          ),
+          if (dotsCount > 1)
+            Positioned(
+              bottom: 8,
+              left: 0,
+              right: 0,
+              child: AnimatedOpacity(
+                opacity: _showDotsIndicator ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 350),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(dotsCount, (dotIdx) {
+                    final isSelected = dotIdx == activeDot;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOut,
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: isSelected ? 16 : 5,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 

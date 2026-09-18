@@ -128,7 +128,7 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       debugPrint("🚨 Modo Alarma disparándose de inmediato para: $nombreMedicamento");
 
       final alarmPayload =
-          'alarm_mode|$userId|$docId|${doseTime.toIso8601String()}|$nombreMedicamento|$dosisPorToma|$presentacion|${pacienteNombre ?? ""}|${habitacion ?? ""}';
+          'alarm_mode|$userId|$docId|${doseTime.toIso8601String()}|$nombreMedicamento|$dosisPorToma|$presentacion|${pacienteNombre ?? ""}|${habitacion ?? ""}|$notificationId|${profileId ?? ""}';
 
       // NOTA: NotificationService.showAlarmModeNotification usa FLAG_INSISTENT y
       // audioAttributesUsage: AudioAttributesUsage.alarm en el canal de alarma.
@@ -140,7 +140,7 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       // Mostrar notificación de alta prioridad en pantalla completa
       await NotificationService.showAlarmModeNotification(
         id: notificationId,
-        title: '🚨 $notificationTitle',
+        title: notificationTitle,
         body: notificationBody,
         payload: alarmPayload,
       );
@@ -151,7 +151,7 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
         id: notificationId,
         title: notificationTitle,
         body: notificationBody,
-        payload: 'active_notification|$userId|$docId|${doseTime.toIso8601String()}',
+        payload: 'active_notification|$userId|$docId|${doseTime.toIso8601String()}|${profileId ?? ""}',
       );
     } else {
       debugPrint("✅ Modo Automático detectado para: $nombreMedicamento");

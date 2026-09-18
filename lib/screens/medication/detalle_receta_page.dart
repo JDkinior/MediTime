@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
+import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/models/tratamiento.dart'; // <-- CAMBIO: Importar modelo
 import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/theme/app_theme.dart';
@@ -17,11 +18,13 @@ class DetalleRecetaPage extends StatefulWidget {
   // CAMBIO: Recibimos el objeto Tratamiento y la hora específica de la dosis
   final Tratamiento tratamiento;
   final DateTime horaDosis;
+  final CaregiverProfile? profile;
 
   const DetalleRecetaPage({
     super.key,
     required this.tratamiento,
     required this.horaDosis,
+    this.profile,
   });
 
   @override
@@ -32,10 +35,12 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
   Timer? _timer;
   late DateTime? _nextUpcomingDose;
   bool _isProcessing = false;
+  DoseStatus? _currentStatus;
 
   @override
   void initState() {
     super.initState();
+    _currentStatus = _getDoseStatus(widget.horaDosis);
     _nextUpcomingDose = _findNextUpcomingDose();
 
     if (_nextUpcomingDose != null) {
@@ -59,7 +64,8 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
 
   Future<void> _handleDoseAction(DoseStatus newStatus) async {
     if (_isProcessing) return;
-    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final userId = FirebaseAuth.instance.currentUser?.uid ??
+        await PreferenceService().getCurrentUserId();
     if (userId == null) return;
 
     setState(() {
@@ -71,17 +77,32 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       final doseTime = widget.horaDosis;
       final firestoreService = FirestoreService();
 
+      final resolved = await firestoreService.resolveMedicamentoWithProfile(
+        userId,
+        docId,
+        profile: widget.profile,
+        profileId: widget.tratamiento.profileId,
+      );
+      final effectiveProfile = resolved?.profile ?? widget.profile;
+
       await firestoreService.updateDoseStatus(
         userId,
         docId,
         doseTime,
         newStatus,
+        effectiveProfile,
       );
+
+      if (mounted) {
+        setState(() {
+          _currentStatus = newStatus;
+        });
+      }
 
       if (newStatus == DoseStatus.aplazada) {
         final snoozeMinutes = await PreferenceService().getSnoozeDuration();
         final payload =
-            'active_notification|$userId|$docId|${doseTime.toIso8601String()}';
+            'active_notification|$userId|$docId|${doseTime.toIso8601String()}|${effectiveProfile?.id ?? ""}';
         // Enviar id ficticio para aplazar
         await NotificationService.snoozeNotification(
           doseTime.hashCode.abs(), // Generar un ID único basado en la hora
@@ -98,11 +119,16 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
         }
       } else {
         // Reprogramar próxima dosis
-        final docRef = firestoreService.getMedicamentoDocRef(userId, docId);
+        final docRef = resolved?.docRef ??
+            firestoreService.getMedicamentoDocRef(userId, docId, effectiveProfile);
         final docSnap = await docRef.get();
         if (docSnap.exists) {
-          final tratamiento = Tratamiento.fromFirestore(docSnap as dynamic);
-          await NotificationService.rescheduleNextPendingDose(tratamiento, userId);
+          final freshTratamiento = Tratamiento.fromFirestore(docSnap as dynamic);
+          await NotificationService.rescheduleNextPendingDose(
+            freshTratamiento,
+            userId,
+            effectiveProfile,
+          );
         }
       }
 
@@ -214,6 +240,10 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
   // --- El resto de los widgets de construcción ---
 
   DoseStatus _getDoseStatus(DateTime doseTime) {
+    if (_currentStatus != null && doseTime.difference(widget.horaDosis).inMinutes.abs() <= 5) {
+      return _currentStatus!;
+    }
+
     // 1. Coincidencia directa por clave ISO
     final directStatus = widget.tratamiento.doseStatus[doseTime.toIso8601String()];
     if (directStatus != null) return directStatus;

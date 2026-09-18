@@ -54,6 +54,116 @@ class FirestoreService {
     return _db.collection('users').doc(userId).collection('managed_profiles').doc(profileId).delete();
   }
 
+  Future<CaregiverProfile?> getCaregiverProfile(String userId, String profileId) async {
+    try {
+      final doc = await _db.collection('users').doc(userId).collection('managed_profiles').doc(profileId).get();
+      if (doc.exists && doc.data() != null) {
+        return CaregiverProfile.fromMap(doc.id, doc.data()!);
+      }
+    } catch (e) {
+      debugPrint('Error obteniendo CaregiverProfile: $e');
+    }
+    return null;
+  }
+
+  /// Resuelve la referencia del documento de tratamiento y su perfil asociado.
+  /// Si [profile] es provisto, retorna la referencia directamente.
+  /// Si [profileId] es provisto, busca en ese perfil.
+  /// Si ambos son nulos, primero verifica la colección personal y, si no existe allí,
+  /// busca automáticamente en los perfiles gestionados (modo cuidador / modo animales).
+  Future<({DocumentReference docRef, CaregiverProfile? profile})?> resolveMedicamentoWithProfile(
+    String userId,
+    String docId, {
+    CaregiverProfile? profile,
+    String? profileId,
+  }) async {
+    if (profile != null) {
+      return (docRef: getMedicamentoDocRef(userId, docId, profile), profile: profile);
+    }
+
+    if (profileId != null && profileId.isNotEmpty) {
+      final loadedProfile = await getCaregiverProfile(userId, profileId);
+      final docRef = _db
+          .collection('users')
+          .doc(userId)
+          .collection('managed_profiles')
+          .doc(profileId)
+          .collection('userMedicamentos')
+          .doc(docId);
+      return (docRef: docRef, profile: loadedProfile);
+    }
+
+    // 1. Probar ruta personal por defecto
+    final personalRef = _db
+        .collection('medicamentos')
+        .doc(userId)
+        .collection('userMedicamentos')
+        .doc(docId);
+    try {
+      final personalSnap = await personalRef.get();
+      if (personalSnap.exists) {
+        return (docRef: personalRef, profile: null);
+      }
+    } catch (e) {
+      debugPrint("Error verificando colección personal: $e");
+    }
+
+    // 2. Buscar en perfiles gestionados del usuario (cuidador / animales)
+    try {
+      final profilesSnap = await _db
+          .collection('users')
+          .doc(userId)
+          .collection('managed_profiles')
+          .get();
+
+      for (final profileDoc in profilesSnap.docs) {
+        final managedRef = profileDoc.reference
+            .collection('userMedicamentos')
+            .doc(docId);
+        final managedSnap = await managedRef.get();
+        if (managedSnap.exists) {
+          final foundProfile = CaregiverProfile.fromMap(profileDoc.id, profileDoc.data());
+          return (docRef: managedRef, profile: foundProfile);
+        }
+
+        // Si es usuario externo vinculado
+        final data = profileDoc.data();
+        if (data['isExternalUser'] == true && data['linkedUid'] != null) {
+          final extRef = _db
+              .collection('medicamentos')
+              .doc(data['linkedUid'] as String)
+              .collection('userMedicamentos')
+              .doc(docId);
+          final extSnap = await extRef.get();
+          if (extSnap.exists) {
+            final foundProfile = CaregiverProfile.fromMap(profileDoc.id, profileDoc.data());
+            return (docRef: extRef, profile: foundProfile);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error buscando documento en perfiles gestionados: $e");
+    }
+
+    return null;
+  }
+
+  /// Atajo para resolver únicamente la referencia del documento de tratamiento.
+  Future<DocumentReference?> resolveMedicamentoDocRef(
+    String userId,
+    String docId, {
+    CaregiverProfile? profile,
+    String? profileId,
+  }) async {
+    final result = await resolveMedicamentoWithProfile(
+      userId,
+      docId,
+      profile: profile,
+      profileId: profileId,
+    );
+    return result?.docRef;
+  }
+
   // --- Medicamentos ---
 
   CollectionReference _getMedicamentosCollection(String userId, [CaregiverProfile? profile]) {
@@ -91,6 +201,16 @@ class FirestoreService {
     return _medicamentosCache.getLastValue(cacheKey);
   }
 
+  /// Invalida la caché de medicamentos para un usuario o perfil específico, o toda la caché.
+  void clearMedicamentosCache([String? userId, CaregiverProfile? profile]) {
+    if (userId == null) {
+      _medicamentosCache.clearAll();
+    } else {
+      final cacheKey = profile == null ? userId : '${userId}_${profile.id}';
+      _medicamentosCache.clearKey(cacheKey);
+    }
+  }
+
   /// Guarda un nuevo tratamiento en la base de datos para un usuario específico.
   Future<DocumentReference> saveMedicamento({
     required String userId,
@@ -114,7 +234,7 @@ class FirestoreService {
 
     final ref = _getMedicamentosCollection(userId, profile).doc();
 
-    return ref.set({
+    final Map<String, dynamic> dataToSave = {
       'nombreMedicamento': nombreMedicamento,
       'presentacion': presentacion,
       'duracion': duracion,
@@ -130,7 +250,12 @@ class FirestoreService {
       'skippedDoses': [],
       'notas': notas,
       'doseStatus': doseStatusMap,
-    }).then((_) {
+    };
+    if (profile != null) {
+      dataToSave['profileId'] = profile.id;
+    }
+
+    return ref.set(dataToSave).then((_) {
       try {
         WidgetService.updateWidgetData(userId: userId);
       } catch (e) {
@@ -249,10 +374,28 @@ class FirestoreService {
     String userId,
     String docId,
     DateTime doseTime,
-    DoseStatus newStatus,
-    [CaregiverProfile? profile]
-  ) async {
-    final docRef = getMedicamentoDocRef(userId, docId, profile);
+    DoseStatus newStatus, [
+    CaregiverProfile? profile,
+  ]) async {
+    DocumentReference docRef = getMedicamentoDocRef(userId, docId, profile);
+    
+    // Si no se pasó profile, verificar si el documento existe en la ruta personal
+    // o si debe resolverse en perfiles gestionados (modo animales / cuidador)
+    if (profile == null) {
+      try {
+        final initialSnap = await docRef.get();
+        if (!initialSnap.exists) {
+          final resolved = await resolveMedicamentoWithProfile(userId, docId);
+          if (resolved != null) {
+            docRef = resolved.docRef;
+            profile = resolved.profile;
+          }
+        }
+      } catch (e) {
+        debugPrint("Error preliminar resolviendo docRef: $e");
+      }
+    }
+
     debugPrint("Attempting to robustly update status for doc: ${docRef.path}");
 
     try {
@@ -280,8 +423,22 @@ class FirestoreService {
           tratamiento.doseStatus,
         );
         final doseKey = doseTime.toIso8601String();
-        final previousStatus = updatedDoseStatus[doseKey];
-        updatedDoseStatus[doseKey] = newStatus;
+
+        // Buscar clave existente exacta o aproximada (tolerancia de 15 minutos)
+        String targetKey = doseKey;
+        if (!updatedDoseStatus.containsKey(doseKey)) {
+          for (final existingKey in updatedDoseStatus.keys) {
+            final parsedDate = DateTime.tryParse(existingKey);
+            if (parsedDate != null &&
+                parsedDate.difference(doseTime).inMinutes.abs() <= 15) {
+              targetKey = existingKey;
+              break;
+            }
+          }
+        }
+
+        final previousStatus = updatedDoseStatus[targetKey];
+        updatedDoseStatus[targetKey] = newStatus;
 
         var treatmentToSave = tratamiento;
         if (newStatus == DoseStatus.tomada &&
@@ -341,6 +498,18 @@ class FirestoreService {
       }
     }
     await saveUserProfile(userId, {'patientUid': null, 'patientEmail': null});
+  }
+
+  /// Asegura de forma idempotente que el paciente tenga registrado al cuidador
+  /// para garantizar permisos de acceso y consistencia bidireccional en Firestore.
+  Future<void> ensureCaregiverLink(String caregiverUid, String patientUid) async {
+    try {
+      await _db.collection('users').doc(patientUid).set({
+        'caregiverUid': caregiverUid,
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Aviso al asegurar vínculo de cuidador con el paciente $patientUid: $e');
+    }
   }
 
   // --- Historial de Chat con IA ---

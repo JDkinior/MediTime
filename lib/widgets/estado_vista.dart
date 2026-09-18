@@ -34,14 +34,16 @@ class EstadoVista extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (state) {
       case ViewState.loading:
-        return const Center(
-          child: CircularProgressIndicator(),
+        return Center(
+          child: CircularProgressIndicator(
+            color: AppTheme.primaryColor,
+          ),
         );
       case ViewState.error:
         return _buildMessageUI(
           context,
           icon: Icons.error_outline,
-          iconColor: kErrorColor,
+          iconColor: AppTheme.errorColor,
           message: errorMessage,
           showRetryButton: true,
         );
@@ -49,7 +51,7 @@ class EstadoVista extends StatelessWidget {
         return _buildMessageUI(
           context,
           icon: Icons.inbox_outlined,
-          iconColor: Colors.grey,
+          iconColor: AppTheme.secondaryTextColor.withValues(alpha: 0.6),
           message: emptyMessage,
         );
       case ViewState.success:

@@ -78,6 +78,7 @@ class OpcionesPage extends StatelessWidget {
             icon: Icons.health_and_safety_outlined,
             iconColor: const Color(0xFF8B62D4),
             page: const ModoCuidadorOpcionesPage(),
+            isPro: true,
           ),
           _buildCategoryCard(
             context: context,
@@ -86,6 +87,7 @@ class OpcionesPage extends StatelessWidget {
             icon: Icons.pets_rounded,
             iconColor: const Color(0xFF389E6A),
             page: const ModoAnimalesOpcionesPage(),
+            isPro: true,
           ),
           Builder(
             builder: (ctx) {
@@ -124,6 +126,7 @@ class OpcionesPage extends StatelessWidget {
     required IconData icon,
     required Color iconColor,
     required Widget page,
+    bool isPro = false,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -151,13 +154,40 @@ class OpcionesPage extends StatelessWidget {
           ),
           child: Icon(icon, color: iconColor, size: 24),
         ),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.primaryTextColor,
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryTextColor,
+                ),
+              ),
+            ),
+            if (isPro) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'PRO',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4.0),

@@ -37,6 +37,11 @@ class AppConstants {
   static const String medicalHistoryField = 'medicalHistory';
   static const String profileImageField = 'profileImage';
   
+  // Subscription fields
+  static const String isPremiumField = 'isPremium';
+  static const String subscriptionTierField = 'subscriptionTier';
+  static const String subscriptionExpiresAtField = 'subscriptionExpiresAt';
+  
   // Treatment fields
   static const String nombreMedicamentoField = 'nombreMedicamento';
   static const String presentacionField = 'presentacion';

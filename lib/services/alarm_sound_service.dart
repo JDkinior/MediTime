@@ -60,20 +60,10 @@ class AlarmSoundService {
     debugPrint("✅ AlarmSoundService: Alarma detenida exitosamente.");
   }
 
-  /// Adjunta un listener de descarte a una notificación existente.
-  ///
-  /// Cuando la notificación con [notificationId] sea descartada por cualquier razón
-  /// (swipe, "Borrar todo", timeout, sistema), Android automáticamente enviará
-  /// el broadcast `STOP_ALARM` que detendrá el sonido y la vibración.
+  /// Método auxiliar mantenido por compatibilidad hacia atrás (no-op para evitar duplicar alertas).
   static Future<void> attachDismissListener(int notificationId) async {
-    try {
-      await _channel.invokeMethod('attachDismissListener', {
-        'notificationId': notificationId,
-      });
-      debugPrint("🔗 AlarmSoundService: deleteIntent adjuntado a notificación $notificationId");
-    } catch (e) {
-      debugPrint("Advertencia adjuntando deleteIntent: $e");
-    }
+    // No-op: Android NotificationManager detiene nativamente el tono y la vibración
+    // de FLAG_INSISTENT al descartar o cancelar la notificación sin necesidad de re-notificar.
   }
 }
 

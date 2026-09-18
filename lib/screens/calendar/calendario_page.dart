@@ -1365,6 +1365,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                       MaterialPageRoute(builder: (context) => DetalleRecetaPage(
                         tratamiento: tratamiento,
                         horaDosis: doseTime,
+                        profile: profile,
                       )),
                     ),
                     child: Container(

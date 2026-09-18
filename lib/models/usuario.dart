@@ -15,6 +15,9 @@ class Usuario {
   final String? medications;
   final String? medicalHistory;
   final String? profileImageUrl;
+  final bool isPremium;
+  final String? subscriptionTier;
+  final DateTime? subscriptionExpiresAt;
 
   const Usuario({
     required this.uid,
@@ -27,6 +30,9 @@ class Usuario {
     this.medications,
     this.medicalHistory,
     this.profileImageUrl,
+    this.isPremium = false,
+    this.subscriptionTier,
+    this.subscriptionExpiresAt,
   });
 
   /// Gets the user's display name, falling back to default if null
@@ -72,6 +78,9 @@ class Usuario {
     String? medications,
     String? medicalHistory,
     String? profileImageUrl,
+    bool? isPremium,
+    String? subscriptionTier,
+    DateTime? subscriptionExpiresAt,
   }) {
     return Usuario(
       uid: uid ?? this.uid,
@@ -84,6 +93,9 @@ class Usuario {
       medications: medications ?? this.medications,
       medicalHistory: medicalHistory ?? this.medicalHistory,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      isPremium: isPremium ?? this.isPremium,
+      subscriptionTier: subscriptionTier ?? this.subscriptionTier,
+      subscriptionExpiresAt: subscriptionExpiresAt ?? this.subscriptionExpiresAt,
     );
   }
 
@@ -99,6 +111,9 @@ class Usuario {
       AppConstants.medicationsField: medications,
       AppConstants.medicalHistoryField: medicalHistory,
       AppConstants.profileImageField: profileImageUrl,
+      AppConstants.isPremiumField: isPremium,
+      AppConstants.subscriptionTierField: subscriptionTier,
+      AppConstants.subscriptionExpiresAtField: subscriptionExpiresAt?.toIso8601String(),
     };
   }
 
@@ -119,6 +134,19 @@ class Usuario {
       }
     }
 
+    DateTime? subscriptionExpiresAt;
+    final subExpiresString = data[AppConstants.subscriptionExpiresAtField];
+    if (subExpiresString is String && subExpiresString.isNotEmpty) {
+      try {
+        subscriptionExpiresAt = DateTime.parse(subExpiresString);
+      } catch (e) {
+        debugPrint('Error parsing subscription expires date: $e');
+      }
+    }
+
+    final isPremiumVal = data[AppConstants.isPremiumField] as bool? ?? false;
+    final tierVal = data[AppConstants.subscriptionTierField] as String?;
+
     return Usuario(
       uid: uid,
       email: data[AppConstants.emailField],
@@ -130,6 +158,9 @@ class Usuario {
       medications: data[AppConstants.medicationsField],
       medicalHistory: data[AppConstants.medicalHistoryField],
       profileImageUrl: data[AppConstants.profileImageField],
+      isPremium: isPremiumVal,
+      subscriptionTier: tierVal,
+      subscriptionExpiresAt: subscriptionExpiresAt,
     );
   }
 
@@ -147,7 +178,10 @@ class Usuario {
           allergies == other.allergies &&
           medications == other.medications &&
           medicalHistory == other.medicalHistory &&
-          profileImageUrl == other.profileImageUrl;
+          profileImageUrl == other.profileImageUrl &&
+          isPremium == other.isPremium &&
+          subscriptionTier == other.subscriptionTier &&
+          subscriptionExpiresAt == other.subscriptionExpiresAt;
 
   @override
   int get hashCode =>
@@ -160,10 +194,13 @@ class Usuario {
       allergies.hashCode ^
       medications.hashCode ^
       medicalHistory.hashCode ^
-      profileImageUrl.hashCode;
+      profileImageUrl.hashCode ^
+      isPremium.hashCode ^
+      subscriptionTier.hashCode ^
+      subscriptionExpiresAt.hashCode;
 
   @override
   String toString() {
-    return 'Usuario{uid: $uid, name: $name, email: $email, hasCompleteProfile: $hasCompleteProfile}';
+    return 'Usuario{uid: $uid, name: $name, email: $email, isPremium: $isPremium, tier: $subscriptionTier}';
   }
 }

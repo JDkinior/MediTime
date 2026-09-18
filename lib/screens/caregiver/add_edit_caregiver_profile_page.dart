@@ -233,6 +233,7 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
       );
 
       await firestoreService.saveCaregiverProfile(currentUser.uid, profile);
+      await firestoreService.ensureCaregiverLink(currentUser.uid, targetUid);
       await caregiverNotifier.loadProfiles(currentUser.uid);
 
       if (mounted) {

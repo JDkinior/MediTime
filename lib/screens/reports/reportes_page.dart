@@ -17,6 +17,7 @@ import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:meditime/screens/medication/detalle_receta_page.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
+import 'package:meditime/core/subscription_guard.dart';
 
 // Enum para manejar los intervalos de forma clara
 enum ReportInterval { semana, mes, anio, todo }
@@ -478,6 +479,9 @@ class _ReportesPageState extends State<ReportesPage> {
           IconButton(
             icon: Icon(Icons.file_download_outlined, color: AppTheme.primaryColor),
             onPressed: () async {
+              final canProceed = await SubscriptionGuard.canExportPdf(context);
+              if (!canProceed || !mounted) return;
+
               final imageBytes = await _capturePng();
               if (imageBytes == null) {
                 if (mounted) {

@@ -25,8 +25,11 @@ import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/notifiers/treatment_form_notifier.dart';
 import 'package:meditime/notifiers/calendar_notifier.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
+import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/services/treatment_service.dart';
 import 'package:meditime/services/lazy_treatment_service.dart';
+import 'package:meditime/services/subscription_service.dart';
+import 'package:meditime/notifiers/subscription_notifier.dart';
 
 // Importa repositorios y casos de uso
 import 'package:meditime/repositories/treatment_repository.dart';
@@ -110,11 +113,23 @@ class MyApp extends StatelessWidget {
               (context) =>
                   LazyTreatmentService(context.read<FirestoreService>()),
         ),
-        Provider<GeminiService>(create: (_) => GeminiService()),
+        Provider<GeminiService>(
+          create: (_) => GeminiService(),
+        ),
+        Provider<SubscriptionService>(create: (_) => SubscriptionService()),
 
         // Notifier providers
         ChangeNotifierProvider<ProfileNotifier>(
           create: (_) => ProfileNotifier(),
+        ),
+        ChangeNotifierProvider<SubscriptionNotifier>(
+          create: (context) {
+            final notifier = SubscriptionNotifier();
+            final auth = context.read<AuthService>();
+            final subService = context.read<SubscriptionService>();
+            notifier.listenToUser(auth.currentUser?.uid, subService);
+            return notifier;
+          },
         ),
         ChangeNotifierProvider<PreferenceNotifier>(
           create: (context) => PreferenceNotifier(context.read<PreferenceService>()),
@@ -147,11 +162,13 @@ class MyApp extends StatelessWidget {
           final isDark = themeModeStr == 'dark' ||
               (themeModeStr == 'system' &&
                   MediaQuery.platformBrightnessOf(context) == Brightness.dark);
+          final isAnimal = preferenceNotifier.isAnimalMode || caregiverNotifier.modeType == CaregiverModeType.veterinario;
+          final isCaregiver = caregiverNotifier.isCaregiverModeActive && !isAnimal;
           AppTheme.updateThemeColors(
             isDark,
             highContrast: preferenceNotifier.highContrast,
-            isAnimalMode: preferenceNotifier.isAnimalMode,
-            isCaregiverMode: caregiverNotifier.isCaregiverModeActive,
+            isAnimalMode: isAnimal,
+            isCaregiverMode: isCaregiver,
           );
 
           return MaterialApp(

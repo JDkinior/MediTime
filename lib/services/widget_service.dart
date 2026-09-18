@@ -54,7 +54,7 @@ Future<void> homeWidgetBackgroundCallback(Uri? uri) async {
         );
         await NotificationService.showSimpleNotification(
           id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          title: '¡Dosis marcada como tomada! 💊',
+          title: '¡Dosis marcada como tomada!',
           body: 'Se ha registrado la toma desde el Widget de MediTime.',
         );
       } else if (uriStr.contains('postpone_dose')) {
@@ -66,7 +66,7 @@ Future<void> homeWidgetBackgroundCallback(Uri? uri) async {
         );
         await NotificationService.showSimpleNotification(
           id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          title: 'Dosis aplazada ⏰',
+          title: 'Dosis aplazada',
           body: 'Se ha aplazado la dosis correctamente.',
         );
       } else if (uriStr.contains('skip_dose')) {
@@ -78,7 +78,7 @@ Future<void> homeWidgetBackgroundCallback(Uri? uri) async {
         );
         await NotificationService.showSimpleNotification(
           id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          title: 'Dosis omitida 🚫',
+          title: 'Dosis omitida',
           body: 'Has omitido esta dosis.',
         );
       }
@@ -202,7 +202,7 @@ class WidgetService {
         );
         await HomeWidget.saveWidgetData<String>(
           'next_dose_detail',
-          '¡Todas tus dosis de hoy están al día! 🎉',
+          '¡Todas tus dosis de hoy están al día!',
         );
         await HomeWidget.saveWidgetData<String>('next_dose_doc_id', '');
         await HomeWidget.saveWidgetData<String>('next_dose_iso_time', '');

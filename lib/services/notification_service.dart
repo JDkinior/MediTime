@@ -94,8 +94,9 @@ Future<void> handleNotificationActionBackground(
         final userId = parts[1];
         final docId = parts[2];
         final dateTimeStr = parts.length >= 4 ? parts[3] : null;
+        final profileId = parts.length >= 5 && parts[4].isNotEmpty ? parts[4] : null;
         
-        NotificationService._navigateToDetail(userId, docId, dateTimeStr);
+        NotificationService._navigateToDetail(userId, docId, dateTimeStr, profileId);
       }
       return;
     }
@@ -343,9 +344,34 @@ class NotificationService {
     );
   }
 
+  /// Cancela todas las notificaciones activas de los canales de alarma para asegurar
+  /// que ningún tono continuo quede sonando en segundo plano en Android.
+  static Future<void> cancelAllAlarmNotifications() async {
+    try {
+      final androidImplementation = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      final active = await androidImplementation?.getActiveNotifications();
+      if (active != null) {
+        for (var n in active) {
+          if ((n.channelId == 'meditime_alarm_channel_v2' ||
+                  n.channelId == 'meditime_alarm_channel') &&
+              n.id != null) {
+            await _notificationsPlugin.cancel(n.id!);
+            debugPrint("Notificación de alarma cancelada: ID ${n.id}");
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Aviso cancelando notificaciones de alarma: $e");
+    }
+  }
+
   /// Detiene cualquier sonido y vibración continua de alarma reproduciéndose en el dispositivo
   static Future<void> stopAlarmSound() async {
     await AlarmSoundService.stopAlarm();
+    await cancelAllAlarmNotifications();
   }
 
   static Future<void> _createNotificationChannels() async {
@@ -511,14 +537,14 @@ class NotificationService {
       when: DateTime.now().millisecondsSinceEpoch,
       usesChronometer: false,
       channelShowBadge: true,
-      onlyAlertOnce: false,
+      onlyAlertOnce: true,
       timeoutAfter: 300000, // 5 minutos: auto-cancelar notificación si no hay interacción (sincronizado con AlarmSoundService.maxAlarmDuration)
       styleInformation: BigTextStyleInformation(
         body,
         contentTitle: title,
         htmlFormatBigText: true,
         htmlFormatContentTitle: true,
-        summaryText: '🚨 MediTime Alarma',
+        summaryText: 'MediTime Alarma',
       ),
       silent: false,
       enableLights: true,
@@ -550,10 +576,6 @@ class NotificationService {
       notificationDetails,
       payload: payload,
     );
-
-    // CRÍTICO: Adjuntar deleteIntent para que al descartar la notificación
-    // (swipe, clear all, timeout) se detenga automáticamente el sonido.
-    await AlarmSoundService.attachDismissListener(id);
 
     debugPrint("Notificación MODO ALARMA mostrada - ID: $id, Título: $title");
   }
@@ -1437,6 +1459,9 @@ class NotificationService {
       final userId = parts[1];
       final docId = parts[2];
       final doseTime = DateTime.parse(parts[3]);
+      final String? profileId = payload.startsWith('alarm_mode')
+          ? (parts.length >= 11 && parts[10].isNotEmpty ? parts[10] : null)
+          : (parts.length >= 5 && parts[4].isNotEmpty ? parts[4] : null);
       
       // Guard: validar usuario actual y tratamiento no revocado
       try {
@@ -1473,6 +1498,13 @@ class NotificationService {
       if (firebaseReady) {
         try {
           final firestoreService = FirestoreService();
+          final resolved = await firestoreService.resolveMedicamentoWithProfile(
+            userId,
+            docId,
+            profileId: profileId,
+          );
+          final profile = resolved?.profile;
+
           DoseStatus newStatus;
           
           switch (actionId) {
@@ -1490,17 +1522,17 @@ class NotificationService {
               return;
           }
           
-          await firestoreService.updateDoseStatus(userId, docId, doseTime, newStatus);
+          await firestoreService.updateDoseStatus(userId, docId, doseTime, newStatus, profile);
           debugPrint('🔥 ESTADO ACTUALIZADO EN FIRESTORE: ${newStatus.toString().split('.').last}');
           
           // Reprogramar siguiente dosis al tomar u omitir
           if (actionId == 'TOMAR_ACTION' || actionId == 'OMITIR_ACTION') {
             try {
-              final docRef = firestoreService.getMedicamentoDocRef(userId, docId);
+              final docRef = resolved?.docRef ?? firestoreService.getMedicamentoDocRef(userId, docId, profile);
               final docSnap = await docRef.get().timeout(const Duration(seconds: 3));
               if (docSnap.exists) {
                 final tratamiento = Tratamiento.fromFirestore(docSnap as DocumentSnapshot<Map<String, dynamic>>);
-                await rescheduleNextPendingDose(tratamiento, userId);
+                await rescheduleNextPendingDose(tratamiento, userId, profile);
               }
             } catch (e) {
               debugPrint('🔥 ERROR REPROGRAMANDO SIGUIENTE DOSIS CON FIREBASE: $e');
@@ -1604,6 +1636,10 @@ class NotificationService {
         final pacienteNombre = parts.length >= 8 && parts[7].isNotEmpty ? parts[7] : null;
         final habitacion = parts.length >= 9 && parts[8].isNotEmpty ? parts[8] : null;
 
+        final resolvedNotificationId = notificationId ??
+            (parts.length >= 10 ? int.tryParse(parts[9]) : null);
+        final profileId = parts.length >= 11 && parts[10].isNotEmpty ? parts[10] : null;
+
         navigatorKey.currentState?.push(
           MaterialPageRoute(
             builder: (context) => AlarmRingingPage(
@@ -1615,7 +1651,8 @@ class NotificationService {
               presentacion: presentacion,
               pacienteNombre: pacienteNombre,
               habitacion: habitacion,
-              notificationId: notificationId,
+              notificationId: resolvedNotificationId,
+              profileId: profileId,
             ),
           ),
         );
@@ -1625,9 +1662,15 @@ class NotificationService {
     }
   }
 
-  static void _navigateToDetail(String userId, String docId, String? dateTimeStr) async {
+  static void _navigateToDetail(String userId, String docId, String? dateTimeStr, [String? profileId]) async {
     try {
-      final doc = await FirestoreService().getMedicamentoDocRef(userId, docId).get();
+      final resolved = await FirestoreService().resolveMedicamentoWithProfile(
+        userId,
+        docId,
+        profileId: profileId,
+      );
+      final docRef = resolved?.docRef ?? FirestoreService().getMedicamentoDocRef(userId, docId);
+      final doc = await docRef.get();
       if (doc.exists) {
         final tratamiento = Tratamiento.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
         final date = dateTimeStr != null ? DateTime.tryParse(dateTimeStr) ?? DateTime.now() : DateTime.now();
@@ -1637,6 +1680,7 @@ class NotificationService {
             builder: (context) => DetalleRecetaPage(
               tratamiento: tratamiento,
               horaDosis: date,
+              profile: resolved?.profile,
             ),
           ),
         );

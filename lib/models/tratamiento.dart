@@ -81,6 +81,7 @@ DoseStatus doseStatusFromString(String status) {
 @immutable
 class Tratamiento {
   final String id;
+  final String? profileId;
   final String nombreMedicamento;
   final String presentacion;
   final String duracion;
@@ -101,6 +102,7 @@ class Tratamiento {
 
   const Tratamiento({
     required this.id,
+    this.profileId,
     required this.nombreMedicamento,
     required this.presentacion,
     required this.duracion,
@@ -183,6 +185,7 @@ class Tratamiento {
   /// Creates a copy of this treatment with updated values
   Tratamiento copyWith({
     String? id,
+    String? profileId,
     String? nombreMedicamento,
     String? presentacion,
     String? duracion,
@@ -200,6 +203,7 @@ class Tratamiento {
   }) {
     return Tratamiento(
       id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
       nombreMedicamento: nombreMedicamento ?? this.nombreMedicamento,
       presentacion: presentacion ?? this.presentacion,
       duracion: duracion ?? this.duracion,
@@ -220,7 +224,7 @@ class Tratamiento {
 
   /// Converts to Map for Firestore storage
   Map<String, dynamic> toFirestoreMap() {
-    return {
+    final map = <String, dynamic>{
       AppConstants.nombreMedicamentoField: nombreMedicamento,
       AppConstants.presentacionField: presentacion,
       AppConstants.duracionField: duracion,
@@ -244,6 +248,10 @@ class Tratamiento {
         (key, value) => MapEntry(key, value.value),
       ),
     };
+    if (profileId != null) {
+      map['profileId'] = profileId;
+    }
+    return map;
   }
 
   /// Crea una instancia de [Tratamiento] a partir de un [DocumentSnapshot] de Firestore.
@@ -252,6 +260,16 @@ class Tratamiento {
     DocumentSnapshot<Map<String, dynamic>> doc,
   ) {
     final data = doc.data()!;
+
+    // Inferir o leer profileId
+    String? profileId = data['profileId'] as String?;
+    if (profileId == null && doc.reference.path.contains('managed_profiles')) {
+      final segments = doc.reference.path.split('/');
+      final idx = segments.indexOf('managed_profiles');
+      if (idx != -1 && idx + 1 < segments.length) {
+        profileId = segments[idx + 1];
+      }
+    }
 
     // Parse skipped doses safely
     final List<dynamic> skippedDosesRaw =
@@ -307,6 +325,7 @@ class Tratamiento {
 
     return Tratamiento(
       id: doc.id,
+      profileId: profileId,
       nombreMedicamento:
           data[AppConstants.nombreMedicamentoField] ??
           AppConstants.defaultMedicationName,
@@ -337,6 +356,7 @@ class Tratamiento {
       other is Tratamiento &&
           runtimeType == other.runtimeType &&
           id == other.id &&
+          profileId == other.profileId &&
           nombreMedicamento == other.nombreMedicamento &&
           presentacion == other.presentacion &&
           duracion == other.duracion &&
@@ -352,6 +372,7 @@ class Tratamiento {
   @override
   int get hashCode =>
       id.hashCode ^
+      profileId.hashCode ^
       nombreMedicamento.hashCode ^
       presentacion.hashCode ^
       duracion.hashCode ^

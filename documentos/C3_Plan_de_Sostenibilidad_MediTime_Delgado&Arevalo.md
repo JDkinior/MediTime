@@ -16,7 +16,7 @@
 | Campo Institucional | Detalle Oficial del Proyecto |
 | :--- | :--- |
 | **Título del Proyecto:** | Desarrollo de una Aplicación Móvil para la Gestión de Tratamientos Médicos (MediTime) |
-| **Versión del Software:** | 2.31.1 |
+| **Versión del Software:** | 2.32.0 |
 | **Autores / Investigadores:** | **Jorge Eliecer Delgado Cortés**<br>**Johan Alexander Arévalo Contreras** |
 | **Programa Académico:** | Ingeniería de Sistemas y Computación |
 | **Facultad:** | Facultad de Ingeniería |
@@ -63,7 +63,7 @@
 
 La culminación de un proyecto de ingeniería de software en el marco del **Noveno Semestre** de la **Universidad de Cundinamarca** trasciende la mera entrega de un producto ejecutable funcional. La naturaleza formativa institucional exige que las soluciones tecnológicas generen un impacto verificable y sostenible en la sociedad, asegurando su permanencia, mantenimiento y apropiación por parte de las comunidades beneficiarias.
 
-El presente **Plan de Sostenibilidad** formaliza las directrices organizacionales, operativas, técnicas y presupuestales que garantizan la viabilidad a largo plazo de **MediTime** (versión **2.31.1**). El documento delimita con absoluta claridad los responsables de la custodia del sistema, los recursos asignados para su operación ininterrumpida y las estrategias metodológicas para consolidar la transferencia efectiva hacia el territorio de la **Provincia de Ubaté y el Departamento de Cundinamarca**.
+El presente **Plan de Sostenibilidad** formaliza las directrices organizacionales, operativas, técnicas y presupuestales que garantizan la viabilidad a largo plazo de **MediTime** (versión **2.32.0**). El documento delimita con absoluta claridad los responsables de la custodia del sistema, los recursos asignados para su operación ininterrumpida y las estrategias metodológicas para consolidar la transferencia efectiva hacia el territorio de la **Provincia de Ubaté y el Departamento de Cundinamarca**.
 
 ---
 
@@ -173,6 +173,11 @@ La sostenibilidad a nivel de recurso humano contempla la dedicación de los inge
 | **Transferencia y Capacitación (Johan Arévalo)** | 5 horas / semana | $35.000 COP | $700.000 COP (Aporte en especie) |
 | **Acompañamiento Metodológico UDEC (Docente)** | 2 horas / semana | Institucional | Contrapartida Institucional UDEC |
 
+### 4.4. Estrategia de Financiación, Modelo Freemium y Sostenibilidad Económica
+Para asegurar la viabilidad económica a perpetuidad sin depender de subsidios asistenciales continuos, MediTime v2.32.0 implementa una arquitectura de monetización ética basada en el modelo *Freemium*:
+- **Nivel de Acceso Gratuito y Universal:** Garantiza que cualquier paciente o adulto mayor de la Provincia de Ubaté pueda registrar hasta 3 tratamientos activos simultáneos, administrar 1 perfil dependiente adicional y beneficiarse de alarmas persistentes sin costo alguno.
+- **Suscripciones Opcionales de Alta Demanda (MediTime Premium):** Usuarios que requieren gestión multi-paciente (cuidadores institucionales, familias numerosas o veterinarias) pueden optar por suscripciones mensuales o anuales. Los recursos recaudados se canalizan a un fondo operativo para cubrir el consumo de Firebase Blaze, cuotas de tokens de Groq Cloud API y mantenimiento evolutivo de la plataforma.
+
 ---
 
 ## 5. PLAN DE MANTENIMIENTO Y CICLO DE VIDA DEL SOFTWARE
@@ -217,7 +222,7 @@ La sostenibilidad de MediTime reside fundamentalmente en la apropiación que la 
 
 ### 6.1. Protocolo de Devolución al Territorio y Entrega Formal
 1. **Radicación de Acta de Entrega:** Formalización del acta de transferencia tecnológica ante las directivas de la **Universidad de Cundinamarca (Seccional Ubaté)** y los líderes comunitarios del territorio.
-2. **Entrega de Código Fuente:** Depósito del repositorio Git con su correspondiente historial de *commits* y la etiqueta (*tag*) oficial `v2.31.1-final`, bajo una licencia de uso abierto para fines académicos, asistenciales y de investigación de la universidad.
+2. **Entrega de Código Fuente:** Depósito del repositorio Git con su correspondiente historial de *commits* y la etiqueta (*tag*) oficial `v2.32.0-final`, bajo una licencia de uso abierto para fines académicos, asistenciales y de investigación de la universidad.
 
 ### 6.2. Programa de Capacitación Comunitaria para Cuidadores y Pacientes
 Se establece un ciclo de **tres talleres presenciales y virtuales** dirigidos a la comunidad de Ubaté:

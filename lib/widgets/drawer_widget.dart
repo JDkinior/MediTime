@@ -16,6 +16,9 @@ import 'package:meditime/screens/shared/modo_cuidador_opciones_page.dart';
 import 'package:meditime/screens/shared/modo_animales_opciones_page.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
+import 'package:meditime/notifiers/subscription_notifier.dart';
+import 'package:meditime/screens/subscription/subscription_page.dart';
+import 'package:meditime/widgets/profile_avatar.dart';
 
 class CustomDrawer extends StatelessWidget {
   final VoidCallback onLogout;
@@ -31,10 +34,6 @@ class CustomDrawer extends StatelessWidget {
     return AppUtils.getLocalizedGreeting(context);
   }
 
-  bool _isDeprecatedFirebaseStorageUrl(String? url) {
-    return url != null && url.contains('firebasestorage.googleapis.com');
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -43,14 +42,11 @@ class CustomDrawer extends StatelessWidget {
     final profile = context.watch<ProfileNotifier>();
     final caregiver = context.watch<CaregiverNotifier>();
     final preferences = context.watch<PreferenceNotifier>();
+    final subscription = context.watch<SubscriptionNotifier>();
 
     final nameParts = profile.userName?.split(' ');
     final displayName = nameParts?.take(2).join(' ') ?? AppConstants.defaultUserName;
     final profileImagePath = profile.profileImageUrl;
-    final canLoadProfileImage =
-        profileImagePath != null &&
-        profileImagePath.isNotEmpty &&
-        !_isDeprecatedFirebaseStorageUrl(profileImagePath);
 
     final isCaregiverActive = caregiver.isCaregiverModeActive;
     final isAnimalActive = preferences.isAnimalMode;
@@ -108,18 +104,12 @@ class CustomDrawer extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // Profile Image without border ring
-                CircleAvatar(
+                // Profile Image with instant local cache and smooth fallback
+                ProfileAvatar(
                   radius: 34,
-                  backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  backgroundImage: canLoadProfileImage ? NetworkImage(profileImagePath) : null,
-                  child: !canLoadProfileImage
-                      ? Icon(
-                          isAnimalActive ? Icons.pets_rounded : Icons.person,
-                          size: 36,
-                          color: isDark ? Colors.white70 : AppTheme.primaryColor,
-                        )
-                      : null,
+                  localImagePath: profile.localImagePath,
+                  imageUrl: profileImagePath,
+                  isAnimalMode: isAnimalActive,
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -230,6 +220,27 @@ class CustomDrawer extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const PerfilPage()),
+                    );
+                  },
+                ),
+                _DrawerTile(
+                  icon: subscription.isPremium
+                      ? Icons.workspace_premium_rounded
+                      : Icons.auto_awesome_rounded,
+                  title: subscription.isPremium ? 'MediTime Pro Activo' : 'Obtener MediTime Pro',
+                  subtitle: subscription.isPremium
+                      ? (subscription.subscriptionTier == 'annual' ? 'Plan Anual Activo' : 'Plan Mensual Activo')
+                      : 'Tratamientos y reportes sin límites',
+                  iconColor: subscription.isPremium ? const Color(0xFFEAB308) : const Color(0xFF7C3AED),
+                  iconBgColor: subscription.isPremium
+                      ? (isDark ? const Color(0xFF332900) : const Color(0xFFFEFCE8))
+                      : (isDark ? const Color(0xFF2E1065) : const Color(0xFFF5F3FF)),
+                  isDark: isDark,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SubscriptionPage()),
                     );
                   },
                 ),

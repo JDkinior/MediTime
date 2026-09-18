@@ -74,7 +74,7 @@ def build_cronograma_workbook():
     # Main Titles
     ws1["A2"] = "2. Cronograma de actividades"
     ws1["A2"].font = f_title
-    ws1["A3"] = "Proyecto de Grado PGC (Noveno Semestre) — Vigencia 2026 | MediTime v2.31.1"
+    ws1["A3"] = "Proyecto de Grado PGC (Noveno Semestre) — Vigencia 2026 | MediTime v2.32.0"
     ws1["A3"].font = f_subtitle
     
     # Row Heights
@@ -319,7 +319,7 @@ def build_cronograma_workbook():
     
     ws2["A2"] = "2. Cronograma Maestro de Desarrollo e Innovación (Vigencia 2026)"
     ws2["A2"].font = f_title
-    ws2["A3"] = "Visión Macro-Evolutiva Anual (Febrero – Noviembre 2026) | MediTime v2.31.1"
+    ws2["A3"] = "Visión Macro-Evolutiva Anual (Febrero – Noviembre 2026) | MediTime v2.32.0"
     ws2["A3"].font = f_subtitle
     
     ws2.row_dimensions[5].height = 24
@@ -561,15 +561,10 @@ def build_cronograma_workbook():
                 c.alignment = align_left
 
     output_path = "documentos/Cronograma_de_Actividades_MediTime_2026.xlsx"
-    saved_path = output_path
-    try:
-        wb.save(output_path)
-    except PermissionError:
-        fallback_path = "documentos/Cronograma_de_Actividades_MediTime_Actualizado.xlsx"
-        wb.save(fallback_path)
-        saved_path = fallback_path
-        print(f"El archivo principal estaba abierto en Excel. Guardado como versión actualizada en: {fallback_path}")
-    print(f"Refined Excel successfully saved at: {saved_path}")
+    actualizado_path = "documentos/Cronograma_de_Actividades_MediTime_Actualizado.xlsx"
+    wb.save(output_path)
+    wb.save(actualizado_path)
+    print(f"Refined Excel successfully saved at: {output_path} and {actualizado_path}")
 
 if __name__ == "__main__":
     build_cronograma_workbook()

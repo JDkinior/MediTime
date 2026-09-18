@@ -5,6 +5,7 @@ import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/caregiver/manage_caregiver_profiles_page.dart';
+import 'package:meditime/services/auth_service.dart';
 
 class PatientSelectorDialog extends StatefulWidget {
   const PatientSelectorDialog({super.key});
@@ -364,7 +365,8 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                 children: [
                                   InkWell(
                                     onTap: () {
-                                      caregiverNotifier.setActiveProfileId(profile.id);
+                                      final userId = context.read<AuthService>().currentUser?.uid;
+                                      caregiverNotifier.setActiveProfileId(profile.id, userId);
                                       Navigator.pop(context);
                                     },
                                     child: Container(

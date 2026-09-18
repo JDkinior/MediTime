@@ -10,6 +10,10 @@ import 'package:meditime/use_cases/load_user_profile_use_case.dart';
 import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/repositories/user_repository.dart';
 
+import 'package:meditime/notifiers/subscription_notifier.dart';
+import 'package:meditime/services/subscription_service.dart';
+import 'package:meditime/notifiers/caregiver_notifier.dart';
+
 // Importar pantallas
 import 'package:meditime/screens/auth/login_page.dart';
 import 'package:meditime/screens/home/home_page.dart';
@@ -48,10 +52,21 @@ class _AuthWrapperState extends State<AuthWrapper> {
     final loadUserProfileUseCase = context.read<LoadUserProfileUseCase>();
     final userRepository = context.read<UserRepository>();
 
-  // Guardar el usuario actual para filtros en callbacks offline
-  await PreferenceService().saveCurrentUserId(user.uid);
+    // 0. Cargar perfil desde la caché local de forma instantánea (0ms)
+    await profileNotifier.loadFromLocalCache(user.uid);
 
-  // 1. Reactivar las alarmas incondicionalmente en cada inicio de sesión.
+    // Guardar el usuario actual para filtros en callbacks offline
+    await PreferenceService().saveCurrentUserId(user.uid);
+
+    // Inicializar escucha reactiva de suscripción
+    if (mounted) {
+      context.read<SubscriptionNotifier>().listenToUser(
+        user.uid,
+        context.read<SubscriptionService>(),
+      );
+    }
+
+    // 1. Reactivar las alarmas incondicionalmente en cada inicio de sesión.
     // Esto es crucial para restaurar las alarmas si la app fue terminada.
     await NotificationService.reactivateAlarmsForUser(user.uid);
     debugPrint("AuthWrapper: Alarmas reactivadas para el usuario ${user.uid}");
@@ -66,88 +81,83 @@ class _AuthWrapperState extends State<AuthWrapper> {
     // Check mounted state after async operation
     if (!mounted) return;
     
-  // 1.6. Verificar si hay una notificación que activó la app
+    // 1.6. Verificar si hay una notificación que activó la app
     await NotificationService.checkAppLaunchedFromNotification();
     debugPrint("🔍 AuthWrapper: Verificación de lanzamiento por notificación completada");
 
-  // Limpiar lista de tratamientos revocados al iniciar sesión (evitar bloqueos antiguos)
-  await PreferenceService().clearRevokedTreatments();
+    // Limpiar lista de tratamientos revocados al iniciar sesión (evitar bloqueos antiguos)
+    await PreferenceService().clearRevokedTreatments();
 
     // Check mounted state after async operation
     if (!mounted) return;
 
-    // 2. Cargar el perfil del usuario solo si aún no está en el Notifier.
-    if (profileNotifier.userName == null) {
-      debugPrint("AuthWrapper: Cargando perfil de usuario...");
+    // 2. Sincronizar el perfil del usuario desde Firestore
+    debugPrint("AuthWrapper: Sincronizando perfil de usuario desde Firestore...");
+    
+    final result = await loadUserProfileUseCase.execute(user.uid);
+    
+    // Check mounted state after async operation
+    if (!mounted) return;
+    
+    if (result.isSuccess) {
+      final profileData = result.data;
       
-      final result = await loadUserProfileUseCase.execute(user.uid);
-      
-      // Check mounted state after async operation
-      if (!mounted) return;
-      
-      if (result.isSuccess) {
-        final profileData = result.data;
-        
-        // If profile exists in Firestore, use it. Otherwise, import from
-        // Firebase user (e.g., Google account) when available.
-        String? firestoreImage = profileData?['profileImage'] as String?;
-        String? firestoreName = profileData?['name'] as String?;
+      String? firestoreImage = profileData?['profileImage'] as String?;
+      String? firestoreName = profileData?['name'] as String?;
 
-        if (_isDeprecatedFirebaseStorageUrl(firestoreImage)) {
-          firestoreImage = null;
-        }
+      if (_isDeprecatedFirebaseStorageUrl(firestoreImage)) {
+        firestoreImage = null;
+      }
 
-        // If Firestore profile has no image but Firebase user has one (Google),
-        // save it to Firestore and use it.
-        if ((firestoreImage == null || firestoreImage.isEmpty) && (user.photoURL != null && user.photoURL!.isNotEmpty)) {
-          try {
-            final saveResult = await userRepository.saveUserProfile(user.uid, {'profileImage': user.photoURL});
-            if (saveResult.isSuccess) {
-              firestoreImage = user.photoURL;
-              debugPrint('AuthWrapper: Foto de Google importada y guardada en Firestore.');
-            } else {
-              debugPrint('AuthWrapper: Error al guardar foto de Google en Firestore: ${saveResult.error}');
-            }
-          } catch (e) {
-            debugPrint('AuthWrapper: Excepción al intentar guardar foto de Google: $e');
+      // If Firestore profile has no image but Firebase user has one (Google),
+      // save it to Firestore and use it.
+      if ((firestoreImage == null || firestoreImage.isEmpty) && (user.photoURL != null && user.photoURL!.isNotEmpty)) {
+        try {
+          final saveResult = await userRepository.saveUserProfile(user.uid, {'profileImage': user.photoURL});
+          if (saveResult.isSuccess) {
+            firestoreImage = user.photoURL;
+            debugPrint('AuthWrapper: Foto de Google importada y guardada en Firestore.');
+          } else {
+            debugPrint('AuthWrapper: Error al guardar foto de Google en Firestore: ${saveResult.error}');
           }
-        }
-
-        // Also import displayName from Firebase user if Firestore name is missing
-        if ((firestoreName == null || firestoreName.isEmpty) && (user.displayName != null && user.displayName!.isNotEmpty)) {
-          try {
-            final saveResult = await userRepository.saveUserProfile(user.uid, {'name': user.displayName});
-            if (saveResult.isSuccess) {
-              firestoreName = user.displayName;
-              debugPrint('AuthWrapper: Nombre importado desde la cuenta de Google.');
-            } else {
-              debugPrint('AuthWrapper: Error al guardar nombre en Firestore: ${saveResult.error}');
-            }
-          } catch (e) {
-            debugPrint('AuthWrapper: Excepción al intentar guardar nombre de Google: $e');
-          }
-        }
-
-        // Update profile notifier with the final values
-        profileNotifier.updateProfile(
-          newName: firestoreName,
-          newImageUrl: firestoreImage,
-        );
-        debugPrint("AuthWrapper: Perfil de usuario cargado.");
-      } else {
-        debugPrint("AuthWrapper: Error al cargar el perfil de usuario: ${result.error}");
-        
-        // Check mounted state before showing SnackBar
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result.error ?? 'Error al cargar los datos del perfil.')),
-          );
+        } catch (e) {
+          debugPrint('AuthWrapper: Excepción al intentar guardar foto de Google: $e');
         }
       }
+
+      // Also import displayName from Firebase user if Firestore name is missing
+      if ((firestoreName == null || firestoreName.isEmpty) && (user.displayName != null && user.displayName!.isNotEmpty)) {
+        try {
+          final saveResult = await userRepository.saveUserProfile(user.uid, {'name': user.displayName});
+          if (saveResult.isSuccess) {
+            firestoreName = user.displayName;
+            debugPrint('AuthWrapper: Nombre importado desde la cuenta de Google.');
+          } else {
+            debugPrint('AuthWrapper: Error al guardar nombre en Firestore: ${saveResult.error}');
+          }
+        } catch (e) {
+          debugPrint('AuthWrapper: Excepción al intentar guardar nombre de Google: $e');
+        }
+      }
+
+      // Update profile notifier with the final values and auto-cache to disk
+      profileNotifier.updateProfile(
+        newName: firestoreName,
+        newImageUrl: firestoreImage,
+        userId: user.uid,
+      );
+      debugPrint("AuthWrapper: Perfil de usuario sincronizado y actualizado.");
+    } else {
+      debugPrint("AuthWrapper: Error al cargar el perfil de usuario: ${result.error}");
     }
     
     // Sincronizar estado inicial con los Widgets nativos de Android
     await WidgetService.updateWidgetData(userId: user.uid);
+
+    // Cargar perfiles de cuidador y auto-asegurar vínculos
+    if (mounted) {
+      context.read<CaregiverNotifier>().loadProfiles(user.uid);
+    }
 
     // Verificar si la aplicación fue abierta por toque en un Widget (ej. Asistente Midi)
     if (mounted) {

@@ -16,7 +16,7 @@
 | Campo Institucional | Detalle Oficial del Proyecto |
 | :--- | :--- |
 | **Título del Proyecto:** | Desarrollo de una Aplicación Móvil para la Gestión de Tratamientos Médicos (MediTime) |
-| **Versión del Software:** | 2.31.1 |
+| **Versión del Software:** | 2.32.0 |
 | **Autores / Investigadores:** | **Jorge Eliecer Delgado Cortés**<br>**Johan Alexander Arévalo Contreras** |
 | **Programa Académico:** | Ingeniería de Sistemas y Computación |
 | **Facultad:** | Facultad de Ingeniería |
@@ -46,6 +46,7 @@
    - 5.3. Tratamientos Continuos o Indefinidos (Patologías Crónicas)
    - 5.4. Control de Inventario y Alerta Preventiva de Stock Bajo
    - 5.5. Consulta, Edición, Suspensión y Eliminación de Recetas
+   - 5.6. Consejos y Micro-Recomendaciones Clínicas con IA
 6. [SISTEMA DE RECORDATORIOS, NOTIFICACIONES Y ALARMAS](#6-sistema-de-recordatorios-notificaciones-y-alarmas)
    - 6.1. Modalidades de Notificación: Pasiva, Activa y Modo Alarma
    - 6.2. Pantalla de Alarma Persistente y Acciones Rápidas (Tomar, Posponer, Omitir)
@@ -76,14 +77,18 @@
     - 12.2. Asistencia por Voz (Lectura Text-to-Speech y Dictado)
     - 12.3. Localizador Georreferenciado de Farmacias en Mapa
     - 12.4. Widget para la Pantalla de Inicio de Android
-13. [GUÍA DE OPTIMIZACIÓN DE BATERÍA POR FABRICANTE](#13-guía-de-optimización-de-batería-por-fabricante)
-14. [PREGUNTAS FRECUENTES (FAQ) Y SOPORTE TÉCNICO](#14-preguntas-frecuentes-faq-y-soporte-técnico)
+13. [PLANES Y SUSCRIPCIÓN MEDITIME PREMIUM](#13-planes-y-suscripción-meditime-premium)
+    - 13.1. Nivel Gratuito y Umbrales de Operación
+    - 13.2. Beneficios Exclusivos de MediTime Premium
+    - 13.3. Activación, Gestión y Renovación de Planes
+14. [GUÍA DE OPTIMIZACIÓN DE BATERÍA POR FABRICANTE](#14-guía-de-optimización-de-batería-por-fabricante)
+15. [PREGUNTAS FRECUENTES (FAQ) Y SOPORTE TÉCNICO](#15-preguntas-frecuentes-faq-y-soporte-técnico)
 
 ---
 
 ## 1. INTRODUCCIÓN Y PROPÓSITO DEL MANUAL
 
-El presente documento constituye el **Manual de Usuario** oficial de la solución tecnológica **MediTime** en su versión **2.31.1**, desarrollada en el marco del Proyecto de Grado del programa de **Ingeniería de Sistemas y Computación** de la **Universidad de Cundinamarca, Seccional Ubaté**.
+El presente documento constituye el **Manual de Usuario** oficial de la solución tecnológica **MediTime** en su versión **2.32.0**, desarrollada en el marco del Proyecto de Grado del programa de **Ingeniería de Sistemas y Computación** de la **Universidad de Cundinamarca, Seccional Ubaté**.
 
 ### 1.1. Propósito
 El objetivo primordial de esta guía es orientar al usuario final (paciente, familiar o cuidador asistencial) en la correcta operación, parametrización y aprovechamiento de todas las funcionalidades ofrecidas por el aplicativo móvil. La plataforma ha sido diseñada con un enfoque centrado en la accesibilidad, la usabilidad y la confiabilidad, garantizando que personas de diversos grupos etarios puedan gestionar sus tratamientos médicos con total autonomía y precisión.
@@ -213,6 +218,12 @@ MediTime incorpora un algoritmo de control de existencias farmacéuticas:
 - **Ver detalle:** Al pulsar sobre cualquier tarjeta en la pantalla principal o lista de medicamentos, se presenta el desglose posológico, el porcentaje de tomas cumplidas y el inventario disponible.
 - **Modificación:** Presione el icono de lápiz para editar horarios, notas médicas o dosis.
 - **Eliminación y Revocación:** Si un tratamiento finaliza anticipadamente o es cancelado por el médico, pulse el botón de papelera. MediTime cancelará de inmediato todas las alarmas programadas en el hardware del sistema a través del método `cancelTreatmentAlarms()`.
+
+### 5.6. Consejos y Micro-Recomendaciones Clínicas con IA
+En la cabecera de la pantalla de recetas, MediTime integra un carrusel dinámico de micro-consejos farmacológicos:
+- **Análisis Posológico Contextual:** Evalúa los principios activos prescritos y el porcentaje de tomas cumplidas del día, generando micro-consejos de alta relevancia médica (por ejemplo, tomar en ayunas fármacos como el omeprazol, acompañar con alimentos los antiinflamatorios como el ibuprofeno, completar ciclos completos de antibióticos e hidratarse adecuadamente).
+- **Caché en Disco de 12 Horas:** Las recomendaciones se respaldan localmente en memoria persistente mediante una huella (*fingerprint*) de los tratamientos activos, garantizando acceso instantáneo sin consumo recurrente de datos móviles ni cuotas de API.
+- **Heurísticas Médicas Inmediatas:** Ante falta de conectividad temporal, el sistema proyecta pautas clínicas precargadas para salvaguardar la adherencia y el cuidado del paciente en cualquier circunstancia.
 
 ---
 
@@ -405,28 +416,57 @@ MediTime incluye un componente interactivo para el escritorio del teléfono móv
 
 ---
 
-## 13. GUÍA DE OPTIMIZACIÓN DE BATERÍA POR FABRICANTE
+## 13. PLANES Y SUSCRIPCIÓN MEDITIME PREMIUM
+
+MediTime opera bajo un esquema *Freemium* ético y transparente, diseñado para asegurar la gratuidad universal de la salud asistencial básica, ofreciendo simultáneamente un nivel avanzado para usuarios de alta demanda o familias con múltiples dependientes.
+
+### 13.1. Nivel Gratuito y Umbrales de Operación
+El plan Gratuito está disponible para cualquier usuario al registrarse e incluye:
+- **Hasta 3 tratamientos activos en paralelo:** Permite gestionar con rigor los medicamentos cotidianos más habituales.
+- **Hasta 1 perfil dependiente adicional:** Habilita la supervisión de un familiar o mascota adicional en modo cuidador.
+- **Acceso completo a alarmas persistentes:** El motor de alarmas de hardware y notificaciones no presenta restricciones en ningún plan.
+- **Consultas con el asistente IA Midi:** Interacción bilingüe y recordatorios básicos.
+
+### 13.2. Beneficios Exclusivos de MediTime Premium
+Al suscribirse a **MediTime Premium** (modalidad Mensual o Anual), se desbloquean capacidades avanzadas:
+- **Tratamientos Ilimitados:** Sin tope en el número de medicamentos o fórmulas complejas activas de forma simultánea.
+- **Perfiles Multi-Paciente y Multi-Animal Ilimitados:** Ideal para cuidadores profesionales, familias numerosas y veterinarias.
+- **Exportación Ilimitada de Reportes en PDF:** Descarga y compartición de informes clínicos detallados con gráficas de cumplimiento para médicos tratantes.
+- **Micro-Consejos Farmacológicos con IA:** Acceso permanente a sugerencias clínicas contextualizadas en la pantalla de recetas.
+- **Widgets Avanzados de Pantalla de Inicio:** Visualización constante de dosis directamente en el escritorio del teléfono.
+- **Asistente por Voz Completo:** Lectura auditiva y dictado sin restricciones.
+
+### 13.3. Activación, Gestión y Renovación de Planes
+1. Abra el menú lateral deslizando desde el borde izquierdo o pulsando el icono de menú en la barra superior.
+2. Pulse sobre el banner o la opción **"MediTime Premium"** (también se desplegará automáticamente vía `SubscriptionGuard` si intenta registrar un cuarto tratamiento o un segundo perfil de cuidado).
+3. En la pantalla de suscripción, seleccione la periodicidad deseada (**Facturación Anual con ahorro especial** o **Facturación Mensual flexible**).
+4. Pulse **"Continuar a Premium"** para confirmar la suscripción. Los privilegios se sincronizarán al instante en su cuenta mediante Firebase en tiempo real.
+5. Puede consultar la fecha de renovación o restablecer su plan en cualquier momento desde **Perfil > Gestión de Suscripción**.
+
+---
+
+## 14. GUÍA DE OPTIMIZACIÓN DE BATERÍA POR FABRICANTE
 
 Diversas capas de personalización del sistema operativo Android implementan gestores de energía excesivamente agresivos que pueden suspender el servicio de alarmas. MediTime incluye una guía paso a paso accesible desde **Opciones > Guía de Optimización**:
 
-### 13.1. Dispositivos Xiaomi / Redmi / POCO (MIUI / HyperOS)
+### 14.1. Dispositivos Xiaomi / Redmi / POCO (MIUI / HyperOS)
 1. Ingrese a **Ajustes > Aplicaciones > Administrar aplicaciones > MediTime**.
 2. Active la casilla de **Inicio Automático** (*Autostart*).
 3. En **Ahorro de Batería**, elija la opción **"Sin Restricciones"**.
 4. En **Otros Permisos**, conceda: "Mostrar en pantalla de bloqueo", "Mostrar ventanas emergentes mientras se ejecuta en segundo plano" y "Notificaciones permanentes".
 
-### 13.2. Dispositivos Samsung (One UI)
+### 14.2. Dispositivos Samsung (One UI)
 1. Diríjase a **Ajustes > Aplicaciones > MediTime > Batería**.
 2. Seleccione la opción **"No optimizada"** o **"Sin restricciones"**.
 3. En **Ajustes > Cuidado del dispositivo > Batería > Límites de uso en segundo plano**, verifique que MediTime figure en la lista de **"Aplicaciones que nunca entran en suspensión"**.
 
-### 13.3. Dispositivos Huawei (EMUI)
+### 14.3. Dispositivos Huawei (EMUI)
 1. Acceda a **Ajustes > Batería > Inicio de aplicaciones**.
 2. Localice MediTime, desactive el modo automático y en la ventana emergente active manualmente: **"Inicio automático"**, **"Inicio secundario"** y **"Ejecutar en segundo plano"**.
 
 ---
 
-## 14. PREGUNTAS FRECUENTES (FAQ) Y SOPORTE TÉCNICO
+## 15. PREGUNTAS FRECUENTES (FAQ) Y SOPORTE TÉCNICO
 
 ### ¿Las alarmas sonarán si el teléfono móvil está apagado?
 No. Ninguna aplicación de software puede ejecutar procesos si el circuito de hardware está completamente desprovisto de energía. No obstante, en cuanto el dispositivo sea encendido o reiniciado, el receptor `RECEIVE_BOOT_COMPLETED` de MediTime reactivará automáticamente todas las alarmas en el hardware sin que el usuario deba abrir la app.

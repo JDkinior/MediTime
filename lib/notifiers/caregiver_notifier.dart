@@ -102,6 +102,12 @@ class CaregiverNotifier extends ChangeNotifier {
     notifyListeners();
     try {
       _managedProfiles = await _firestoreService.getCaregiverProfiles(userId);
+      // Auto-asegurar permisos y consistencia para perfiles vinculados por correo
+      for (final p in _managedProfiles) {
+        if (p.isExternalUser && p.linkedUid != null) {
+          _firestoreService.ensureCaregiverLink(userId, p.linkedUid!);
+        }
+      }
       // Validate if the active profile still exists
       if (_activeProfileId != null && activeProfile == null) {
         _activeProfileId = null;
@@ -146,9 +152,12 @@ class CaregiverNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setActiveProfileId(String? profileId) async {
+  Future<void> setActiveProfileId(String? profileId, [String? currentUserId]) async {
     _activeProfileId = profileId;
     await _preferenceService.saveCaregiverActiveProfile(profileId);
+    if (currentUserId != null && activeProfile != null && activeProfile!.isExternalUser && activeProfile!.linkedUid != null) {
+      _firestoreService.ensureCaregiverLink(currentUserId, activeProfile!.linkedUid!);
+    }
     notifyListeners();
   }
 

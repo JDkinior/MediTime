@@ -128,6 +128,18 @@ class AppTheme {
     ],
   );
 
+  /// Button gradient used for primary buttons, adapting to the active theme mode
+  static LinearGradient get buttonGradient => LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [
+      currentIsAnimalMode
+          ? const Color(0xFF52B788)
+          : (currentIsCaregiverMode ? const Color(0xFFA582E2) : const Color.fromARGB(255, 73, 194, 255)),
+      primaryColor,
+    ],
+  );
+
   // -------------------
   // Shadows and Borders
   // -------------------

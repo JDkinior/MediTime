@@ -92,6 +92,22 @@ class AlarmSoundPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+
+            // Silenciar y cancelar cualquier notificación de alarma activa en el sistema Android
+            ctx?.let { c ->
+                try {
+                    val nm = c.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                    val active = nm?.activeNotifications
+                    active?.forEach { sbn ->
+                        val chId = sbn.notification.channelId
+                        if (chId == "meditime_alarm_channel_v2" || chId == "meditime_alarm_channel") {
+                            nm.cancel(sbn.id)
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
     }
 
@@ -126,43 +142,9 @@ class AlarmSoundPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 result.success(true)
             }
             "attachDismissListener" -> {
-                // Adjunta un deleteIntent a una notificación existente para que,
-                // al ser descartada (swipe, clear all, timeout), Android envíe
-                // automáticamente el broadcast STOP_ALARM y detenga el sonido.
-                val notificationId = call.argument<Int>("notificationId")
-                if (notificationId == null) {
-                    result.error("INVALID_ARGS", "notificationId is required", null)
-                    return
-                }
-                try {
-                    val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                    val activeNotifications = nm.activeNotifications
-                    val target = activeNotifications.find { it.id == notificationId }
-
-                    if (target != null) {
-                        val notification = target.notification
-                        // Crear PendingIntent que dispara AlarmStopReceiver al descartar
-                        val deleteIntent = PendingIntent.getBroadcast(
-                            ctx,
-                            notificationId,
-                            Intent(AlarmStopReceiver.ACTION_STOP_ALARM).apply {
-                                setPackage(ctx.packageName)
-                            },
-                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                        )
-                        notification.deleteIntent = deleteIntent
-                        // Re-publicar la notificación con el deleteIntent adjunto
-                        nm.notify(notificationId, notification)
-                        Log.d(TAG, "✅ deleteIntent adjuntado a notificación $notificationId")
-                        result.success(true)
-                    } else {
-                        Log.w(TAG, "⚠️ Notificación $notificationId no encontrada en activas")
-                        result.success(false)
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error adjuntando deleteIntent: ${e.message}")
-                    result.error("ATTACH_ERROR", e.message, null)
-                }
+                // No-op: No re-notificar a través de NotificationManager para evitar
+                // sonidos duplicados o hilos de reproducción huérfanos con FLAG_INSISTENT.
+                result.success(true)
             }
             else -> result.notImplemented()
         }

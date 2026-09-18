@@ -1,16 +1,21 @@
 // lib/widgets/primary_button.dart
 import 'package:flutter/material.dart';
+import 'package:meditime/theme/app_theme.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed; // Puede ser nulo para deshabilitar el botón
   final bool isLoading;
+  final Gradient? gradient;
+  final Color? color;
 
   const PrimaryButton({
     super.key,
     required this.text,
     required this.onPressed,
     this.isLoading = false,
+    this.gradient,
+    this.color,
   });
 
   @override
@@ -31,18 +36,13 @@ class PrimaryButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         child: Ink(
           decoration: BoxDecoration(
-            gradient: onPressed != null && !isLoading
-                ? const LinearGradient(
-                    colors: [
-                      Color.fromARGB(255, 73, 194, 255),
-                      Color.fromARGB(255, 47, 109, 180),
-                    ],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  )
-                : null, // Sin gradiente si está deshabilitado
+            gradient: (onPressed != null && !isLoading && color == null)
+                ? (gradient ?? AppTheme.buttonGradient)
+                : null, // Sin gradiente si está deshabilitado o si se especificó color sólido
             borderRadius: BorderRadius.circular(22),
-            color: onPressed == null || isLoading ? Colors.grey.shade400 : null,
+            color: (onPressed == null || isLoading)
+                ? Colors.grey.shade400
+                : color,
           ),
           child: Container(
             alignment: Alignment.center,
@@ -50,7 +50,7 @@ class PrimaryButton extends StatelessWidget {
                 ? const CircularProgressIndicator(color: Colors.white)
                 : Text(
                     text,
-                    style: const TextStyle(fontSize: 16, color: Colors.white),
+                    style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
                   ),
           ),
         ),

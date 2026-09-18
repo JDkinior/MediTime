@@ -22,16 +22,24 @@ class ToolCallResult {
 /// Provider wiring in the app.
 class GeminiService {
   GeminiService({String? apiKey})
-    : _apiKey = (apiKey ?? const String.fromEnvironment('GROQ_API_KEY')).trim();
+      : _explicitApiKey = apiKey?.trim();
 
-  final String _apiKey;
+  final String? _explicitApiKey;
 
-  // Model chosen for 15,000 TPM on free tier (2.5x more than llama models).
-  static const String _model = 'llama-3.3-70b-versatile';
-  static const String _fallbackModel = 'llama-3.1-8b-instant';
-  // Primary vision model — qwen3.6-27b supports image inputs on free tier
+  Future<String> getEffectiveApiKey() async {
+    if (_explicitApiKey != null && _explicitApiKey.isNotEmpty) {
+      return _explicitApiKey;
+    }
+    return const String.fromEnvironment('GROQ_API_KEY').trim();
+  }
+
+  // Production chat models supported across Groq accounts on LPU platform.
+  static const String _model = 'openai/gpt-oss-20b';
+  static const String _fallbackModel = 'qwen/qwen3.6-27b';
+  // Vision models supported by Groq
   static const String _visionModel = 'qwen/qwen3.6-27b';
-  static const String _visionFallbackModel = 'openai/gpt-oss-120b';
+  static const String _visionFallbackModel = 'qwen/qwen3.8-27b';
+  static const String _visionTertiaryModel = 'meta-llama/llama-4-scout-17b-16e-instruct';
   static const String _baseUrl =
       'https://api.groq.com/openai/v1/chat/completions';
   static const int _maxHistoryMessages = 6;
@@ -50,6 +58,9 @@ RULES:
 6. Format meds in bold **nombre**.
 ''';
 
+  @visibleForTesting
+  static List<Map<String, dynamic>> get tools => _tools;
+
   /// Tool definitions for Groq function calling.
   static const List<Map<String, dynamic>> _tools = [
     {
@@ -57,6 +68,10 @@ RULES:
       'function': {
         'name': 'get_today_medications',
         'description': 'Get today\'s medications and statuses.',
+        'parameters': {
+          'type': 'object',
+          'properties': <String, dynamic>{},
+        },
       },
     },
     {
@@ -64,6 +79,10 @@ RULES:
       'function': {
         'name': 'get_tomorrow_medications',
         'description': 'Get tomorrow\'s medications.',
+        'parameters': {
+          'type': 'object',
+          'properties': <String, dynamic>{},
+        },
       },
     },
     {
@@ -71,6 +90,10 @@ RULES:
       'function': {
         'name': 'get_active_treatments',
         'description': 'Get summary of active treatments.',
+        'parameters': {
+          'type': 'object',
+          'properties': <String, dynamic>{},
+        },
       },
     },
     {
@@ -114,6 +137,10 @@ RULES:
       'function': {
         'name': 'show_adherence_chart',
         'description': 'Show adherence chart and stats.',
+        'parameters': {
+          'type': 'object',
+          'properties': <String, dynamic>{},
+        },
       },
     },
     {
@@ -191,9 +218,10 @@ RULES:
       throw ArgumentError('User message cannot be empty.');
     }
 
-    if (_apiKey.isEmpty) {
+    final apiKey = await getEffectiveApiKey();
+    if (apiKey.isEmpty) {
       throw StateError(
-        'Missing Groq API key. Run with --dart-define=GROQ_API_KEY=YOUR_KEY.',
+        'Falta la clave de Groq API. Configúrala en la app o ejecuta con --dart-define=GROQ_API_KEY=TU_CLAVE.',
       );
     }
 
@@ -210,7 +238,11 @@ RULES:
     ];
 
     // Step 1: Send initial request (non-streaming) to check for tool calls
-    final initialResponse = await _sendChatRequest(messages, useTools: true);
+    final initialResponse = await _sendChatRequest(
+      messages,
+      apiKey: apiKey,
+      useTools: true,
+    );
 
     final choice = initialResponse['choices']?[0] as Map<String, dynamic>?;
     if (choice == null) {
@@ -282,7 +314,7 @@ RULES:
       }
 
       // Step 2: Send follow-up with tool results (streaming for final response)
-      yield* _streamFinalResponse(messages, prompt);
+      yield* _streamFinalResponse(messages, prompt, apiKey: apiKey);
     } else {
       // No tool calls — stream the direct response
       final content = message['content'] as String? ?? '';
@@ -302,6 +334,7 @@ RULES:
   /// Sends a non-streaming chat request (used for tool-call detection).
   Future<Map<String, dynamic>> _sendChatRequest(
     List<Map<String, dynamic>> messages, {
+    required String apiKey,
     bool useTools = false,
     bool isRetry = false,
   }) async {
@@ -321,21 +354,30 @@ RULES:
     final response = await http.post(
       Uri.parse(_baseUrl),
       headers: <String, String>{
-        'Authorization': 'Bearer $_apiKey',
+        'Authorization': 'Bearer $apiKey',
         'Content-Type': 'application/json',
       },
       body: jsonEncode(body),
     );
 
-    if ((response.statusCode == 429 || response.statusCode == 400) && !isRetry) {
-      debugPrint('GeminiService: ${response.statusCode} Error. Retrying with $_fallbackModel');
-      return _sendChatRequest(messages, useTools: useTools, isRetry: true);
+    if ((response.statusCode == 429 || response.statusCode == 400 || response.statusCode == 404) && !isRetry) {
+      debugPrint('GeminiService: ${response.statusCode} Error. Retrying with $_fallbackModel without tools');
+      return _sendChatRequest(messages, apiKey: apiKey, useTools: false, isRetry: true);
     }
 
     if (response.statusCode != 200) {
       final errorBody = response.body;
       debugPrint('Groq API error (${response.statusCode}): $errorBody');
-      throw StateError('Lo siento, hubo un error de procesamiento. Intenta decirlo de otra forma.');
+      if (response.statusCode == 401 || errorBody.contains('invalid_api_key')) {
+        throw StateError('Error de autenticación (401): La clave de Groq API es inválida o expiró. Verifica tu clave en console.groq.com.');
+      } else if (response.statusCode == 404 || errorBody.contains('model_not_found') || errorBody.contains('does not exist')) {
+        throw StateError('El modelo de IA solicitado no está disponible en tu cuenta de Groq (Error 404).');
+      } else if (response.statusCode == 413 || errorBody.contains('too large')) {
+        throw StateError('El mensaje es demasiado extenso para el modelo (413).');
+      } else if (response.statusCode == 429 || errorBody.contains('rate_limit')) {
+        throw StateError('Límite de solicitudes alcanzado (429). Espera unos segundos e intenta nuevamente.');
+      }
+      throw StateError('Error al procesar la solicitud (${response.statusCode}): ${response.reasonPhrase ?? "Error de conexión"}');
     }
 
     return jsonDecode(response.body) as Map<String, dynamic>;
@@ -345,11 +387,12 @@ RULES:
   Stream<String> _streamFinalResponse(
     List<Map<String, dynamic>> messages,
     String originalPrompt, {
+    required String apiKey,
     bool isRetry = false,
   }) async* {
     final request = http.Request('POST', Uri.parse(_baseUrl))
       ..headers.addAll(<String, String>{
-        'Authorization': 'Bearer $_apiKey',
+        'Authorization': 'Bearer $apiKey',
         'Content-Type': 'application/json',
       })
       ..body = jsonEncode(<String, dynamic>{
@@ -364,16 +407,23 @@ RULES:
     try {
       final response = await client.send(request);
       
-      if ((response.statusCode == 429 || response.statusCode == 400) && !isRetry) {
+      if ((response.statusCode == 429 || response.statusCode == 400 || response.statusCode == 404) && !isRetry) {
         debugPrint('GeminiService: ${response.statusCode} Error on Stream. Retrying with $_fallbackModel');
-        yield* _streamFinalResponse(messages, originalPrompt, isRetry: true);
+        yield* _streamFinalResponse(messages, originalPrompt, apiKey: apiKey, isRetry: true);
         return;
       }
 
       if (response.statusCode != 200) {
         final errorBody = await response.stream.bytesToString();
         debugPrint('Groq API error (${response.statusCode}): $errorBody');
-        throw StateError('Lo siento, hubo un error temporal. Por favor, intenta de nuevo.');
+        if (response.statusCode == 401 || errorBody.contains('invalid_api_key')) {
+          throw StateError('Error de autenticación (401): La clave de Groq API es inválida o expiró. Verifica tu clave en console.groq.com.');
+        } else if (response.statusCode == 404 || errorBody.contains('model_not_found') || errorBody.contains('does not exist')) {
+          throw StateError('El modelo de IA solicitado no está disponible en tu cuenta de Groq (Error 404).');
+        } else if (response.statusCode == 429 || errorBody.contains('rate_limit')) {
+          throw StateError('Límite de solicitudes alcanzado (429). Espera un momento e intenta de nuevo.');
+        }
+        throw StateError('Error temporal (${response.statusCode}). Por favor, intenta de nuevo.');
       }
 
       final fullText = StringBuffer();
@@ -449,6 +499,9 @@ RULES:
 
     // Remove leftover tool call markers that some models emit
     clean = clean.replaceAll(RegExp(r'<\|[^|]*\|>', caseSensitive: false), '');
+
+    // Remove <think>...</think> reasoning blocks that reasoning models may emit
+    clean = clean.replaceAll(RegExp(r'<think>[\s\S]*?</think>', caseSensitive: false), '');
 
     // Clean up multiple consecutive blank lines left behind by removed blocks
     clean = clean.replaceAll(RegExp(r'\n{3,}'), '\n\n');
@@ -567,9 +620,10 @@ RULES:
 
   /// Extracts prescription data from a Base64 image using Groq's vision model.
   Future<Map<String, dynamic>?> analyzePrescriptionImage(String base64Image, String mimeType) async {
-    if (_apiKey.isEmpty) {
+    final apiKey = await getEffectiveApiKey();
+    if (apiKey.isEmpty) {
       throw StateError(
-        'Missing Groq API key. Run with --dart-define=GROQ_API_KEY=YOUR_KEY.',
+        'Falta la clave de Groq API. Configúrala en la app o ejecuta con --dart-define=GROQ_API_KEY=TU_CLAVE.',
       );
     }
 
@@ -602,51 +656,65 @@ RULES:
       },
     ];
 
-    // Try primary vision model; fall back to the secondary on 404/400
-    // NOTE: response_format: json_object is NOT supported alongside image_url in llama-4 models
-    http.Response response = await http.post(
-      Uri.parse(_baseUrl),
-      headers: <String, String>{
-        'Authorization': 'Bearer $_apiKey',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(<String, dynamic>{
-        'model': _visionModel,
-        'temperature': 0.1,
-        'messages': messages,
-      }),
-    );
+    // Try primary vision model -> fallback models
+    final visionModels = [
+      _visionModel,
+      _visionFallbackModel,
+      _visionTertiaryModel,
+    ];
+    http.Response? lastResponse;
 
-    if (response.statusCode == 404 || response.statusCode == 400) {
-      debugPrint('Vision model $_visionModel failed (${response.statusCode}): ${response.body}. Retrying with $_visionFallbackModel');
-      response = await http.post(
-        Uri.parse(_baseUrl),
-        headers: <String, String>{
-          'Authorization': 'Bearer $_apiKey',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(<String, dynamic>{
-          'model': _visionFallbackModel,
-          'temperature': 0.1,
-          'messages': messages,
-        }),
-      );
+    for (final model in visionModels) {
+      try {
+        final response = await http.post(
+          Uri.parse(_baseUrl),
+          headers: <String, String>{
+            'Authorization': 'Bearer $apiKey',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(<String, dynamic>{
+            'model': model,
+            'temperature': 0.1,
+            'messages': messages,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          lastResponse = response;
+          break;
+        }
+
+        lastResponse = response;
+        debugPrint('Vision model $model failed (${response.statusCode}): ${response.body}');
+
+        // If 401 (auth error), don't keep trying models
+        if (response.statusCode == 401) {
+          break;
+        }
+      } catch (e) {
+        debugPrint('Exception querying vision model $model: $e');
+      }
     }
 
-    if (response.statusCode != 200) {
-      final errorBody = response.body;
-      debugPrint('Groq Vision API error (${response.statusCode}): $errorBody');
+    if (lastResponse == null || lastResponse.statusCode != 200) {
+      final errorBody = lastResponse?.body ?? 'No response';
+      final statusCode = lastResponse?.statusCode ?? 0;
+      debugPrint('Groq Vision API error ($statusCode): $errorBody');
 
       String errorMsg = 'No se pudo analizar la imagen en este momento. Intenta de nuevo o ingresa los datos manualmente.';
-      if (errorBody.contains('model_not_found') || errorBody.contains('do not have access')) {
-        errorMsg = 'Tu cuenta de Groq no tiene acceso al modelo de visión. Actívalo en console.groq.com o ingresa los datos manualmente.';
-      } else if (errorBody.contains('rate_limit') || response.statusCode == 429) {
-        errorMsg = 'Límite de peticiones alcanzado. Espera unos segundos e intenta de nuevo.';
+      if (statusCode == 401 || errorBody.contains('invalid_api_key')) {
+        errorMsg = 'Error de autenticación (401): La clave de Groq API es inválida o expiró. Verifica tu clave en console.groq.com.';
+      } else if (statusCode == 413 || errorBody.contains('too large')) {
+        errorMsg = 'La imagen es demasiado pesada para el modelo de visión (413). Toma una foto más cercana o comprimida.';
+      } else if (errorBody.contains('model_not_found') || errorBody.contains('do not have access')) {
+        errorMsg = 'Tu cuenta de Groq no tiene acceso a los modelos de visión actuales. Actívalos en console.groq.com o ingresa los datos manualmente.';
+      } else if (errorBody.contains('rate_limit') || statusCode == 429) {
+        errorMsg = 'Límite de peticiones alcanzado (429). Espera unos segundos e intenta de nuevo.';
       }
       throw StateError(errorMsg);
     }
 
-    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    final decoded = jsonDecode(lastResponse.body) as Map<String, dynamic>;
     final choices = decoded['choices'] as List<dynamic>;
     if (choices.isEmpty) return null;
     final messageData = choices.first['message'] as Map<String, dynamic>;
@@ -697,15 +765,16 @@ RULES:
         .map((t) => '${t.nombreMedicamento} (${t.presentacion})')
         .join(', ');
 
-    if (_apiKey.isEmpty) {
+    final apiKey = await getEffectiveApiKey();
+    if (apiKey.isEmpty) {
       return {'hasInteraction': false};
     }
 
     try {
-      final response = await http.post(
+      var response = await http.post(
         Uri.parse(_baseUrl),
         headers: <String, String>{
-          'Authorization': 'Bearer $_apiKey',
+          'Authorization': 'Bearer $apiKey',
           'Content-Type': 'application/json',
         },
         body: jsonEncode(<String, dynamic>{
@@ -730,6 +799,37 @@ RULES:
           ],
         }),
       );
+
+      if (response.statusCode != 200) {
+        response = await http.post(
+          Uri.parse(_baseUrl),
+          headers: <String, String>{
+            'Authorization': 'Bearer $apiKey',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(<String, dynamic>{
+            'model': _fallbackModel,
+            'response_format': {'type': 'json_object'},
+            'temperature': 0.1,
+            'messages': <Map<String, dynamic>>[
+              <String, String>{
+                'role': 'system',
+                'content':
+                    'Eres un experto en farmacología clínica. Analiza si existen interacciones medicamentosas reales y clínicamente relevantes entre el nuevo fármaco y los tratamientos activos. '
+                    'REGLA CRÍTICA: Si alguno de los fármacos no existe, es inventado, es desconocido, o NO hay interacción comprobada, DEBES retornar estrictamente {"hasInteraction": false, "severity": "", "warningMessage": ""}. '
+                    'Si SÍ hay interacción comprobada médica y científicamente, retorna {"hasInteraction": true, "severity": "mild"|"moderate"|"severe", "warningMessage": "Advertencia breve y empática explicando el posible efecto."}. '
+                    'IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON. No inventes interacciones ni asumas similitudes.',
+              },
+              <String, String>{
+                'role': 'user',
+                'content':
+                    'Nuevo fármaco a agregar: "$cleanNewName".\n'
+                    'Tratamientos activos del paciente: $activeMedsList.',
+              },
+            ],
+          }),
+        );
+      }
 
       if (response.statusCode != 200) {
         return {'hasInteraction': false};
@@ -776,5 +876,178 @@ RULES:
     _history.clear();
     _history.addAll(newHistory);
     _trimHistory();
+  }
+
+  /// Generates 2-3 short, personalized tips based on active treatments and adherence.
+  Future<List<Map<String, String>>> generateTreatmentTips({
+    required List<Tratamiento> treatments,
+    required int pendingCount,
+    required int takenCount,
+    required double adherenceRate,
+    String language = 'es',
+  }) async {
+    if (treatments.isEmpty) {
+      return [
+        {
+          'title': 'Comienza tu Registro',
+          'content': 'Agrega tus medicamentos con el botón "+" para recibir recordatorios y tips con IA.',
+        },
+        {
+          'title': 'Bienestar y Salud',
+          'content': 'Mantener tus tratamientos al día previene complicaciones y asegura tu recuperación.',
+        },
+      ];
+    }
+
+    final fallbackTips = getFallbackTips(
+      treatments: treatments,
+      pendingCount: pendingCount,
+      takenCount: takenCount,
+      adherenceRate: adherenceRate,
+    );
+
+    final apiKey = await getEffectiveApiKey();
+    if (apiKey.isEmpty) {
+      return fallbackTips;
+    }
+
+    try {
+      final medsSummary = treatments.map((t) {
+        final hours = t.intervaloDosis.inHours;
+        final interval = hours > 0 ? '${hours}h' : '${t.intervaloDosis.inMinutes}min';
+        return '- ${t.nombreMedicamento} (${t.presentacion}), cada $interval${t.notas.isNotEmpty ? ', nota: ${t.notas}' : ''}';
+      }).join('\n');
+
+      final prompt = '''
+Eres el asistente médico de MediTime. Genera 2 o 3 consejos muy breves, prácticos y motivadores en español para este paciente.
+Reglas estrictas:
+1. 'title': Máximo 3 a 4 palabras (ej: 'Toma en ayunas', 'Buena adherencia', 'Hidratación con agua').
+2. 'content': Máximo 115 caracteres por consejo (1 o 2 oraciones concisas).
+3. Enfócate en interacción con alimentos, regularidad horaria, hidratación o felicitación por adherencia.
+4. Responde ÚNICAMENTE en JSON con la clave "tips": [{"title": "...", "content": "..."}]
+
+Datos del paciente:
+Adherencia hoy: ${adherenceRate.toStringAsFixed(0)}% ($takenCount tomadas, $pendingCount pendientes).
+Tratamientos activos:
+$medsSummary
+''';
+
+      final response = await http.post(
+        Uri.parse(_baseUrl),
+        headers: <String, String>{
+          'Authorization': 'Bearer $apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(<String, dynamic>{
+          'model': _fallbackModel,
+          'response_format': {'type': 'json_object'},
+          'max_tokens': 160,
+          'temperature': 0.2,
+          'messages': <Map<String, dynamic>>[
+            {
+              'role': 'system',
+              'content': 'Eres un médico experto que entrega micro-consejos de salud concisos en formato JSON.',
+            },
+            {
+              'role': 'user',
+              'content': prompt,
+            },
+          ],
+        }),
+      ).timeout(const Duration(seconds: 4));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final contentStr = data['choices']?[0]?['message']?['content'];
+        if (contentStr != null) {
+          final parsed = jsonDecode(contentStr);
+          if (parsed is Map && parsed['tips'] is List) {
+            final List<Map<String, String>> tips = [];
+            for (var item in parsed['tips']) {
+              if (item is Map && item['title'] != null && item['content'] != null) {
+                tips.add({
+                  'title': item['title'].toString().trim(),
+                  'content': item['content'].toString().trim(),
+                  'isAi': 'true',
+                });
+              }
+            }
+            if (tips.isNotEmpty) {
+              return tips;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error generating treatment tips via AI: $e');
+    }
+
+    return fallbackTips;
+  }
+
+  List<Map<String, String>> getFallbackTips({
+    required List<Tratamiento> treatments,
+    required int pendingCount,
+    required int takenCount,
+    required double adherenceRate,
+  }) {
+    final List<Map<String, String>> tips = [];
+
+    for (var t in treatments) {
+      final name = t.nombreMedicamento.toLowerCase();
+      if (name.contains('omeprazol') || name.contains('pantoprazol') || name.contains('esomeprazol')) {
+        tips.add({
+          'title': 'Toma en ayunas',
+          'content': 'Toma el ${t.nombreMedicamento} unos 30 minutos antes del desayuno para máxima protección gástrica.',
+        });
+      } else if (name.contains('ibuprofeno') || name.contains('naproxeno') || name.contains('diclofenaco') || name.contains('ketorolaco')) {
+        tips.add({
+          'title': 'Acompaña con comida',
+          'content': 'Toma el ${t.nombreMedicamento} con alimentos o leche para proteger tu estómago.',
+        });
+      } else if (name.contains('amoxicilina') || name.contains('azitromicina') || name.contains('ciprofloxacino') || name.contains('cefalexina')) {
+        tips.add({
+          'title': 'Antibiótico regular',
+          'content': 'Completa la duración total del antibiótico ${t.nombreMedicamento} aunque te sientas mejor.',
+        });
+      } else if (name.contains('losartan') || name.contains('enalapril') || name.contains('amlodipino')) {
+        tips.add({
+          'title': 'Presión arterial',
+          'content': 'Mantén la toma diaria de ${t.nombreMedicamento} a la misma hora para un control cardiovascular estable.',
+        });
+      } else if (name.contains('metformina') || name.contains('glibenclamida')) {
+        tips.add({
+          'title': 'Glucosa y comida',
+          'content': 'Toma la ${t.nombreMedicamento} durante o inmediatamente después de las comidas principales.',
+        });
+      }
+    }
+
+    if (adherenceRate >= 100 && takenCount > 0) {
+      tips.add({
+        'title': '¡Excelente constancia!',
+        'content': 'Llevas el 100% de tus dosis al día. La disciplina en los horarios acelera tu recuperación.',
+      });
+    } else if (pendingCount > 0) {
+      tips.add({
+        'title': 'Dosis pendientes',
+        'content': 'Tienes $pendingCount toma${pendingCount > 1 ? 's' : ''} pendiente${pendingCount > 1 ? 's' : ''} hoy. Recuerda tomarlas a tiempo.',
+      });
+    }
+
+    if (tips.length < 2) {
+      tips.add({
+        'title': 'Hidratación clave',
+        'content': 'Acompaña siempre tus comprimidos con un vaso lleno de agua para una absorción digestiva óptima.',
+      });
+    }
+
+    return tips.take(3).map((tip) {
+      return {
+        'title': tip['title'] ?? '',
+        'content': tip['content'] ?? '',
+        'isAi': 'false',
+      };
+    }).toList();
   }
 }

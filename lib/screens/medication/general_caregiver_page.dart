@@ -113,10 +113,20 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
             return const EstadoVista(state: ViewState.loading, child: SizedBox.shrink());
           }
           if (snapshot.hasError) {
+            debugPrint("Error loading general caregiver stream: ${snapshot.error}");
             return EstadoVista(
               state: ViewState.error,
               errorMessage: 'Ocurrió un error al cargar las recetas.',
-              onRetry: () => setState(() {}),
+              onRetry: () async {
+                firestoreService.clearMedicamentosCache();
+                for (final p in profiles) {
+                  if (p.isExternalUser && p.linkedUid != null) {
+                    await firestoreService.ensureCaregiverLink(user.uid, p.linkedUid!);
+                  }
+                }
+                _lastProfiles = null;
+                if (mounted) setState(() {});
+              },
               child: const SizedBox.shrink(),
             );
           }

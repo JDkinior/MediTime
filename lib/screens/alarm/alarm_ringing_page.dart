@@ -21,6 +21,7 @@ class AlarmRingingPage extends StatefulWidget {
   final String? categoria;
   final int? notificationId;
   final bool isTest;
+  final String? profileId;
 
   const AlarmRingingPage({
     super.key,
@@ -35,6 +36,7 @@ class AlarmRingingPage extends StatefulWidget {
     this.categoria,
     this.notificationId,
     this.isTest = false,
+    this.profileId,
   });
 
   @override
@@ -109,6 +111,13 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
   @override
   void dispose() {
     AlarmSoundService.stopAlarm();
+    if (widget.notificationId != null) {
+      NotificationService.cancelFlutterLocalNotificationById(
+        widget.notificationId!,
+      );
+    } else {
+      NotificationService.cancelAllAlarmNotifications();
+    }
     SystemSettingsService.setLockScreenVisibility(false);
     _clockTimer?.cancel();
     _pulseController.dispose();
@@ -136,6 +145,12 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
       } catch (e) {
         debugPrint('Error cancelando notificación: $e');
       }
+    } else {
+      try {
+        await NotificationService.cancelAllAlarmNotifications();
+      } catch (e) {
+        debugPrint('Error cancelando notificaciones de alarma: $e');
+      }
     }
 
     // Ejecutar lógica de negocio (Firestore, etc.) con protección de errores
@@ -160,18 +175,28 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
       if (!widget.isTest && widget.userId.isNotEmpty && widget.docId.isNotEmpty) {
         try {
           final firestoreService = FirestoreService();
+          final resolved = await firestoreService.resolveMedicamentoWithProfile(
+            widget.userId,
+            widget.docId,
+            profileId: widget.profileId,
+          );
+          final profile = resolved?.profile;
+
           await firestoreService.updateDoseStatus(
             widget.userId,
             widget.docId,
             widget.doseTime,
             DoseStatus.tomada,
+            profile,
           );
 
           // Reprogramar siguiente dosis
-          final docRef = firestoreService.getMedicamentoDocRef(
-            widget.userId,
-            widget.docId,
-          );
+          final docRef = resolved?.docRef ??
+              firestoreService.getMedicamentoDocRef(
+                widget.userId,
+                widget.docId,
+                profile,
+              );
           final docSnap = await docRef.get();
           if (docSnap.exists) {
             final tratamiento = Tratamiento.fromFirestore(
@@ -180,6 +205,7 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
             await NotificationService.rescheduleNextPendingDose(
               tratamiento,
               widget.userId,
+              profile,
             );
           }
         } catch (e) {
@@ -194,15 +220,23 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
       if (!widget.isTest && widget.userId.isNotEmpty && widget.docId.isNotEmpty) {
         try {
           final firestoreService = FirestoreService();
+          final resolved = await firestoreService.resolveMedicamentoWithProfile(
+            widget.userId,
+            widget.docId,
+            profileId: widget.profileId,
+          );
+          final profile = resolved?.profile;
+
           await firestoreService.updateDoseStatus(
             widget.userId,
             widget.docId,
             widget.doseTime,
             DoseStatus.aplazada,
+            profile,
           );
 
           final payload =
-              'active_notification|${widget.userId}|${widget.docId}|${widget.doseTime.toIso8601String()}';
+              'active_notification|${widget.userId}|${widget.docId}|${widget.doseTime.toIso8601String()}|${widget.profileId ?? ""}';
 
           await NotificationService.snoozeNotification(
             widget.notificationId ?? 99999,
@@ -222,17 +256,27 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
       if (!widget.isTest && widget.userId.isNotEmpty && widget.docId.isNotEmpty) {
         try {
           final firestoreService = FirestoreService();
+          final resolved = await firestoreService.resolveMedicamentoWithProfile(
+            widget.userId,
+            widget.docId,
+            profileId: widget.profileId,
+          );
+          final profile = resolved?.profile;
+
           await firestoreService.updateDoseStatus(
             widget.userId,
             widget.docId,
             widget.doseTime,
             DoseStatus.omitida,
+            profile,
           );
 
-          final docRef = firestoreService.getMedicamentoDocRef(
-            widget.userId,
-            widget.docId,
-          );
+          final docRef = resolved?.docRef ??
+              firestoreService.getMedicamentoDocRef(
+                widget.userId,
+                widget.docId,
+                profile,
+              );
           final docSnap = await docRef.get();
           if (docSnap.exists) {
             final tratamiento = Tratamiento.fromFirestore(
@@ -241,6 +285,7 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
             await NotificationService.rescheduleNextPendingDose(
               tratamiento,
               widget.userId,
+              profile,
             );
           }
         } catch (e) {
@@ -270,6 +315,8 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
             await NotificationService.cancelFlutterLocalNotificationById(
               widget.notificationId!,
             );
+          } else {
+            await NotificationService.cancelAllAlarmNotifications();
           }
           if (context.mounted) {
             Navigator.of(context).pop();

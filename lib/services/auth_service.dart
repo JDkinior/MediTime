@@ -87,7 +87,7 @@ class AuthService {
       }
 
       // Clear profile and sign out
-      profileNotifier.clearProfile();
+      profileNotifier.clearProfile(userId: _auth.currentUser?.uid);
       await _auth.signOut();
       // After signing out at Firebase level, ensure we clear any remembered user id in preferences
       try {

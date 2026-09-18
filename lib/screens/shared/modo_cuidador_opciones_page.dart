@@ -5,6 +5,7 @@ import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/caregiver/manage_caregiver_profiles_page.dart';
+import 'package:meditime/core/subscription_guard.dart';
 
 class ModoCuidadorOpcionesPage extends StatelessWidget {
   const ModoCuidadorOpcionesPage({super.key});
@@ -92,6 +93,9 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
                   activeTrackColor: Colors.white.withOpacity(0.4),
                   onChanged: (val) async {
                     if (val) {
+                      final canProceed = await SubscriptionGuard.canActivateCaregiverMode(context);
+                      if (!canProceed || !context.mounted) return;
+
                       // Exclusividad mutua: desactivar Modo Animales
                       if (preferenceNotifier.isAnimalMode) {
                         await preferenceNotifier.setAnimalMode(false);

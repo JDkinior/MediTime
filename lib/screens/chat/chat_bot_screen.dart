@@ -24,6 +24,7 @@ import 'package:meditime/repositories/treatment_repository.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:intl/intl.dart';
+import 'package:meditime/core/subscription_guard.dart';
 
 class ChatBotScreen extends StatefulWidget {
   const ChatBotScreen({super.key});
@@ -407,6 +408,9 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   Future<void> _startVoiceRecording() async {
     if (_isGenerating || _isRecording) return;
     
+    final canProceed = await SubscriptionGuard.canUseVoiceAssistant(context);
+    if (!canProceed || !mounted) return;
+
     if (_voiceService == null) {
       _voiceService = VoiceService();
       final lang = context.read<PreferenceNotifier>().languageCode;
@@ -805,23 +809,33 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     final errorText = error.toString();
     final normalized = errorText.toLowerCase();
 
-    if (normalized.contains('missing groq api key')) {
-      return 'Falta la clave de Groq. Ejecuta con --dart-define=GROQ_API_KEY=TU_CLAVE.';
+    if (normalized.contains('falta la clave') ||
+        normalized.contains('missing groq api key')) {
+      return 'Falta configurar la clave de Groq API (--dart-define=GROQ_API_KEY=tu_clave).';
     }
 
-    if (normalized.contains('401') || normalized.contains('invalid api key')) {
-      return 'La clave de Groq no es válida o fue revocada. Genera una nueva clave e inténtalo de nuevo.';
+    if (normalized.contains('401') ||
+        normalized.contains('invalid api key') ||
+        normalized.contains('autenticación') ||
+        normalized.contains('invalid_api_key')) {
+      return 'La clave de Groq no es válida o expiró (Error 401). Verifica tu clave en console.groq.com.';
     }
 
-    if (normalized.contains('413') || normalized.contains('request too large')) {
-      return 'El mensaje fue demasiado largo. Intenta con una pregunta más corta o inicia un nuevo chat para limpiar el contexto.';
+    if (normalized.contains('413') || normalized.contains('request too large') || normalized.contains('extenso')) {
+      return 'El mensaje fue demasiado extenso (Error 413). Intenta con una pregunta más corta o inicia una nueva conversación para limpiar el contexto.';
     }
 
     if (normalized.contains('429') ||
         normalized.contains('rate limit') ||
         normalized.contains('quota') ||
         normalized.contains('rate_limit_exceeded')) {
-      return 'Se alcanzó el límite gratuito temporal de solicitudes. Espera un minuto e inténtalo nuevamente.';
+      return 'Se alcanzó el límite gratuito temporal de Groq (Error 429). Espera un minuto e inténtalo nuevamente.';
+    }
+
+    if (normalized.contains('404') ||
+        normalized.contains('model_not_found') ||
+        normalized.contains('does not exist')) {
+      return 'El modelo de IA solicitado no está disponible temporalmente en tu cuenta de Groq (Error 404).';
     }
 
     if (normalized.contains('timeout') || normalized.contains('timed out')) {
@@ -1464,6 +1478,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
           Builder(
             builder: (context) => IconButton(
               icon: const Icon(Icons.history_rounded),
+              tooltip: 'Historial',
               onPressed: () => Scaffold.of(context).openDrawer(),
             ),
           ),

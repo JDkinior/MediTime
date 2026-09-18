@@ -14,6 +14,8 @@ import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart'; // Se importa el tema para estilos consistentes
 import 'package:meditime/screens/shared/localizador_farmacias_page.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
+import 'package:meditime/widgets/profile_avatar.dart';
+import 'package:meditime/services/profile_cache_service.dart';
 
 class PerfilPage extends StatefulWidget {
   final GlobalKey? profileKey;
@@ -262,11 +264,16 @@ class _PerfilPageState extends State<PerfilPage> {
 
     try {
       String? finalImageUrl = _originalProfileImageUrl;
+      String? savedLocalPath;
 
       if (_profileImageUrl != null &&
           _profileImageUrl!.isNotEmpty &&
           !_profileImageUrl!.startsWith('http')) {
         File imageFile = File(_profileImageUrl!);
+        final cached = await ProfileCacheService().saveLocalImage(user.uid, imageFile);
+        if (cached != null) {
+          savedLocalPath = cached.path;
+        }
         finalImageUrl = await storageService.uploadProfileImage(
           user.uid,
           imageFile,
@@ -303,6 +310,8 @@ class _PerfilPageState extends State<PerfilPage> {
         context.read<ProfileNotifier>().updateProfile(
           newName: _nameController.text,
           newImageUrl: finalImageUrl,
+          newLocalImagePath: savedLocalPath,
+          userId: user.uid,
         );
 
         setState(() {
@@ -708,31 +717,17 @@ class _PerfilPageState extends State<PerfilPage> {
   }
 
   Widget _buildAvatarWithShowcase(ProfileNotifier profile) {
-    ImageProvider<Object>? backgroundImage;
-    final canLoadNetworkImage =
-        _profileImageUrl != null &&
-        _profileImageUrl!.startsWith('http') &&
-        !_isDeprecatedFirebaseStorageUrl(_profileImageUrl);
-
-    if (canLoadNetworkImage) {
-      backgroundImage = NetworkImage(_profileImageUrl!);
-    } else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
-      backgroundImage = FileImage(File(_profileImageUrl!));
-    }
-
-    Widget? avatarChild;
-    if (backgroundImage == null) {
-      avatarChild = Icon(Icons.person, size: 40, color: Colors.grey.shade500);
-    }
-
     final avatar = CircleAvatar(
       radius: 42,
       backgroundColor: AppTheme.borderColor,
-      child: CircleAvatar(
+      child: ProfileAvatar(
         radius: 40,
-        backgroundColor: Colors.grey.shade200,
-        backgroundImage: backgroundImage,
-        child: avatarChild,
+        localImagePath: (_profileImageUrl != null && !_profileImageUrl!.startsWith('http'))
+            ? _profileImageUrl
+            : profile.localImagePath,
+        imageUrl: (_profileImageUrl != null && _profileImageUrl!.startsWith('http'))
+            ? _profileImageUrl
+            : profile.profileImageUrl,
       ),
     );
 

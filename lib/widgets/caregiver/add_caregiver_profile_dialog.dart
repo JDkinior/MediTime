@@ -153,6 +153,7 @@ class _AddCaregiverProfileDialogState extends State<AddCaregiverProfileDialog> w
       );
 
       await firestoreService.saveCaregiverProfile(userId, newProfile);
+      await firestoreService.ensureCaregiverLink(userId, linkedUser.id);
       await caregiverNotifier.loadProfiles(userId);
 
       if (mounted) {

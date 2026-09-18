@@ -7,6 +7,7 @@ import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/caregiver/add_edit_caregiver_profile_page.dart';
+import 'package:meditime/core/subscription_guard.dart';
 
 class ManageCaregiverProfilesPage extends StatefulWidget {
   final bool isAnimalMode;
@@ -120,6 +121,9 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
 
   Future<void> _addProfile() async {
     final isAnimal = _getEffectiveAnimalMode();
+    final canProceed = await SubscriptionGuard.canAddProfile(context, isAnimal: isAnimal);
+    if (!canProceed || !mounted) return;
+
     await Navigator.push(
       context,
       MaterialPageRoute(

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Modos de recordatorio para la gestión de tomas de medicamentos.
@@ -73,6 +74,12 @@ class PreferenceService {
 
   // Onboarding key
   static const String _onboardingCompletedPrefix = 'onboarding_completed_';
+
+  // Profile cache keys
+  static const String _cachedUserNameKey = 'cached_user_name';
+  static const String _cachedProfileImageUrlKey = 'cached_profile_image_url';
+  static const String _cachedProfileLocalPathKey = 'cached_profile_local_path';
+
 
   Future<void> saveThemeMode(String themeStr) async {
     final prefs = await SharedPreferences.getInstance();
@@ -438,5 +445,98 @@ class PreferenceService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.reload();
     return prefs.getBool(_animalIncludeLocationKey) ?? true;
+  }
+
+  // --- AI Treatment Tips Cache ---
+  static const String _cachedAiTipsKey = 'cached_ai_tips_json';
+  static const String _cachedAiTipsFingerprintKey = 'cached_ai_tips_fingerprint';
+  static const String _cachedAiTipsTimestampKey = 'cached_ai_tips_timestamp';
+
+  Future<void> saveCachedAiTips({
+    required String fingerprint,
+    required List<Map<String, String>> tips,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_cachedAiTipsKey, jsonEncode(tips));
+      await prefs.setString(_cachedAiTipsFingerprintKey, fingerprint);
+      await prefs.setInt(_cachedAiTipsTimestampKey, DateTime.now().millisecondsSinceEpoch);
+    } catch (_) {}
+  }
+
+  Future<List<Map<String, String>>?> getCachedAiTips({
+    required String currentFingerprint,
+    Duration maxAge = const Duration(hours: 12),
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedFingerprint = prefs.getString(_cachedAiTipsFingerprintKey);
+      final savedTimestamp = prefs.getInt(_cachedAiTipsTimestampKey);
+      final savedJson = prefs.getString(_cachedAiTipsKey);
+
+      if (savedJson == null || savedFingerprint == null || savedTimestamp == null) {
+        return null;
+      }
+
+      if (savedFingerprint != currentFingerprint) {
+        return null;
+      }
+
+      final age = DateTime.now().millisecondsSinceEpoch - savedTimestamp;
+      if (age > maxAge.inMilliseconds) {
+        return null;
+      }
+
+      final decoded = jsonDecode(savedJson);
+      if (decoded is List) {
+        final List<Map<String, String>> result = [];
+        for (var item in decoded) {
+          if (item is Map) {
+            result.add({
+              'title': item['title']?.toString() ?? '',
+              'content': item['content']?.toString() ?? '',
+              'isAi': item['isAi']?.toString() ?? 'true',
+            });
+          }
+        }
+        if (result.isNotEmpty) return result;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> saveUserProfileCache({
+    String? name,
+    String? imageUrl,
+    String? localImagePath,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (name != null) await prefs.setString(_cachedUserNameKey, name);
+      if (imageUrl != null) await prefs.setString(_cachedProfileImageUrlKey, imageUrl);
+      if (localImagePath != null) await prefs.setString(_cachedProfileLocalPathKey, localImagePath);
+    } catch (_) {}
+  }
+
+  Future<Map<String, String?>> getUserProfileCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return {
+        'name': prefs.getString(_cachedUserNameKey),
+        'imageUrl': prefs.getString(_cachedProfileImageUrlKey),
+        'localImagePath': prefs.getString(_cachedProfileLocalPathKey),
+      };
+    } catch (_) {
+      return {'name': null, 'imageUrl': null, 'localImagePath': null};
+    }
+  }
+
+  Future<void> clearUserProfileCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_cachedUserNameKey);
+      await prefs.remove(_cachedProfileImageUrlKey);
+      await prefs.remove(_cachedProfileLocalPathKey);
+    } catch (_) {}
   }
 }

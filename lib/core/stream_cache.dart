@@ -52,6 +52,7 @@ class StreamCache<K, T> {
         if (!controller.isClosed) {
           controller.addError(error);
         }
+        _cleanup(key);
       },
       onDone: () {
         if (!controller.isClosed) {

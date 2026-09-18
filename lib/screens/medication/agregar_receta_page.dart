@@ -21,6 +21,7 @@ import 'package:meditime/repositories/treatment_repository.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/core/utils.dart';
+import 'package:meditime/core/subscription_guard.dart';
 
 class AgregarRecetaPage extends StatefulWidget {
   final Tratamiento? tratamientoToEdit;
@@ -196,6 +197,8 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
         profile: activeProfile,
       );
     } else {
+      final canAdd = await SubscriptionGuard.canAddTreatment(context);
+      if (!canAdd || !mounted) return;
       success = await notifier.saveTreatment(activeProfile);
     }
 
@@ -311,7 +314,12 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
 
     if (source == null) return;
 
-    final image = await picker.pickImage(source: source);
+    final image = await picker.pickImage(
+      source: source,
+      maxWidth: 1200,
+      maxHeight: 1200,
+      imageQuality: 85,
+    );
     if (image == null) return;
 
     if (!mounted) return;

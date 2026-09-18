@@ -6,6 +6,7 @@ import 'package:meditime/services/tratamiento_service.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'package:meditime/enums/view_state.dart';
 import 'package:meditime/screens/medication/detalle_receta_page.dart';
+import 'package:meditime/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 
 class PacienteRecetaPage extends StatelessWidget {
@@ -106,7 +107,7 @@ class PacienteRecetaPage extends StatelessWidget {
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListTile(
-                  leading: const Icon(Icons.medical_services, color: Colors.blue),
+                  leading: Icon(Icons.medical_services, color: AppTheme.primaryColor),
                   title: Text(tratamiento.nombreMedicamento),
                   subtitle: Text('Dosis: ${tratamiento.dosisPorToma} ${tratamiento.presentacion}\nPróxima toma: $horaFormateada'),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),

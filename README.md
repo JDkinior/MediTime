@@ -10,7 +10,7 @@ MediTime es una aplicación móvil multiplataforma desarrollada con Flutter, dis
 
 La aplicación utiliza Firebase como backend para ofrecer una experiencia de usuario fluida y sincronizada en tiempo real, desde la autenticación hasta el almacenamiento seguro de tus datos de salud, siguiendo una arquitectura de software limpia y escalable.
 
-**Versión actual:** 2.26.5
+**Versión actual:** 2.32.0
 
 ## 🔥 Características Principales
 
@@ -27,14 +27,30 @@ La aplicación utiliza Firebase como backend para ofrecer una experiencia de usu
 * **Tratamientos indefinidos:** Soporte para medicamentos de uso continuo con generación lazy de dosis
 * **Carga bajo demanda:** Sistema lazy loading para optimizar memoria en tratamientos largos
 
+### 💎 Suscripción Premium y Monetización Ética
+* **Planes flexibles:** Nivel Gratuito de acceso universal, y planes Premium Mensual y Anual.
+* **Control transparente de límites:** Hasta 3 tratamientos activos simultáneos y 1 perfil de cuidado en la versión gratuita.
+* **Beneficios Premium:** Tratamientos y perfiles ilimitados, exportación avanzada de reportes en PDF, widgets interactivos para Android, asistente de voz interactivo y consejos clínicos asistidos por IA.
+* **SubscriptionGuard:** Protección y enrutamiento centralizado sin fricciones hacia una interfaz inmersiva de suscripción.
+
+### 🤖 Micro-Consejos Clínicos con IA y Caché Persistente
+* **Sugerencias médicas personalizadas:** Análisis farmacológico en tiempo real según los medicamentos activos del paciente y porcentaje de cumplimiento.
+* **Caché en disco de 12 horas:** Almacenamiento local persistente por huella de tratamiento que ahorra consumo de cuotas y datos móviles.
+* **Heurísticas clínicas instantáneas:** Recomendaciones automáticas para ayunas, protección gástrica, antibióticos e hidratación sin tiempos de espera.
+
+### 👥 Modo Cuidador y Modo Animales (Gestión Multiperfil)
+* **Gestión de dependientes y mascotas:** Creación y seguimiento de esquemas terapéuticos para familiares y animales de compañía con paletas temáticas dinámicas.
+* **Resolución multiperfil transparente:** Resolución automática de medicamentos en colecciones personales, gestionadas o de usuarios externos vinculados (`resolveMedicamentoWithProfile`).
+* **Avatares en caché:** Carga instantánea de perfiles mediante `ProfileCacheService` y `ProfileAvatar`.
+
 ### 🔔 Sistema de Notificaciones Inteligentes
-* **Alarmas persistentes:** Funcionan incluso con la app cerrada o después de reiniciar el dispositivo
+* **Alarmas persistentes nativas:** Funcionan incluso con la app cerrada o después de reiniciar el dispositivo
 * **Dos modos de operación:**
-  - **Modo Activo:** Notificaciones interactivas con botones (Tomar, Omitir, Aplazar)
+  - **Modo Activo:** Notificaciones interactivas con botones (Tomar, Omitir, Aplazar) y pantalla completa de alarma
   - **Modo Pasivo:** Notificaciones automáticas que marcan la dosis como tomada
+* **Cancelación limpia de alarmas:** Silenciamiento robusto y liberación de recursos en el sistema Android evitando tonos duplicados
 * **Configuración personalizable:** Duración de aplazamiento ajustable
-* **Notificaciones de alta prioridad:** Pantalla completa, vibración y sonido para máxima visibilidad
-* **Funcionamiento offline:** Las alarmas se ejecutan independientemente de la conectividad
+* **Funcionamiento offline:** Las alarmas se ejecutan con total independencia de conexión a internet
 
 ### 🗓️ Calendario Interactivo
 * Vista de calendario mensual con indicadores visuales
@@ -54,7 +70,7 @@ La aplicación utiliza Firebase como backend para ofrecer una experiencia de usu
 * Gestión de datos personales y médicos
 * Almacenamiento seguro de información como tipo de sangre, alergias e historial
 * Subida y actualización de foto de perfil con Firebase Storage
-* Configuración de preferencias de notificación
+* Configuración de preferencias de notificación y gestión de suscripción activa
 
 ## 🛠️ Tecnologías Utilizadas
 
@@ -485,27 +501,37 @@ Agradecimientos especiales a la **Universidad de Cundinamarca**, seccional Ubat�
 
 ---
 
-**MediTime v2.26.5** - Tu salud, nuestra prioridad 💊✨
+**MediTime v2.32.0** - Tu salud, nuestra prioridad 💊✨
 
-### 🆕 Novedades en v2.26.5
+### 🆕 Novedades en v2.32.0
 
-#### Arquitectura y Rendimiento
-- **Clean Architecture:** Implementación completa con repositories, use cases y services
-- **Patrón Result:** Manejo de errores tipado y consistente sin excepciones
-- **Lazy Loading:** Sistema de carga bajo demanda para optimizar memoria
-- **Cache inteligente:** Gestión automática de memoria con limpieza periódica
+#### 💎 Modelo de Suscripciones y Monetización
+- **Nivel Freemium y Planes Premium:** Configuración de niveles Gratuito, Premium Mensual y Premium Anual con control de expiración y persistencia en Firestore.
+- **SubscriptionGuard:** Interceptor centralizado de límites que redirige de forma fluida a la pantalla de planes interactiva al intentar superar 3 tratamientos activos o 1 perfil de cuidado.
+- **Pantalla inmersiva de suscripción:** Interfaz moderna con iluminación ambiental, desglose claro de ventajas y alternador interactivo mensual/anual.
 
-#### Nuevas Funcionalidades
-- **Tratamientos indefinidos:** Soporte para medicamentos de uso continuo
-- **Resúmenes detallados:** Tarjetas informativas con toda la información del tratamiento
-- **Exportación PDF mejorada:** Reportes más detallados y profesionales
-- **Validación en tiempo real:** Formularios con validación instantánea
-- **Optimización de batería:** Mejor gestión de recursos del sistema
-- **🤖 Chatbot Midi bilingüe:** Asistente de IA con Groq API (streaming, detección automática de idioma, avatar animado)
+#### 🤖 Micro-Consejos Farmacológicos y de Salud con IA
+- **Consejos dinámicos contextuales:** Sugerencias concisas generadas por IA según los medicamentos activos del paciente y adherencia del día.
+- **Caché en disco de 12 horas:** Almacenamiento local persistente por fingerprint para reducir a cero peticiones de red innecesarias y preservar cuotas.
+- **Heurísticas clínicas instantáneas:** Recomendaciones inmediatas para ayunas (omeprazol), administración con alimentos (AINEs), pautas de antibióticos e hidratación.
 
-#### Mejoras Técnicas
-- **Constantes centralizadas:** Todos los valores mágicos organizados en AppConstants
-- **Type safety mejorado:** Enums con métodos adicionales y validación estricta
-- **Inyección de dependencias:** Configuración centralizada y más mantenible
-- **Manejo de estados robusto:** Estados de dosis con colores y textos descriptivos
-- **API Groq integrada:** Streaming SSE con fallback de modelos y manejo de errores bilingüe
+#### 👥 Gestión Multiperfil Robusta (Cuidadores y Mascotas)
+- **Resolución transparente multi-fuente:** Método `resolveMedicamentoWithProfile` que localiza dosis y medicamentos en colecciones personales, perfiles gestionados o usuarios vinculados.
+- **Tolerancia temporal en dosis:** Margen de 15 minutos en claves de dosis para sincronización libre de errores de desfase horario.
+- **ProfileAvatar y ProfileCacheService:** Optimización de carga y almacenamiento local de avatares fotográficos.
+
+#### 🔔 Optimización de Alarmas y Notificaciones Nativas
+- **Silenciamiento y limpieza limpia:** Manejo refinado en `AlarmSoundPlugin.kt` para cancelar notificaciones del canal activo y evitar hilos huérfanos con `FLAG_INSISTENT`.
+- **Reglas de seguridad Firestore:** Ajustes en `firestore.rules` para autorización granular de cuidadores y perfiles vinculados.
+
+---
+
+### 📋 Historial de Versiones Anteriores
+
+<details>
+<summary><b>v2.26.5 - v2.31.1</b> (Click para desplegar)</summary>
+
+- **v2.31.1:** Internacionalización completa (l10n en español e inglés), cronogramas académicos y de desarrollo 2026, optimización robusta de alarmas nativas y manuales institucionales.
+- **v2.26.5:** Clean Architecture, Patrón Result, Lazy loading de dosis, Chatbot Midi bilingüe con Groq API, exportación PDF y constantes centralizadas.
+
+</details>

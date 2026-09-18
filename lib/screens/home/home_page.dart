@@ -6,8 +6,9 @@ import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
-import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/screens/medication/agregar_receta_page.dart';
+import 'package:meditime/core/subscription_guard.dart';
+import 'package:meditime/models/caregiver_profile.dart';
 
 // Pantallas y Widgets
 import 'package:meditime/screens/calendar/calendario_page.dart';
@@ -628,7 +629,9 @@ class _HomePageState extends State<HomePage> {
                           ),
                           targetPadding: const EdgeInsets.all(4),
                           child: InkWell(
-                            onTap: () {
+                            onTap: () async {
+                              final canProceed = await SubscriptionGuard.canAddTreatment(context);
+                              if (!canProceed || !context.mounted) return;
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(

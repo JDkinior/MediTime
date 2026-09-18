@@ -10,9 +10,12 @@ import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/storage_service.dart';
+import 'package:meditime/services/profile_cache_service.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/primary_button.dart';
 import 'package:meditime/widgets/styled_text_field.dart';
+import 'package:meditime/core/subscription_guard.dart';
+import 'package:meditime/notifiers/subscription_notifier.dart';
 
 /// Widget de animación de desvanecimiento y deslizamiento hacia arriba
 /// con retraso escalonado (staggered animation) para cada tarjeta.
@@ -197,11 +200,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ? enteredName
           : (widget.user.displayName?.isNotEmpty == true ? widget.user.displayName! : 'Usuario');
 
+      final storageService = context.read<StorageService>();
+      final firestoreService = context.read<FirestoreService>();
+      final profileNotifier = context.read<ProfileNotifier>();
+
       // 1. Subir imagen si se tomó una foto local
       String? finalImageUrl = _photoUrl;
+      String? localCachedPath;
       if (_profileImage != null) {
         try {
-          final storageService = context.read<StorageService>();
+          final cached = await ProfileCacheService().saveLocalImage(userId, _profileImage!);
+          if (cached != null) {
+            localCachedPath = cached.path;
+          }
           finalImageUrl = await storageService.uploadProfileImage(userId, _profileImage!);
         } catch (e) {
           debugPrint("Advertencia: No se pudo subir imagen a Cloudinary en onboarding: $e");
@@ -209,7 +220,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
       }
 
       // 2. Guardar perfil en Firestore
-      final firestoreService = context.read<FirestoreService>();
       await firestoreService.saveUserProfile(userId, {
         'name': effectiveName,
         if (finalImageUrl != null && finalImageUrl.isNotEmpty) 'profileImage': finalImageUrl,
@@ -220,9 +230,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
       // 3. Actualizar ProfileNotifier
       if (mounted) {
-        context.read<ProfileNotifier>().updateProfile(
+        profileNotifier.updateProfile(
           newName: effectiveName,
           newImageUrl: finalImageUrl,
+          newLocalImagePath: localCachedPath,
+          userId: userId,
         );
       }
 
@@ -233,12 +245,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
       if (mounted) {
         final caregiverNotifier = context.read<CaregiverNotifier>();
         final preferenceNotifier = context.read<PreferenceNotifier>();
+        final subscriptionNotifier = context.read<SubscriptionNotifier>();
 
-        if (isCaregiver) {
+        if (isCaregiver && subscriptionNotifier.isPremium) {
           await preferenceNotifier.setAnimalMode(false);
           await caregiverNotifier.setCaregiverModeActive(true);
           caregiverNotifier.ensureActiveProfileForMode(isAnimalMode: false);
-        } else if (isAnimal) {
+        } else if (isAnimal && subscriptionNotifier.isPremium) {
           await caregiverNotifier.setCaregiverModeActive(false);
           await preferenceNotifier.setAnimalMode(true);
           await caregiverNotifier.setModeType(CaregiverModeType.veterinario);
@@ -762,7 +775,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
             delayMs: 200,
             child: _buildSelectionCard(
               isSelected: _selectedPurpose == 'cuidador',
-              onTap: () => setState(() => _selectedPurpose = 'cuidador'),
+              isPro: true,
+              onTap: () async {
+                final canProceed = await SubscriptionGuard.canActivateCaregiverMode(context);
+                if (canProceed && mounted) {
+                  setState(() => _selectedPurpose = 'cuidador');
+                }
+              },
               icon: Icons.health_and_safety_rounded,
               color: isDark ? const Color(0xFFBCA2F3) : const Color(0xFF8B62D4),
               title: 'Soy Cuidador / Familiar',
@@ -774,7 +793,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
             delayMs: 280,
             child: _buildSelectionCard(
               isSelected: _selectedPurpose == 'animales',
-              onTap: () => setState(() => _selectedPurpose = 'animales'),
+              isPro: true,
+              onTap: () async {
+                final canProceed = await SubscriptionGuard.canActivateAnimalMode(context);
+                if (canProceed && mounted) {
+                  setState(() => _selectedPurpose = 'animales');
+                }
+              },
               icon: Icons.pets_rounded,
               color: isDark ? const Color(0xFF65C895) : const Color(0xFF389E6A),
               title: 'Mascotas y Animales (Veterinaria)',
@@ -897,7 +922,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               onTap: () => setState(() => _selectedReminderMode = DoseReminderMode.alarm),
               icon: Icons.alarm_on_rounded,
               color: AppTheme.errorColor,
-              title: '🚨 Modo Alarma (Recomendado)',
+              title: 'Modo Alarma (Recomendado)',
               subtitle: 'Suena de forma continua en bucle como un despertador y enciende la pantalla hasta que interactúes.',
             ),
           ),
@@ -909,7 +934,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               onTap: () => setState(() => _selectedReminderMode = DoseReminderMode.active),
               icon: Icons.notifications_active_outlined,
               color: Colors.blue,
-              title: '🔔 Modo Activo',
+              title: 'Modo Activo',
               subtitle: 'Notificación interactiva con botones rápidos para Tomar, Omitir o Aplazar.',
             ),
           ),
@@ -921,7 +946,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               onTap: () => setState(() => _selectedReminderMode = DoseReminderMode.automatic),
               icon: Icons.info_outline_rounded,
               color: Colors.teal,
-              title: 'ℹ️ Modo Informativo',
+              title: 'Modo Informativo',
               subtitle: 'Aviso discreto. Ideal si ya tienes una rutina fija y solo quieres una referencia.',
             ),
           ),
@@ -1069,6 +1094,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     required Color color,
     required String title,
     required String subtitle,
+    bool isPro = false,
   }) {
     return InkWell(
       onTap: onTap,
@@ -1111,13 +1137,40 @@ class _OnboardingPageState extends State<OnboardingPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryTextColor,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryTextColor,
+                          ),
+                        ),
+                      ),
+                      if (isPro) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'PRO',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 3),
                   Text(

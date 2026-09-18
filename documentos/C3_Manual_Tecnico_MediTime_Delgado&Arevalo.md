@@ -16,7 +16,7 @@
 | Campo Institucional | Detalle Oficial del Proyecto |
 | :--- | :--- |
 | **Título del Proyecto:** | Desarrollo de una Aplicación Móvil para la Gestión de Tratamientos Médicos (MediTime) |
-| **Versión del Software:** | 2.31.1 |
+| **Versión del Software:** | 2.32.0 |
 | **Autores / Ingenieros Desarrolladores:** | **Jorge Eliecer Delgado Cortés**<br>**Johan Alexander Arévalo Contreras** |
 | **Programa Académico:** | Ingeniería de Sistemas y Computación |
 | **Facultad:** | Facultad de Ingeniería |
@@ -67,7 +67,7 @@
 
 ## 1. INTRODUCCIÓN Y RESUMEN TÉCNICO
 
-El presente **Manual Técnico** provee la especificación rigurosa de la ingeniería, arquitectura de software, patrones de diseño, modelo de datos y protocolos de comunicación implementados en **MediTime** (versión **2.31.1**).
+El presente **Manual Técnico** provee la especificación rigurosa de la ingeniería, arquitectura de software, patrones de diseño, modelo de datos y protocolos de comunicación implementados en **MediTime** (versión **2.32.0**).
 
 MediTime es una solución móvil empresarial orientada a la salud digital (*mHealth*), construida sobre el framework **Flutter** y el lenguaje **Dart**, con persistencia en la nube provista por **Google Cloud Firebase** y capacidades cognitivas soportadas en modelos fundacionales de inteligencia artificial ejecutados a baja latencia sobre la infraestructura de **Groq Cloud**.
 
@@ -80,7 +80,7 @@ El propósito de este documento es otorgar al equipo de ingeniería, a los evalu
 | Componente | Especificación Técnica | Justificación Tecnológica |
 | :--- | :--- | :--- |
 | **Nombre del Sistema:** | MediTime | Plataforma integral para la gestión farmacológica. |
-| **Versión Actual:** | 2.31.1 | Versión final estable y auditada para C3 (2026). |
+| **Versión Actual:** | 2.32.0 | Versión final estable y auditada para C3 (2026). |
 | **Framework Base:** | Flutter SDK 3.7.0+ (Canal Stable) | Renderizado reactivo a 60/120 fps con Skia/Impeller. |
 | **Lenguaje de Programación:** | Dart 3.7+ con *Sound Null Safety* | Tipado estricto, análisis estático y sealed classes. |
 | **Plataforma Primaria:** | Android (API Level 26 a 34+) | Cobertura superior al 95% del ecosistema móvil colombiano. |
@@ -178,11 +178,15 @@ El flujo de estado se centraliza mediante `Provider`, garantizando que la inyecc
 - `CaregiverNotifier`: Controla el filtrado de tratamientos por paciente a cargo, pisos y habitaciones.
 - `TreatmentFormNotifier`: Valida en tiempo real los campos de registro de nuevos fármacos.
 - `CalendarNotifier`: Orquesta la selección de fechas y el cálculo reactivo de las dosis del mes.
+- `SubscriptionNotifier`: Administra en tiempo real el nivel de suscripción (`isPremium`), la modalidad del plan (`subscriptionTier`), la vigencia temporal y las compuertas de acceso a funcionalidades avanzadas.
 
 ### 3.5. Patrón Lazy Loading y StreamCache
 Para optimizar el uso de memoria RAM en tratamientos crónicos (de duración indefinida), la aplicación implementa el modelo `LazyTreatment`. En lugar de instanciar miles de dosis en memoria o registrar documentos masivos en Firestore, las dosis se proyectan matemáticamente sobre demanda a partir de la tupla:
 $$\text{Dosis}(k) = \text{FechaInicio} + (k \times \text{Intervalo}), \quad \forall k \in \mathbb{N}$$
 Adicionalmente, la clase `StreamCache` almacena temporalmente las suscripciones a colecciones de Firestore para evitar lecturas duplicadas cuando el usuario navega frecuentemente entre pantallas.
+
+### 3.6. Arquitectura de Compuertas y Control de Límites (SubscriptionGuard)
+El sistema centraliza las políticas de negocio en la clase `SubscriptionGuard`. Los métodos estáticos `canAddTreatment(BuildContext)` y `canAddProfile(BuildContext)` evalúan transparentemente el número de tratamientos activos y perfiles creados contra los límites autorizados en `SubscriptionNotifier` (límite de 3 tratamientos activos y 1 perfil dependiente para cuentas gratuitas). Si el usuario alcanza el umbral, el guardián interrumpe la navegación hacia el formulario y redirige con elegancia hacia la pantalla inmersiva `SubscriptionPage`, manteniendo el código de vistas totalmente desacoplado de las reglas comerciales.
 
 ---
 
@@ -191,20 +195,21 @@ Adicionalmente, la clase `StreamCache` almacena temporalmente las suscripciones 
 A continuación se detalla la responsabilidad técnica de cada uno de los archivos que conforman el directorio principal `lib/`:
 
 ### 4.1. Núcleo del Sistema (`lib/core/`)
-- `constants.dart`: Centraliza la clase `AppConstants`, la cual reúne identificadores de colecciones, campos de base de datos, mensajes de error parametrizados, dimensiones de UI y constantes temporales, erradicando los "números y cadenas mágicas".
+- `constants.dart`: Centraliza la clase `AppConstants`, la cual reúne identificadores de colecciones, campos de base de datos, constantes de suscripción (`isPremium`, `subscriptionTier`, `subscriptionExpiresAt`), mensajes de error parametrizados, dimensiones de UI y constantes temporales.
+- `subscription_guard.dart`: Interceptor centralizado de límites para tratamientos y perfiles con navegación condicional a la pantalla de planes.
 - `result.dart`: Implementa el patrón funcional `Result<T>`, `Success<T>` y `Failure<T>`.
-- `location_helper.dart`: Encapsula la obtención de coordenadas geodésicas vía GPS y la consulta de puntos de interés (farmacias y centros asistenciales) consumiendo nodos de OpenStreetMap mediante Overpass API.
+- `location_helper.dart`: Encapsula la obtención de coordenadas geodésicas vía GPS y la consulta de farmacias consumiendo nodos de OpenStreetMap mediante Overpass API.
 - `stream_cache.dart`: Gestor de caché para flujos de datos en tiempo real (`Stream<List<Tratamiento>>`).
 - `treatment_constants.dart`: Define límites operacionales para intervalos horarios, duraciones estándar y umbrales de stock.
-- `utils.dart`: Métodos estáticos auxiliares para el parseo y formateo de fechas en español (`intl`), validadores de formato de correo electrónico y utilidades de serialización.
-- `navigator_key.dart`: Contiene una clave global (`GlobalKey<NavigatorState>`) que permite realizar navegación entre pantallas desde contextos desacoplados, fundamental para responder a eventos de notificaciones cuando la app está en segundo plano.
+- `utils.dart`: Métodos estáticos auxiliares para el formateo de fechas en español (`intl`), validadores de formato de correo electrónico y utilidades de serialización.
+- `navigator_key.dart`: Contiene una clave global (`GlobalKey<NavigatorState>`) que permite realizar navegación entre pantallas desde contextos desacoplados.
 
 ### 4.2. Modelos de Dominio y Enums (`lib/models/`, `lib/enums/`)
-- `tratamiento.dart`: Modela la entidad `Tratamiento`, la clase `ProcesarTomaResult` y el enum `DoseStatus`.
+- `tratamiento.dart`: Modela la entidad `Tratamiento`, incorporando `profileId` para vinculación con perfiles dependientes o de mascotas, la clase `ProcesarTomaResult` y el enum `DoseStatus`.
   * `DoseStatus`: Enum con valores `pendiente`, `notificada`, `tomada`, `omitida`, `aplazada`, provisto de métodos para asignar colores temáticos y conversión bidireccional de cadenas.
   * Validador `isValid`: Verifica que la fecha de fin sea posterior a la de inicio, que el intervalo sea superior a cero y que las dosis por toma sean consistentes.
   * Algoritmo `hasStockBajo`: Determina automáticamente si el inventario actual es inferior a 5 unidades o al 20% de la capacidad nominal de la caja.
-- `usuario.dart`: Entidad `Usuario` que almacena identificador UID, correo, nombre, teléfono, fecha de nacimiento (con cálculo derivado de edad), tipo de sangre, alergias y antecedentes clínicos.
+- `usuario.dart`: Entidad `Usuario` que almacena identificador UID, correo, nombre, teléfono, datos clínicos y campos de membresía: `isPremium`, `subscriptionTier` ('free', 'monthly', 'annual') y `subscriptionExpiresAt`.
 - `caregiver_profile.dart`: Modela los perfiles de sujetos a cargo. Admite perfiles humanos (modalidad familiar y clínica) y perfiles veterinarios (**Modo Animales**). Incorpora el tipo de modo `CaregiverModeType.veterinario`, banderas booleanas `isAnimal`, y variables zootécnicas críticas: `species` (especie animal), `breed` (raza), `weight` (peso corporal en kg para cálculo posológico) y `microchip` (código oficial de identificación electrónica).
 - `lazy_treatment.dart`: Proyección de tratamientos continuos sin sobrecarga de persistencia.
 - `treatment_form_data.dart`: Objeto de transferencia de datos (*DTO*) para el formulario reactivo de recetas.
@@ -234,13 +239,16 @@ A continuación se detalla la responsabilidad técnica de cada uno de los archiv
 - `alarm_sound_service.dart`: Controla el ciclo de reproducción y detención de tonos de alarma y vibración rítmica para pruebas y control interactivo en primer plano.
   * Incorpora timer de seguridad de auto-detención (`maxAlarmDuration = 5 minutos`).
   * Emite broadcasts globales del sistema (`com.example.meditime.STOP_ALARM`) para silenciar cualquier proceso secundario de manera instantánea.
-  * Interactúa con el plugin nativo Kotlin (`AlarmSoundPlugin.kt`) para adjuntar listeners de descarte (`deleteIntent`) en el NotificationManager de Android.
+  * Interactúa con el plugin nativo Kotlin (`AlarmSoundPlugin.kt`) para cancelar notificaciones del canal activo y garantizar el cese absoluto del audio.
 - `gemini_service.dart`: Orquesta las solicitudes al motor de Groq Cloud API:
   * Implementa conexión HTTP mediante Server-Sent Events (SSE) para renderizar respuestas token a token en tiempo real.
-  * Define la matriz de herramientas (*tools*) para Function Calling: `get_today_medications`, `get_tomorrow_medications`, `get_active_treatments`, `create_treatment` y `update_dose_status`.
+  * Define la matriz de herramientas (*tools*) para Function Calling con esquemas estrictos de parámetros validados mediante pruebas unitarias.
   * Soporta visión artificial multimodal consumiendo `qwen/qwen3.6-27b` para extracción de texto en recetas.
-- `firestore_service.dart`: Operaciones avanzadas con transacciones de base de datos y escritura por lotes (*batch writes*).
-- `preference_service.dart`: Capa de abstracción sobre `SharedPreferences` para almacenar en almacenamiento local el modo de recordatorio preferido, registros de tutoriales, validaciones offline, y parámetros de **Modo Animales** (`isAnimalMode`, `animalModeType`, `animalActiveProfileId`, `animalDosesNotification`, `animalIncludeLocation`).
+  * Genera micro-consejos clínicos de salud (`generateTreatmentTips`) basados en la medicación activa y tasa de adherencia, con pautas heurísticas de contingencia (`getFallbackTips`).
+- `subscription_service.dart`: Administra el ciclo de vida de la suscripción del usuario en Cloud Firestore, actualizando flags `isPremium`, tipo de plan (`monthly`, `annual`, `free`) y fecha de caducidad (`subscriptionExpiresAt`).
+- `profile_cache_service.dart`: Provee almacenamiento en memoria y en disco para avatares fotográficos de usuarios y dependientes, evitando consultas de red repetitivas.
+- `firestore_service.dart`: Operaciones avanzadas con transacciones de base de datos y escritura por lotes (*batch writes*). Incorpora `resolveMedicamentoWithProfile` para localización transparente de tratamientos entre colecciones personales, subcolecciones de perfiles dependientes y perfiles vinculados, así como control fino de invalidación con `clearMedicamentosCache`.
+- `preference_service.dart`: Capa de abstracción sobre `SharedPreferences` para almacenar en almacenamiento local el modo de recordatorio preferido, registros de tutoriales, validaciones offline, parámetros de **Modo Animales** y caché persistente de micro-consejos clínicos de IA con TTL de 12 horas (`getCachedAiTips` y `cacheAiTips`).
 - `pdf_report_service.dart`: Genera proceduralmente el reporte clínico en formato PDF A4 utilizando el paquete `pdf/widgets`, incrustando el logotipo institucional, tablas formateadas y el render vectorial de la gráfica de adherencia para pacientes humanos o animales.
 - `storage_service.dart`: Gestiona la compresión y subida de imágenes de perfil y recetas a Firebase Storage o Cloudinary.
 - `system_settings_service.dart`: Utiliza `android_intent_plus` para invocar las pantallas del sistema operativo Android donde el usuario puede otorgar permisos de optimización de batería e inicio automático.
@@ -248,7 +256,8 @@ A continuación se detalla la responsabilidad técnica de cada uno de los archiv
 - `widget_service.dart`: Actualiza los datos transferidos hacia el widget de escritorio de Android mediante `home_widget`.
 
 ### 4.6. Notificadores de Estado (`lib/notifiers/`)
-- `profile_notifier.dart`: Notificador reactivo del perfil de usuario.
+- `profile_notifier.dart`: Notificador reactivo del perfil de usuario y avatar en caché.
+- `subscription_notifier.dart`: Administra el estado reactivo del plan Premium/Free, la escucha en tiempo real de cambios en Firestore y compuertas booleanas de acceso (`canAddTreatment`, `canAddCaregiverProfile`, `canExportPdf`, `canUseHomeWidgets`).
 - `preference_notifier.dart`: Notificador de opciones de accesibilidad, temas dinámicos y **Modo Animales** (`isAnimalMode`, `animalModeType`), orquestando la reactividad cromática del árbol de widgets en runtime y garantizando la exclusividad mutua con Modo Cuidador.
 - `caregiver_notifier.dart`: Notificador para selección de paciente o mascota activa, soporte asistencial familiar, clínico y veterinario (`CaregiverModeType.veterinario`, perfiles zootécnicos `isAnimal`), método `getEffectiveActiveProfile(isAnimalMode)` y persistencia de exclusividad mutua con Modo Animales.
 - `treatment_form_notifier.dart`: Gestor del estado del formulario de creación y edición de medicamentos.
@@ -260,13 +269,15 @@ A continuación se detalla la responsabilidad técnica de cada uno de los archiv
   - **Modo Cuidador:** Morado lavanda suave (`#8B62D4`) y crema lila (`#A582E2`) con fondos crema pastel (`#FAF8F5` en claro, `#14111B` en oscuro) para clara diferenciación asistencial.
   - **Modo Personal Estándar:** Azul institucional (`#004AC6`).
   Al conmutar entre modos, el sistema ejecuta una transición fluida en todo el árbol de componentes sin reiniciar la aplicación.
+- `screens/subscription/subscription_page.dart`: Pantalla de suscripción inmersiva con selección de planes (anual/mensual), desglose de ventajas y activación en tiempo real.
+- `widgets/profile_avatar.dart`: Widget optimizado para renderizar avatares con soporte de caché local persistente y fallback de iniciales temáticas.
 - `screens/alarm/alarm_ringing_page.dart`: Pantalla completa que se superpone a la pantalla de bloqueo cuando suena una alarma crítica.
 - `screens/auth/`: Vistas de autenticación (`login_page.dart`, `register_page.dart`).
 - `screens/calendar/calendario_page.dart`: Vista de calendario interactivo mensual y lista diaria con sincronización de perfiles.
 - `screens/caregiver/`: Pantallas de administración y alta de perfiles humanos y animales (`manage_caregiver_profiles_page.dart`, `add_edit_caregiver_profile_page.dart`).
 - `screens/chat/chat_bot_screen.dart`: Interfaz conversacional con el asistente Midi, con avatar animado, burbujas de chat asimétricas y soporte para adjuntos de cámara.
 - `screens/home/home_page.dart`: Dashboard principal con vista de dosis del día, indicador de perfil de mascota/paciente activo (`Icons.pets_rounded`), resumen de progreso y tutorial `showcaseview`.
-- `screens/medication/`: Flujos de creación adaptados para mascotas (`agregar_receta_page.dart`), inspección (`detalle_receta_page.dart`), listado general y resúmenes.
+- `screens/medication/`: Flujos de creación adaptados para mascotas (`agregar_receta_page.dart`), inspección (`detalle_receta_page.dart`), listado general y resúmenes. En `receta_page.dart` se incluye el carrusel superior de micro-consejos clínicos de IA respaldados en caché local de 12 horas.
 - `screens/reports/`: Vistas de análisis de adherencia (`progreso_page.dart`, `reportes_page.dart`, `adherencia_chart.dart`).
 - `screens/onboarding/onboarding_page.dart`: Asistente de bienvenida y calibración inicial en 5 pasos (perfil/foto, propósito con colores temáticos dinámicos: azul para uso personal, morado para modo cuidador y verde para modo animales con garantía de exclusividad mutua, estilo visual y modalidad de alarmas).
 - `screens/shared/`: Pantallas de configuración, accesibilidad, **Modo Animales (`modo_animales_opciones_page.dart`)**, localización de farmacias, datos de privacidad y guía de optimización por fabricante.
