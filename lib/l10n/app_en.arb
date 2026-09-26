@@ -13,6 +13,7 @@
   "commonSuccess": "Success",
   "commonLoading": "Loading...",
   "commonRetry": "Retry",
+  "commonOptional": "Optional",
 
   "navHome": "Home",
   "navCalendar": "Calendar",
@@ -81,6 +82,8 @@
   "languageSpanishDesc": "Spanish (default)",
   "languageEnglish": "English",
   "languageEnglishDesc": "English",
+  "languagePortuguese": "Portuguese",
+  "languagePortugueseDesc": "Portuguese",
   "languageChangedSnackbar": "Language updated successfully.",
 
   "homeGreetingMorning": "Good morning!",
@@ -384,6 +387,29 @@
       "medicine": { "type": "String" }
     }
   },
+  "addPrescriptionCurrentStockHint": "E.g.: 30",
+  "addPrescriptionBoxStockHint": "E.g.: 60",
+  "addPrescriptionDoseHint": "E.g.: 1",
+  "addPrescriptionDiscardTitle": "Discard prescription?",
+  "addPrescriptionDiscardContent": "You have entered data in the form. If you exit now, changes will be lost.",
+  "addPrescriptionContinueEditing": "Keep editing",
+  "addPrescriptionExitAndDiscard": "Exit and discard",
+  "addPrescriptionScanCamera": "Camera",
+  "addPrescriptionScanGallery": "Gallery",
+  "addPrescriptionScanAnalyzing": "Analyzing prescription with AI...",
+  "addPrescriptionScanSuccess": "Prescription analyzed successfully. Form completed.",
+  "addPrescriptionScanNoData": "Could not extract prescription details.",
+  "addPrescriptionScanError": "Error analyzing prescription: {error}",
+  "@addPrescriptionScanError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "addPrescriptionInteractionWarning": "A potential drug interaction was detected.",
+  "drugInteractionTitle": "Interaction Detected ⚠️",
+  "drugInteractionDisclaimer": "We recommend consulting your doctor or pharmacist before starting both treatments simultaneously.",
+  "drugInteractionReview": "Review / Modify",
+  "drugInteractionContinueAnyway": "Continue anyway",
   "chatBotRecordingNotice": "Recording... Tap the mic to send",
   "chatBotCancelRecording": "Cancel recording",
   "chatBotTakeRecipePhoto": "Take Prescription Photo",
@@ -426,5 +452,81 @@
 
   "cancel": "Cancel",
 
-  "chatBotSelectFromGallery": "Select from gallery"
+  "chatBotSelectFromGallery": "Select from gallery",
+
+  "cardAiHealthTips": "AI Health Tips",
+  "cardAiTipsDescription": "Smart clinical tips tailored to each medication and mode.",
+  "cardViewPro": "View PRO",
+
+  "doseOptionsTitle": "Dose Options",
+  "markAsTaken": "Mark as taken",
+  "markAsTakenDesc": "Automatically deducts from inventory",
+  "doseMarkedTaken": "Dose marked as taken.",
+  "lowStockWarning": "Low stock: {count} doses left",
+  "@lowStockWarning": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "markAsSkipped": "Mark as skipped",
+  "markAsSkippedDesc": "Will not deduct inventory but logs omission",
+  "doseMarkedSkipped": "Dose marked as skipped.",
+  "deferDose": "Snooze dose",
+  "deferDoseDesc": "Postpones dose by 10, 15, 30 or 60 minutes",
+  "deferSelectTime": "Select how long you want to postpone the dose:",
+  "deferPlusMinutes": "+{minutes} min",
+  "@deferPlusMinutes": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "deferPlusOneHour": "+1 hour",
+  "doseDeferredMinutes": "Dose snoozed for {minutes} minutes.",
+  "@doseDeferredMinutes": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "editTreatment": "Edit treatment",
+  "editTreatmentDesc": "Modify only this dose or full treatment",
+  "deleteTreatment": "Delete treatment",
+  "deleteTreatmentDesc": "Removes this treatment and all its alarms",
+  "confirmDeleteTitle": "Confirm deletion",
+  "confirmDeleteMessage": "Are you sure you want to delete this treatment?",
+  "treatmentDeleted": "Treatment deleted.",
+
+  "whatToEdit": "What would you like to edit?",
+  "editSingleDose": "Edit only this dose",
+  "editSingleDoseDesc": "Change scheduled time for this dose ({time})",
+  "@editSingleDoseDesc": {
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
+  "editFullTreatment": "Edit full treatment",
+  "editFullTreatmentDesc": "Modify medication, schedules, duration, and inventory",
+  "doseTimeChanged": "Dose time changed.",
+
+  "loginToViewPrescriptions": "Log in to view your prescriptions.",
+  "errorLoadingPrescriptions": "An error occurred while loading prescriptions.",
+  "noPrescriptionsYet": "You haven't added any prescriptions yet. Add one to get started!",
+
+  "generalViewPets": "Overview (Pets)",
+  "generalViewAll": "Overview (All)",
+  "selectPet": "Select Pet",
+  "myProfile": "My Profile",
+  "bannerGeneralAllPets": "Overview: All pets",
+  "bannerGeneralAllPatients": "Overview: All patients",
+  "bannerViewingPetTreatments": "Viewing treatments for: {name}",
+  "@bannerViewingPetTreatments": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "bannerViewingPatientSchedule": "Viewing medical schedule for: {name}",
+  "@bannerViewingPatientSchedule": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  }
 }

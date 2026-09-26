@@ -7,6 +7,7 @@ import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
 import 'app_localizations_es.dart';
+import 'app_localizations_pt.dart';
 
 // ignore_for_file: type=lint
 
@@ -96,6 +97,7 @@ abstract class AppLocalizations {
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
     Locale('es'),
+    Locale('pt'),
   ];
 
   /// Nombre de la aplicación
@@ -169,6 +171,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Reintentar'**
   String get commonRetry;
+
+  /// No description provided for @commonOptional.
+  ///
+  /// In es, this message translates to:
+  /// **'Opcional'**
+  String get commonOptional;
 
   /// No description provided for @navHome.
   ///
@@ -547,6 +555,18 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Inglés'**
   String get languageEnglishDesc;
+
+  /// No description provided for @languagePortuguese.
+  ///
+  /// In es, this message translates to:
+  /// **'Português'**
+  String get languagePortuguese;
+
+  /// No description provided for @languagePortugueseDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Portugués'**
+  String get languagePortugueseDesc;
 
   /// No description provided for @languageChangedSnackbar.
   ///
@@ -2186,6 +2206,114 @@ abstract class AppLocalizations {
   /// **'Recordatorios configurados para {medicine}'**
   String addPrescriptionRemindersConfigured(String medicine);
 
+  /// No description provided for @addPrescriptionCurrentStockHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Ej: 30'**
+  String get addPrescriptionCurrentStockHint;
+
+  /// No description provided for @addPrescriptionBoxStockHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Ej: 60'**
+  String get addPrescriptionBoxStockHint;
+
+  /// No description provided for @addPrescriptionDoseHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Ej: 1'**
+  String get addPrescriptionDoseHint;
+
+  /// No description provided for @addPrescriptionDiscardTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Descartar receta?'**
+  String get addPrescriptionDiscardTitle;
+
+  /// No description provided for @addPrescriptionDiscardContent.
+  ///
+  /// In es, this message translates to:
+  /// **'Tienes datos ingresados en el formulario. Si sales ahora, se perderán los cambios.'**
+  String get addPrescriptionDiscardContent;
+
+  /// No description provided for @addPrescriptionContinueEditing.
+  ///
+  /// In es, this message translates to:
+  /// **'Continuar editando'**
+  String get addPrescriptionContinueEditing;
+
+  /// No description provided for @addPrescriptionExitAndDiscard.
+  ///
+  /// In es, this message translates to:
+  /// **'Salir y descartar'**
+  String get addPrescriptionExitAndDiscard;
+
+  /// No description provided for @addPrescriptionScanCamera.
+  ///
+  /// In es, this message translates to:
+  /// **'Cámara'**
+  String get addPrescriptionScanCamera;
+
+  /// No description provided for @addPrescriptionScanGallery.
+  ///
+  /// In es, this message translates to:
+  /// **'Galería'**
+  String get addPrescriptionScanGallery;
+
+  /// No description provided for @addPrescriptionScanAnalyzing.
+  ///
+  /// In es, this message translates to:
+  /// **'Analizando receta con IA...'**
+  String get addPrescriptionScanAnalyzing;
+
+  /// No description provided for @addPrescriptionScanSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Receta analizada con éxito. Formulario completado.'**
+  String get addPrescriptionScanSuccess;
+
+  /// No description provided for @addPrescriptionScanNoData.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo extraer información de la receta.'**
+  String get addPrescriptionScanNoData;
+
+  /// No description provided for @addPrescriptionScanError.
+  ///
+  /// In es, this message translates to:
+  /// **'Error al analizar la receta: {error}'**
+  String addPrescriptionScanError(String error);
+
+  /// No description provided for @addPrescriptionInteractionWarning.
+  ///
+  /// In es, this message translates to:
+  /// **'Se ha detectado una posible interacción medicamentosa.'**
+  String get addPrescriptionInteractionWarning;
+
+  /// No description provided for @drugInteractionTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Interacción Detectada ⚠️'**
+  String get drugInteractionTitle;
+
+  /// No description provided for @drugInteractionDisclaimer.
+  ///
+  /// In es, this message translates to:
+  /// **'Te recomendamos consultar con tu médico o farmacéutico antes de iniciar ambos tratamientos de manera simultánea.'**
+  String get drugInteractionDisclaimer;
+
+  /// No description provided for @drugInteractionReview.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisar / Modificar'**
+  String get drugInteractionReview;
+
+  /// No description provided for @drugInteractionContinueAnyway.
+  ///
+  /// In es, this message translates to:
+  /// **'Continuar de todos modos'**
+  String get drugInteractionContinueAnyway;
+
   /// No description provided for @chatBotRecordingNotice.
   ///
   /// In es, this message translates to:
@@ -2395,6 +2523,252 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Seleccionar de la galería'**
   String get chatBotSelectFromGallery;
+
+  /// No description provided for @cardAiHealthTips.
+  ///
+  /// In es, this message translates to:
+  /// **'Consejos de Salud con IA'**
+  String get cardAiHealthTips;
+
+  /// No description provided for @cardAiTipsDescription.
+  ///
+  /// In es, this message translates to:
+  /// **'Consejos clínicos inteligentes adaptados a cada medicamento y modo.'**
+  String get cardAiTipsDescription;
+
+  /// No description provided for @cardViewPro.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver PRO'**
+  String get cardViewPro;
+
+  /// No description provided for @doseOptionsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Opciones de la Dosis'**
+  String get doseOptionsTitle;
+
+  /// No description provided for @markAsTaken.
+  ///
+  /// In es, this message translates to:
+  /// **'Marcar como tomada'**
+  String get markAsTaken;
+
+  /// No description provided for @markAsTakenDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Descuenta del inventario automáticamente'**
+  String get markAsTakenDesc;
+
+  /// No description provided for @doseMarkedTaken.
+  ///
+  /// In es, this message translates to:
+  /// **'Dosis marcada como tomada.'**
+  String get doseMarkedTaken;
+
+  /// No description provided for @lowStockWarning.
+  ///
+  /// In es, this message translates to:
+  /// **'Stock bajo: te quedan {count} dosis'**
+  String lowStockWarning(int count);
+
+  /// No description provided for @markAsSkipped.
+  ///
+  /// In es, this message translates to:
+  /// **'Marcar como omitida'**
+  String get markAsSkipped;
+
+  /// No description provided for @markAsSkippedDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'No descontará inventario pero registrará la omisión'**
+  String get markAsSkippedDesc;
+
+  /// No description provided for @doseMarkedSkipped.
+  ///
+  /// In es, this message translates to:
+  /// **'Dosis marcada como omitida.'**
+  String get doseMarkedSkipped;
+
+  /// No description provided for @deferDose.
+  ///
+  /// In es, this message translates to:
+  /// **'Aplazar dosis'**
+  String get deferDose;
+
+  /// No description provided for @deferDoseDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Pospone la toma 10, 15, 30 o 60 minutos'**
+  String get deferDoseDesc;
+
+  /// No description provided for @deferSelectTime.
+  ///
+  /// In es, this message translates to:
+  /// **'Selecciona cuánto tiempo deseas posponer la toma:'**
+  String get deferSelectTime;
+
+  /// No description provided for @deferPlusMinutes.
+  ///
+  /// In es, this message translates to:
+  /// **'+{minutes} min'**
+  String deferPlusMinutes(int minutes);
+
+  /// No description provided for @deferPlusOneHour.
+  ///
+  /// In es, this message translates to:
+  /// **'+1 hora'**
+  String get deferPlusOneHour;
+
+  /// No description provided for @doseDeferredMinutes.
+  ///
+  /// In es, this message translates to:
+  /// **'Dosis aplazada por {minutes} minutos.'**
+  String doseDeferredMinutes(int minutes);
+
+  /// No description provided for @editTreatment.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar tratamiento'**
+  String get editTreatment;
+
+  /// No description provided for @editTreatmentDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Modificar solo esta dosis o el tratamiento completo'**
+  String get editTreatmentDesc;
+
+  /// No description provided for @deleteTreatment.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar tratamiento'**
+  String get deleteTreatment;
+
+  /// No description provided for @deleteTreatmentDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Remueve este tratamiento y todas sus alarmas'**
+  String get deleteTreatmentDesc;
+
+  /// No description provided for @confirmDeleteTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmar eliminación'**
+  String get confirmDeleteTitle;
+
+  /// No description provided for @confirmDeleteMessage.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Estás seguro de que deseas eliminar este tratamiento?'**
+  String get confirmDeleteMessage;
+
+  /// No description provided for @treatmentDeleted.
+  ///
+  /// In es, this message translates to:
+  /// **'Tratamiento eliminado.'**
+  String get treatmentDeleted;
+
+  /// No description provided for @whatToEdit.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Qué deseas editar?'**
+  String get whatToEdit;
+
+  /// No description provided for @editSingleDose.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar solo esta dosis'**
+  String get editSingleDose;
+
+  /// No description provided for @editSingleDoseDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Cambiar la hora programada para esta toma ({time})'**
+  String editSingleDoseDesc(String time);
+
+  /// No description provided for @editFullTreatment.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar tratamiento completo'**
+  String get editFullTreatment;
+
+  /// No description provided for @editFullTreatmentDesc.
+  ///
+  /// In es, this message translates to:
+  /// **'Modificar medicamento, horarios, duración e inventario'**
+  String get editFullTreatmentDesc;
+
+  /// No description provided for @doseTimeChanged.
+  ///
+  /// In es, this message translates to:
+  /// **'Hora de la dosis modificada.'**
+  String get doseTimeChanged;
+
+  /// No description provided for @loginToViewPrescriptions.
+  ///
+  /// In es, this message translates to:
+  /// **'Inicia sesión para ver tus recetas.'**
+  String get loginToViewPrescriptions;
+
+  /// No description provided for @errorLoadingPrescriptions.
+  ///
+  /// In es, this message translates to:
+  /// **'Ocurrió un error al cargar las recetas.'**
+  String get errorLoadingPrescriptions;
+
+  /// No description provided for @noPrescriptionsYet.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no has agregado ninguna receta. ¡Añade una para empezar!'**
+  String get noPrescriptionsYet;
+
+  /// No description provided for @generalViewPets.
+  ///
+  /// In es, this message translates to:
+  /// **'Vista General (Mascotas)'**
+  String get generalViewPets;
+
+  /// No description provided for @generalViewAll.
+  ///
+  /// In es, this message translates to:
+  /// **'Vista General (Todos)'**
+  String get generalViewAll;
+
+  /// No description provided for @selectPet.
+  ///
+  /// In es, this message translates to:
+  /// **'Seleccionar Mascota'**
+  String get selectPet;
+
+  /// No description provided for @myProfile.
+  ///
+  /// In es, this message translates to:
+  /// **'Mi Perfil'**
+  String get myProfile;
+
+  /// No description provided for @bannerGeneralAllPets.
+  ///
+  /// In es, this message translates to:
+  /// **'Vista General: Todas las mascotas'**
+  String get bannerGeneralAllPets;
+
+  /// No description provided for @bannerGeneralAllPatients.
+  ///
+  /// In es, this message translates to:
+  /// **'Vista General: Todos los pacientes'**
+  String get bannerGeneralAllPatients;
+
+  /// No description provided for @bannerViewingPetTreatments.
+  ///
+  /// In es, this message translates to:
+  /// **'Viendo tratamientos de: {name}'**
+  String bannerViewingPetTreatments(String name);
+
+  /// No description provided for @bannerViewingPatientSchedule.
+  ///
+  /// In es, this message translates to:
+  /// **'Viendo agenda médica de: {name}'**
+  String bannerViewingPatientSchedule(String name);
 }
 
 class _AppLocalizationsDelegate
@@ -2408,7 +2782,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'es'].contains(locale.languageCode);
+      <String>['en', 'es', 'pt'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -2421,6 +2795,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsEn();
     case 'es':
       return AppLocalizationsEs();
+    case 'pt':
+      return AppLocalizationsPt();
   }
 
   throw FlutterError(

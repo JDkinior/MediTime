@@ -45,6 +45,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get commonRetry => 'Reintentar';
 
   @override
+  String get commonOptional => 'Opcional';
+
+  @override
   String get navHome => 'Inicio';
 
   @override
@@ -242,6 +245,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get languageEnglishDesc => 'Inglés';
+
+  @override
+  String get languagePortuguese => 'Português';
+
+  @override
+  String get languagePortugueseDesc => 'Portugués';
 
   @override
   String get languageChangedSnackbar => 'Idioma actualizado correctamente.';
@@ -1163,6 +1172,67 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get addPrescriptionCurrentStockHint => 'Ej: 30';
+
+  @override
+  String get addPrescriptionBoxStockHint => 'Ej: 60';
+
+  @override
+  String get addPrescriptionDoseHint => 'Ej: 1';
+
+  @override
+  String get addPrescriptionDiscardTitle => '¿Descartar receta?';
+
+  @override
+  String get addPrescriptionDiscardContent =>
+      'Tienes datos ingresados en el formulario. Si sales ahora, se perderán los cambios.';
+
+  @override
+  String get addPrescriptionContinueEditing => 'Continuar editando';
+
+  @override
+  String get addPrescriptionExitAndDiscard => 'Salir y descartar';
+
+  @override
+  String get addPrescriptionScanCamera => 'Cámara';
+
+  @override
+  String get addPrescriptionScanGallery => 'Galería';
+
+  @override
+  String get addPrescriptionScanAnalyzing => 'Analizando receta con IA...';
+
+  @override
+  String get addPrescriptionScanSuccess =>
+      'Receta analizada con éxito. Formulario completado.';
+
+  @override
+  String get addPrescriptionScanNoData =>
+      'No se pudo extraer información de la receta.';
+
+  @override
+  String addPrescriptionScanError(String error) {
+    return 'Error al analizar la receta: $error';
+  }
+
+  @override
+  String get addPrescriptionInteractionWarning =>
+      'Se ha detectado una posible interacción medicamentosa.';
+
+  @override
+  String get drugInteractionTitle => 'Interacción Detectada ⚠️';
+
+  @override
+  String get drugInteractionDisclaimer =>
+      'Te recomendamos consultar con tu médico o farmacéutico antes de iniciar ambos tratamientos de manera simultánea.';
+
+  @override
+  String get drugInteractionReview => 'Revisar / Modificar';
+
+  @override
+  String get drugInteractionContinueAnyway => 'Continuar de todos modos';
+
+  @override
   String get chatBotRecordingNotice => 'Grabando... Toca el mic para enviar';
 
   @override
@@ -1276,4 +1346,148 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chatBotSelectFromGallery => 'Seleccionar de la galería';
+
+  @override
+  String get cardAiHealthTips => 'Consejos de Salud con IA';
+
+  @override
+  String get cardAiTipsDescription =>
+      'Consejos clínicos inteligentes adaptados a cada medicamento y modo.';
+
+  @override
+  String get cardViewPro => 'Ver PRO';
+
+  @override
+  String get doseOptionsTitle => 'Opciones de la Dosis';
+
+  @override
+  String get markAsTaken => 'Marcar como tomada';
+
+  @override
+  String get markAsTakenDesc => 'Descuenta del inventario automáticamente';
+
+  @override
+  String get doseMarkedTaken => 'Dosis marcada como tomada.';
+
+  @override
+  String lowStockWarning(int count) {
+    return 'Stock bajo: te quedan $count dosis';
+  }
+
+  @override
+  String get markAsSkipped => 'Marcar como omitida';
+
+  @override
+  String get markAsSkippedDesc =>
+      'No descontará inventario pero registrará la omisión';
+
+  @override
+  String get doseMarkedSkipped => 'Dosis marcada como omitida.';
+
+  @override
+  String get deferDose => 'Aplazar dosis';
+
+  @override
+  String get deferDoseDesc => 'Pospone la toma 10, 15, 30 o 60 minutos';
+
+  @override
+  String get deferSelectTime =>
+      'Selecciona cuánto tiempo deseas posponer la toma:';
+
+  @override
+  String deferPlusMinutes(int minutes) {
+    return '+$minutes min';
+  }
+
+  @override
+  String get deferPlusOneHour => '+1 hora';
+
+  @override
+  String doseDeferredMinutes(int minutes) {
+    return 'Dosis aplazada por $minutes minutos.';
+  }
+
+  @override
+  String get editTreatment => 'Editar tratamiento';
+
+  @override
+  String get editTreatmentDesc =>
+      'Modificar solo esta dosis o el tratamiento completo';
+
+  @override
+  String get deleteTreatment => 'Eliminar tratamiento';
+
+  @override
+  String get deleteTreatmentDesc =>
+      'Remueve este tratamiento y todas sus alarmas';
+
+  @override
+  String get confirmDeleteTitle => 'Confirmar eliminación';
+
+  @override
+  String get confirmDeleteMessage =>
+      '¿Estás seguro de que deseas eliminar este tratamiento?';
+
+  @override
+  String get treatmentDeleted => 'Tratamiento eliminado.';
+
+  @override
+  String get whatToEdit => '¿Qué deseas editar?';
+
+  @override
+  String get editSingleDose => 'Editar solo esta dosis';
+
+  @override
+  String editSingleDoseDesc(String time) {
+    return 'Cambiar la hora programada para esta toma ($time)';
+  }
+
+  @override
+  String get editFullTreatment => 'Editar tratamiento completo';
+
+  @override
+  String get editFullTreatmentDesc =>
+      'Modificar medicamento, horarios, duración e inventario';
+
+  @override
+  String get doseTimeChanged => 'Hora de la dosis modificada.';
+
+  @override
+  String get loginToViewPrescriptions => 'Inicia sesión para ver tus recetas.';
+
+  @override
+  String get errorLoadingPrescriptions =>
+      'Ocurrió un error al cargar las recetas.';
+
+  @override
+  String get noPrescriptionsYet =>
+      'Aún no has agregado ninguna receta. ¡Añade una para empezar!';
+
+  @override
+  String get generalViewPets => 'Vista General (Mascotas)';
+
+  @override
+  String get generalViewAll => 'Vista General (Todos)';
+
+  @override
+  String get selectPet => 'Seleccionar Mascota';
+
+  @override
+  String get myProfile => 'Mi Perfil';
+
+  @override
+  String get bannerGeneralAllPets => 'Vista General: Todas las mascotas';
+
+  @override
+  String get bannerGeneralAllPatients => 'Vista General: Todos los pacientes';
+
+  @override
+  String bannerViewingPetTreatments(String name) {
+    return 'Viendo tratamientos de: $name';
+  }
+
+  @override
+  String bannerViewingPatientSchedule(String name) {
+    return 'Viendo agenda médica de: $name';
+  }
 }

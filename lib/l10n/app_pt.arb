@@ -1,0 +1,888 @@
+{
+  "@@locale": "pt",
+  "appTitle": "MediTime",
+  "@appTitle": {
+    "description": "Nombre de la aplicación"
+  },
+  "commonAccept": "Aceitar",
+  "commonCancel": "Cancelar",
+  "commonSave": "Salvar",
+  "commonClose": "Fechar",
+  "commonDelete": "Excluir",
+  "commonEdit": "Editar",
+  "commonConfirm": "Confirmar",
+  "commonError": "Erro",
+  "commonSuccess": "Sucesso",
+  "commonLoading": "Carregando...",
+  "commonRetry": "Tentar novamente",
+  "commonOptional": "Opcional",
+  "navHome": "Início",
+  "navCalendar": "Calendário",
+  "navMedications": "Medicamentos",
+  "navPrescription": "Receita",
+  "navProgress": "Progresso",
+  "navProfile": "Perfil",
+  "navChatBot": "Midi Chat",
+  "appBarProgress": "Meu Progresso",
+  "appBarCalendar": "Calendário",
+  "appBarMedications": "Medicamentos",
+  "appBarProfile": "Meu Perfil",
+  "appBarAdherenceReport": "Relatório de Adesão",
+  "appBarHelp": "Ajuda e Suporte",
+  "drawerCaregiverMode": "Modo Cuidador",
+  "drawerSectionMain": "PRINCIPAL",
+  "drawerProfile": "Meu Perfil",
+  "drawerProfileSubtitle": "Ver e editar suas informações",
+  "drawerAdherenceReport": "Relatório de Adesão",
+  "drawerAdherenceReportSubtitle": "Estatísticas e relatórios",
+  "drawerOptions": "Opções",
+  "drawerOptionsSubtitle": "Configurações do aplicativo",
+  "drawerSectionHelp": "AJUDA",
+  "drawerHelp": "Ajuda",
+  "drawerHelpSubtitle": "Central de ajuda e suporte",
+  "drawerTutorial": "Tutorial",
+  "drawerTutorialSubtitle": "Guias e dicas de uso",
+  "drawerChatbot": "Midi",
+  "drawerChatbotSubtitle": "Assistente inteligente",
+  "drawerSectionManage": "GESTÃO",
+  "drawerManagePatients": "Gerenciar Pacientes",
+  "drawerManagePatientsSubtitle": "Adicionar, editar ou excluir",
+  "drawerCaregiverSettings": "Configurações do Cuidador",
+  "drawerCaregiverSettingsSubtitle": "Preferências do modo cuidador",
+  "drawerLogout": "Sair",
+  "drawerLogoutSubtitle": "Encerrar sessão",
+  "optionsTitle": "Opções",
+  "optionsAccessibility": "Acessibilidade",
+  "optionsAccessibilitySubtitle": "Oculta opções secundárias e foca apenas no mais importante.",
+  "optionsAppearance": "Design e Aparência",
+  "optionsAppearanceSubtitle": "Personalize a aparência do app ao seu gosto.",
+  "optionsNotifications": "Notificações e Alarmes",
+  "optionsNotificationsSubtitle": "Configure como deseja receber seus lembretes.",
+  "optionsPrivacy": "Dados e Privacidade",
+  "optionsPrivacySubtitle": "Gerencie seu histórico médico e de conversas.",
+  "optionsCaregiver": "Modo Cuidador",
+  "optionsCaregiverSubtitle": "Configure a gestão multi-perfil para familiares ou setor clínico.",
+  "optionsAnimals": "Modo Animais (Veterinária)",
+  "optionsAnimalsSubtitle": "Adapte o aplicativo para clínicas veterinárias e pets (individual ou múltiplo).",
+  "drawerAnimalsMode": "Modo Animais",
+  "drawerManageAnimals": "Gerenciar Pets / Animais",
+  "drawerManageAnimalsSubtitle": "Adicionar, editar ou cadastrar",
+  "drawerAnimalsSettings": "Configurações do Modo Animais",
+  "drawerAnimalsSettingsSubtitle": "Preferências do modo animais e veterinária",
+  "optionsLanguage": "Idioma",
+  "optionsLanguageSubtitle": "Selecione o idioma do aplicativo.",
+  "languageTitle": "Idioma",
+  "languageSubtitle": "Selecione seu idioma preferido para a interface.",
+  "languageSystem": "Automático (Sistema)",
+  "languageSystemDesc": "Seguir as configurações do dispositivo",
+  "languageSpanish": "Espanhol",
+  "languageSpanishDesc": "Espanhol",
+  "languageEnglish": "Inglês",
+  "languageEnglishDesc": "Inglês",
+  "languagePortuguese": "Português",
+  "languagePortugueseDesc": "Português",
+  "languageChangedSnackbar": "Idioma atualizado com sucesso.",
+  "homeGreetingMorning": "Bom dia!",
+  "homeGreetingAfternoon": "Boa tarde!",
+  "homeGreetingEvening": "Boa noite!",
+  "homeNextDose": "Próxima dose",
+  "homeTodayDoses": "Doses de hoje",
+  "homeCompleted": "Concluídas",
+  "homePending": "Pendentes",
+  "homeNoPendingDoses": "Você não tem doses pendentes por enquanto.",
+  "homeAddTreatment": "Adicionar Tratamento",
+  "helloUser": "Olá, {name}",
+  "@helloUser": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "planForToday": "Aqui está o seu plano para hoje",
+  "planForDay": "Aqui está o seu plano para este dia",
+  "summaryToday": "Resumo de hoje",
+  "summaryDay": "Resumo do dia",
+  "pendingUppercase": "PENDENTES",
+  "takenUppercase": "TOMADAS",
+  "adherenceUppercase": "ADESÃO",
+  "upcomingDoses": "Próximas doses",
+  "dosesOfTheDay": "Doses do dia",
+  "noDosesToday": "Você não tem doses programadas para hoje.",
+  "noDosesDay": "Você não tem doses programadas para este dia.",
+  "everyHours": "A cada {hours} horas",
+  "@everyHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "everyHourSingle": "A cada hora",
+  "actionTake": "Tomar",
+  "actionSkip": "Pular",
+  "actionSnooze": "Adiar",
+  "doseTakenSuccess": "Dose registrada com sucesso",
+  "doseSkippedSuccess": "Dose pulada",
+  "doseSnoozedSuccess": "Dose adiada por {minutes} minutos",
+  "@doseSnoozedSuccess": {
+    "description": "Mensaje cuando se aplaza una toma",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "doseStatusPending": "Pendente",
+  "doseStatusNotified": "Notificada",
+  "doseStatusTaken": "Tomada",
+  "doseStatusSkipped": "Pulada",
+  "doseStatusSnoozed": "Adiada",
+  "doseStatusScheduled": "Programada",
+  "presentationComprimidos": "Comprimidos",
+  "presentationGrageas": "Drágeas",
+  "presentationCapsulas": "Cápsulas",
+  "presentationSobres": "Envelopes",
+  "presentationJarabes": "Xaropes",
+  "presentationGotas": "Gotas",
+  "presentationSuspensiones": "Suspensões",
+  "presentationEmulsiones": "Emulsões",
+  "daySummary": "Resumo do dia",
+  "dosesCompletedSummary": "{taken} de {total} doses concluídas",
+  "@dosesCompletedSummary": {
+    "placeholders": {
+      "taken": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "medicationsOfTheDay": "Medicamentos do dia",
+  "treatmentDetailTitle": "Detalhe do Tratamento",
+  "treatmentMedicineName": "Medicamento",
+  "treatmentDose": "Dose",
+  "treatmentFrequency": "Frequência",
+  "treatmentInstructions": "Instruções",
+  "treatmentActive": "Ativo",
+  "treatmentFinished": "Finalizado",
+  "calendarTitle": "Calendário",
+  "calendarToday": "Hoje",
+  "calendarNoEvents": "Não há doses programadas para este dia.",
+  "intervalWeek": "Semana",
+  "intervalMonth": "Mês",
+  "intervalYear": "Ano",
+  "intervalAll": "Tudo",
+  "overallPerformance": "Seu desempenho geral",
+  "adherence": "Adesão",
+  "taken": "Tomadas",
+  "skipped": "Puladas",
+  "activeStreak": "Sequência ativa",
+  "streakDays": "{count} {count, plural, =1{dia} other{dias}}",
+  "@streakDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insightNoDataTitle": "Sem dados",
+  "insightNoDataText": "Não há doses programadas. Adicione medicamentos para ver seu progresso.",
+  "insightGoodTitle": "Bom ritmo!",
+  "insightGoodText": "Pequenos hábitos, grandes resultados. Continue assim!",
+  "insightAttentionTitle": "Atenção",
+  "insightAttentionText": "Bom ritmo, mas você teve algumas omissões.",
+  "insightAlertTitle": "Alerta!",
+  "insightAlertText": "Seu nível de adesão atual está baixo. Verifique seus alarmes.",
+  "weekSummary": "Resumo da semana",
+  "monthSummary": "Resumo do mês",
+  "yearSummary": "Resumo do ano",
+  "cumulativeSummary": "Resumo acumulado",
+  "dosesInPeriod": "{count} doses no período",
+  "@dosesInPeriod": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mostRecent": "Mais recentes",
+  "oldestFirst": "Mais antigos",
+  "seeMore": "Ver mais ({count} doses a mais)",
+  "@seeMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "seeLess": "Ver menos",
+  "complianceWeekly": "Cumprimento da semana",
+  "complianceMonthly": "Cumprimento do mês",
+  "complianceYearly": "Cumprimento do ano",
+  "complianceHistorical": "Cumprimento histórico",
+  "complianceWeeklySubtitle": "Porcentagem de tomas por dia",
+  "complianceMonthlySubtitle": "Porcentagem de tomas por blocos de 5 dias",
+  "complianceYearlySubtitle": "Porcentagem de tomas por mês",
+  "complianceHistoricalSubtitle": "Porcentagem de tomas nos últimos 6 meses",
+  "complianceChartTitle": "Gráfico de cumprimento",
+  "progressByPatient": "Progresso por paciente",
+  "chatBotGreeting": "Olá! Sou o Midi, seu assistente de saúde no MediTime.",
+  "chatBotPlaceholder": "Escreva uma mensagem ou faça uma pergunta médica...",
+  "chatBotListening": "Ouvindo...",
+  "chatBotClearHistory": "Limpar conversa",
+  "loginSlogan": "Controle seus medicamentos\nMelhore sua saúde",
+  "loginSignIn": "Entrar",
+  "loginRegister": "Cadastrar-se",
+  "loginEmailLabel": "E-mail",
+  "loginEmailHint": "Digite seu e-mail",
+  "loginPasswordLabel": "Senha",
+  "loginPasswordHint": "Digite sua senha",
+  "loginButton": "Entrar",
+  "loginOr": "ou",
+  "loginWithGoogle": "Continuar com o Google",
+  "loginNoAccount": "Não tem uma conta? Cadastre-se aqui",
+  "loginErrorEmptyEmail": "Por favor, digite seu e-mail",
+  "loginErrorEmptyPassword": "Por favor, digite sua senha",
+  "loginErrorGeneral": "Erro ao fazer login",
+  "loginErrorUserNotFound": "Usuário não encontrado",
+  "loginErrorWrongPassword": "Senha incorreta",
+  "loginErrorInvalidEmail": "Formato de e-mail inválido",
+  "loginErrorGoogle": "Erro ao fazer login com o Google. Tente novamente.",
+  "registerTitle": "Criar conta",
+  "registerSubtitle": "Comece a gerenciar seus medicamentos",
+  "registerPasswordHint": "Crie sua senha",
+  "registerButton": "Cadastrar-se",
+  "registerAlreadyHaveAccount": "Já tem uma conta? Entre aqui",
+  "registerErrorInvalidEmail": "Por favor, digite um e-mail válido",
+  "registerErrorShortPassword": "A senha deve ter pelo menos 6 caracteres",
+  "registerErrorFailed": "Não foi possível criar a conta",
+  "registerErrorEmailInUse": "O e-mail já está em uso",
+  "registerErrorWeakPassword": "A senha é muito fraca",
+  "registerErrorGoogle": "Erro ao se cadastrar com o Google. Tente novamente.",
+  "doseDetailDoseTime": "Horário desta dose",
+  "doseDetailTreatmentFinished": "Tratamento Finalizado",
+  "doseDetailNoMoreDoses": "Não há mais doses programadas.",
+  "doseDetailNextDosePrompt": "Esta é a próxima dose",
+  "doseDetailNextAlarm": "Próximo Alarme:",
+  "doseDetailTimeNow": "É hora de tomar a dose",
+  "doseDetailInSeconds": "Em {seconds} segundos",
+  "@doseDetailInSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "doseDetailInDaysHours": "Em {days} dias e {hours} horas",
+  "@doseDetailInDaysHours": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "doseDetailInHoursMinutes": "Em {hours} horas e {minutes} minutos",
+  "@doseDetailInHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "doseDetailInMinutes": "Em {minutes} minutos",
+  "@doseDetailInMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "doseDetailUpdateError": "Erro ao atualizar a dose",
+  "treatmentSummaryMedicine": "Medicamento",
+  "treatmentSummaryPresentation": "Apresentação: {presentation}",
+  "@treatmentSummaryPresentation": {
+    "placeholders": {
+      "presentation": {
+        "type": "String"
+      }
+    }
+  },
+  "treatmentSummarySchedules": "Horários",
+  "treatmentSummaryDuration": "Duração",
+  "treatmentSummaryNotDefined": "• Não definido",
+  "treatmentSummaryDaysInParentheses": "({days} dias)",
+  "@treatmentSummaryDaysInParentheses": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "treatmentSummaryEveryHours": "A cada {hours} horas",
+  "@treatmentSummaryEveryHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "treatmentSummaryAutoGenerated": "• Doses geradas automaticamente",
+  "treatmentSummaryTotalDoses": "• Total de {total} doses",
+  "@treatmentSummaryTotalDoses": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "treatmentSummaryUntil": "• Até {date}",
+  "@treatmentSummaryUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "treatmentSummaryStockTitle": "Inventário e Estoque",
+  "treatmentSummaryStockAvailable": "Disponível: {current} de {total}",
+  "@treatmentSummaryStockAvailable": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "treatmentSummaryDosePerIntake": "Dose por tomada: {dose}",
+  "@treatmentSummaryDosePerIntake": {
+    "placeholders": {
+      "dose": {
+        "type": "int"
+      }
+    }
+  },
+  "treatmentSummaryRemainingIntakes": "Doses restantes: {count}",
+  "@treatmentSummaryRemainingIntakes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "treatmentSummaryNotes": "Notas",
+  "treatmentSummaryNoNotes": "• Nenhuma",
+  "treatmentSummaryDownloadPdfTooltip": "Baixar PDF",
+  "addPrescriptionTitle": "Adicionar Receita",
+  "editTreatmentTitle": "Editar Tratamento",
+  "addPrescriptionAiScanTooltip": "Escanear receita com IA",
+  "addPrescriptionStep0Question": "Qual medicamento você vai adicionar?",
+  "addPrescriptionStep0QuestionAnimal": "Qual medicamento ou tratamento você vai adicionar?",
+  "addPrescriptionStep0Label": "Nome do medicamento",
+  "addPrescriptionStep0LabelAnimal": "Nome do medicamento / tratamento",
+  "addPrescriptionStep0Hint": "Digite o nome do medicamento",
+  "addPrescriptionStep0HintAnimal": "Digite o nome do fármaco ou tratamento",
+  "addPrescriptionPetPrefix": "Pet: {name}",
+  "@addPrescriptionPetPrefix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "addPrescriptionPatientPrefix": "Paciente: {name}",
+  "@addPrescriptionPatientPrefix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "addPrescriptionStep1Question": "Qual é a apresentação do medicamento?",
+  "addPrescriptionStep1Hint": "Selecione uma opção",
+  "addPrescriptionStep2Question": "Quando será a primeira dose?",
+  "addPrescriptionStep2SelectedTime": "Horário selecionado: {time}",
+  "@addPrescriptionStep2SelectedTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "addPrescriptionStep3Question": "Com que frequência você vai tomar?",
+  "addPrescriptionStep3QuestionAnimal": "Com que frequência será administrado?",
+  "addPrescriptionStep3SelectedHours": "A cada {hours} horas",
+  "@addPrescriptionStep3SelectedHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "addPrescriptionStep4Question": "Quanto tempo durará o tratamento?",
+  "addPrescriptionStep5Question": "Você tem medicamentos em estoque?",
+  "addPrescriptionStep6Question": "Deseja adicionar alguma nota ou indicação médica?",
+  "addPrescriptionStep6NotesHint": "Escreva aqui notas adicionais...",
+  "addPrescriptionStep7Summary": "Resumo do tratamento",
+  "addPrescriptionSavedSuccess": "Tratamento salvo com sucesso",
+  "addPrescriptionUpdatedSuccess": "Tratamento atualizado com sucesso",
+  "addPrescriptionSaveError": "Erro ao salvar o tratamento",
+  "chatBotWelcome": "Olá! Sou o Midi, seu assistente virtual do MediTime. Estou aqui para ajudar você a organizar seus medicamentos, lembrar suas doses ou responder a qualquer dúvida sobre o aplicativo. Como posso ajudar você hoje?",
+  "chatBotAskAbout": "Você pode me perguntar sobre:",
+  "chatBotQuickMeds": "Meus medicamentos",
+  "chatBotQuickMedsSubtitle": "Info, doses e horários",
+  "chatBotQuickReminders": "Lembretes",
+  "chatBotQuickRemindersSubtitle": "Alarmes e notificações",
+  "chatBotQuickProgress": "Meu progresso",
+  "chatBotQuickProgressSubtitle": "Adesão e estatísticas",
+  "chatBotQuickFaq": "Dúvidas frequentes",
+  "chatBotQuickFaqSubtitle": "Tire suas dúvidas",
+  "chatBotMedicalDisclaimer": "O Midi não substitui o parecer médico profissional. Em caso de dúvidas sobre sua saúde, consulte seu médico.",
+  "chatBotInputHint": "Pergunte o que você precisa...",
+  "chatBotPromptMeds": "Fale-me sobre os meus medicamentos ativos",
+  "chatBotPromptReminders": "Quais são meus próximos lembretes para hoje?",
+  "chatBotPromptProgress": "Mostre meu relatório de progresso e estatísticas de adesão",
+  "chatBotPromptFaq": "Quais são as dúvidas frequentes sobre o uso do aplicativo?",
+  "chatBotNoAudioDetected": "Nenhum áudio detectado. Tente novamente.",
+  "chatBotEditMessageTitle": "Editar mensagem",
+  "chatBotSaveAndResend": "Salvar e reenviar",
+  "profileTitle": "Perfil",
+  "profileBirthDate": "Data de nascimento",
+  "profileBloodType": "Tipo sanguíneo",
+  "profileAllergies": "Alergias",
+  "profileNotSpecified": "Não especificado",
+  "profilePersonalData": "Dados Pessoais",
+  "profileName": "Nome",
+  "profileNameHint": "Seu nome completo",
+  "profilePhone": "Número de Telefone",
+  "profilePhoneHint": "Seu número de telefone",
+  "profileEmail": "E-mail",
+  "profileEmailHint": "Seu e-mail",
+  "profileDob": "Data de Nascimento",
+  "profileMedicalData": "Dados Médicos",
+  "profileBloodTypeHint": "Ex: O+",
+  "profileAllergiesHint": "Ex: Penicilina",
+  "profileImportantMeds": "Medicamentos Importantes",
+  "profileImportantMedsHint": "Os que você toma regularmente",
+  "profileMedicalHistory": "Histórico Médico",
+  "profileMedicalHistoryHint": "Condições médicas relevantes",
+  "profileNearbyPharmacies": "Farmácias Próximas",
+  "profileNearbyPharmaciesSubtitle": "Buscar farmácias no mapa",
+  "profileInfoBannerTitle": "Informação Importante",
+  "profileInfoBannerText": "Manter seus dados pessoais e médicos atualizados permite uma melhor assistência em casos de emergência médica.",
+  "profileSaveSuccess": "Perfil atualizado com sucesso",
+  "profileSaveButton": "Salvar Alterações",
+  "reportsLoginRequired": "Faça login para ver seus relatórios.",
+  "reportsLoadError": "Erro ao carregar os dados para o relatório.",
+  "reportsNoTreatments": "Não há tratamentos para gerar um relatório.",
+  "reportsQuickSummary": "Resumo Rápido",
+  "reportsScheduledDoses": "Programadas",
+  "reportsTakenDoses": "Tomadas",
+  "reportsSkippedDoses": "Puladas",
+  "reportsNotifiedDoses": "Notificadas",
+  "reportsSnoozedDoses": "Adiada",
+  "tutorialTapToContinue": "Toque para continuar",
+  "tutorialSkip": "Pular",
+  "tutorialStep1Title": "Menu Principal",
+  "tutorialStep1Desc": "Acesse o menu lateral para ver seu Perfil, Relatórios de Adesão em PDF, gerenciar Pacientes (Modo Cuidador) e ajustar Notificações.",
+  "tutorialStep2Title": "Midi, seu Assistente Virtual",
+  "tutorialStep2Desc": "Conheça o Midi, seu assistente inteligente. Converse com ele para esclarecer dúvidas sobre medicamentos, doses, efeitos colaterais e interações.",
+  "tutorialStep3Title": "Resumo Diário",
+  "tutorialStep3Desc": "Acompanhe seu nível de adesão hoje e veja em um relance as doses pendentes e tomadas do dia.",
+  "tutorialStep4Title": "Seletor de Datas",
+  "tutorialStep4Desc": "Navegue no tempo: toque na data para planejar ou registrar medicamentos de dias anteriores ou futuros.",
+  "tutorialStep5Title": "Adicionar Receita ou Tratamento",
+  "tutorialStep5Desc": "Toque no botão + para registrar novos medicamentos, definir frequência de tomas e configurar lembretes automáticos.",
+  "tutorialStep6Title": "Aba Calendário",
+  "tutorialStep6Desc": "Acesse o Calendário interativo para ver seu histórico de tomas organizado dia a dia.",
+  "tutorialStep7Title": "Histórico e Detalhe do Dia",
+  "tutorialStep7Desc": "Revise cada dia de acordo com suas doses:\n🟢 Tomadas  🔴 Puladas  🟡 Pendentes\n\nToque em qualquer dia para ver a lista de doses programadas.",
+  "tutorialStep8Title": "Aba Meu Progresso",
+  "tutorialStep8Desc": "Acesse a aba Progresso para analisar suas estatísticas de saúde, cumprimento acumulado e sequências.",
+  "tutorialStep9Title": "Estatísticas e Modo Cuidador",
+  "tutorialStep9Desc": "Meça sua porcentagem geral de adesão, doses tomadas vs puladas e o cumprimento por paciente caso use o Modo Cuidador.",
+  "tutorialStep10Title": "Filtros e Resumo Expansível",
+  "tutorialStep10Desc": "Filtre seu progresso por Semana, Mês ou Ano. Use \"Ver mais\" para expandir a lista e alterne a ordem entre \"Mais recentes\" e \"Mais antigos\".",
+  "tutorialStep11Title": "Navegação Principal",
+  "tutorialStep11Desc": "Tudo pronto! Use a barra inferior para navegar facilmente entre Receita, Calendário e Meu Progresso.",
+  "treatmentSummaryFrequency": "Frequência",
+  "durationDays": "Dias",
+  "durationMonths": "Meses",
+  "durationYears": "Anos",
+  "durationIndefinite": "Indefinido",
+  "durationTreatmentDuration": "Duração do tratamento",
+  "durationIndefiniteTitle": "Tratamento Indefinido - Otimizado",
+  "durationIndefiniteBullet1": "• As doses são geradas automaticamente conforme necessário",
+  "durationIndefiniteBullet2": "• Melhor desempenho no calendário e no aplicativo",
+  "durationIndefiniteBullet3": "• Você pode pausar ou encerrar o tratamento a qualquer momento",
+  "addPrescriptionStep3Label": "Intervalo entre doses",
+  "addPrescriptionStep3Hint": "Ex: 8 (a cada 8 horas)",
+  "addPrescriptionCurrentStock": "Quantidade atual",
+  "addPrescriptionBoxStock": "Quantidade total por caixa",
+  "addPrescriptionDosePerTake": "Dose por tomada",
+  "addPrescriptionStep6Examples": "(Ex: \"Tomar com alimentos\", \"Não dirigir\")",
+  "addPrescriptionStep6NotesLabel": "Notas (Opcional)",
+  "addPrescriptionStep7Review": "Revise os dados antes de confirmar",
+  "addPrescriptionStep7AlarmNotice": "Ao confirmar, os alarmes serão programados automaticamente para lembrar cada dose",
+  "addPrescriptionTreatmentUpdated": "Tratamento atualizado para {medicine}",
+  "@addPrescriptionTreatmentUpdated": {
+    "placeholders": {
+      "medicine": {
+        "type": "String"
+      }
+    }
+  },
+  "addPrescriptionRemindersConfigured": "Lembretes configurados para {medicine}",
+  "@addPrescriptionRemindersConfigured": {
+    "placeholders": {
+      "medicine": {
+        "type": "String"
+      }
+    }
+  },
+  "addPrescriptionCurrentStockHint": "Ex: 30",
+  "addPrescriptionBoxStockHint": "Ex: 60",
+  "addPrescriptionDoseHint": "Ex: 1",
+  "addPrescriptionDiscardTitle": "Descartar receita?",
+  "addPrescriptionDiscardContent": "Você inseriu dados no formulário. Se sair agora, as alterações serão perdidas.",
+  "addPrescriptionContinueEditing": "Continuar editando",
+  "addPrescriptionExitAndDiscard": "Sair e descartar",
+  "addPrescriptionScanCamera": "Câmera",
+  "addPrescriptionScanGallery": "Galeria",
+  "addPrescriptionScanAnalyzing": "Analisando receita com IA...",
+  "addPrescriptionScanSuccess": "Receita analisada com sucesso. Formulário preenchido.",
+  "addPrescriptionScanNoData": "Não foi possível extrair informações da receita.",
+  "addPrescriptionScanError": "Erro ao analisar a receita: {error}",
+  "@addPrescriptionScanError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addPrescriptionInteractionWarning": "Foi detectada uma possível interação medicamentosa.",
+  "drugInteractionTitle": "Interação Detectada ⚠️",
+  "drugInteractionDisclaimer": "Recomendamos consultar seu médico ou farmacêutico antes de iniciar ambos os tratamentos simultaneamente.",
+  "drugInteractionReview": "Revisar / Modificar",
+  "drugInteractionContinueAnyway": "Continuar mesmo assim",
+  "chatBotRecordingNotice": "Gravando... Toque no microfone para enviar",
+  "chatBotCancelRecording": "Cancelar gravação",
+  "chatBotTakeRecipePhoto": "Tirar Foto da Receita",
+  "helpSupport": "Ajuda e Suporte",
+  "helpGuideTitle": "Guia de Otimização de Lembretes",
+  "helpGuideSubtitle": "Evite que a economia de bateria ou o sistema silenciem seus alarmes. Diagnóstico ao vivo e atalhos para configurações.",
+  "helpHowToUseTitle": "Como usar o aplicativo?",
+  "helpHowToUseSubtitle": "Aprenda a registrar tratamentos, horários e estoque.",
+  "helpTermsTitle": "Termos de Uso",
+  "helpTermsSubtitle": "Condições de serviço e responsabilidades.",
+  "helpPrivacyTitle": "Política de Privacidade",
+  "helpPrivacySubtitle": "Como tratamos e protegemos seus dados médicos.",
+  "helpAppVersionTitle": "Versão do aplicativo",
+  "helpAppVersionSubtitle": "Informações da versão e compilação atual.",
+  "helpDevelopersTitle": "Desenvolvedores",
+  "helpDevelopersSubtitle": "Equipe criadora e créditos do projeto.",
+  "helpUnderstood": "Entendido",
+  "helpLoadingVersion": "Carregando versão...",
+  "helpVersionText": "MediTime versão {version} (Build {buildNumber}).",
+  "@helpVersionText": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "buildNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "helpProgramming": "Programação:",
+  "helpDesign": "Design:",
+  "helpTesting": "Testes:",
+  "helpSpecialThanks": "Agradecimentos especiais à Universidade de Cundinamarca unidade Ubaté por incentivar o desenvolvimento de projetos inovadores e pelo acompanhamento de professores e diretores.\n\nUniversidad de Cundinamarca\nEngenharia de Sistemas e Computação\n©Todos os Direitos Reservados\n2022-2026",
+  "reportsEvolutionTitle": "Evolução da adesão",
+  "reportsSeeMore": "Ver mais",
+  "reportsBreakdownTitle": "Detalhamento por tratamento",
+  "reportsNoTreatmentsInPeriod": "Não há tratamentos registrados neste período.",
+  "reportsSeeLess": "Ver menos",
+  "reportsSeeAll": "Ver tudo",
+  "reportsRecentHistoryTitle": "Histórico recente",
+  "reportsNoRecentRecords": "Não há registros recentes.",
+  "reportsOmissionsPatternTitle": "Padrão de omissões",
+  "reportsSeeAnalysis": "Ver análise",
+  "cancel": "Cancelar",
+  "chatBotSelectFromGallery": "Selecionar da galeria",
+  "appearanceCalendarSaved": "Design de calendário salvo.",
+  "appearanceInterfaceSaved": "Design de interface salvo.",
+  "appearanceScreenModeTitle": "Modo de tela",
+  "appearanceScreenModeSubtitle": "Escolha como o aplicativo será exibido.",
+  "appearanceThemeLight": "Claro",
+  "appearanceThemeLightDesc": "Modo diurno",
+  "appearanceThemeDark": "Escuro",
+  "appearanceThemeDarkDesc": "Modo noturno",
+  "appearanceThemeSystem": "Sistema",
+  "appearanceThemeSystemDesc": "Automático (sistema)",
+  "appearanceNavStyleTitle": "Estilo de navegação",
+  "appearanceNavStyleSubtitle": "Selecione o estilo da sua barra de navegação.",
+  "appearanceNavClassic": "Clássica",
+  "appearanceNavClassicDesc": "Barra de navegação tradicional",
+  "appearanceNavModern": "Moderna",
+  "appearanceNavModernDesc": "Flutuante premium",
+  "appearanceCalendarViewTitle": "Visualização do calendário",
+  "appearanceCalendarViewSubtitle": "Escolha como deseja visualizar o calendário.",
+  "appearanceCalendarWeekly": "Semanal",
+  "appearanceCalendarWeeklyDesc": "1 linha",
+  "appearanceCalendarBiweekly": "Quinzenal",
+  "appearanceCalendarBiweeklyDesc": "2 linhas",
+  "appearanceCalendarMonthly": "Mensal",
+  "appearanceCalendarMonthlyDesc": "Completo",
+  "optionsPersonalizationWizard": "Assistente de Personalização",
+  "optionsPersonalizationWizardSubtitle": "Execute novamente a configuração guiada inicial do MediTime.",
+  "optionsSettingsUpdatedSuccess": "Configurações atualizadas com sucesso.",
+  "onboardingTakePhoto": "Tirar foto com a câmera",
+  "onboardingChooseGallery": "Escolher da galeria",
+  "onboardingWelcomeTitle": "Boas-vindas ao MediTime!",
+  "onboardingWelcomeSubtitle": "Seu assistente inteligente para nunca esquecer uma dose de medicamento e cuidar de quem você ama.",
+  "onboardingPunctualityTitle": "Pontualidade Segura",
+  "onboardingPunctualityDesc": "Alarmes pontuais que tocam mesmo sem internet ou sinal.",
+  "onboardingPrivacyTitle": "Privacidade Médica Blindada",
+  "onboardingPrivacyDesc": "Seus tratamentos e receitas estão protegidos e isolados.",
+  "onboardingCaregiverTitle": "Modo Cuidador e Pacientes",
+  "onboardingCaregiverDesc": "Organize as doses de seus pais, filhos ou pacientes em um só aplicativo.",
+  "onboardingAcceptTerms": "Li e aceito os Termos de Serviço e a Política de Privacidade de Dados Médicos.",
+  "onboardingIdentityTitle": "Como você gostaria de ser chamado?",
+  "onboardingIdentitySubtitle": "Personalizaremos seus lembretes, relatórios e a voz do seu assistente.",
+  "onboardingChangePhoto": "Alterar foto",
+  "onboardingUploadPhoto": "Enviar foto",
+  "onboardingNameLabel": "Nome ou apelido",
+  "onboardingNameHint": "Ex. João Silva",
+  "onboardingGoogleNameNote": "Se você entrou com o Google, seu nome foi carregado automaticamente.",
+  "onboardingPurposeTitle": "Para que você usará o MediTime?",
+  "onboardingPurposeSubtitle": "Adaptaremos a tela inicial e as opções às suas necessidades.",
+  "onboardingPurposePersonalTitle": "Para mim (Uso Pessoal)",
+  "onboardingPurposePersonalDesc": "Registrar meus próprios medicamentos, receitas e acompanhar minha adesão diária.",
+  "onboardingPurposeCaregiverTitle": "Sou Cuidador / Familiar",
+  "onboardingPurposeCaregiverDesc": "Gerenciar as doses de meus pais, filhos, pacientes ou outros familiares sob meus cuidados.",
+  "onboardingPurposeAnimalTitle": "Pets e Animais (Veterinária)",
+  "onboardingPurposeAnimalDesc": "Gerenciar tratamentos, doses e lembretes para animais de estimação ou em clínica veterinária.",
+  "onboardingStyleTitle": "Qual estilo visual você prefere?",
+  "onboardingStyleSubtitle": "Você pode alterar isso a qualquer momento nas Opções.",
+  "onboardingStyleModernTitle": "Moderna (Recomendada)",
+  "onboardingStyleModernDesc": "Design visual com cartões flutuantes, gradientes suaves e barra em formato de cápsula.",
+  "onboardingStyleClassicTitle": "Clássica",
+  "onboardingStyleClassicDesc": "Design limpo, direto e tradicional focado na máxima simplicidade.",
+  "onboardingStyleAccessibleTitle": "Acessível / Simplificada",
+  "onboardingStyleAccessibleDesc": "Botões grandes, tipografia de alta visibilidade e alto contraste (ideal para idosos).",
+  "onboardingReminderTitle": "Como prefere ser avisado?",
+  "onboardingReminderSubtitle": "Escolha a intensidade do aviso para suas doses de medicamento.",
+  "onboardingReminderAlarmTitle": "Modo Alarme (Recomendado)",
+  "onboardingReminderAlarmDesc": "Toca continuamente em loop como um despertador e liga a tela até que você interaja.",
+  "onboardingReminderActiveTitle": "Modo Ativo",
+  "onboardingReminderActiveDesc": "Notificação interativa com botões rápidos para Tomar, Pular ou Adiar.",
+  "onboardingReminderInfoTitle": "Modo Informativo",
+  "onboardingReminderInfoDesc": "Aviso discreto. Ideal se você já tem uma rotina fixa e só deseja uma referência.",
+  "onboardingSummaryTitle": "Tudo pronto, {name}!",
+  "@onboardingSummaryTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingSummarySubtitle": "Configuramos o MediTime sob medida para você. Aqui está um resumo do seu perfil:",
+  "onboardingSummaryUser": "Usuário",
+  "onboardingSummaryPurpose": "Objetivo",
+  "onboardingSummaryStyle": "Estilo Visual",
+  "onboardingSummaryReminders": "Lembretes",
+  "onboardingSummaryValPersonal": "Uso Pessoal",
+  "onboardingSummaryValCaregiver": "Modo Cuidador",
+  "onboardingSummaryValAnimals": "Modo Animais",
+  "onboardingSummaryValModern": "Moderna",
+  "onboardingSummaryValClassic": "Clássica",
+  "onboardingSummaryValAccessible": "Acessível / Simplificada",
+  "onboardingSummaryValAlarm": "Alarme Despertador",
+  "onboardingSummaryValActive": "Modo Ativo",
+  "onboardingSummaryValInfo": "Informativo",
+  "onboardingDefaultFriend": "Amigo",
+  "onboardingBtnContinue": "Continuar",
+  "onboardingBtnStart": "Começar a usar o MediTime",
+  "onboardingSaveError": "Erro ao salvar as configurações: {error}",
+  "@onboardingSaveError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "drawerProActive": "MediTime Pro Ativo",
+  "drawerGetPro": "Obter MediTime Pro",
+  "drawerAnnualPlanActive": "Plano Anual Ativo",
+  "drawerMonthlyPlanActive": "Plano Mensal Ativo",
+  "drawerProSubtitle": "Tratamentos e relatórios ilimitados",
+  "cardAiHealthTips": "Dicas de Saúde com IA",
+  "cardAiTipsDescription": "Dicas clínicas inteligentes adaptadas a cada medicamento e modo.",
+  "cardViewPro": "Ver PRO",
+  "subCloseTooltip": "Fechar",
+  "subBadgePro": "MEDITIME PRO",
+  "subTitleMemberPro": "Você já é Membro Pro!",
+  "subTitleNoLimits": "Cuide da sua saúde e da sua família sem limites",
+  "subSubtitleActiveAnnual": "Sua assinatura está ativa (Plano Anual).\nVocê aproveita todos os benefícios Pro.",
+  "subSubtitleActiveMonthly": "Sua assinatura está ativa (Plano Mensal).\nVocê aproveita todos os benefícios Pro.",
+  "subSubtitleSourceFeature": "Para usar {feature}, mude para o MediTime Pro por um valor muito acessível.",
+  "@subSubtitleSourceFeature": {
+    "placeholders": {
+      "feature": {
+        "type": "String"
+      }
+    }
+  },
+  "subSubtitleDefault": "Desbloqueie ferramentas avançadas pensadas para sua tranquilidade e da sua família.",
+  "subCardMedicationsTitle1": "Medicamentos e",
+  "subCardMedicationsTitle2": "Tratamentos ilimitados",
+  "subCardMedicationsSubtitle": "Supere o limite de 3 tratamentos do plano gratuito.",
+  "subCardMedicationsDialogTitle": "Medicamentos e Tratamentos Ilimitados",
+  "subCardMedicationsDialogDesc": "No plano gratuito você pode gerenciar até 3 tratamentos simultâneos. Com o MediTime Pro você pode adicionar todos os tratamentos, receitas e lembretes que precisar sem nenhum limite, além de escanear e digitalizar receitas instantaneamente com Visão IA.",
+  "subCardCaregiverTitle1": "Modo Cuidador &",
+  "subCardCaregiverTitle2": "Pets ilimitado",
+  "subCardCaregiverSubtitle": "Cadastre pacientes, familiares ou animais sem restrição.",
+  "subCardCaregiverDialogTitle": "Modo Cuidador & Pets Ilimitado",
+  "subCardCaregiverDialogDesc": "Crie e gerencie múltiplos perfis independentes para seus familiares, pacientes sob seus cuidados ou pets veterinários, com doses e calendários totalmente separados.",
+  "subCardPdfReportsTitle": "Relatórios Médicos em PDF",
+  "subCardPdfReportsSubtitle": "Exporte sua adesão e doses para levar ao seu médico.",
+  "subCardPdfReportsDialogTitle": "Relatórios Médicos em PDF",
+  "subCardPdfReportsDialogDesc": "Gere documentos clínicos completos com sua porcentagem de adesão, doses tomadas e observações de saúde em formato PDF para compartilhar diretamente com seu especialista.",
+  "subCardVoiceAiTitle1": "Assistente Midi com Voz",
+  "subCardVoiceAiTitle2": "(IA Pro)",
+  "subCardVoiceAiSubtitle": "Fale por mensagens de voz e ouça as respostas do Midi.",
+  "subCardVoiceAiDialogTitle": "Assistente Midi com Voz (IA Pro)",
+  "subCardVoiceAiDialogDesc": "Tire dúvidas sobre seus medicamentos enviando mensagens de voz e ouça as respostas audíveis do Midi, seu assistente médico com Inteligência Artificial.",
+  "subCardHomeWidgetsTitle": "Widgets na Tela Inicial",
+  "subCardHomeWidgetsSubtitle": "Marque suas doses diretamente da tela de início do seu celular.",
+  "subCardHomeWidgetsDialogTitle": "Widgets na Tela Inicial",
+  "subCardHomeWidgetsDialogDesc": "Acompanhe suas próximas doses do dia e registre medicamentos tomados diretamente a partir dos widgets interativos na tela inicial do seu celular.",
+  "subActiveBannerTitle": "Assinatura Ativa",
+  "subActiveBannerValidUntil": "Válida até: {date}",
+  "@subActiveBannerValidUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "subActiveBannerPermanent": "Assinatura Ativa e Permanente",
+  "subPlanAnnualTitle": "Plano Anual",
+  "subPlanAnnualBadge": "ECONOMIZE 44%",
+  "subPlanAnnualPrice": "R$ 39,90",
+  "subPlanAnnualPeriod": "/ ano",
+  "subPlanAnnualSubtext": "Equivale a R$ 3,32/mês",
+  "subPlanMonthlyTitle": "Plano Mensal",
+  "subPlanMonthlyPrice": "R$ 5,90",
+  "subPlanMonthlyPeriod": "/ mês",
+  "subPlanMonthlySubtext": "Cancele quando quiser",
+  "subBtnAnnualCta": "Assinar por R$ 39,90 / ano",
+  "subBtnMonthlyCta": "Assinar por R$ 5,90 / mês",
+  "subPriceDisclaimer": "Cancele a qualquer momento sem penalidade.",
+  "subDialogGotIt": "Entendido",
+  "subSnackLoginRequired": "Por favor, faça login para assinar.",
+  "subSnackWelcomePro": "🎉 Boas-vindas ao MediTime Pro! Todas as funcionalidades estão desbloqueadas.",
+  "subSnackError": "Erro ao processar a assinatura: {error}",
+  "@subSnackError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "subModalCancelTitle": "Voltar ao Plano Gratuito",
+  "subModalCancelContent": "Tem certeza de que deseja voltar ao plano gratuito? As funções ilimitadas, escaneamento com Visão IA, relatórios em PDF, voz de IA e modos avançados serão desativados, retornando à visualização de usuário comum.",
+  "subModalKeepPro": "Manter Pro",
+  "subModalConfirmCancel": "Confirmar",
+  "subSnackCanceledSuccess": "Você voltou ao Plano Gratuito. Retornou à visualização de usuário.",
+  "subSnackCancelError": "Erro ao cancelar: {error}",
+  "@subSnackCancelError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "doseOptionsTitle": "Opções da Dose",
+  "markAsTaken": "Marcar como tomada",
+  "markAsTakenDesc": "Deduz do estoque automaticamente",
+  "doseMarkedTaken": "Dose marcada como tomada.",
+  "lowStockWarning": "Estoque baixo: restam {count} doses",
+  "@lowStockWarning": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "markAsSkipped": "Marcar como ignorada",
+  "markAsSkippedDesc": "Não deduzirá do estoque mas registrará a omissão",
+  "doseMarkedSkipped": "Dose marcada como ignorada.",
+  "deferDose": "Adiar dose",
+  "deferDoseDesc": "Adia a tomada em 10, 15, 30 ou 60 minutos",
+  "deferSelectTime": "Selecione quanto tempo deseja adiar a tomada:",
+  "deferPlusMinutes": "+{minutes} min",
+  "@deferPlusMinutes": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "deferPlusOneHour": "+1 hora",
+  "doseDeferredMinutes": "Dose adiada por {minutes} minutos.",
+  "@doseDeferredMinutes": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "editTreatment": "Editar tratamento",
+  "editTreatmentDesc": "Modificar apenas esta dose ou o tratamento completo",
+  "deleteTreatment": "Excluir tratamento",
+  "deleteTreatmentDesc": "Remove este tratamento e todos os seus alarmes",
+  "confirmDeleteTitle": "Confirmar exclusão",
+  "confirmDeleteMessage": "Tem certeza de que deseja excluir este tratamento?",
+  "treatmentDeleted": "Tratamento excluído.",
+
+  "whatToEdit": "O que você deseja editar?",
+  "editSingleDose": "Editar apenas esta dose",
+  "editSingleDoseDesc": "Alterar o horário agendado para esta dose ({time})",
+  "@editSingleDoseDesc": {
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
+  "editFullTreatment": "Editar tratamento completo",
+  "editFullTreatmentDesc": "Modificar medicamento, horários, duração e estoque",
+  "doseTimeChanged": "Horário da dose alterado.",
+
+  "loginToViewPrescriptions": "Faça login para ver suas receitas.",
+  "errorLoadingPrescriptions": "Ocorreu um erro ao carregar as receitas.",
+  "noPrescriptionsYet": "Você ainda não adicionou nenhuma receita. Adicione uma para começar!",
+
+  "generalViewPets": "Visão Geral (Pets)",
+  "generalViewAll": "Visão Geral (Todos)",
+  "selectPet": "Selecionar Pet",
+  "myProfile": "Meu Perfil",
+  "bannerGeneralAllPets": "Visão Geral: Todos os pets",
+  "bannerGeneralAllPatients": "Visão Geral: Todos os pacientes",
+  "bannerViewingPetTreatments": "Visualizando tratamentos de: {name}",
+  "@bannerViewingPetTreatments": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "bannerViewingPatientSchedule": "Visualizando agenda médica de: {name}",
+  "@bannerViewingPatientSchedule": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  }
+}

@@ -16,6 +16,7 @@
   "commonSuccess": "Éxito",
   "commonLoading": "Cargando...",
   "commonRetry": "Reintentar",
+  "commonOptional": "Opcional",
 
   "navHome": "Inicio",
   "navCalendar": "Calendario",
@@ -84,6 +85,8 @@
   "languageSpanishDesc": "Español (predeterminado)",
   "languageEnglish": "English",
   "languageEnglishDesc": "Inglés",
+  "languagePortuguese": "Português",
+  "languagePortugueseDesc": "Portugués",
   "languageChangedSnackbar": "Idioma actualizado correctamente.",
 
   "homeGreetingMorning": "¡Buenos días!",
@@ -509,6 +512,29 @@
       "medicine": { "type": "String" }
     }
   },
+  "addPrescriptionCurrentStockHint": "Ej: 30",
+  "addPrescriptionBoxStockHint": "Ej: 60",
+  "addPrescriptionDoseHint": "Ej: 1",
+  "addPrescriptionDiscardTitle": "¿Descartar receta?",
+  "addPrescriptionDiscardContent": "Tienes datos ingresados en el formulario. Si sales ahora, se perderán los cambios.",
+  "addPrescriptionContinueEditing": "Continuar editando",
+  "addPrescriptionExitAndDiscard": "Salir y descartar",
+  "addPrescriptionScanCamera": "Cámara",
+  "addPrescriptionScanGallery": "Galería",
+  "addPrescriptionScanAnalyzing": "Analizando receta con IA...",
+  "addPrescriptionScanSuccess": "Receta analizada con éxito. Formulario completado.",
+  "addPrescriptionScanNoData": "No se pudo extraer información de la receta.",
+  "addPrescriptionScanError": "Error al analizar la receta: {error}",
+  "@addPrescriptionScanError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "addPrescriptionInteractionWarning": "Se ha detectado una posible interacción medicamentosa.",
+  "drugInteractionTitle": "Interacción Detectada ⚠️",
+  "drugInteractionDisclaimer": "Te recomendamos consultar con tu médico o farmacéutico antes de iniciar ambos tratamientos de manera simultánea.",
+  "drugInteractionReview": "Revisar / Modificar",
+  "drugInteractionContinueAnyway": "Continuar de todos modos",
   "chatBotRecordingNotice": "Grabando... Toca el mic para enviar",
   "chatBotCancelRecording": "Cancelar grabación",
   "chatBotTakeRecipePhoto": "Tomar Foto de la Receta",
@@ -551,5 +577,81 @@
 
   "cancel": "Cancelar",
 
-  "chatBotSelectFromGallery": "Seleccionar de la galería"
+  "chatBotSelectFromGallery": "Seleccionar de la galería",
+
+  "cardAiHealthTips": "Consejos de Salud con IA",
+  "cardAiTipsDescription": "Consejos clínicos inteligentes adaptados a cada medicamento y modo.",
+  "cardViewPro": "Ver PRO",
+
+  "doseOptionsTitle": "Opciones de la Dosis",
+  "markAsTaken": "Marcar como tomada",
+  "markAsTakenDesc": "Descuenta del inventario automáticamente",
+  "doseMarkedTaken": "Dosis marcada como tomada.",
+  "lowStockWarning": "Stock bajo: te quedan {count} dosis",
+  "@lowStockWarning": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "markAsSkipped": "Marcar como omitida",
+  "markAsSkippedDesc": "No descontará inventario pero registrará la omisión",
+  "doseMarkedSkipped": "Dosis marcada como omitida.",
+  "deferDose": "Aplazar dosis",
+  "deferDoseDesc": "Pospone la toma 10, 15, 30 o 60 minutos",
+  "deferSelectTime": "Selecciona cuánto tiempo deseas posponer la toma:",
+  "deferPlusMinutes": "+{minutes} min",
+  "@deferPlusMinutes": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "deferPlusOneHour": "+1 hora",
+  "doseDeferredMinutes": "Dosis aplazada por {minutes} minutos.",
+  "@doseDeferredMinutes": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "editTreatment": "Editar tratamiento",
+  "editTreatmentDesc": "Modificar solo esta dosis o el tratamiento completo",
+  "deleteTreatment": "Eliminar tratamiento",
+  "deleteTreatmentDesc": "Remueve este tratamiento y todas sus alarmas",
+  "confirmDeleteTitle": "Confirmar eliminación",
+  "confirmDeleteMessage": "¿Estás seguro de que deseas eliminar este tratamiento?",
+  "treatmentDeleted": "Tratamiento eliminado.",
+
+  "whatToEdit": "¿Qué deseas editar?",
+  "editSingleDose": "Editar solo esta dosis",
+  "editSingleDoseDesc": "Cambiar la hora programada para esta toma ({time})",
+  "@editSingleDoseDesc": {
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
+  "editFullTreatment": "Editar tratamiento completo",
+  "editFullTreatmentDesc": "Modificar medicamento, horarios, duración e inventario",
+  "doseTimeChanged": "Hora de la dosis modificada.",
+
+  "loginToViewPrescriptions": "Inicia sesión para ver tus recetas.",
+  "errorLoadingPrescriptions": "Ocurrió un error al cargar las recetas.",
+  "noPrescriptionsYet": "Aún no has agregado ninguna receta. ¡Añade una para empezar!",
+
+  "generalViewPets": "Vista General (Mascotas)",
+  "generalViewAll": "Vista General (Todos)",
+  "selectPet": "Seleccionar Mascota",
+  "myProfile": "Mi Perfil",
+  "bannerGeneralAllPets": "Vista General: Todas las mascotas",
+  "bannerGeneralAllPatients": "Vista General: Todos los pacientes",
+  "bannerViewingPetTreatments": "Viendo tratamientos de: {name}",
+  "@bannerViewingPetTreatments": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "bannerViewingPatientSchedule": "Viendo agenda médica de: {name}",
+  "@bannerViewingPatientSchedule": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  }
 }
