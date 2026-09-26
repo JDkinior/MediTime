@@ -68,6 +68,16 @@ class IdiomaOpcionesPage extends StatelessWidget {
                   isSelected: currentCode == 'en',
                   onTap: () => _changeLanguage(context, 'en'),
                 ),
+                const SizedBox(height: 12),
+                _buildLanguageCard(
+                  context: context,
+                  id: 'pt',
+                  title: l10n?.languagePortuguese ?? 'Português',
+                  description: l10n?.languagePortugueseDesc ?? 'Português',
+                  leadingWidget: const Text('🇧🇷', style: TextStyle(fontSize: 24)),
+                  isSelected: currentCode == 'pt',
+                  onTap: () => _changeLanguage(context, 'pt'),
+                ),
               ],
             ),
     );

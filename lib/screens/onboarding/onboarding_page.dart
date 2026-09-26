@@ -514,10 +514,41 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           FadeSlideCard(
-            delayMs: 360,
+            delayMs: 330,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.medical_information_outlined, color: Colors.amber, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Aviso Médico: MediTime es una herramienta de recordatorio y registro. NO es un dispositivo médico ni sustituye la consulta o el criterio de su médico tratante ante urgencias.',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: AppTheme.primaryTextColor,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          FadeSlideCard(
+            delayMs: 380,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
@@ -542,7 +573,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     child: GestureDetector(
                       onTap: () => setState(() => _acceptedTerms = !_acceptedTerms),
                       child: Text(
-                        'He leído y acepto los Términos de Servicio y la Política de Privacidad de Datos Médicos.',
+                        'He leído y acepto los Términos de Servicio, el Deslinde de Responsabilidad Médica y la Política de Privacidad de Datos de Salud.',
                         style: TextStyle(
                           fontSize: 12,
                           color: AppTheme.primaryTextColor,

@@ -23,6 +23,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   String _errorMessage = '';
   bool _emailError = false;
   bool _passwordError = false;
@@ -107,27 +108,50 @@ class _RegisterPageState extends State<RegisterPage> {
   
   Future<void> _signInWithGoogle() async {
     setState(() {
-      _isLoading = true;
+      _isGoogleLoading = true;
       _errorMessage = '';
     });
 
-    final authService = context.read<AuthService>();
-    final result = await authService.signInWithGoogle();
+    try {
+      final authService = context.read<AuthService>();
+      final result = await authService.signInWithGoogle();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() => _isLoading = false);
-
-    if (result.isSuccess) {
-      if (Navigator.canPop(context)) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      }
-    } else {
-      final l10n = AppLocalizations.of(context);
-      setState(() {
-        _errorMessage = result.error ??
+      if (result.isSuccess) {
+        if (Navigator.canPop(context)) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      } else {
+        final l10n = AppLocalizations.of(context);
+        final error = result.error ??
             (l10n?.registerErrorGoogle ?? 'Error al registrarse con Google. Inténtalo de nuevo.');
+        setState(() {
+          _errorMessage = error;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final msg = 'Error inesperado al registrarse con Google: $e';
+      setState(() {
+        _errorMessage = msg;
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isGoogleLoading = false);
+      }
     }
   }
 
@@ -206,7 +230,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 PrimaryButton(
                   text: l10n?.registerButton ?? 'Registrarme',
                   isLoading: _isLoading,
-                  onPressed: _register,
+                  onPressed: (_isLoading || _isGoogleLoading) ? null : _register,
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -240,13 +264,21 @@ class _RegisterPageState extends State<RegisterPage> {
                   width: double.infinity,
                   height: 60,
                   child: ElevatedButton.icon(
-                    icon: Image.asset(
-                      'assets/google_logo.png',
-                      width: 30,
-                      height: 30,
-                    ),
+                    icon: _isGoogleLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          )
+                        : Image.asset(
+                            'assets/google_logo.png',
+                            width: 30,
+                            height: 30,
+                          ),
                     label: Text(
-                      l10n?.loginWithGoogle ?? 'Continuar con Google',
+                      _isGoogleLoading
+                          ? (l10n?.commonLoading ?? 'Cargando...')
+                          : (l10n?.loginWithGoogle ?? 'Continuar con Google'),
                       style: TextStyle(
                         color: AppTheme.primaryTextColor,
                         fontWeight: FontWeight.w600,
@@ -264,7 +296,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                       elevation: 0,
                     ),
-                    onPressed: _isLoading ? null : _signInWithGoogle,
+                    onPressed: (_isLoading || _isGoogleLoading) ? null : _signInWithGoogle,
                   ),
                 ),
                 const SizedBox(height: 20),

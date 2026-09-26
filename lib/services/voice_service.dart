@@ -27,7 +27,9 @@ class VoiceService {
   void Function()? onTtsComplete;
 
   Future<void> _initTts() async {
-    final ttsLang = _currentLanguage == 'en' ? 'en-US' : 'es-MX';
+    final ttsLang = _currentLanguage == 'pt'
+        ? 'pt-BR'
+        : (_currentLanguage == 'en' ? 'en-US' : 'es-MX');
     await _flutterTts.setLanguage(ttsLang);
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
@@ -39,8 +41,12 @@ class VoiceService {
   }
 
   Future<void> updateLanguage(String languageCode) async {
-    _currentLanguage = languageCode.startsWith('en') ? 'en' : 'es';
-    final ttsLang = _currentLanguage == 'en' ? 'en-US' : 'es-MX';
+    _currentLanguage = languageCode.startsWith('pt')
+        ? 'pt'
+        : (languageCode.startsWith('en') ? 'en' : 'es');
+    final ttsLang = _currentLanguage == 'pt'
+        ? 'pt-BR'
+        : (_currentLanguage == 'en' ? 'en-US' : 'es-MX');
     await _flutterTts.setLanguage(ttsLang);
   }
 

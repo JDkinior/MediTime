@@ -52,7 +52,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBX9YKJ0ZC502wZjp5IzEGA51jKfJrIsLg',
-    appId: '1:426041654351:android:8ed9ce3d391321dd87be3a',
+    appId: '1:426041654351:android:4a7c71c771df170987be3a',
     messagingSenderId: '426041654351',
     projectId: 'meditime-dc9b1',
     storageBucket: 'meditime-dc9b1.appspot.com',

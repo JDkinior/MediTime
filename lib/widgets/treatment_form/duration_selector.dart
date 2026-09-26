@@ -57,7 +57,7 @@ class DurationSelector extends StatelessWidget {
                   keyboardType: TextInputType.number,
                   enabled: !esIndefinido,
                   onChanged: (value) {
-                    final numero = int.tryParse(value) ?? 1;
+                    final numero = int.tryParse(value) ?? 0;
                     onDuracionNumeroChanged(numero);
                   },
                   decoration: AppInputDecoration.withHint(
@@ -92,6 +92,7 @@ class DurationSelector extends StatelessWidget {
                     if (newValue == 'Indefinido') {
                       onEsIndefinidoChanged(true);
                       controller.clear();
+                      onDuracionNumeroChanged(0);
                     } else {
                       onEsIndefinidoChanged(false);
                       final unit = DurationUnit.values.firstWhere(
@@ -99,10 +100,8 @@ class DurationSelector extends StatelessWidget {
                         orElse: () => DurationUnit.days,
                       );
                       onDuracionUnidadChanged(unit);
-                      if (controller.text.isEmpty) {
-                        controller.text = '1';
-                        onDuracionNumeroChanged(1);
-                      }
+                      final numero = int.tryParse(controller.text) ?? 0;
+                      onDuracionNumeroChanged(numero);
                     }
                   },
                   icon: const Icon(Icons.keyboard_arrow_down),

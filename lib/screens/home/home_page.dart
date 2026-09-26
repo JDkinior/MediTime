@@ -40,13 +40,15 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey _chatbotKey = GlobalKey();
   final GlobalKey _summaryKey = GlobalKey();
   final GlobalKey _dateKey = GlobalKey();
-  final GlobalKey _fabKey = GlobalKey();
+  final GlobalKey _classicFabKey = GlobalKey();
+  final GlobalKey _modernFabKey = GlobalKey();
   final GlobalKey _calendarKey = GlobalKey();
   final GlobalKey _calendarViewKey = GlobalKey();
   final GlobalKey _progressKey = GlobalKey();
   final GlobalKey _progressRingKey = GlobalKey();
   final GlobalKey _progressTimelineKey = GlobalKey();
-  final GlobalKey _bottomNavKey = GlobalKey();
+  final GlobalKey _classicBottomNavKey = GlobalKey();
+  final GlobalKey _modernBottomNavKey = GlobalKey();
 
   // Contexto dentro del árbol de ShowCaseWidget para poder llamar startShowCase / dismiss
   BuildContext? _showcaseContext;
@@ -88,19 +90,22 @@ class _HomePageState extends State<HomePage> {
     setState(() => _isTutorialRunning = true);
     
     final isSimplified = context.read<PreferenceNotifier>().simplifiedInterface;
+    final isModern = context.read<PreferenceNotifier>().interfaceStyle == 'modern';
+    final activeFabKey = isModern ? _modernFabKey : _classicFabKey;
+    final activeBottomNavKey = isModern ? _modernBottomNavKey : _classicBottomNavKey;
     
     ShowCaseWidget.of(_showcaseContext!).startShowCase([
       _menuKey,
       if (!isSimplified) _chatbotKey,
       _summaryKey,
       _dateKey,
-      _fabKey,
+      activeFabKey,
       _calendarKey,
       _calendarViewKey,
       _progressKey,
       _progressRingKey,
       _progressTimelineKey,
-      _bottomNavKey,
+      activeBottomNavKey,
     ]);
   }
 
@@ -237,7 +242,7 @@ class _HomePageState extends State<HomePage> {
       },
       onComplete: (index, key) {
         // Navegar a la página correcta reactivamente según la clave del tutorial
-        if (key == _fabKey) {
+        if (key == _classicFabKey || key == _modernFabKey) {
           _pageController.jumpToPage(1);
           _currentIndexNotifier.value = 1;
         } else if (key == _calendarViewKey) {
@@ -322,11 +327,11 @@ class _HomePageState extends State<HomePage> {
                             child: Text(
                               caregiverNotifier.isGeneralMode
                                   ? (isAnimalMode
-                                      ? 'Vista General (Mascotas)'
-                                      : 'Vista General (Todos)')
+                                      ? (l10n?.generalViewPets ?? 'Vista General (Mascotas)')
+                                      : (l10n?.generalViewAll ?? 'Vista General (Todos)'))
                                   : (activeProfile != null
                                       ? activeProfile.name
-                                      : (isAnimalMode ? 'Seleccionar Mascota' : 'Mi Perfil')),
+                                      : (isAnimalMode ? (l10n?.selectPet ?? 'Seleccionar Mascota') : (l10n?.myProfile ?? 'Mi Perfil'))),
                               style: TextStyle(
                                 color: AppTheme.primaryTextColor,
                                 fontWeight: FontWeight.bold,
@@ -422,8 +427,8 @@ class _HomePageState extends State<HomePage> {
                       color: AppTheme.primaryColor,
                       child: Text(
                         isAnimalMode
-                            ? 'Vista General: Todas las mascotas'
-                            : 'Vista General: Todos los pacientes',
+                            ? (l10n?.bannerGeneralAllPets ?? 'Vista General: Todas las mascotas')
+                            : (l10n?.bannerGeneralAllPatients ?? 'Vista General: Todos los pacientes'),
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                         textAlign: TextAlign.center,
                       ),
@@ -435,8 +440,8 @@ class _HomePageState extends State<HomePage> {
                       color: Color(int.parse(activeProfile.colorHex.replaceFirst('#', 'FF'), radix: 16)),
                       child: Text(
                         isAnimalMode
-                            ? 'Viendo tratamientos de: ${activeProfile.name}'
-                            : 'Viendo agenda médica de: ${activeProfile.name}',
+                            ? (l10n?.bannerViewingPetTreatments(activeProfile.name) ?? 'Viendo tratamientos de: ${activeProfile.name}')
+                            : (l10n?.bannerViewingPatientSchedule(activeProfile.name) ?? 'Viendo agenda médica de: ${activeProfile.name}'),
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                         textAlign: TextAlign.center,
                       ),
@@ -454,7 +459,7 @@ class _HomePageState extends State<HomePage> {
                         (isManagedModeActive && caregiverNotifier.isGeneralMode)
                             ? const GeneralCaregiverPage()
                             : RecetaPage(
-                                fabKey: isModern ? null : _fabKey,
+                                fabKey: isModern ? null : _classicFabKey,
                                 summaryKey: _summaryKey,
                                 dateKey: _dateKey,
                               ),
@@ -507,7 +512,7 @@ class _HomePageState extends State<HomePage> {
                         // Left: Capsule navigation bar
                         Expanded(
                           child: Showcase.withWidget(
-                            key: _bottomNavKey,
+                            key: _modernBottomNavKey,
                             height: 160,
                             width: 320,
                             disableDefaultTargetGestures: true,
@@ -613,7 +618,7 @@ class _HomePageState extends State<HomePage> {
                         const SizedBox(width: 12),
                         // Right: Modern FAB
                         Showcase.withWidget(
-                          key: _fabKey,
+                          key: _modernFabKey,
                           height: 160,
                           width: 320,
                           disableDefaultTargetGestures: true,
@@ -667,7 +672,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 )
               : Showcase.withWidget(
-                  key: _bottomNavKey,
+                  key: _classicBottomNavKey,
                   height: 160,
                   width: 320,
                   disableDefaultTargetGestures: true,

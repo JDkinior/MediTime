@@ -52,6 +52,80 @@ class _LocalizadorFarmaciasPageState extends State<LocalizadorFarmaciasPage> {
     _loadPharmacies();
   }
 
+  Future<bool> _showLocationDisclosureDialog() async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(ctx).primaryColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.location_on_outlined, color: Theme.of(ctx).primaryColor),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Uso de Ubicación',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'MediTime solicita acceso a la ubicación de tu dispositivo mientras usas el Localizador de Farmacias para:',
+                  style: TextStyle(fontSize: 13.5, height: 1.35),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  '• Detectar tu posición actual y posicionarte en el mapa.\n'
+                  '• Buscar y calcular la distancia hacia farmacias, boticas y centros de salud cercanos.',
+                  style: TextStyle(fontSize: 13, height: 1.4, fontWeight: FontWeight.w600),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  '🔒 Compromiso de Privacidad:',
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  '• Tu ubicación no se almacena en nuestros servidores ni en bases de datos externas.\n'
+                  '• No se recopila ubicación en segundo plano.\n'
+                  '• No se comparte con redes publicitarias ni terceros.',
+                  style: TextStyle(fontSize: 12, color: Colors.black54, height: 1.35),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Ahora no'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Entendido y Continuar'),
+            ),
+          ],
+        );
+      },
+    ) ?? false;
+  }
+
   Future<void> _loadPharmacies() async {
     setState(() {
       _isLoading = true;
@@ -59,8 +133,35 @@ class _LocalizadorFarmaciasPageState extends State<LocalizadorFarmaciasPage> {
     });
 
     try {
-      final permission = await LocationHelper.ensurePermission();
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (!mounted) return;
+        setState(() {
+          _errorMessage =
+              'Los servicios de ubicación (GPS) están desactivados en tu dispositivo. Por favor actívalos.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
+        if (!mounted) return;
+        final accepted = await _showLocationDisclosureDialog();
+        if (!accepted) {
+          if (!mounted) return;
+          setState(() {
+            _errorMessage =
+                'Se requiere permiso de ubicación para mostrarte farmacias cercanas.';
+            _isLoading = false;
+          });
+          return;
+        }
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied) {
+        if (!mounted) return;
         setState(() {
           _errorMessage =
               'Activa el permiso de ubicación para buscar farmacias cercanas.';
@@ -70,6 +171,7 @@ class _LocalizadorFarmaciasPageState extends State<LocalizadorFarmaciasPage> {
       }
 
       if (permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
         setState(() {
           _errorMessage =
               'El permiso de ubicación fue denegado permanentemente. Actívalo desde ajustes.';
@@ -79,7 +181,7 @@ class _LocalizadorFarmaciasPageState extends State<LocalizadorFarmaciasPage> {
       }
 
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
       final pharmacies = await LocationHelper.searchNearbyPharmacies(
         position,
@@ -151,8 +253,7 @@ class _LocalizadorFarmaciasPageState extends State<LocalizadorFarmaciasPage> {
         return _syncMapAnnotationsInternal(retries: retries - 1);
       }
       // Log and swallow errors to avoid crashing UI
-      // ignore: avoid_print
-      print('Map annotation error: $e');
+      debugPrint('Map annotation error: $e');
     }
   }
 

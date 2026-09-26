@@ -113,7 +113,7 @@ class TreatmentFormNotifier extends ChangeNotifier {
   }
 
   void updateDosisPorToma(int cantidad) {
-    _formData = _formData.copyWith(dosisPorToma: cantidad);
+    _formData = _formData.copyWith(dosisPorToma: cantidad > 0 ? cantidad : 1);
     _clearError();
     notifyListeners();
   }
@@ -171,9 +171,7 @@ class TreatmentFormNotifier extends ChangeNotifier {
       case 4: // Duración
         return _formData.esIndefinido || _formData.duracionNumero > 0;
       case 5: // Inventario
-        return _formData.cantidadActual >= 0 &&
-            _formData.cantidadTotalCaja >= 0 &&
-            _formData.dosisPorToma > 0;
+        return true; // Siempre válido (opcional)
       case 6: // Notas
         return true; // Siempre válido (opcional)
       case 7: // Resumen

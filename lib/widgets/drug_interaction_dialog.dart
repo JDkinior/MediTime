@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:meditime/theme/app_theme.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
 
 /// Diálogo estético para advertir al usuario sobre interacciones farmacológicas detectadas por IA.
 class DrugInteractionDialog extends StatelessWidget {
@@ -26,6 +27,7 @@ class DrugInteractionDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
@@ -58,7 +60,7 @@ class DrugInteractionDialog extends StatelessWidget {
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
-                      'Interacción Detectada ⚠️',
+                      l10n?.drugInteractionTitle ?? 'Interacción Detectada ⚠️',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -102,7 +104,8 @@ class DrugInteractionDialog extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Te recomendamos consultar con tu médico o farmacéutico antes de iniciar ambos tratamientos de manera simultánea.',
+                l10n?.drugInteractionDisclaimer ??
+                    'Te recomendamos consultar con tu médico o farmacéutico antes de iniciar ambos tratamientos de manera simultánea.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppTheme.secondaryTextColor,
                   fontStyle: FontStyle.italic,
@@ -124,9 +127,9 @@ class DrugInteractionDialog extends StatelessWidget {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text(
-                      'Revisar / Modificar',
-                      style: TextStyle(
+                    child: Text(
+                      l10n?.drugInteractionReview ?? 'Revisar / Modificar',
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),
@@ -143,7 +146,7 @@ class DrugInteractionDialog extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'Continuar de todos modos',
+                      l10n?.drugInteractionContinueAnyway ?? 'Continuar de todos modos',
                       style: TextStyle(
                         color: AppTheme.secondaryTextColor,
                         fontSize: 15,

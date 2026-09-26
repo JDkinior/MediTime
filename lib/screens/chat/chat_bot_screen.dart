@@ -22,9 +22,24 @@ import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/widgets/drug_interaction_dialog.dart';
 import 'package:meditime/repositories/treatment_repository.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
+import 'package:meditime/notifiers/caregiver_notifier.dart';
+import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/core/subscription_guard.dart';
+
+CaregiverProfile? _getActiveCaregiverProfile(BuildContext context) {
+  try {
+    final prefNotifier = context.read<PreferenceNotifier>();
+    final caregiverNotifier = context.read<CaregiverNotifier>();
+    final isAnimal = prefNotifier.isAnimalMode;
+    return (caregiverNotifier.isCaregiverModeActive || isAnimal)
+        ? caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimal)
+        : null;
+  } catch (_) {
+    return null;
+  }
+}
 
 class ChatBotScreen extends StatefulWidget {
   const ChatBotScreen({super.key});
@@ -234,6 +249,8 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     _sendMessage();
   }
 
+  CaregiverProfile? _getActiveProfile() => _getActiveCaregiverProfile(context);
+
   Future<void> _sendMessage({bool fromVoice = false}) async {
     final text = _messageController.text.trim();
     if (text.isEmpty || _isGenerating) {
@@ -259,13 +276,14 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     final authService = context.read<AuthService>();
     final firestoreService = context.read<FirestoreService>();
     final user = authService.currentUser;
+    final activeProfile = _getActiveProfile();
 
     List<Tratamiento>? activeTreatments;
     if (user != null) {
       try {
-        final allTreatments = await firestoreService.getMedicamentosStream(user.uid).first;
-        final now = DateTime.now();
-        activeTreatments = allTreatments.where((t) => t.fechaFinTratamiento.isAfter(now)).toList();
+        final allTreatments = await firestoreService.getMedicamentosStream(user.uid, activeProfile).first;
+        // Filtrar solo tratamientos activos o vigentes (excluyendo historial pasado finalizado)
+        activeTreatments = allTreatments.where((t) => t.isActivo || !t.isFinalizado).toList();
       } catch (_) {}
     }
 
@@ -501,10 +519,10 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     if (user == null || medName.isEmpty) return;
 
     try {
-      final treatments = await firestoreService.getMedicamentosStream(user.uid).first;
-      final now = DateTime.now();
-      // Filter out finished treatments
-      final runningTreatments = treatments.where((t) => t.fechaFinTratamiento.isAfter(now)).toList();
+      final activeProfile = _getActiveProfile();
+      final treatments = await firestoreService.getMedicamentosStream(user.uid, activeProfile).first;
+      // Filter out finished treatments from medical history
+      final runningTreatments = treatments.where((t) => t.isActivo || !t.isFinalizado).toList();
 
       final DoseStatus status = DoseStatus.fromString(statusStr);
 
@@ -1839,7 +1857,7 @@ class _AdherenceChartCard extends StatelessWidget {
     }
 
     return StreamBuilder<List<Tratamiento>>(
-      stream: firestoreService.getMedicamentosStream(user.uid),
+      stream: firestoreService.getMedicamentosStream(user.uid, _getActiveCaregiverProfile(context)),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -1849,7 +1867,10 @@ class _AdherenceChartCard extends StatelessWidget {
             ),
           );
         }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        final allTreatments = snapshot.data ?? [];
+        final tratamientos = allTreatments.where((t) => t.isActivo || !t.isFinalizado).toList();
+
+        if (tratamientos.isEmpty) {
           return Container(
             margin: const EdgeInsets.symmetric(vertical: 12),
             padding: const EdgeInsets.all(16),
@@ -1859,13 +1880,11 @@ class _AdherenceChartCard extends StatelessWidget {
               border: Border.all(color: AppTheme.borderColor),
             ),
             child: const Text(
-              'Aún no tienes medicamentos registrados para calcular tu progreso de adherencia.',
+              'Aún no tienes medicamentos activos registrados para calcular tu progreso de adherencia.',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
           );
         }
-
-        final tratamientos = snapshot.data!;
 
         // Calculate global stats
         int totalTomadas = 0;

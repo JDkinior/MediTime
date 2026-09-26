@@ -48,6 +48,12 @@ class PreferenceService {
   static const String _themeModeKey = 'theme_mode_string';
   static const String _languageCodeKey = 'app_language_code';
 
+  // Alarm Sound keys
+  static const String _alarmSoundTypeKey = 'alarm_sound_type';
+  static const String _alarmSoundTitleKey = 'alarm_sound_title';
+  static const String _alarmSoundUriKey = 'alarm_sound_uri';
+  static const String _alarmSoundResourceKey = 'alarm_sound_resource';
+
   // Accessibility keys
   static const String _highContrastKey = 'high_contrast_active';
   static const String _largeTextKey = 'large_text_active';
@@ -64,6 +70,7 @@ class PreferenceService {
 
   // Privacy keys
   static const String _hideMedicineNameOnLockScreenKey = 'hide_medicine_name_on_lock_screen';
+  static const String _secureScreenKey = 'secure_screen_active';
 
   // Animal / Veterinary Mode keys
   static const String _animalModeActiveKey = 'animal_mode_active';
@@ -186,6 +193,55 @@ class PreferenceService {
     await prefs.reload();
     return prefs.getInt(_snoozeDurationKey) ?? 10;
   }  
+
+  Future<void> saveAlarmSound({
+    required String type,
+    required String title,
+    String? uri,
+    String? resourceName,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_alarmSoundTypeKey, type);
+    await prefs.setString(_alarmSoundTitleKey, title);
+    if (uri != null && uri.isNotEmpty) {
+      await prefs.setString(_alarmSoundUriKey, uri);
+    } else {
+      await prefs.remove(_alarmSoundUriKey);
+    }
+    if (resourceName != null && resourceName.isNotEmpty) {
+      await prefs.setString(_alarmSoundResourceKey, resourceName);
+    } else {
+      await prefs.remove(_alarmSoundResourceKey);
+    }
+  }
+
+  Future<String> getAlarmSoundType() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getString(_alarmSoundTypeKey) ?? 'system_alarm';
+  }
+
+  Future<String> getAlarmSoundTitle() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getString(_alarmSoundTitleKey) ?? 'Alarma del teléfono (Predeterminada)';
+  }
+
+  Future<String?> getAlarmSoundUri() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    final type = prefs.getString(_alarmSoundTypeKey) ?? 'system_alarm';
+    if (type == 'custom') {
+      return null;
+    }
+    return prefs.getString(_alarmSoundUriKey) ?? 'content://settings/system/alarm_alert';
+  }
+
+  Future<String?> getAlarmSoundResource() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getString(_alarmSoundResourceKey);
+  }
 
   // --- Accesibilidad ---
   Future<void> saveHighContrast(bool isActive) async {
@@ -376,6 +432,17 @@ class PreferenceService {
     return prefs.getBool(_hideMedicineNameOnLockScreenKey) ?? false;
   }
 
+  Future<void> saveSecureScreen(bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_secureScreenKey, val);
+  }
+
+  Future<bool> getSecureScreen() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool(_secureScreenKey) ?? false;
+  }
+
   Future<void> saveOnboardingCompleted(String userId, bool val) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('$_onboardingCompletedPrefix$userId', val);
@@ -458,9 +525,17 @@ class PreferenceService {
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_cachedAiTipsKey, jsonEncode(tips));
+      final jsonStr = jsonEncode(tips);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      // Guardar tanto en el slot global como en el slot específico por fingerprint/perfil
+      await prefs.setString(_cachedAiTipsKey, jsonStr);
       await prefs.setString(_cachedAiTipsFingerprintKey, fingerprint);
-      await prefs.setInt(_cachedAiTipsTimestampKey, DateTime.now().millisecondsSinceEpoch);
+      await prefs.setInt(_cachedAiTipsTimestampKey, now);
+
+      final hashedKey = 'ai_tips_${fingerprint.hashCode}';
+      await prefs.setString('${_cachedAiTipsKey}_$hashedKey', jsonStr);
+      await prefs.setString('${_cachedAiTipsFingerprintKey}_$hashedKey', fingerprint);
+      await prefs.setInt('${_cachedAiTipsTimestampKey}_$hashedKey', now);
     } catch (_) {}
   }
 
@@ -470,9 +545,19 @@ class PreferenceService {
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedFingerprint = prefs.getString(_cachedAiTipsFingerprintKey);
-      final savedTimestamp = prefs.getInt(_cachedAiTipsTimestampKey);
-      final savedJson = prefs.getString(_cachedAiTipsKey);
+      final hashedKey = 'ai_tips_${currentFingerprint.hashCode}';
+
+      // 1. Intentar slot específico del perfil/modo
+      String? savedFingerprint = prefs.getString('${_cachedAiTipsFingerprintKey}_$hashedKey');
+      int? savedTimestamp = prefs.getInt('${_cachedAiTipsTimestampKey}_$hashedKey');
+      String? savedJson = prefs.getString('${_cachedAiTipsKey}_$hashedKey');
+
+      // 2. Si no existe, revisar slot global
+      if (savedJson == null || savedFingerprint == null || savedTimestamp == null) {
+        savedFingerprint = prefs.getString(_cachedAiTipsFingerprintKey);
+        savedTimestamp = prefs.getInt(_cachedAiTipsTimestampKey);
+        savedJson = prefs.getString(_cachedAiTipsKey);
+      }
 
       if (savedJson == null || savedFingerprint == null || savedTimestamp == null) {
         return null;

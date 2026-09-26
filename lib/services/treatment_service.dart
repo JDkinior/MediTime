@@ -53,6 +53,10 @@ class TreatmentService {
       fechaInicioTratamiento,
     );
 
+    final int cantidadTotalCaja = formData.cantidadTotalCaja > 0
+        ? formData.cantidadTotalCaja
+        : formData.cantidadActual;
+
     // Guardar en Firestore
     final DocumentReference docRef = await _firestoreService.saveMedicamento(
       userId: userId,
@@ -61,7 +65,7 @@ class TreatmentService {
       presentacion: formData.presentacion,
       duracion: formData.duracionEnDias.toString(),
       cantidadActual: formData.cantidadActual,
-      cantidadTotalCaja: formData.cantidadTotalCaja,
+      cantidadTotalCaja: cantidadTotalCaja,
       dosisPorToma: formData.dosisPorToma,
       horaPrimeraDosis: formData.horaPrimeraDosis,
       intervaloDosis: Duration(hours: formData.intervaloDosis),
@@ -115,6 +119,10 @@ class TreatmentService {
       }
     }
 
+    final int cantidadTotalCaja = formData.cantidadTotalCaja > 0
+        ? formData.cantidadTotalCaja
+        : formData.cantidadActual;
+
     await _firestoreService.updateMedicamento(
       userId: userId,
       profile: profile,
@@ -123,7 +131,7 @@ class TreatmentService {
       presentacion: formData.presentacion,
       duracion: formData.duracionEnDias.toString(),
       cantidadActual: formData.cantidadActual,
-      cantidadTotalCaja: formData.cantidadTotalCaja,
+      cantidadTotalCaja: cantidadTotalCaja,
       dosisPorToma: formData.dosisPorToma,
       horaPrimeraDosis: formData.horaPrimeraDosis,
       intervaloDosis: Duration(hours: formData.intervaloDosis),
@@ -198,15 +206,15 @@ class TreatmentService {
     }
 
     if (formData.cantidadActual < 0) {
-      return 'La cantidad actual no puede ser negativa';
+      formData.cantidadActual = 0;
     }
 
     if (formData.cantidadTotalCaja < 0) {
-      return 'La cantidad total por caja no puede ser negativa';
+      formData.cantidadTotalCaja = 0;
     }
 
     if (formData.dosisPorToma <= 0) {
-      return 'La dosis por toma debe ser mayor a 0';
+      formData.dosisPorToma = 1;
     }
 
     if (formData.intervaloDosis <= 0) {

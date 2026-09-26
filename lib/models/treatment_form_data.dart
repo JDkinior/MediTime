@@ -57,8 +57,8 @@ class TreatmentFormData {
     this.cantidadTotalCaja = 0,
     this.dosisPorToma = 1,
     TimeOfDay? horaPrimeraDosis,
-    this.intervaloDosis = 8,
-    this.duracionNumero = 1,
+    this.intervaloDosis = 0,
+    this.duracionNumero = 0,
     this.duracionUnidad = DurationUnit.days,
     this.esIndefinido = false,
     this.notas = '',
@@ -163,9 +163,6 @@ class TreatmentFormData {
   bool get isValid {
     return nombreMedicamento.isNotEmpty &&
         presentacion.isNotEmpty &&
-        cantidadActual >= 0 &&
-        cantidadTotalCaja >= 0 &&
-        dosisPorToma > 0 &&
         intervaloDosis > 0 &&
         (esIndefinido || duracionNumero > 0);
   }

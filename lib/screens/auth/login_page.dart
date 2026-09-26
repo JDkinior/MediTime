@@ -22,6 +22,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   String _errorMessage = '';
   bool _emailError = false;
   bool _passwordError = false;
@@ -149,29 +150,52 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
   Future<void> _signInWithGoogle() async {
     setState(() {
-      _isLoading = true;
+      _isGoogleLoading = true;
       _errorMessage = '';
     });
 
-    final authService = context.read<AuthService>();
-    final result = await authService.signInWithGoogle();
+    try {
+      final authService = context.read<AuthService>();
+      final result = await authService.signInWithGoogle();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (result.isFailure) {
-      final l10n = AppLocalizations.of(context);
+      if (result.isFailure) {
+        final l10n = AppLocalizations.of(context);
+        final error = result.error ??
+            (l10n?.loginErrorGoogle ?? 'Error al iniciar sesión con Google. Inténtalo de nuevo.');
+        setState(() {
+          _errorMessage = error;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+        return;
+      }
+
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) {
+        navigator.popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final msg = 'Error inesperado al iniciar sesión con Google: $e';
       setState(() {
-        _isLoading = false;
-        _errorMessage = result.error ?? (l10n?.loginErrorGoogle ?? 'Error al iniciar sesión con Google. Inténtalo de nuevo.');
+        _errorMessage = msg;
       });
-      return;
-    }
-
-    setState(() => _isLoading = false);
-
-    final navigator = Navigator.of(context);
-    if (navigator.canPop()) {
-      navigator.popUntil((route) => route.isFirst);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isGoogleLoading = false);
+      }
     }
   }
 
@@ -393,7 +417,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                           PrimaryButton(
                             text: l10n?.loginButton ?? 'Iniciar Sesión',
                             isLoading: _isLoading,
-                            onPressed: _login,
+                            onPressed: (_isLoading || _isGoogleLoading) ? null : _login,
                           ),
                           const SizedBox(height: 10),
                           Row(
@@ -411,9 +435,17 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             width: double.infinity,
                             height: 60,
                             child: ElevatedButton.icon(
-                              icon: Image.asset('assets/google_logo.png', width: 30, height: 30),
+                              icon: _isGoogleLoading
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                                    )
+                                  : Image.asset('assets/google_logo.png', width: 30, height: 30),
                               label: Text(
-                                l10n?.loginWithGoogle ?? 'Continuar con Google',
+                                _isGoogleLoading
+                                    ? (l10n?.commonLoading ?? 'Cargando...')
+                                    : (l10n?.loginWithGoogle ?? 'Continuar con Google'),
                                 style: TextStyle(
                                   color: AppTheme.primaryTextColor,
                                   fontWeight: FontWeight.w600,
@@ -429,7 +461,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                 ),
                                 elevation: 0,
                               ),
-                            onPressed: _isLoading ? null : _signInWithGoogle,
+                              onPressed: (_isLoading || _isGoogleLoading) ? null : _signInWithGoogle,
                             ),
                           ),
                           const SizedBox(height: 15),

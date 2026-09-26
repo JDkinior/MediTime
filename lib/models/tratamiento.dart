@@ -130,23 +130,47 @@ class Tratamiento {
         cantidadTotalCaja >= 0;
   }
 
+  /// Indica si el tratamiento ya finalizó por completo y pertenece al historial médico pasado.
+  bool get isFinalizado {
+    final now = DateTime.now();
+    final finDelDia = DateTime(
+      fechaFinTratamiento.year,
+      fechaFinTratamiento.month,
+      fechaFinTratamiento.day,
+      23, 59, 59, 999,
+    );
+    return now.isAfter(finDelDia);
+  }
+
+  /// Indica si el tratamiento está actualmente activo (no ha finalizado y ya inició o inicia hoy).
+  bool get isActivo {
+    final now = DateTime.now();
+    final finDeHoy = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+    return !isFinalizado && !fechaInicioTratamiento.isAfter(finDeHoy);
+  }
+
+  /// Indica si el inventario de este tratamiento está siendo gestionado.
+  bool get hasInventarioConfigurado => cantidadTotalCaja > 0 || cantidadActual > 0;
+
   bool get hasStockBajo {
+    if (!hasInventarioConfigurado) return false;
     final threshold = cantidadTotalCaja > 0 ? cantidadTotalCaja * 0.2 : 0;
     return cantidadActual < 5 || cantidadActual < threshold;
   }
 
   int get dosisDisponiblesEstimadas {
+    if (!hasInventarioConfigurado) return 0;
     if (dosisPorToma <= 0) return cantidadActual;
     return (cantidadActual / dosisPorToma).floor();
   }
 
   ProcesarTomaResult procesarToma() {
-    if (dosisPorToma <= 0) {
+    if (dosisPorToma <= 0 || !hasInventarioConfigurado) {
       return ProcesarTomaResult(
         tratamiento: this,
-        stockBajo: hasStockBajo,
-        dosisRestantes: dosisDisponiblesEstimadas,
-        evento: hasStockBajo ? 'Stock Bajo' : null,
+        stockBajo: false,
+        dosisRestantes: 0,
+        evento: null,
       );
     }
 

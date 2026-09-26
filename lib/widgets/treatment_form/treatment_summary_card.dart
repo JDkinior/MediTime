@@ -23,18 +23,24 @@ class TreatmentSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final isEn = Localizations.localeOf(context).languageCode == 'en';
+    final langCode = Localizations.localeOf(context).languageCode;
 
     String getLocalizedDuration() {
       if (formData.esIndefinido) return l10n?.durationIndefinite ?? 'Indefinido';
       final n = formData.duracionNumero;
       switch (formData.duracionUnidad) {
         case DurationUnit.days:
-          return '$n ${n == 1 ? (isEn ? 'day' : 'día') : (isEn ? 'days' : 'días')}';
+          if (langCode == 'en') return '$n ${n == 1 ? 'day' : 'days'}';
+          if (langCode == 'pt') return '$n ${n == 1 ? 'dia' : 'dias'}';
+          return '$n ${n == 1 ? 'día' : 'días'}';
         case DurationUnit.months:
-          return '$n ${n == 1 ? (isEn ? 'month' : 'mes') : (isEn ? 'months' : 'meses')}';
+          if (langCode == 'en') return '$n ${n == 1 ? 'month' : 'months'}';
+          if (langCode == 'pt') return '$n ${n == 1 ? 'mês' : 'meses'}';
+          return '$n ${n == 1 ? 'mes' : 'meses'}';
         case DurationUnit.years:
-          return '$n ${n == 1 ? (isEn ? 'year' : 'año') : (isEn ? 'years' : 'años')}';
+          if (langCode == 'en') return '$n ${n == 1 ? 'year' : 'years'}';
+          if (langCode == 'pt') return '$n ${n == 1 ? 'ano' : 'anos'}';
+          return '$n ${n == 1 ? 'año' : 'años'}';
       }
     }
 

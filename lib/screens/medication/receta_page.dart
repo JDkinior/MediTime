@@ -63,17 +63,30 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
     required int takenCount,
     required double adherenceRate,
     required bool isPremium,
+    bool isAnimalMode = false,
+    CaregiverModeType? caregiverModeType,
+    CaregiverProfile? caregiverProfile,
+    bool isCaregiverActive = false,
+    String languageCode = 'es',
   }) async {
     if (!isPremium) return;
 
-    // Fingerprint based on active treatments (invalidates if treatments change)
+    // Fingerprint based on active treatments, profile, mode and language (invalidates if treatments, mode or language change)
     final sortedMeds = treatments.map((t) => '${t.id}_${t.nombreMedicamento}').toList()..sort();
-    final fingerprint = '${sortedMeds.join('|')}_${DateTime.now().day}';
+    final profileKey = caregiverProfile?.id ?? 'main_user';
+    final modeKey = isAnimalMode
+        ? 'animal'
+        : (isCaregiverActive ? (caregiverModeType?.name ?? 'caregiver') : 'personal');
+    final fingerprint = '${profileKey}_${modeKey}_${sortedMeds.join('|')}_${languageCode}_${DateTime.now().day}';
 
-    if (fingerprint == _lastTipsCacheKey && _aiTips.isNotEmpty) return;
+    // Si cambió el perfil, modo o tratamientos, limpiar tips previos para evitar mostrar datos viejos
+    if (fingerprint != _lastTipsCacheKey) {
+      _lastTipsCacheKey = fingerprint;
+      _aiTips = [];
+    } else if (_aiTips.isNotEmpty) {
+      return;
+    }
     if (_isLoadingAiTips) return;
-
-    _lastTipsCacheKey = fingerprint;
 
     final prefService = context.read<PreferenceService>();
     final geminiService = context.read<GeminiService>();
@@ -99,6 +112,10 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
       pendingCount: pendingCount,
       takenCount: takenCount,
       adherenceRate: adherenceRate,
+      isAnimalMode: isAnimalMode,
+      caregiverModeType: caregiverModeType,
+      profile: caregiverProfile,
+      language: languageCode,
     );
 
     if (_aiTips.isEmpty && mounted) {
@@ -115,6 +132,10 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
         pendingCount: pendingCount,
         takenCount: takenCount,
         adherenceRate: adherenceRate,
+        isAnimalMode: isAnimalMode,
+        caregiverModeType: caregiverModeType,
+        profile: caregiverProfile,
+        language: languageCode,
       );
 
       if (mounted && freshTips.isNotEmpty) {
@@ -225,6 +246,7 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
     final isManagedMode = caregiverNotifier.isCaregiverModeActive || isAnimal;
     final activeProfile = isManagedMode ? caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimal) : null;
     final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
 
     Widget buildDeferOption(BuildContext ctx, int minutes, String label) {
       return InkWell(
@@ -302,7 +324,7 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Opciones de la Dosis',
+                          l10n?.doseOptionsTitle ?? 'Opciones de la Dosis',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -340,12 +362,12 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                     if (inventoryResult?.stockBajo == true) {
                       scaffoldMessenger.showSnackBar(
                         SnackBar(
-                          content: Text('Stock bajo: te quedan ${inventoryResult!.dosisRestantes} dosis'),
+                          content: Text(l10n?.lowStockWarning(inventoryResult!.dosisRestantes) ?? 'Stock bajo: te quedan ${inventoryResult!.dosisRestantes} dosis'),
                         ),
                       );
                     } else {
                       scaffoldMessenger.showSnackBar(
-                        const SnackBar(content: Text('Dosis marcada como tomada.')),
+                        SnackBar(content: Text(l10n?.doseMarkedTaken ?? 'Dosis marcada como tomada.')),
                       );
                     }
                   },
@@ -372,9 +394,9 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Marcar como tomada',
-                                style: TextStyle(
+                              Text(
+                                l10n?.markAsTaken ?? 'Marcar como tomada',
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color: AppTheme.successColor,
@@ -382,7 +404,7 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Descuenta del inventario automáticamente',
+                                l10n?.markAsTakenDesc ?? 'Descuenta del inventario automáticamente',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: AppTheme.secondaryTextColor,
@@ -416,11 +438,11 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                           child: const Icon(Icons.close, color: Colors.red, size: 20),
                         ),
                         title: Text(
-                          'Marcar como omitida',
+                          l10n?.markAsSkipped ?? 'Marcar como omitida',
                           style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor),
                         ),
                         subtitle: Text(
-                          'No descontará inventario pero registrará la omisión',
+                          l10n?.markAsSkippedDesc ?? 'No descontará inventario pero registrará la omisión',
                           style: TextStyle(fontSize: 11, color: AppTheme.secondaryTextColor),
                         ),
                         onTap: () async {
@@ -433,7 +455,7 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                             activeProfile,
                           );
                           scaffoldMessenger.showSnackBar(
-                            const SnackBar(content: Text('Dosis marcada como omitida.')),
+                            SnackBar(content: Text(l10n?.doseMarkedSkipped ?? 'Dosis marcada como omitida.')),
                           );
                         },
                       ),
@@ -445,11 +467,11 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                           child: const Icon(Icons.snooze, color: Colors.orange, size: 20),
                         ),
                         title: Text(
-                          'Aplazar dosis',
+                          l10n?.deferDose ?? 'Aplazar dosis',
                           style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor),
                         ),
                         subtitle: Text(
-                          'Pospone la toma 10, 15, 30 o 60 minutos',
+                          l10n?.deferDoseDesc ?? 'Pospone la toma 10, 15, 30 o 60 minutos',
                           style: TextStyle(fontSize: 11, color: AppTheme.secondaryTextColor),
                         ),
                         onTap: () async {
@@ -479,7 +501,7 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                                     ),
                                   ),
                                   Text(
-                                    'Aplazar dosis',
+                                    l10n?.deferDose ?? 'Aplazar dosis',
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -489,7 +511,7 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Selecciona cuánto tiempo deseas posponer la toma:',
+                                    l10n?.deferSelectTime ?? 'Selecciona cuánto tiempo deseas posponer la toma:',
                                     style: TextStyle(fontSize: 13, color: AppTheme.secondaryTextColor),
                                     textAlign: TextAlign.center,
                                   ),
@@ -502,10 +524,10 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                                     crossAxisSpacing: 12,
                                     childAspectRatio: 2.2,
                                     children: [
-                                      buildDeferOption(ctx, 10, '+10 min'),
-                                      buildDeferOption(ctx, 15, '+15 min'),
-                                      buildDeferOption(ctx, 30, '+30 min'),
-                                      buildDeferOption(ctx, 60, '+1 hora'),
+                                      buildDeferOption(ctx, 10, l10n?.deferPlusMinutes(10) ?? '+10 min'),
+                                      buildDeferOption(ctx, 15, l10n?.deferPlusMinutes(15) ?? '+15 min'),
+                                      buildDeferOption(ctx, 30, l10n?.deferPlusMinutes(30) ?? '+30 min'),
+                                      buildDeferOption(ctx, 60, l10n?.deferPlusOneHour ?? '+1 hora'),
                                     ],
                                   ),
                                   const SizedBox(height: 12),
@@ -534,7 +556,7 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                               await NotificationService.rescheduleNextPendingDose(updatedTratamiento, user.uid, activeProfile);
                             }
                             scaffoldMessenger.showSnackBar(
-                              SnackBar(content: Text('Dosis aplazada por $minutes minutos.')),
+                              SnackBar(content: Text(l10n?.doseDeferredMinutes(minutes) ?? 'Dosis aplazada por $minutes minutos.')),
                             );
                           }
                         },
@@ -547,11 +569,11 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                           child: Icon(Icons.edit_outlined, color: AppTheme.primaryColor, size: 20),
                         ),
                         title: Text(
-                          'Editar tratamiento',
+                          l10n?.editTreatment ?? 'Editar tratamiento',
                           style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor),
                         ),
                         subtitle: Text(
-                          'Modificar solo esta dosis o el tratamiento completo',
+                          l10n?.editTreatmentDesc ?? 'Modificar solo esta dosis o el tratamiento completo',
                           style: TextStyle(fontSize: 11, color: AppTheme.secondaryTextColor),
                         ),
                         onTap: () {
@@ -585,13 +607,13 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                   ),
                   child: const Icon(Icons.delete_forever, color: AppTheme.errorColor, size: 20),
                 ),
-                title: const Text(
-                  'Eliminar tratamiento',
-                  style: TextStyle(color: AppTheme.errorColor, fontWeight: FontWeight.bold),
+                title: Text(
+                  l10n?.deleteTreatment ?? 'Eliminar tratamiento',
+                  style: const TextStyle(color: AppTheme.errorColor, fontWeight: FontWeight.bold),
                 ),
-                subtitle: const Text(
-                  'Remueve este tratamiento y todas sus alarmas',
-                  style: TextStyle(fontSize: 11, color: AppTheme.errorColor),
+                subtitle: Text(
+                  l10n?.deleteTreatmentDesc ?? 'Remueve este tratamiento y todas sus alarmas',
+                  style: const TextStyle(fontSize: 11, color: AppTheme.errorColor),
                 ),
                 onTap: () async {
                   Navigator.of(sheetCtx).pop();
@@ -600,18 +622,18 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                     builder: (BuildContext dialogCtx) {
                       return AlertDialog(
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        title: const Text('Confirmar eliminación', style: TextStyle(color: AppTheme.errorColor, fontWeight: FontWeight.bold)),
-                        content: const Text('¿Estás seguro de que deseas eliminar este tratamiento?'),
+                        title: Text(l10n?.confirmDeleteTitle ?? 'Confirmar eliminación', style: const TextStyle(color: AppTheme.errorColor, fontWeight: FontWeight.bold)),
+                        content: Text(l10n?.confirmDeleteMessage ?? '¿Estás seguro de que deseas eliminar este tratamiento?'),
                         actions: <Widget>[
                           TextButton(
-                            child: const Text('Cancelar'),
+                            child: Text(l10n?.cancel ?? 'Cancelar'),
                             onPressed: () {
                               Navigator.of(dialogCtx).pop();
                             },
                           ),
                           TextButton(
                             style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
-                            child: const Text('Eliminar'),
+                            child: Text(l10n?.commonDelete ?? 'Eliminar'),
                             onPressed: () async {
                               Navigator.of(dialogCtx).pop();
                               await NotificationService.revokeTreatmentLocally(user.uid, tratamiento.id);
@@ -620,7 +642,7 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                               await NotificationService.cancelAllFlutterLocalNotifications();
                               await firestoreService.deleteTratamiento(user.uid, tratamiento.id, activeProfile);
                               scaffoldMessenger.showSnackBar(
-                                const SnackBar(content: Text('Tratamiento eliminado.')),
+                                SnackBar(content: Text(l10n?.treatmentDeleted ?? 'Tratamiento eliminado.')),
                               );
                             },
                           ),
@@ -646,6 +668,8 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
     required ScaffoldMessengerState scaffoldMessenger,
     required FirestoreService firestoreService,
   }) async {
+    final l10n = AppLocalizations.of(context);
+    final formattedDoseTime = DateFormat('hh:mm a').format(doseTime);
     final option = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -692,7 +716,7 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '¿Qué deseas editar?',
+                        l10n?.whatToEdit ?? '¿Qué deseas editar?',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -701,7 +725,7 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${tratamiento.nombreMedicamento} • ${DateFormat('hh:mm a').format(doseTime)}',
+                        '${tratamiento.nombreMedicamento} • $formattedDoseTime',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppTheme.secondaryTextColor,
@@ -733,11 +757,11 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                         child: Icon(Icons.edit_calendar_outlined, color: AppTheme.primaryColor, size: 20),
                       ),
                       title: Text(
-                        'Editar solo esta dosis',
+                        l10n?.editSingleDose ?? 'Editar solo esta dosis',
                         style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor, fontSize: 14),
                       ),
                       subtitle: Text(
-                        'Cambiar la hora programada para esta toma (${DateFormat('hh:mm a').format(doseTime)})',
+                        l10n?.editSingleDoseDesc(formattedDoseTime) ?? 'Cambiar la hora programada para esta toma ($formattedDoseTime)',
                         style: TextStyle(fontSize: 11, color: AppTheme.secondaryTextColor),
                       ),
                       trailing: const Icon(Icons.chevron_right, size: 20),
@@ -754,11 +778,11 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                         child: Icon(Icons.medication_outlined, color: AppTheme.primaryColor, size: 20),
                       ),
                       title: Text(
-                        'Editar tratamiento completo',
+                        l10n?.editFullTreatment ?? 'Editar tratamiento completo',
                         style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor, fontSize: 14),
                       ),
                       subtitle: Text(
-                        'Modificar medicamento, horarios, duración e inventario',
+                        l10n?.editFullTreatmentDesc ?? 'Modificar medicamento, horarios, duración e inventario',
                         style: TextStyle(fontSize: 11, color: AppTheme.secondaryTextColor),
                       ),
                       trailing: const Icon(Icons.chevron_right, size: 20),
@@ -805,7 +829,7 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
           await NotificationService.rescheduleNextPendingDose(updatedTratamiento, user.uid, activeProfile);
         }
         scaffoldMessenger.showSnackBar(
-          const SnackBar(content: Text('Hora de la dosis modificada.')),
+          SnackBar(content: Text(l10n?.doseTimeChanged ?? 'Hora de la dosis modificada.')),
         );
       }
     } else if (option == 'full_treatment') {
@@ -834,8 +858,8 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
     final l10n = AppLocalizations.of(context);
 
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: Text('Inicia sesión para ver tus recetas.')),
+      return Scaffold(
+        body: Center(child: Text(l10n?.loginToViewPrescriptions ?? 'Inicia sesión para ver tus recetas.')),
       );
     }
 
@@ -845,7 +869,8 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
     // Formatear fecha seleccionada según idioma activo
     final langCode = Localizations.localeOf(context).languageCode;
     final datePattern = langCode == 'en' ? 'EEEE, MMMM d' : "EEEE, d 'de' MMMM";
-    final rawDate = DateFormat(datePattern, langCode == 'en' ? 'en_US' : 'es_ES').format(_selectedDate);
+    final localeString = langCode == 'en' ? 'en_US' : (langCode == 'pt' ? 'pt_BR' : 'es_ES');
+    final rawDate = DateFormat(datePattern, localeString).format(_selectedDate);
     final formattedDate = rawDate.isNotEmpty
         ? (rawDate.substring(0, 1).toUpperCase() + rawDate.substring(1))
         : rawDate;
@@ -863,7 +888,7 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
             debugPrint("Error loading recetas stream: ${snapshot.error}");
             return EstadoVista(
               state: ViewState.error,
-              errorMessage: 'Ocurrió un error al cargar las recetas.',
+              errorMessage: l10n?.errorLoadingPrescriptions ?? 'Ocurrió un error al cargar las recetas.',
               onRetry: () async {
                 firestoreService.clearMedicamentosCache(user.uid, activeProfile);
                 if (activeProfile != null && activeProfile.isExternalUser && activeProfile.linkedUid != null) {
@@ -875,10 +900,10 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
             );
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const EstadoVista(
+            return EstadoVista(
               state: ViewState.empty,
-              emptyMessage: 'Aún no has agregado ninguna receta. ¡Añade una para empezar!',
-              child: SizedBox.shrink(),
+              emptyMessage: l10n?.noPrescriptionsYet ?? 'Aún no has agregado ninguna receta. ¡Añade una para empezar!',
+              child: const SizedBox.shrink(),
             );
           }
 
@@ -963,15 +988,26 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
             ),
           );
 
+          // Filtrar estrictamente solo tratamientos activos (excluyendo historial médico y finalizados)
+          final tratamientosActivos = todosLosTratamientos.where((t) => t.isActivo).toList();
+          final tratamientosVigentes = tratamientosActivos.isNotEmpty
+              ? tratamientosActivos
+              : todosLosTratamientos.where((t) => !t.isFinalizado).toList();
+
           final isPremium = context.watch<SubscriptionNotifier>().isPremium;
           if (isPremium) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _fetchAiTipsIfNeeded(
-                treatments: todosLosTratamientos,
+                treatments: tratamientosVigentes,
                 pendingCount: pendientesHoy,
                 takenCount: tomadasHoy,
                 adherenceRate: adherenciaHoy,
                 isPremium: isPremium,
+                isAnimalMode: isAnimal,
+                caregiverModeType: caregiverNotifier.modeType,
+                caregiverProfile: activeProfile,
+                isCaregiverActive: caregiverNotifier.isCaregiverModeActive,
+                languageCode: langCode,
               );
             });
           }
@@ -979,10 +1015,14 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
           final effectiveTips = _aiTips.isNotEmpty
               ? _aiTips
               : context.read<GeminiService>().getFallbackTips(
-                  treatments: todosLosTratamientos,
+                  treatments: tratamientosVigentes,
                   pendingCount: pendientesHoy,
                   takenCount: tomadasHoy,
                   adherenceRate: adherenciaHoy,
+                  isAnimalMode: isAnimal,
+                  caregiverModeType: caregiverNotifier.modeType,
+                  profile: activeProfile,
+                  language: langCode,
                 );
 
           final Widget summaryCard = _RecetaSummaryCard(
@@ -1589,28 +1629,32 @@ class _RecetaSummaryCardState extends State<_RecetaSummaryCard>
     required int tipNumber,
     required int totalTips,
   }) {
+    final content = tip['content']?.trim() ?? '';
+    final isAi = tip['isAi'] == 'true';
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+      padding: const EdgeInsets.fromLTRB(28, 16, 28, 16),
       child: Stack(
         children: [
-          Positioned(
-            top: 0,
-            right: 0,
-            child: IgnorePointer(
-              child: Icon(
-                Icons.auto_awesome_rounded,
-                color: Colors.white.withValues(alpha: 0.25),
-                size: 20,
+          if (isAi)
+            Positioned(
+              top: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white.withValues(alpha: 0.25),
+                  size: 20,
+                ),
               ),
             ),
-          ),
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              tip['content'] ?? '',
+              content,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 17.5,
+                fontSize: 17.0,
                 fontWeight: FontWeight.w600,
                 height: 1.35,
                 letterSpacing: -0.2,
@@ -1639,14 +1683,14 @@ class _RecetaSummaryCardState extends State<_RecetaSummaryCard>
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.auto_awesome_rounded, color: Colors.amberAccent, size: 13),
-                    SizedBox(width: 5),
+                    const Icon(Icons.auto_awesome_rounded, color: Colors.amberAccent, size: 13),
+                    const SizedBox(width: 5),
                     Text(
-                      'Consejos de Salud con IA',
-                      style: TextStyle(
+                      widget.l10n?.cardAiHealthTips ?? 'Consejos de Salud con IA',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -1678,10 +1722,11 @@ class _RecetaSummaryCardState extends State<_RecetaSummaryCard>
           const SizedBox(height: 10),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Recibe recomendaciones y precauciones personalizadas para tus medicamentos.',
-                  style: TextStyle(
+                  widget.l10n?.cardAiTipsDescription ??
+                      'Recibe recomendaciones y precauciones personalizadas para tus medicamentos.',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
                     height: 1.3,
@@ -1712,9 +1757,9 @@ class _RecetaSummaryCardState extends State<_RecetaSummaryCard>
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: const Text(
-                  'Ver PRO',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                child: Text(
+                  widget.l10n?.cardViewPro ?? 'Ver PRO',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                 ),
               ),
             ],

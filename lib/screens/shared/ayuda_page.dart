@@ -103,80 +103,58 @@ class AyudaPage extends StatelessWidget {
                     title: l10n?.helpTermsTitle ?? 'Términos de uso',
                     children: [
                       Text(
-                        '1. Aceptación de los Términos\n',
+                        '1. Deslinde de Responsabilidad Médica (Aviso Crítico)\n',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: primaryTextColor,
                         ),
                       ),
                       Text(
-                        'Al acceder y utilizar nuestra aplicación, usted acepta y está de acuerdo con estos Términos de Servicio. Si no está de acuerdo con estos términos, no debe utilizar nuestra aplicación.\n',
+                        'MediTime es una herramienta de asistencia y recordatorio digital para la gestión personal de medicamentos. MediTime NO es un dispositivo médico, NO emite diagnósticos clínicos ni sustituye la consulta médica profesional, la opinión de un farmacéutico colegiado ni los servicios de urgencia hospitalaria. Ante cualquier duda sobre su tratamiento, reacciones adversas o sintomatología, consulte inmediatamente con su médico tratante.\n',
                         style: TextStyle(color: primaryTextColor),
                       ),
                       Text(
-                        '2. Uso de la Aplicación\n',
+                        '2. Confiabilidad de Recordatorios y Factores del Sistema\n',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: primaryTextColor,
                         ),
                       ),
                       Text(
-                        'Usted es responsable de su uso de la aplicación y de cualquier contenido que publique en la aplicación. No puede usar la aplicación para fines ilegales o prohibidos. No puede usar la aplicación de manera que pueda dañar, deshabilitar, sobrecargar o deteriorar la aplicación.\n',
+                        'El usuario reconoce que la entrega de alarmas y notificaciones depende del estado del dispositivo, configuraciones de ahorro de batería del fabricante del hardware (Samsung, Xiaomi, etc.), permisos del sistema operativo y disponibilidad de energía.\n',
                         style: TextStyle(color: primaryTextColor),
                       ),
                       Text(
-                        '3. Contenido del Usuario\n',
+                        '3. Aceptación y Uso Responsable\n',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: primaryTextColor,
                         ),
                       ),
                       Text(
-                        'Usted es el único responsable de toda la información que carga, publica, envía o transmite a través de la aplicación. No reclamamos ninguna propiedad sobre su contenido. Al publicar contenido en la aplicación, usted otorga a la aplicación una licencia no exclusiva, transferible, sublicenciable, libre de regalías y mundial para usar, copiar, modificar, distribuir, almacenar y procesar su contenido.\n',
+                        'Al registrarse o usar MediTime, usted acepta estos Términos de Servicio. La aplicación está pensada para usuarios mayores de edad o bajo la supervisión de un cuidador responsable para familiares o mascotas.\n',
                         style: TextStyle(color: primaryTextColor),
                       ),
                       Text(
-                        '4. Privacidad\n',
+                        '4. Privacidad y Seguridad\n',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: primaryTextColor,
                         ),
                       ),
                       Text(
-                        'Nuestra recopilación y uso de su información personal se rige por nuestra Política de Privacidad. Al utilizar la aplicación, usted acepta que podemos recopilar y usar dicha información de acuerdo con nuestra Política de Privacidad.\n',
+                        'El tratamiento de sus datos de salud se rige estrictamente por nuestra Política de Privacidad, asegurando cifrado en tránsito y almacenamiento seguro.\n',
                         style: TextStyle(color: primaryTextColor),
                       ),
                       Text(
-                        '5. Cambios en los Términos\n',
+                        '5. Modificaciones y Contacto\n',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: primaryTextColor,
                         ),
                       ),
                       Text(
-                        'Podemos modificar estos Términos de Servicio de vez en cuando. Si hacemos cambios, le notificaremos revisando la fecha en la parte superior de los términos. Le recomendamos que revise periódicamente estos Términos de Servicio para mantenerse informado sobre nuestras prácticas.\n',
-                        style: TextStyle(color: primaryTextColor),
-                      ),
-                      Text(
-                        '6. Terminación\n',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: primaryTextColor,
-                        ),
-                      ),
-                      Text(
-                        'Nos reservamos el derecho de suspender o terminar su acceso a la aplicación en cualquier momento por cualquier motivo. Si viola estos Términos de Servicio, podemos suspender o terminar su acceso a la aplicación sin previo aviso.\n',
-                        style: TextStyle(color: primaryTextColor),
-                      ),
-                      Text(
-                        '7. Contacto\n',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: primaryTextColor,
-                        ),
-                      ),
-                      Text(
-                        'Si tiene alguna pregunta sobre estos Términos de Servicio, por favor contáctenos.',
+                        'Podemos actualizar estos términos para reflejar mejoras operativas o normativas. Para consultas legales o técnicas, contáctenos en soporte@meditime.app.',
                         style: TextStyle(color: primaryTextColor),
                       ),
                     ],
@@ -204,80 +182,69 @@ class AyudaPage extends StatelessWidget {
                     title: l10n?.helpPrivacyTitle ?? 'Política de Privacidad',
                     children: [
                       Text(
-                        '1. Aceptación de los Términos\n',
+                        '1. Compromiso con la Privacidad de Salud\n',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: primaryTextColor,
                         ),
                       ),
                       Text(
-                        'Al acceder y utilizar nuestra aplicación, usted acepta y está de acuerdo con estos Términos de Servicio. Si no está de acuerdo con estos términos, no debe utilizar nuestra aplicación.\n',
+                        'En MediTime nos tomamos con la máxima seriedad la protección de sus datos sensibles de salud. Cumplimos con las directivas de aplicaciones de salud de Google Play y estándares de privacidad internacionales.\n',
                         style: TextStyle(color: primaryTextColor),
                       ),
                       Text(
-                        '2. Uso de la Aplicación\n',
+                        '2. Datos Recopilados y su Finalidad\n',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: primaryTextColor,
                         ),
                       ),
                       Text(
-                        'Usted es responsable de su uso de la aplicación y de cualquier contenido que publique en la aplicación. No puede usar la aplicación para fines ilegales o prohibidos. No puede usar la aplicación de manera que pueda dañar, deshabilitar, sobrecargar o deteriorar la aplicación.\n',
+                        '• Datos de Tratamiento: Nombres de medicamentos, dosis, horarios y stock de tomas, utilizados únicamente para programar sus alarmas locales y llevar el registro de adherencia.\n• Datos de Perfil: Nombre y correo electrónico para la autenticación y sincronización multi-dispositivo.\n• Historial Clínico Opcional: Tipo de sangre y alergias registradas por el usuario para asistencia en emergencias.\n',
                         style: TextStyle(color: primaryTextColor),
                       ),
                       Text(
-                        '3. Contenido del Usuario\n',
+                        '3. Asistente de Inteligencia Artificial (Midi)\n',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: primaryTextColor,
                         ),
                       ),
                       Text(
-                        'Usted es el único responsable de toda la información que carga, publica, envía o transmite a través de la aplicación. No reclamamos ninguna propiedad sobre su contenido. Al publicar contenido en la aplicación, usted otorga a la aplicación una licencia no exclusiva, transferible, sublicenciable, libre de regalías y mundial para usar, copiar, modificar, distribuir, almacenar y procesar su contenido.\n',
+                        'Las consultas y audios procesados por Midi se transmiten de forma efímera y cifrada para responder dudas generales de salud. Sus datos médicos NUNCA se utilizan para entrenar modelos públicos de inteligencia artificial.\n',
                         style: TextStyle(color: primaryTextColor),
                       ),
                       Text(
-                        '4. Privacidad\n',
+                        '4. Ubicación para Farmacias Cercanas\n',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: primaryTextColor,
                         ),
                       ),
                       Text(
-                        'Nuestra recopilación y uso de su información personal se rige por nuestra Política de Privacidad. Al utilizar la aplicación, usted acepta que podemos recopilar y usar dicha información de acuerdo con nuestra Política de Privacidad.\n',
+                        'La app solicita acceso a ubicación únicamente cuando usted pulsa "Buscar farmacias cercanas". La ubicación no se rastrea en segundo plano ni se comparte con fines publicitarios.\n',
                         style: TextStyle(color: primaryTextColor),
                       ),
                       Text(
-                        '5. Cambios en los Términos\n',
+                        '5. Prohibición de Venta y Publicidad con Datos Médicos\n',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: primaryTextColor,
                         ),
                       ),
                       Text(
-                        'Podemos modificar estos Términos de Servicio de vez en cuando. Si hacemos cambios, le notificaremos revisando la fecha en la parte superior de los términos. Le recomendamos que revise periódicamente estos Términos de Servicio para mantenerse informado sobre nuestras prácticas.\n',
+                        'MediTime NUNCA venderá, alquilará ni compartirá sus datos de salud con redes publicitarias de terceros ni corredores de datos.\n',
                         style: TextStyle(color: primaryTextColor),
                       ),
                       Text(
-                        '6. Terminación\n',
+                        '6. Derecho a la Eliminación de Cuenta y Datos\n',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: primaryTextColor,
                         ),
                       ),
                       Text(
-                        'Nos reservamos el derecho de suspender o terminar su acceso a la aplicación en cualquier momento por cualquier motivo. Si viola estos Términos de Servicio, podemos suspender o terminar su acceso a la aplicación sin previo aviso.\n',
-                        style: TextStyle(color: primaryTextColor),
-                      ),
-                      Text(
-                        '7. Contacto\n',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: primaryTextColor,
-                        ),
-                      ),
-                      Text(
-                        'Si tiene alguna pregunta sobre estos Términos de Servicio, por favor contáctenos.',
+                        'Usted tiene el control total sobre su información. Puede eliminar su cuenta y todos sus datos médicos en cualquier momento desde "Opciones -> Datos y Privacidad -> Eliminar mi cuenta y datos personales". El borrado en nuestros servidores es inmediato y definitivo.',
                         style: TextStyle(color: primaryTextColor),
                       ),
                     ],

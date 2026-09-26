@@ -55,8 +55,8 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
     if (widget.tratamientoToEdit != null) {
       final t = widget.tratamientoToEdit!;
       _nombreMedicamentoController.text = t.nombreMedicamento;
-      _cantidadActualController.text = t.cantidadActual.toString();
-      _cantidadTotalController.text = t.cantidadTotalCaja.toString();
+      _cantidadActualController.text = t.cantidadActual > 0 ? t.cantidadActual.toString() : '';
+      _cantidadTotalController.text = t.cantidadTotalCaja > 0 ? t.cantidadTotalCaja.toString() : '';
       _dosisPorTomaController.text = t.dosisPorToma.toString();
       _dosisController.text = t.intervaloDosis.inHours.toString();
       _duracionController.text = (int.tryParse(t.duracion) ?? 7).toString();
@@ -109,22 +109,24 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
       final hasData = notifier.formData.nombreMedicamento.trim().isNotEmpty ||
           _nombreMedicamentoController.text.trim().isNotEmpty;
       if (hasData) {
+        final l10n = AppLocalizations.of(context);
         final shouldExit = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: const Text('¿Descartar receta?'),
-            content: const Text(
-              'Tienes datos ingresados en el formulario. Si sales ahora, se perderán los cambios.',
+            title: Text(l10n?.addPrescriptionDiscardTitle ?? '¿Descartar receta?'),
+            content: Text(
+              l10n?.addPrescriptionDiscardContent ??
+                  'Tienes datos ingresados en el formulario. Si sales ahora, se perderán los cambios.',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('Continuar editando'),
+                child: Text(l10n?.addPrescriptionContinueEditing ?? 'Continuar editando'),
               ),
               TextButton(
                 style: TextButton.styleFrom(foregroundColor: Colors.red),
                 onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: const Text('Salir y descartar'),
+                child: Text(l10n?.addPrescriptionExitAndDiscard ?? 'Salir y descartar'),
               ),
             ],
           ),
@@ -151,7 +153,10 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
       final result = await treatmentRepo.getTreatments(userId);
       if (!result.isSuccess || result.data == null || result.data!.isEmpty) return true;
 
-      final activeTreatments = result.data!;
+      // Excluir medicamentos finalizados del historial médico para evitar falsas interacciones
+      final activeTreatments = result.data!
+          .where((t) => t.isActivo || !t.isFinalizado)
+          .toList();
       final geminiService = context.read<GeminiService>();
 
       final checkResult = await geminiService.checkDrugInteractions(
@@ -160,8 +165,9 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
       );
 
       if (checkResult['hasInteraction'] == true && mounted) {
+        final l10n = AppLocalizations.of(context);
         final warningMessage = checkResult['warningMessage'] as String? ??
-            'Se ha detectado una posible interacción medicamentosa.';
+            (l10n?.addPrescriptionInteractionWarning ?? 'Se ha detectado una posible interacción medicamentosa.');
         final proceed = await DrugInteractionDialog.show(
           context,
           warningMessage: warningMessage,
@@ -246,21 +252,45 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
 
   String _normalizePresentacion(String rawValue) {
     final clean = rawValue.trim().toLowerCase();
-    if (clean.contains('comprimido') || clean.contains('pastilla') || clean.contains('tableta')) {
+    if (clean.contains('comprimido') ||
+        clean.contains('pastilla') ||
+        clean.contains('tableta') ||
+        clean.contains('tablet') ||
+        clean.contains('pill') ||
+        clean.contains('caplet')) {
       return 'Comprimidos';
-    } else if (clean.contains('gragea')) {
+    } else if (clean.contains('gragea') ||
+        clean.contains('drágea') ||
+        clean.contains('dragea') ||
+        clean.contains('dragee')) {
       return 'Grageas';
-    } else if (clean.contains('cápsula') || clean.contains('capsula')) {
+    } else if (clean.contains('cápsula') ||
+        clean.contains('capsula') ||
+        clean.contains('capsule')) {
       return 'Cápsulas';
-    } else if (clean.contains('sobre')) {
+    } else if (clean.contains('sobre') ||
+        clean.contains('sachet') ||
+        clean.contains('sachê') ||
+        clean.contains('sache') ||
+        clean.contains('envelope') ||
+        clean.contains('pouch') ||
+        clean.contains('packet')) {
       return 'Sobres';
-    } else if (clean.contains('jarabe')) {
+    } else if (clean.contains('jarabe') ||
+        clean.contains('xarope') ||
+        clean.contains('syrup')) {
       return 'Jarabes';
-    } else if (clean.contains('gota')) {
+    } else if (clean.contains('gota') || clean.contains('drop')) {
       return 'Gotas';
-    } else if (clean.contains('suspension') || clean.contains('suspensión')) {
+    } else if (clean.contains('suspension') ||
+        clean.contains('suspensión') ||
+        clean.contains('suspensão') ||
+        clean.contains('suspensao')) {
       return 'Suspensiones';
-    } else if (clean.contains('emulsion') || clean.contains('emulsión')) {
+    } else if (clean.contains('emulsion') ||
+        clean.contains('emulsión') ||
+        clean.contains('emulsão') ||
+        clean.contains('emulsao')) {
       return 'Emulsiones';
     }
     return 'Comprimidos';
@@ -268,7 +298,12 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
 
   void _parseAndSetDuracion(String durString, TreatmentFormNotifier notifier) {
     final clean = durString.toLowerCase();
-    if (clean.contains('continuo') || clean.contains('indefinido')) {
+    if (clean.contains('continuo') ||
+        clean.contains('contínuo') ||
+        clean.contains('indefinido') ||
+        clean.contains('ongoing') ||
+        clean.contains('indefinite') ||
+        clean.contains('continuous')) {
       notifier.updateEsIndefinido(true);
       return;
     }
@@ -279,9 +314,9 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
       if (number != null) {
         notifier.updateDuracionNumero(number);
         _duracionController.text = number.toString();
-        if (clean.contains('mes') || clean.contains('month')) {
+        if (clean.contains('mes') || clean.contains('mês') || clean.contains('month')) {
           notifier.updateDuracionUnidad(DurationUnit.months);
-        } else if (clean.contains('año') || clean.contains('year')) {
+        } else if (clean.contains('año') || clean.contains('ano') || clean.contains('year')) {
           notifier.updateDuracionUnidad(DurationUnit.years);
         } else {
           notifier.updateDuracionUnidad(DurationUnit.days);
@@ -291,6 +326,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
   }
 
   Future<void> _scanPrescriptionWithAI(TreatmentFormNotifier notifier) async {
+    final l10n = AppLocalizations.of(context);
     final picker = ImagePicker();
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -299,12 +335,12 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt),
-              title: const Text('Cámara'),
+              title: Text(l10n?.addPrescriptionScanCamera ?? 'Cámara'),
               onTap: () => Navigator.pop(context, ImageSource.camera),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Galería'),
+              title: Text(l10n?.addPrescriptionScanGallery ?? 'Galería'),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
             ),
           ],
@@ -321,18 +357,23 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
       imageQuality: 85,
     );
     if (image == null) return;
-
     if (!mounted) return;
+
+    final geminiService = context.read<GeminiService>();
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const AlertDialog(
+      builder: (context) => AlertDialog(
         content: Row(
           children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 20),
-            Expanded(child: Text('Analizando receta con IA de Groq...')),
+            const CircularProgressIndicator(),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Text(
+                l10n?.addPrescriptionScanAnalyzing ?? 'Analizando receta con IA...',
+              ),
+            ),
           ],
         ),
       ),
@@ -344,7 +385,6 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
       final extension = image.path.split('.').last.toLowerCase();
       final mimeType = extension == 'png' ? 'image/png' : 'image/jpeg';
 
-      final geminiService = context.read<GeminiService>();
       final result = await geminiService.analyzePrescriptionImage(base64Image, mimeType);
 
       if (result != null && mounted) {
@@ -381,8 +421,10 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Receta analizada con éxito. Formulario completado.'),
+          SnackBar(
+            content: Text(
+              l10n?.addPrescriptionScanSuccess ?? 'Receta analizada con éxito. Formulario completado.',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -394,14 +436,25 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
         }
       } else {
         if (mounted) Navigator.pop(context);
-        throw Exception('No se pudo extraer información de la receta.');
+        throw Exception(l10n?.addPrescriptionScanNoData ?? 'No se pudo extraer información de la receta.');
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
+        final cleanMsg = e
+            .toString()
+            .replaceFirst(RegExp(r'^(Exception|StateError|Bad state|FormatException):\s*'), '');
+        final displayMsg = cleanMsg.startsWith('Error') ||
+                cleanMsg.startsWith('No ') ||
+                cleanMsg.startsWith('Se ') ||
+                cleanMsg.startsWith('La ') ||
+                cleanMsg.startsWith('El ') ||
+                cleanMsg.startsWith('Tu ')
+            ? cleanMsg
+            : (l10n?.addPrescriptionScanError(cleanMsg) ?? 'Error al analizar la receta: $cleanMsg');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al analizar la receta: $e'),
+            content: Text(displayMsg),
             backgroundColor: Colors.red,
           ),
         );
@@ -820,7 +873,16 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _buildQuestionText(l10n?.addPrescriptionStep5Question ?? '¿Tienes medicamentos en inventario?'),
-                const SizedBox(height: 20),
+                const SizedBox(height: 6),
+                Text(
+                  l10n?.commonOptional ?? 'Opcional',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.secondaryTextColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 FormFieldWrapper(
                   label: l10n?.addPrescriptionCurrentStock ?? 'Cantidad actual',
                   child: TextFormField(
@@ -829,7 +891,9 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                     onChanged: (value) {
                       notifier.updateCantidadActual(int.tryParse(value) ?? 0);
                     },
-                    decoration: const InputDecoration(hintText: 'Ej: 30'),
+                    decoration: AppInputDecoration.withHint(
+                      l10n?.addPrescriptionCurrentStockHint ?? 'Ej: 30',
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -841,7 +905,9 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                     onChanged: (value) {
                       notifier.updateCantidadTotalCaja(int.tryParse(value) ?? 0);
                     },
-                    decoration: const InputDecoration(hintText: 'Ej: 60'),
+                    decoration: AppInputDecoration.withHint(
+                      l10n?.addPrescriptionBoxStockHint ?? 'Ej: 60',
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -851,9 +917,12 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                     controller: _dosisPorTomaController,
                     keyboardType: TextInputType.number,
                     onChanged: (value) {
-                      notifier.updateDosisPorToma(int.tryParse(value) ?? 1);
+                      final val = int.tryParse(value);
+                      notifier.updateDosisPorToma(val != null && val > 0 ? val : 1);
                     },
-                    decoration: const InputDecoration(hintText: 'Ej: 1'),
+                    decoration: AppInputDecoration.withHint(
+                      l10n?.addPrescriptionDoseHint ?? 'Ej: 1',
+                    ),
                   ),
                 ),
               ],

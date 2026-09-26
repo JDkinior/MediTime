@@ -567,4 +567,50 @@ class FirestoreService {
     }
     await batch.commit();
   }
+
+  /// Elimina permanentemente todos los datos asociados a un usuario en Firestore:
+  /// tratamientos, perfiles gestionados, historial de chats y el perfil del usuario.
+  Future<void> deleteUserData(String userId) async {
+    // 1. Limpiar subcolección de medicamentos del usuario
+    final medsQuery = await _db
+        .collection('medicamentos')
+        .doc(userId)
+        .collection('userMedicamentos')
+        .get();
+    
+    final batch1 = _db.batch();
+    for (final doc in medsQuery.docs) {
+      batch1.delete(doc.reference);
+    }
+    batch1.delete(_db.collection('medicamentos').doc(userId));
+    await batch1.commit();
+
+    // 2. Limpiar chats
+    await clearAllChatSessions(userId);
+
+    // 3. Limpiar perfiles gestionados (managed_profiles) y sus medicamentos
+    final profilesQuery = await _db
+        .collection('users')
+        .doc(userId)
+        .collection('managed_profiles')
+        .get();
+
+    for (final profileDoc in profilesQuery.docs) {
+      final profileMeds = await profileDoc.reference.collection('userMedicamentos').get();
+      if (profileMeds.docs.isNotEmpty) {
+        final profileBatch = _db.batch();
+        for (final medDoc in profileMeds.docs) {
+          profileBatch.delete(medDoc.reference);
+        }
+        await profileBatch.commit();
+      }
+      await profileDoc.reference.delete();
+    }
+
+    // 4. Eliminar el documento de perfil principal del usuario
+    await _db.collection('users').doc(userId).delete();
+
+    // 5. Limpiar caché en memoria
+    _medicamentosCache.clearKey(userId);
+  }
 }
