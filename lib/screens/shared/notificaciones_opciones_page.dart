@@ -4,6 +4,7 @@ import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/services/system_settings_service.dart';
+import 'package:meditime/services/alarm_sound_service.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/alarm/alarm_ringing_page.dart';
@@ -21,11 +22,18 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
   final List<int> _snoozeOptions = [1, 5, 10, 15, 20, 30]; // Options in minutes
   bool _isIgnoringBattery = true;
   bool _canScheduleExact = true;
+  String? _activePreviewId;
 
   @override
   void initState() {
     super.initState();
     _checkSystemSettings();
+  }
+
+  @override
+  void dispose() {
+    AlarmSoundService.stopPreview();
+    super.dispose();
   }
 
   Future<void> _checkSystemSettings() async {
@@ -39,6 +47,36 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
         });
       }
     } catch (_) {}
+  }
+
+  Future<void> _togglePreview(
+    String id, {
+    String? uri,
+    String? resourceName,
+    String? soundType,
+  }) async {
+    if (_activePreviewId == id) {
+      await AlarmSoundService.stopPreview();
+      if (mounted) setState(() => _activePreviewId = null);
+    } else {
+      if (mounted) setState(() => _activePreviewId = id);
+      await AlarmSoundService.playPreview(
+        uri: uri,
+        resourceName: resourceName,
+        soundType: soundType,
+      );
+    }
+  }
+
+  void _openAlarmSoundModal(BuildContext context) {
+    AlarmSoundService.stopPreview();
+    setState(() => _activePreviewId = null);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => const _AlarmToneSelectorSheet(),
+    );
   }
 
   Future<void> _onReminderModeChanged(DoseReminderMode mode) async {
@@ -225,6 +263,9 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                     ],
                   ),
                 ),
+
+                // Tarjeta de selección de tono y sonido de alarma
+                _buildAlarmSoundCard(context, preferenceNotifier),
 
                 // Tarjeta interactiva de prueba del Modo Alarma
                 _buildOptionCardWrapper(
@@ -755,4 +796,845 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
       ],
     );
   }
+
+  Widget _buildAlarmSoundCard(
+    BuildContext context,
+    PreferenceNotifier preferenceNotifier,
+  ) {
+    final soundTitle = preferenceNotifier.alarmSoundTitle;
+    final soundType = preferenceNotifier.alarmSoundType;
+    final soundUri = preferenceNotifier.alarmSoundUri;
+    final soundResource = preferenceNotifier.alarmSoundResource;
+
+    final isCustom = soundType == 'custom';
+    final isPreviewPlaying = _activePreviewId == 'current_selected_tone';
+
+    return _buildOptionCardWrapper(
+      title: 'Tono y Sonido de Alarma',
+      subtitle: 'Configura el sonido del Modo Alarma con tonos de tu teléfono o personalizados de MediTime.',
+      child: Column(
+        children: [
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _openAlarmSoundModal(context),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppTheme.borderColor.withOpacity(0.7),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withOpacity(0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isCustom ? Icons.music_note_rounded : Icons.ring_volume_rounded,
+                        color: AppTheme.primaryColor,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            soundTitle,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryTextColor,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isCustom
+                                      ? Colors.indigo.withOpacity(0.12)
+                                      : Colors.teal.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  isCustom ? 'Personalizado MediTime' : 'Tono del Teléfono',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: isCustom ? Colors.indigo : Colors.teal,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: isPreviewPlaying ? 'Detener vista previa' : 'Escuchar tono',
+                      icon: Icon(
+                        isPreviewPlaying
+                            ? Icons.stop_circle_rounded
+                            : Icons.play_circle_fill_rounded,
+                        color: AppTheme.primaryColor,
+                        size: 34,
+                      ),
+                      onPressed: () {
+                        _togglePreview(
+                          'current_selected_tone',
+                          uri: soundUri,
+                          resourceName: soundResource,
+                          soundType: soundType,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _openAlarmSoundModal(context),
+              icon: const Icon(Icons.tune_rounded, size: 18),
+              label: const Text(
+                'Cambiar Tono de Alarma',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.primaryColor,
+                side: BorderSide(color: AppTheme.primaryColor),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
+
+/// Hoja modal inferior para seleccionar y escuchar tonos de alarma.
+class _AlarmToneSelectorSheet extends StatefulWidget {
+  const _AlarmToneSelectorSheet();
+
+  @override
+  State<_AlarmToneSelectorSheet> createState() => _AlarmToneSelectorSheetState();
+}
+
+class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
+  int _tabIndex = 0; // 0: Personalizados MediTime, 1: Tonos del teléfono
+  String? _previewId;
+  List<Map<String, String>> _phoneRingtones = [];
+  bool _loadingPhoneRingtones = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPhoneRingtones();
+  }
+
+  @override
+  void dispose() {
+    AlarmSoundService.stopPreview();
+    super.dispose();
+  }
+
+  Future<void> _loadPhoneRingtones() async {
+    try {
+      final list = await AlarmSoundService.getRingtones();
+      if (mounted) {
+        setState(() {
+          _phoneRingtones = list;
+          _loadingPhoneRingtones = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loadingPhoneRingtones = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _togglePreview(
+    String id, {
+    String? uri,
+    String? resourceName,
+    String? soundType,
+  }) async {
+    if (_previewId == id) {
+      await AlarmSoundService.stopPreview();
+      if (mounted) setState(() => _previewId = null);
+    } else {
+      if (mounted) setState(() => _previewId = id);
+      await AlarmSoundService.playPreview(
+        uri: uri,
+        resourceName: resourceName,
+        soundType: soundType,
+      );
+    }
+  }
+
+  Future<void> _selectTone({
+    required String type,
+    required String title,
+    String? uri,
+    String? resourceName,
+  }) async {
+    final notifier = context.read<PreferenceNotifier>();
+    await notifier.setAlarmSound(
+      type: type,
+      title: title,
+      uri: uri,
+      resourceName: resourceName,
+    );
+
+    // Reproducir vista previa inmediata del tono seleccionado
+    _togglePreview(
+      type == 'custom' ? (resourceName ?? type) : (uri ?? type),
+      uri: uri,
+      resourceName: resourceName,
+      soundType: type,
+    );
+  }
+
+  Future<void> _openSystemPicker() async {
+    final notifier = context.read<PreferenceNotifier>();
+    final result = await AlarmSoundService.openRingtonePicker(
+      currentUri: notifier.alarmSoundUri,
+    );
+    if (result != null && mounted) {
+      final title = result['title'] ?? 'Tono del teléfono';
+      final uri = result['uri'] ?? '';
+      await notifier.setAlarmSound(
+        type: 'phone_tone',
+        title: title,
+        uri: uri,
+      );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Tono de alarma seleccionado: $title'),
+            backgroundColor: AppTheme.primaryColor,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final preferenceNotifier = context.watch<PreferenceNotifier>();
+    final currentSoundType = preferenceNotifier.alarmSoundType;
+    final currentResource = preferenceNotifier.alarmSoundResource;
+    final currentUri = preferenceNotifier.alarmSoundUri;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sheetBg = Theme.of(context).cardColor;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: sheetBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: preferenceNotifier.showCardBorder || preferenceNotifier.highContrast
+            ? Border.all(color: AppTheme.borderColor)
+            : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.82,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Barra de arrastre superior
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Título y Subtítulo
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Tono de Alarma',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Elige cómo sonará tu teléfono en el Modo Alarma',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.secondaryTextColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () {
+                        AlarmSoundService.stopPreview();
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Selector de Pestañas (Pill Tabs)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceColor,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppTheme.borderColor.withOpacity(0.6),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            AlarmSoundService.stopPreview();
+                            setState(() {
+                              _tabIndex = 0;
+                              _previewId = null;
+                            });
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: _tabIndex == 0
+                                  ? AppTheme.primaryColor
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.auto_awesome_rounded,
+                                  size: 16,
+                                  color: _tabIndex == 0
+                                      ? Colors.white
+                                      : AppTheme.secondaryTextColor,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Personalizados (4)',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: _tabIndex == 0
+                                        ? Colors.white
+                                        : AppTheme.secondaryTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            AlarmSoundService.stopPreview();
+                            setState(() {
+                              _tabIndex = 1;
+                              _previewId = null;
+                            });
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: _tabIndex == 1
+                                  ? AppTheme.primaryColor
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.phone_android_rounded,
+                                  size: 16,
+                                  color: _tabIndex == 1
+                                      ? Colors.white
+                                      : AppTheme.secondaryTextColor,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Del Teléfono',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: _tabIndex == 1
+                                        ? Colors.white
+                                        : AppTheme.secondaryTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Lista de Tonos según pestaña
+              Flexible(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  children: _tabIndex == 0
+                      ? _buildCustomTonesList(
+                          currentSoundType: currentSoundType,
+                          currentResource: currentResource,
+                        )
+                      : _buildPhoneTonesList(
+                          currentSoundType: currentSoundType,
+                          currentUri: currentUri,
+                        ),
+                ),
+              ),
+
+              // Botón inferior de confirmación
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      AlarmSoundService.stopPreview();
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      'Listo',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildCustomTonesList({
+    required String currentSoundType,
+    required String? currentResource,
+  }) {
+    return AlarmSoundOption.customTones.map((tone) {
+      final isSelected =
+          currentSoundType == 'custom' && currentResource == tone.resourceName;
+      final isPlaying = _previewId == tone.resourceName;
+
+      return _buildToneItemTile(
+        title: tone.title,
+        subtitle: tone.subtitle,
+        badgeText: 'MediTime',
+        badgeColor: Colors.indigo,
+        icon: Icons.music_note_rounded,
+        isSelected: isSelected,
+        isPlaying: isPlaying,
+        onTap: () {
+          _selectTone(
+            type: 'custom',
+            title: tone.title,
+            resourceName: tone.resourceName,
+          );
+        },
+        onPlayToggle: () {
+          _togglePreview(
+            tone.resourceName!,
+            resourceName: tone.resourceName,
+            soundType: 'custom',
+          );
+        },
+      );
+    }).toList();
+  }
+
+  List<Widget> _buildPhoneTonesList({
+    required String currentSoundType,
+    required String? currentUri,
+  }) {
+    final List<Widget> items = [];
+
+    // 1. Tono de alarma predeterminado del teléfono
+    final isAlarmDefaultSelected = currentSoundType == 'system_alarm';
+    final isAlarmDefaultPlaying = _previewId == 'system_alarm';
+    items.add(
+      _buildToneItemTile(
+        title: 'Alarma del teléfono (Predeterminada)',
+        subtitle: 'Tono oficial de la alarma de tu reloj del sistema',
+        badgeText: 'Sistema',
+        badgeColor: Colors.teal,
+        icon: Icons.alarm_rounded,
+        isSelected: isAlarmDefaultSelected,
+        isPlaying: isAlarmDefaultPlaying,
+        onTap: () {
+          _selectTone(
+            type: 'system_alarm',
+            title: 'Alarma del teléfono (Predeterminada)',
+            uri: 'content://settings/system/alarm_alert',
+          );
+        },
+        onPlayToggle: () {
+          _togglePreview(
+            'system_alarm',
+            uri: 'content://settings/system/alarm_alert',
+            soundType: 'system_alarm',
+          );
+        },
+      ),
+    );
+
+    // 2. Tono de llamada predeterminado del teléfono
+    final isRingtoneDefaultSelected = currentSoundType == 'system_ringtone';
+    final isRingtoneDefaultPlaying = _previewId == 'system_ringtone';
+    items.add(
+      _buildToneItemTile(
+        title: 'Tono de llamada del teléfono',
+        subtitle: 'Tono asignado a las llamadas entrantes',
+        badgeText: 'Sistema',
+        badgeColor: Colors.teal,
+        icon: Icons.ring_volume_rounded,
+        isSelected: isRingtoneDefaultSelected,
+        isPlaying: isRingtoneDefaultPlaying,
+        onTap: () {
+          _selectTone(
+            type: 'system_ringtone',
+            title: 'Tono de llamada del teléfono',
+            uri: 'content://settings/system/ringtone',
+          );
+        },
+        onPlayToggle: () {
+          _togglePreview(
+            'system_ringtone',
+            uri: 'content://settings/system/ringtone',
+            soundType: 'system_ringtone',
+          );
+        },
+      ),
+    );
+
+    // 3. Botón para abrir el selector nativo del sistema operativo
+    items.add(
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: InkWell(
+          onTap: _openSystemPicker,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppTheme.primaryColor.withOpacity(0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.folder_open_rounded,
+                  color: AppTheme.primaryColor,
+                  size: 22,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Elegir en selector del teléfono...',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Explora todos los tonos y sonidos almacenados en tu dispositivo',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.secondaryTextColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: AppTheme.primaryColor,
+                  size: 14,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // 4. Lista de tonos detectados en el teléfono mediante RingtoneManager
+    if (_loadingPhoneRingtones) {
+      items.add(
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 20),
+          child: Center(
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+          ),
+        ),
+      );
+    } else if (_phoneRingtones.isNotEmpty) {
+      items.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 6),
+          child: Text(
+            'TONOS DETECTADOS EN TU DISPOSITIVO',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+              color: AppTheme.secondaryTextColor,
+            ),
+          ),
+        ),
+      );
+
+      for (var r in _phoneRingtones) {
+        final title = r['title'] ?? 'Tono del sistema';
+        final uri = r['uri'] ?? '';
+        final isSelected = currentSoundType == 'phone_tone' && currentUri == uri;
+        final isPlaying = _previewId == uri;
+
+        items.add(
+          _buildToneItemTile(
+            title: title,
+            subtitle: 'Tono instalado en el teléfono',
+            badgeText: 'Dispositivo',
+            badgeColor: Colors.blueGrey,
+            icon: Icons.audiotrack_rounded,
+            isSelected: isSelected,
+            isPlaying: isPlaying,
+            onTap: () {
+              _selectTone(
+                type: 'phone_tone',
+                title: title,
+                uri: uri,
+              );
+            },
+            onPlayToggle: () {
+              _togglePreview(
+                uri,
+                uri: uri,
+                soundType: 'phone_tone',
+              );
+            },
+          ),
+        );
+      }
+    }
+
+    return items;
+  }
+
+  Widget _buildToneItemTile({
+    required String title,
+    required String subtitle,
+    required String badgeText,
+    required Color badgeColor,
+    required IconData icon,
+    required bool isSelected,
+    required bool isPlaying,
+    required VoidCallback onTap,
+    required VoidCallback onPlayToggle,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? AppTheme.primaryColor.withOpacity(0.06)
+            : AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSelected
+              ? AppTheme.primaryColor
+              : AppTheme.borderColor.withOpacity(0.6),
+          width: isSelected ? 1.5 : 1,
+        ),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        leading: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppTheme.primaryColor.withOpacity(0.15)
+                : AppTheme.borderColor.withOpacity(0.2),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            color: isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            color: isSelected ? AppTheme.primaryColor : AppTheme.primaryTextColor,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: badgeColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                badgeText,
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  color: badgeColor,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.secondaryTextColor,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: Icon(
+                isPlaying
+                    ? Icons.stop_circle_rounded
+                    : Icons.play_circle_outline_rounded,
+                color: isPlaying ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+                size: 26,
+              ),
+              tooltip: isPlaying ? 'Detener' : 'Probar',
+              onPressed: onPlayToggle,
+            ),
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                border: Border.all(
+                  color: isSelected ? AppTheme.primaryColor : Colors.grey.shade400,
+                  width: isSelected ? 0 : 2,
+                ),
+              ),
+              child: isSelected
+                  ? const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 13,
+                    )
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

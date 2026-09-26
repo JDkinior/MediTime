@@ -355,11 +355,10 @@ class NotificationService {
       final active = await androidImplementation?.getActiveNotifications();
       if (active != null) {
         for (var n in active) {
-          if ((n.channelId == 'meditime_alarm_channel_v2' ||
-                  n.channelId == 'meditime_alarm_channel') &&
-              n.id != null) {
+          final chId = n.channelId ?? '';
+          if (chId.startsWith('meditime_alarm') && n.id != null) {
             await _notificationsPlugin.cancel(n.id!);
-            debugPrint("Notificación de alarma cancelada: ID ${n.id}");
+            debugPrint("Notificación de alarma cancelada: ID ${n.id} (Canal: $chId)");
           }
         }
       }
@@ -372,6 +371,103 @@ class NotificationService {
   static Future<void> stopAlarmSound() async {
     await AlarmSoundService.stopAlarm();
     await cancelAllAlarmNotifications();
+  }
+
+  /// Genera un identificador único de canal de notificación de alarma según el tono configurado.
+  static String getAlarmChannelId({
+    required String type,
+    String? uri,
+    String? resourceName,
+  }) {
+    if (type == 'custom' && resourceName != null && resourceName.isNotEmpty) {
+      return 'meditime_alarm_custom_$resourceName';
+    } else if (type == 'system_ringtone') {
+      return 'meditime_alarm_sys_ringtone';
+    } else if (type == 'phone_tone' && uri != null && uri.isNotEmpty) {
+      final hash = uri.hashCode.abs();
+      return 'meditime_alarm_phone_$hash';
+    } else {
+      return 'meditime_alarm_sys_default';
+    }
+  }
+
+  /// Obtiene la instancia de AndroidNotificationSound correspondiente al tono configurado.
+  static AndroidNotificationSound getAlarmSound({
+    required String type,
+    String? uri,
+    String? resourceName,
+  }) {
+    if (type == 'custom' && resourceName != null && resourceName.isNotEmpty) {
+      return RawResourceAndroidNotificationSound(resourceName);
+    } else if (type == 'system_ringtone') {
+      return const UriAndroidNotificationSound('content://settings/system/ringtone');
+    } else if (uri != null && uri.isNotEmpty) {
+      return UriAndroidNotificationSound(uri);
+    } else {
+      return const UriAndroidNotificationSound('content://settings/system/alarm_alert');
+    }
+  }
+
+  /// Asegura que el canal de alarma para el tono especificado exista en el sistema Android.
+  static Future<String> ensureAlarmChannel({
+    required AndroidFlutterLocalNotificationsPlugin androidImplementation,
+    required String type,
+    String? uri,
+    String? resourceName,
+  }) async {
+    final channelId = getAlarmChannelId(
+      type: type,
+      uri: uri,
+      resourceName: resourceName,
+    );
+    final channelSound = getAlarmSound(
+      type: type,
+      uri: uri,
+      resourceName: resourceName,
+    );
+
+    final AndroidNotificationChannel alarmChannel = AndroidNotificationChannel(
+      channelId,
+      'MediTime Alarma Despertador',
+      description:
+          'Canal de máxima prioridad para alarmas sonoras continuas de medicamentos.',
+      importance: Importance.max,
+      playSound: true,
+      sound: channelSound,
+      enableVibration: true,
+      enableLights: true,
+      ledColor: const Color.fromARGB(255, 255, 0, 0),
+      showBadge: true,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+    );
+
+    await androidImplementation.createNotificationChannel(alarmChannel);
+    debugPrint("Canal de alarma asegurado en Android: $channelId");
+    return channelId;
+  }
+
+  /// Actualiza o registra el canal de alarma cuando el usuario cambia el tono en ajustes.
+  static Future<void> updateAlarmChannelSound({
+    required String type,
+    String? uri,
+    String? resourceName,
+  }) async {
+    try {
+      final androidImplementation = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      if (androidImplementation != null) {
+        await ensureAlarmChannel(
+          androidImplementation: androidImplementation,
+          type: type,
+          uri: uri,
+          resourceName: resourceName,
+        );
+      }
+    } catch (e) {
+      debugPrint("Error actualizando canal de alarma: $e");
+    }
   }
 
   static Future<void> _createNotificationChannels() async {
@@ -397,19 +493,19 @@ class NotificationService {
           );
 
       // Canal para notificaciones activas
-      const AndroidNotificationChannel
-      activeChannel = AndroidNotificationChannel(
-        'meditime_active_dosis_channel',
-        'MediTime Dosis Activas',
-        description:
-            'Canal para notificaciones de dosis que requieren acción del usuario.',
-        importance: Importance.max,
-        playSound: true,
-        enableVibration: true,
-        enableLights: true,
-        ledColor: Color.fromARGB(255, 255, 0, 0),
-        showBadge: true,
-      );
+      const AndroidNotificationChannel activeChannel =
+          AndroidNotificationChannel(
+            'meditime_active_dosis_channel',
+            'MediTime Dosis Activas',
+            description:
+                'Canal para notificaciones de dosis que requieren acción del usuario.',
+            importance: Importance.max,
+            playSound: true,
+            enableVibration: true,
+            enableLights: true,
+            ledColor: Color.fromARGB(255, 255, 0, 0),
+            showBadge: true,
+          );
 
       // Canal para notificaciones aplazadas
       const AndroidNotificationChannel snoozeChannel =
@@ -425,52 +521,42 @@ class NotificationService {
             showBadge: true,
           );
 
-      // Canal legacy para modo alarma
-      const AndroidNotificationChannel alarmChannel =
-          AndroidNotificationChannel(
-            'meditime_alarm_channel',
-            'MediTime Alarma Despertador',
-            description:
-                'Canal de máxima prioridad para alarmas sonoras continuas de medicamentos.',
-            importance: Importance.max,
-            playSound: true,
-            enableVibration: true,
-            enableLights: true,
-            ledColor: Color.fromARGB(255, 255, 0, 0),
-            showBadge: true,
-          );
-
-      // Canal v2 para modo alarma con USAGE_ALARM (máxima prioridad)
-      const AndroidNotificationChannel alarmChannelV2 =
-          AndroidNotificationChannel(
-            'meditime_alarm_channel_v2',
-            'MediTime Alarma Despertador',
-            description:
-                'Canal de máxima prioridad para alarmas sonoras continuas de medicamentos.',
-            importance: Importance.max,
-            playSound: true,
-            enableVibration: true,
-            enableLights: true,
-            ledColor: Color.fromARGB(255, 255, 0, 0),
-            showBadge: true,
-            audioAttributesUsage: AudioAttributesUsage.alarm,
-          );
-
       await androidImplementation.createNotificationChannel(simpleChannel);
       await androidImplementation.createNotificationChannel(activeChannel);
       await androidImplementation.createNotificationChannel(snoozeChannel);
-      await androidImplementation.createNotificationChannel(alarmChannel);
-      await androidImplementation.createNotificationChannel(alarmChannelV2);
+
+      // Limpiar canales obsoletos que causaban bucle de notificación
+      try {
+        await androidImplementation.deleteNotificationChannel('meditime_alarm_channel');
+        await androidImplementation.deleteNotificationChannel('meditime_alarm_channel_v2');
+      } catch (_) {}
+
+      // Crear canal de alarma con el tono configurado por el usuario
+      try {
+        final prefService = PreferenceService();
+        final soundType = await prefService.getAlarmSoundType();
+        final soundUri = await prefService.getAlarmSoundUri();
+        final soundResource = await prefService.getAlarmSoundResource();
+
+        await ensureAlarmChannel(
+          androidImplementation: androidImplementation,
+          type: soundType,
+          uri: soundUri,
+          resourceName: soundResource,
+        );
+      } catch (e) {
+        debugPrint("Error inicializando canal de alarma con tono: $e");
+      }
 
       debugPrint(
-        "Canales de notificación creados con configuraciones críticas (incluyendo alarm_channel_v2)",
+        "Canales de notificación creados con configuraciones críticas y tono de alarma optimizado",
       );
     }
   }
 
   /// Muestra una notificación con intención de pantalla completa en Modo Alarma.
   ///
-  /// Incluye botones Tomar/Omitir/Aplazar.
+  /// Incluye botones Tomar/Omitir/Aplazar y reproduce el tono de alarma configurado en bucle.
   static Future<void> showAlarmModeNotification({
     required int id,
     required String title,
@@ -495,29 +581,60 @@ class NotificationService {
         'TOMAR_ACTION',
         'Tomar',
         showsUserInterface: false,
-        cancelNotification: true, // CRÍTICO: Cancelar notificación inmediatamente para detener FLAG_INSISTENT
+        cancelNotification: true, // CRÍTICO: Cancelar notificación inmediatamente para detener sonido
       ),
       AndroidNotificationAction(
         'OMITIR_ACTION',
         'Omitir',
         showsUserInterface: false,
-        cancelNotification: true, // CRÍTICO: Cancelar notificación inmediatamente para detener FLAG_INSISTENT
+        cancelNotification: true, // CRÍTICO: Cancelar notificación inmediatamente para detener sonido
       ),
       AndroidNotificationAction(
         'APLAZAR_ACTION',
         snoozeLabel,
         showsUserInterface: false,
-        cancelNotification: true, // CRÍTICO: Cancelar notificación inmediatamente para detener FLAG_INSISTENT
+        cancelNotification: true, // CRÍTICO: Cancelar notificación inmediatamente para detener sonido
       ),
     ];
 
     bool hideOnLockScreen = false;
+    String soundType = 'system_alarm';
+    String? soundUri;
+    String? soundResource;
+
     try {
-      hideOnLockScreen = await PreferenceService().getHideMedicineNameOnLockScreen();
+      final pref = PreferenceService();
+      hideOnLockScreen = await pref.getHideMedicineNameOnLockScreen();
+      soundType = await pref.getAlarmSoundType();
+      soundUri = await pref.getAlarmSoundUri();
+      soundResource = await pref.getAlarmSoundResource();
     } catch (_) {}
 
+    final androidImplementation = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    String channelId = 'meditime_alarm_sys_default';
+    AndroidNotificationSound channelSound =
+        const UriAndroidNotificationSound('content://settings/system/alarm_alert');
+
+    if (androidImplementation != null) {
+      channelId = await ensureAlarmChannel(
+        androidImplementation: androidImplementation,
+        type: soundType,
+        uri: soundUri,
+        resourceName: soundResource,
+      );
+      channelSound = getAlarmSound(
+        type: soundType,
+        uri: soundUri,
+        resourceName: soundResource,
+      );
+    }
+
     final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'meditime_alarm_channel_v2',
+      channelId,
       'MediTime Alarma Despertador',
       channelDescription:
           'Canal de máxima prioridad para alarmas sonoras continuas de medicamentos.',
@@ -525,6 +642,7 @@ class NotificationService {
       priority: Priority.max,
       enableVibration: true,
       playSound: true,
+      sound: channelSound,
       actions: actions,
       fullScreenIntent: true,
       category: AndroidNotificationCategory.alarm,
@@ -537,7 +655,7 @@ class NotificationService {
       when: DateTime.now().millisecondsSinceEpoch,
       usesChronometer: false,
       channelShowBadge: true,
-      onlyAlertOnce: true,
+      onlyAlertOnce: false,
       timeoutAfter: 300000, // 5 minutos: auto-cancelar notificación si no hay interacción (sincronizado con AlarmSoundService.maxAlarmDuration)
       styleInformation: BigTextStyleInformation(
         body,
@@ -552,7 +670,7 @@ class NotificationService {
       ledOnMs: 1000,
       ledOffMs: 500,
       vibrationPattern: Int64List.fromList([0, 1000, 500, 1000, 500, 1000]),
-      additionalFlags: Int32List.fromList([4]), // 4 = FLAG_INSISTENT
+      additionalFlags: Int32List.fromList([4]), // 4 = FLAG_INSISTENT: repite el tono de ALARMA seleccionado
     );
 
     const DarwinNotificationDetails iOSDetails = DarwinNotificationDetails(
@@ -577,7 +695,7 @@ class NotificationService {
       payload: payload,
     );
 
-    debugPrint("Notificación MODO ALARMA mostrada - ID: $id, Título: $title");
+    debugPrint("Notificación MODO ALARMA mostrada en canal $channelId - ID: $id, Título: $title");
   }
 
   /// Muestra una notificación activa con botones de acción (Tomar, Omitir, Aplazar).
