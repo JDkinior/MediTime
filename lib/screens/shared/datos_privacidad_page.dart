@@ -7,6 +7,7 @@ import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/theme/app_theme.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 
 class DatosPrivacidadPage extends StatefulWidget {
   const DatosPrivacidadPage({super.key});
@@ -330,11 +331,13 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text('Datos y Privacidad'),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: AppTheme.primaryTextColor,
+      appBar: ModernAppBar(
+        child: AppBar(
+          title: const Text('Datos y Privacidad'),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          foregroundColor: AppTheme.primaryTextColor,
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

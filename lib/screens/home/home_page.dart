@@ -21,6 +21,7 @@ import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/tutorial_tooltip.dart';
 import 'package:meditime/widgets/midi_blinking_icon.dart';
 import 'package:meditime/widgets/caregiver/patient_selector_dialog.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 
 class HomePage extends StatefulWidget {
@@ -33,6 +34,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final PageController _pageController = PageController();
   final ValueNotifier<int> _currentIndexNotifier = ValueNotifier<int>(0);
+  late final ValueNotifier<bool> _appBarFadeEnabledNotifier;
   bool _isTutorialRunning = false;
 
   // Showcase keys (un step por funcionalidad clave)
@@ -59,6 +61,8 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _appBarFadeEnabledNotifier = ValueNotifier<bool>(_currentIndexNotifier.value == 0);
+    _currentIndexNotifier.addListener(_updateAppBarFadeState);
     // Espera a que el primer frame se pinte (y _showcaseContext quede asignado)
     // antes de verificar si hay que mostrar el tutorial.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -66,8 +70,17 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _updateAppBarFadeState() {
+    final shouldFade = _currentIndexNotifier.value == 0;
+    if (_appBarFadeEnabledNotifier.value != shouldFade) {
+      _appBarFadeEnabledNotifier.value = shouldFade;
+    }
+  }
+
   @override
   void dispose() {
+    _currentIndexNotifier.removeListener(_updateAppBarFadeState);
+    _appBarFadeEnabledNotifier.dispose();
     _hideSkipButton();
     _pageController.dispose();
     _currentIndexNotifier.dispose();
@@ -277,7 +290,10 @@ class _HomePageState extends State<HomePage> {
 
         return Scaffold(
           extendBody: isModern,
-          appBar: AppBar(
+          extendBodyBehindAppBar: isModern,
+          appBar: ModernAppBar(
+            fadeEnabledNotifier: _appBarFadeEnabledNotifier,
+            child: AppBar(
             centerTitle: true,
             title: isManagedModeActive
                 ? InkWell(
@@ -412,7 +428,8 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          drawer: CustomDrawer(
+        ),
+        drawer: CustomDrawer(
             onLogout: _handleLogout,
             onStartTutorial: _startTutorial,
           ),
@@ -422,6 +439,9 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   if (isManagedModeActive && caregiverNotifier.isGeneralMode)
                     Container(
+                      margin: EdgeInsets.only(
+                        top: isModern ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0,
+                      ),
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
                       color: AppTheme.primaryColor,
@@ -435,6 +455,9 @@ class _HomePageState extends State<HomePage> {
                     )
                   else if (isManagedModeActive && activeProfile != null)
                     Container(
+                      margin: EdgeInsets.only(
+                        top: isModern ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0,
+                      ),
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
                       color: Color(int.parse(activeProfile.colorHex.replaceFirst('#', 'FF'), radix: 16)),
@@ -463,13 +486,23 @@ class _HomePageState extends State<HomePage> {
                                 summaryKey: _summaryKey,
                                 dateKey: _dateKey,
                               ),
-                        CalendarioPage(
-                          calendarKey: _calendarKey,
-                          calendarViewKey: _calendarViewKey,
+                        Padding(
+                          padding: EdgeInsets.only(
+                            top: isModern ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0,
+                          ),
+                          child: CalendarioPage(
+                            calendarKey: _calendarKey,
+                            calendarViewKey: _calendarViewKey,
+                          ),
                         ),
-                        ProgresoPage(
-                          progressRingKey: _progressRingKey,
-                          progressTimelineKey: _progressTimelineKey,
+                        Padding(
+                          padding: EdgeInsets.only(
+                            top: isModern ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0,
+                          ),
+                          child: ProgresoPage(
+                            progressRingKey: _progressRingKey,
+                            progressTimelineKey: _progressTimelineKey,
+                          ),
                         ),
                       ],
                     ),

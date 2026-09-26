@@ -22,6 +22,7 @@ import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/core/utils.dart';
 import 'package:meditime/core/subscription_guard.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 
 class AgregarRecetaPage extends StatefulWidget {
   final Tratamiento? tratamientoToEdit;
@@ -475,7 +476,8 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
           child: Scaffold(
             backgroundColor: AppTheme.backgroundColor,
             resizeToAvoidBottomInset: true,
-            appBar: AppBar(
+            appBar: ModernAppBar(
+              child: AppBar(
               elevation: 0,
               backgroundColor: Colors.transparent,
               foregroundColor: AppTheme.primaryTextColor,
@@ -514,7 +516,8 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                 ),
               ],
             ),
-            body: Padding(
+          ),
+          body: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [

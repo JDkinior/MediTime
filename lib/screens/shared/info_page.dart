@@ -1,5 +1,6 @@
 // lib/screens/shared/info_page.dart
 import 'package:flutter/material.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 
 class InfoPage extends StatelessWidget {
   final String title;
@@ -14,8 +15,10 @@ class InfoPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
+      appBar: ModernAppBar(
+        child: AppBar(
+          title: Text(title),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

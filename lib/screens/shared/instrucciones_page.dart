@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 
 class InstruccionesPage extends StatelessWidget {
   const InstruccionesPage({super.key});
@@ -9,8 +10,10 @@ class InstruccionesPage extends StatelessWidget {
     Color textColor = isDarkMode ? Colors.white : Colors.black;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('¿Cómo usar la aplicación?'),
+      appBar: ModernAppBar(
+        child: AppBar(
+          title: const Text('¿Cómo usar la aplicación?'),
+        ),
       ),
       body: SingleChildScrollView(
         child: Padding(

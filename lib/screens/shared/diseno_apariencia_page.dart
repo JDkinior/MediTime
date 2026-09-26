@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
 
+import 'package:meditime/widgets/modern_app_bar.dart';
+
 class DisenoAparienciaPage extends StatefulWidget {
   const DisenoAparienciaPage({super.key});
 
@@ -49,11 +51,13 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text('Diseño y Apariencia'),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: AppTheme.primaryTextColor,
+      appBar: ModernAppBar(
+        child: AppBar(
+          title: const Text('Diseño y Apariencia'),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          foregroundColor: AppTheme.primaryTextColor,
+        ),
       ),
       body: preferenceNotifier.isLoading
           ? const Center(child: CircularProgressIndicator())

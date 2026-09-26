@@ -16,6 +16,7 @@ import 'package:meditime/screens/shared/localizador_farmacias_page.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/widgets/profile_avatar.dart';
 import 'package:meditime/services/profile_cache_service.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 
 class PerfilPage extends StatefulWidget {
   final GlobalKey? profileKey;
@@ -416,37 +417,39 @@ class _PerfilPageState extends State<PerfilPage> {
       },
       child: Scaffold(
         backgroundColor: AppTheme.backgroundColor,
-        appBar: AppBar(
-          title: Text(AppLocalizations.of(context)?.profileTitle ?? 'Perfil'),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          foregroundColor: AppTheme.primaryTextColor,
-          actions: [
-            if (_isSaveButtonEnabled)
-              Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: Center(
-                  child: GestureDetector(
-                    onTap: _resetToOriginalData,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppTheme.errorColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        AppLocalizations.of(context)?.cancel ?? 'Cancelar',
-                        style: const TextStyle(
-                          color: AppTheme.errorColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
+        appBar: ModernAppBar(
+          child: AppBar(
+            title: Text(AppLocalizations.of(context)?.profileTitle ?? 'Perfil'),
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            foregroundColor: AppTheme.primaryTextColor,
+            actions: [
+              if (_isSaveButtonEnabled)
+                Padding(
+                  padding: const EdgeInsets.only(right: 16.0),
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: _resetToOriginalData,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.errorColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          AppLocalizations.of(context)?.cancel ?? 'Cancelar',
+                          style: const TextStyle(
+                            color: AppTheme.errorColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),

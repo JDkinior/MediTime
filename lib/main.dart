@@ -194,10 +194,12 @@ class MyApp extends StatelessWidget {
             theme: AppTheme.getLightTheme(
               largeButtons: preferenceNotifier.largeButtons,
               showCardBorder: preferenceNotifier.showCardBorder || preferenceNotifier.highContrast,
+              isModern: preferenceNotifier.interfaceStyle == 'modern',
             ),
             darkTheme: AppTheme.getDarkTheme(
               largeButtons: preferenceNotifier.largeButtons,
               showCardBorder: preferenceNotifier.showCardBorder || preferenceNotifier.highContrast,
+              isModern: preferenceNotifier.interfaceStyle == 'modern',
             ),
             themeMode: preferenceNotifier.themeModeEnum,
             builder: (context, widget) {

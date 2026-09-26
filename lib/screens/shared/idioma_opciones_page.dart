@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 
 class IdiomaOpcionesPage extends StatelessWidget {
@@ -18,11 +19,13 @@ class IdiomaOpcionesPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: Text(title),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: AppTheme.primaryTextColor,
+      appBar: ModernAppBar(
+        child: AppBar(
+          title: Text(title),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          foregroundColor: AppTheme.primaryTextColor,
+        ),
       ),
       body: preferenceNotifier.isLoading
           ? const Center(child: CircularProgressIndicator())

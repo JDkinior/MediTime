@@ -9,6 +9,7 @@ import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/alarm/alarm_ringing_page.dart';
 import 'package:meditime/screens/shared/guia_optimizacion_page.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 
 class NotificacionesOpcionesPage extends StatefulWidget {
   const NotificacionesOpcionesPage({super.key});
@@ -218,11 +219,13 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text('Notificaciones y Alarmas'),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: AppTheme.primaryTextColor,
+      appBar: ModernAppBar(
+        child: AppBar(
+          title: const Text('Notificaciones y Alarmas'),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          foregroundColor: AppTheme.primaryTextColor,
+        ),
       ),
       body: _isRescheduling
           ? const Center(child: CircularProgressIndicator())

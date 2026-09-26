@@ -18,6 +18,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:meditime/screens/medication/detalle_receta_page.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/core/subscription_guard.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 // Enum para manejar los intervalos de forma clara
 enum ReportInterval { semana, mes, anio, todo }
@@ -466,7 +468,9 @@ class _ReportesPageState extends State<ReportesPage> {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
+      appBar: ModernAppBar(
+        showFade: false,
+        child: AppBar(
         title: Text(
           'Reporte de Adherencia',
           style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor, fontSize: 20),
@@ -535,6 +539,7 @@ class _ReportesPageState extends State<ReportesPage> {
             },
           ),
         ],
+        ),
       ),
       body: user == null
           ? Center(child: Text(AppLocalizations.of(context)?.reportsLoginRequired ?? 'Inicia sesión para ver tus reportes.'))
@@ -542,7 +547,10 @@ class _ReportesPageState extends State<ReportesPage> {
               children: [
                 _buildIntervalSelector(),
                 Expanded(
-                  child: StreamBuilder<List<Tratamiento>>(
+                  child: ModernContentFade(
+                    topOffset: -8,
+                    height: 32,
+                    child: StreamBuilder<List<Tratamiento>>(
                     initialData: firestoreService.getCachedMedicamentos(user.uid),
                     stream: firestoreService.getMedicamentosStream(user.uid),
                     builder: (context, snapshot) {
@@ -646,6 +654,7 @@ class _ReportesPageState extends State<ReportesPage> {
                     },
                   ),
                 ),
+              ),
               ],
             ),
       floatingActionButton: AnimatedScale(

@@ -8,6 +8,7 @@ import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/styled_text_field.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 
 class AddEditCaregiverProfilePage extends StatefulWidget {
   final CaregiverProfile? initialProfile;
@@ -368,22 +369,25 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: cardBg,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: AppTheme.primaryTextColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          widget.initialProfile != null
-              ? (isAnimal ? 'Editar Mascota / Animal' : 'Editar Paciente')
-              : (isAnimal ? 'Agregar Mascota / Animal' : 'Agregar Paciente'),
-          style: TextStyle(
-            color: AppTheme.primaryTextColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+      appBar: ModernAppBar(
+        showFade: false,
+        child: AppBar(
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor: cardBg,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_rounded, color: AppTheme.primaryTextColor),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            widget.initialProfile != null
+                ? (isAnimal ? 'Editar Mascota / Animal' : 'Editar Paciente')
+                : (isAnimal ? 'Agregar Mascota / Animal' : 'Agregar Paciente'),
+            style: TextStyle(
+              color: AppTheme.primaryTextColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
           ),
         ),
       ),

@@ -8,6 +8,7 @@ import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/caregiver/add_edit_caregiver_profile_page.dart';
 import 'package:meditime/core/subscription_guard.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 
 class ManageCaregiverProfilesPage extends StatefulWidget {
   final bool isAnimalMode;
@@ -162,11 +163,13 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: Text(isAnimal ? 'Gestión de Mascotas / Pacientes' : 'Gestión de Pacientes'),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: AppTheme.primaryTextColor,
+      appBar: ModernAppBar(
+        child: AppBar(
+          title: Text(isAnimal ? 'Gestión de Mascotas / Pacientes' : 'Gestión de Pacientes'),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          foregroundColor: AppTheme.primaryTextColor,
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addProfile,

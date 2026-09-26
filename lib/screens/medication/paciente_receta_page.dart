@@ -7,6 +7,7 @@ import 'package:meditime/widgets/estado_vista.dart';
 import 'package:meditime/enums/view_state.dart';
 import 'package:meditime/screens/medication/detalle_receta_page.dart';
 import 'package:meditime/theme/app_theme.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:provider/provider.dart';
 
 class PacienteRecetaPage extends StatelessWidget {
@@ -24,8 +25,10 @@ class PacienteRecetaPage extends StatelessWidget {
     final firestoreService = context.watch<FirestoreService>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Recetas de $patientEmail'),
+      appBar: ModernAppBar(
+        child: AppBar(
+          title: Text('Recetas de $patientEmail'),
+        ),
       ),
       body: StreamBuilder<List<Tratamiento>>(
         stream: firestoreService.getMedicamentosStream(patientUid),

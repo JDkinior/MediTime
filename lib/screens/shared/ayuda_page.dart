@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/primary_button.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'guia_optimizacion_page.dart';
@@ -25,18 +26,20 @@ class AyudaPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: Text(
-          l10n?.helpSupport ?? 'Ayuda y Soporte',
-          style: TextStyle(
-            color: primaryTextColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+      appBar: ModernAppBar(
+        child: AppBar(
+          title: Text(
+            l10n?.helpSupport ?? 'Ayuda y Soporte',
+            style: TextStyle(
+              color: primaryTextColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
           ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          foregroundColor: primaryTextColor,
         ),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: primaryTextColor,
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),

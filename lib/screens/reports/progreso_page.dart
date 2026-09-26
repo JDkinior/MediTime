@@ -19,6 +19,7 @@ import 'package:showcaseview/showcaseview.dart';
 import 'package:meditime/widgets/tutorial_tooltip.dart';
 import 'package:meditime/core/utils.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 enum ProgresoInterval { semana, mes, anio, todo }
 
@@ -1351,13 +1352,18 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      body: Stack(
-        children: [
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (notification) => true,
+        child: Stack(
+          children: [
           Column(
             children: [
               _buildIntervalSelector(),
               Expanded(
-                child: StreamBuilder<List<Map<String, dynamic>>>(
+                child: ModernContentFade(
+                  topOffset: -8,
+                  height: 32,
+                  child: StreamBuilder<List<Map<String, dynamic>>>(
                   key: ValueKey('${isGeneralMode}_${activeProfile?.id}_$isManagedMode'),
                   stream: _combinedStream,
                   builder: (context, snapshot) {
@@ -1641,6 +1647,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
                   },
                 ),
               ),
+            ),
             ],
           ),
           Positioned(
@@ -1686,8 +1693,9 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 // A simple manual stream combiner since we don't have rxdart

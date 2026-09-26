@@ -5,6 +5,7 @@ import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/services/system_settings_service.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/primary_button.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 
 class GuiaOptimizacionPage extends StatefulWidget {
   const GuiaOptimizacionPage({super.key});
@@ -72,28 +73,30 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: Text(
-          'Optimización de Alarmas',
-          style: TextStyle(
-            color: primaryTextColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+      appBar: ModernAppBar(
+        child: AppBar(
+          title: Text(
+            'Optimización de Alarmas',
+            style: TextStyle(
+              color: primaryTextColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
           ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          foregroundColor: primaryTextColor,
+          actions: [
+            IconButton(
+              icon: Icon(Icons.refresh_rounded, color: AppTheme.primaryColor),
+              tooltip: 'Actualizar estado',
+              onPressed: () {
+                setState(() => _isLoading = true);
+                _checkStatus();
+              },
+            ),
+          ],
         ),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: primaryTextColor,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh_rounded, color: AppTheme.primaryColor),
-            tooltip: 'Actualizar estado',
-            onPressed: () {
-              setState(() => _isLoading = true);
-              _checkStatus();
-            },
-          ),
-        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

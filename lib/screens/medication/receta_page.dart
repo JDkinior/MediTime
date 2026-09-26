@@ -1036,11 +1036,17 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
             l10n: l10n,
           );
 
+          final hasManagedBanner = isManagedMode && (caregiverNotifier.isGeneralMode || activeProfile != null);
+
           return ListView(
             padding: EdgeInsets.only(
               left: 20.0,
               right: 20.0,
-              top: 16.0,
+              top: isModern
+                  ? (hasManagedBanner
+                      ? 16.0
+                      : (MediaQuery.paddingOf(context).top + 16.0))
+                  : 16.0,
               bottom: isModern ? 100.0 : 16.0,
             ),
             children: [

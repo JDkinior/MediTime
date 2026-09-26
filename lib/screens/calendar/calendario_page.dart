@@ -23,6 +23,7 @@ import 'package:meditime/screens/medication/agregar_receta_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:meditime/core/utils.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 class CalendarioPage extends StatefulWidget {
   final GlobalKey? calendarKey;
@@ -985,114 +986,121 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
     final takenDoses = flatDoses.where((d) => d['status'] == DoseStatus.tomada).length;
     final progressVal = totalDoses > 0 ? takenDoses / totalDoses : 0.0;
 
-    return Column(
-      children: [
-        // TableCalendar Container Card (wrapped in RepaintBoundary for smooth transitions)
-        RepaintBoundary(
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: AppTheme.cardShadow,
-              border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-                  ? Border.all(color: AppTheme.borderColor)
-                  : null,
-            ),
-            child: _buildCalendar(),
-          ),
-        ),
-
-        // Resumen del día
-        if (totalDoses > 0)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) => true,
+      child: Column(
+        children: [
+          // TableCalendar Container Card (wrapped in RepaintBoundary for smooth transitions)
+          RepaintBoundary(
             child: Container(
-              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: AppTheme.cardShadow,
                 border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
                     ? Border.all(color: AppTheme.borderColor)
                     : null,
-                boxShadow: AppTheme.cardShadow,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        l10n?.daySummary ?? 'Resumen del día',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
-                      ),
-                      Text(
-                        l10n?.dosesCompletedSummary(takenDoses, totalDoses) ?? '$takenDoses de $totalDoses dosis completadas',
-                        style: TextStyle(fontSize: 12, color: AppTheme.secondaryTextColor),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: progressVal,
-                      minHeight: 8,
-                      backgroundColor: AppTheme.surfaceColor,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
-                    ),
-                  ),
-                ],
-              ),
+              child: _buildCalendar(),
             ),
           ),
 
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              l10n?.medicationsOfTheDay ?? "Medicamentos del día",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryTextColor,
-              ),
-            ),
-          ),
-        ),
-
-        Expanded(
-          child: Builder(
-            builder: (context) {
-              if (flatDoses.isEmpty) {
-                return EstadoVista(
-                  state: ViewState.empty,
-                  emptyMessage: l10n?.calendarNoEvents ?? 'No hay dosis programadas para este día.',
-                  child: const SizedBox.shrink(),
-                );
-              }
-
-              final isModern = context.watch<PreferenceNotifier>().interfaceStyle == 'modern';
-              return ListView.builder(
-                padding: EdgeInsets.only(
-                  left: 20.0,
-                  right: 20.0,
-                  bottom: isModern ? 100.0 : 20.0,
+          // Resumen del día
+          if (totalDoses > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                      ? Border.all(color: AppTheme.borderColor)
+                      : null,
+                  boxShadow: AppTheme.cardShadow,
                 ),
-                itemCount: flatDoses.length,
-                itemBuilder: (context, index) {
-                  final dose = flatDoses[index];
-                  final isFirst = index == 0;
-                  final isLast = index == flatDoses.length - 1;
-                  return _buildTimelineRow(dose, isFirst, isLast, firestoreService);
-                },
-              );
-            },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          l10n?.daySummary ?? 'Resumen del día',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor),
+                        ),
+                        Text(
+                          l10n?.dosesCompletedSummary(takenDoses, totalDoses) ?? '$takenDoses de $totalDoses dosis completadas',
+                          style: TextStyle(fontSize: 12, color: AppTheme.secondaryTextColor),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: progressVal,
+                        minHeight: 8,
+                        backgroundColor: AppTheme.surfaceColor,
+                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                l10n?.medicationsOfTheDay ?? "Medicamentos del día",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryTextColor,
+                ),
+              ),
+            ),
           ),
-        ),
-      ],
+
+          Expanded(
+            child: ModernContentFade(
+              topOffset: -6,
+              height: 28,
+              child: Builder(
+                builder: (context) {
+                  if (flatDoses.isEmpty) {
+                    return EstadoVista(
+                      state: ViewState.empty,
+                      emptyMessage: l10n?.calendarNoEvents ?? 'No hay dosis programadas para este día.',
+                      child: const SizedBox.shrink(),
+                    );
+                  }
+
+                  final isModern = context.watch<PreferenceNotifier>().interfaceStyle == 'modern';
+                  return ListView.builder(
+                    padding: EdgeInsets.only(
+                      left: 20.0,
+                      right: 20.0,
+                      bottom: isModern ? 100.0 : 20.0,
+                    ),
+                    itemCount: flatDoses.length,
+                    itemBuilder: (context, index) {
+                      final dose = flatDoses[index];
+                      final isFirst = index == 0;
+                      final isLast = index == flatDoses.length - 1;
+                      return _buildTimelineRow(dose, isFirst, isLast, firestoreService);
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

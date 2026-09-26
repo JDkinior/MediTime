@@ -26,6 +26,7 @@ import 'package:meditime/notifiers/caregiver_notifier.dart';
 import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:intl/intl.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/core/subscription_guard.dart';
 
 CaregiverProfile? _getActiveCaregiverProfile(BuildContext context) {
@@ -1454,54 +1455,56 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       drawer: _buildHistoryDrawer(context),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: AppTheme.primaryTextColor,
-        titleSpacing: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              clipBehavior: Clip.antiAlias,
-              decoration: const BoxDecoration(shape: BoxShape.circle),
-              child: Image.asset(
-                _isBlinking ? _midiBlinkAsset : _midiOpenAsset,
-                key: ValueKey<bool>(_isBlinking),
-                fit: BoxFit.cover,
+      appBar: ModernAppBar(
+        child: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          foregroundColor: AppTheme.primaryTextColor,
+          titleSpacing: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                clipBehavior: Clip.antiAlias,
+                decoration: const BoxDecoration(shape: BoxShape.circle),
+                child: Image.asset(
+                  _isBlinking ? _midiBlinkAsset : _midiOpenAsset,
+                  key: ValueKey<bool>(_isBlinking),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Midi',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 22),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                width: 9,
+                height: 9,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF59C156),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.history_rounded),
+                tooltip: 'Historial',
+                onPressed: () => Scaffold.of(context).openDrawer(),
               ),
             ),
-            const SizedBox(width: 10),
-            const Text(
-              'Midi',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 22),
-            ),
-            const SizedBox(width: 6),
-            Container(
-              width: 9,
-              height: 9,
-              decoration: const BoxDecoration(
-                color: Color(0xFF59C156),
-                shape: BoxShape.circle,
-              ),
-            ),
+            const SizedBox(width: 8),
           ],
         ),
-        actions: [
-          Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.history_rounded),
-              tooltip: 'Historial',
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: Column(
         children: [

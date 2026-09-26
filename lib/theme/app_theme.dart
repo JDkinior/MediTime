@@ -294,7 +294,7 @@ class AppTheme {
   // -------------------
 
   /// Light theme configuration
-  static ThemeData getLightTheme({bool largeButtons = false, bool showCardBorder = false}) => ThemeData(
+  static ThemeData getLightTheme({bool largeButtons = false, bool showCardBorder = false, bool isModern = false}) => ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
     cardColor: cardColor,
@@ -313,6 +313,8 @@ class AppTheme {
     appBarTheme: appBarTheme.copyWith(
       backgroundColor: backgroundColor,
       foregroundColor: primaryTextColor,
+      scrolledUnderElevation: isModern ? 0.0 : null,
+      surfaceTintColor: isModern ? Colors.transparent : null,
       systemOverlayStyle: SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: Brightness.dark, statusBarBrightness: Brightness.light, systemNavigationBarColor: backgroundColor, systemNavigationBarIconBrightness: Brightness.dark, systemNavigationBarDividerColor: Colors.transparent, systemNavigationBarContrastEnforced: false),
       titleTextStyle: TextStyle(color: primaryTextColor, fontSize: 20, fontWeight: FontWeight.bold),
     ),
@@ -330,7 +332,7 @@ class AppTheme {
   );
 
   /// Dark theme configuration
-  static ThemeData getDarkTheme({bool largeButtons = false, bool showCardBorder = false}) => ThemeData(
+  static ThemeData getDarkTheme({bool largeButtons = false, bool showCardBorder = false, bool isModern = false}) => ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     cardColor: cardColor,
@@ -349,6 +351,8 @@ class AppTheme {
     appBarTheme: appBarTheme.copyWith(
       backgroundColor: backgroundColor,
       foregroundColor: primaryTextColor,
+      scrolledUnderElevation: isModern ? 0.0 : null,
+      surfaceTintColor: isModern ? Colors.transparent : null,
       systemOverlayStyle: SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: Brightness.light, statusBarBrightness: Brightness.dark, systemNavigationBarColor: backgroundColor, systemNavigationBarIconBrightness: Brightness.light, systemNavigationBarDividerColor: Colors.transparent, systemNavigationBarContrastEnforced: false),
       titleTextStyle: TextStyle(color: primaryTextColor, fontSize: 20, fontWeight: FontWeight.bold),
     ),

@@ -11,6 +11,7 @@ import 'package:meditime/screens/onboarding/onboarding_page.dart';
 import 'package:meditime/screens/shared/modo_cuidador_opciones_page.dart';
 import 'package:meditime/screens/shared/modo_animales_opciones_page.dart';
 import 'package:meditime/screens/shared/idioma_opciones_page.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 
 class OpcionesPage extends StatelessWidget {
@@ -22,11 +23,13 @@ class OpcionesPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: Text(l10n?.optionsTitle ?? 'Opciones'),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: AppTheme.primaryTextColor,
+      appBar: ModernAppBar(
+        child: AppBar(
+          title: Text(l10n?.optionsTitle ?? 'Opciones'),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          foregroundColor: AppTheme.primaryTextColor,
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

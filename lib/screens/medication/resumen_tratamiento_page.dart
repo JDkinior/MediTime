@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/models/tratamiento.dart'; // <-- CAMBIO: Importar modelo
 import 'package:meditime/theme/app_theme.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 
 class ResumenTratamientoPage extends StatelessWidget {
   // CAMBIO: El constructor ahora espera un objeto Tratamiento
@@ -46,11 +47,13 @@ class ResumenTratamientoPage extends StatelessWidget {
         totalDosis > 0 ? (numTomadas / totalDosis) * 100 : 0.0;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Resumen del Tratamiento'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.black87,
+      appBar: ModernAppBar(
+        child: AppBar(
+          title: const Text('Resumen del Tratamiento'),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Colors.black87,
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),

@@ -12,6 +12,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/preference_service.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 
 // CAMBIO: Convertimos a StatefulWidget para manejar el temporizador de la cuenta regresiva
 class DetalleRecetaPage extends StatefulWidget {
@@ -213,7 +214,9 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.tratamiento.nombreMedicamento)),
+      appBar: ModernAppBar(
+        child: AppBar(title: Text(widget.tratamiento.nombreMedicamento)),
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24.0),

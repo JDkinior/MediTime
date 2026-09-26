@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:meditime/core/location_helper.dart';
+import 'package:meditime/widgets/modern_app_bar.dart';
 
 class LocalizadorFarmaciasPage extends StatefulWidget {
   const LocalizadorFarmaciasPage({super.key});
@@ -320,7 +321,10 @@ class _LocalizadorFarmaciasPageState extends State<LocalizadorFarmaciasPage> {
             : LatLng(_userPosition!.latitude, _userPosition!.longitude);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Localizador de Farmacias')),
+      appBar: ModernAppBar(
+        showFade: false,
+        child: AppBar(title: const Text('Localizador de Farmacias')),
+      ),
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
