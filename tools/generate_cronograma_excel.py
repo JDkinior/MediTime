@@ -74,7 +74,7 @@ def build_cronograma_workbook():
     # Main Titles
     ws1["A2"] = "2. Cronograma de actividades"
     ws1["A2"].font = f_title
-    ws1["A3"] = "Proyecto de Grado PGC (Noveno Semestre) — Vigencia 2026 | MediTime v2.32.0"
+    ws1["A3"] = "Proyecto de Grado PGC (Noveno Semestre) — Vigencia 2026 | MediTime v2.33.0"
     ws1["A3"].font = f_subtitle
     
     # Row Heights
@@ -319,7 +319,7 @@ def build_cronograma_workbook():
     
     ws2["A2"] = "2. Cronograma Maestro de Desarrollo e Innovación (Vigencia 2026)"
     ws2["A2"].font = f_title
-    ws2["A3"] = "Visión Macro-Evolutiva Anual (Febrero – Noviembre 2026) | MediTime v2.32.0"
+    ws2["A3"] = "Visión Macro-Evolutiva Anual (Febrero – Noviembre 2026) | MediTime v2.33.0"
     ws2["A3"].font = f_subtitle
     
     ws2.row_dimensions[5].height = 24

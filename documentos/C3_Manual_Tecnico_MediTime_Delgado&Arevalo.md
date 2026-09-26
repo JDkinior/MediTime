@@ -16,7 +16,7 @@
 | Campo Institucional | Detalle Oficial del Proyecto |
 | :--- | :--- |
 | **Título del Proyecto:** | Desarrollo de una Aplicación Móvil para la Gestión de Tratamientos Médicos (MediTime) |
-| **Versión del Software:** | 2.32.0 |
+| **Versión del Software:** | 2.33.0 |
 | **Autores / Ingenieros Desarrolladores:** | **Jorge Eliecer Delgado Cortés**<br>**Johan Alexander Arévalo Contreras** |
 | **Programa Académico:** | Ingeniería de Sistemas y Computación |
 | **Facultad:** | Facultad de Ingeniería |
@@ -67,7 +67,7 @@
 
 ## 1. INTRODUCCIÓN Y RESUMEN TÉCNICO
 
-El presente **Manual Técnico** provee la especificación rigurosa de la ingeniería, arquitectura de software, patrones de diseño, modelo de datos y protocolos de comunicación implementados en **MediTime** (versión **2.32.0**).
+El presente **Manual Técnico** provee la especificación rigurosa de la ingeniería, arquitectura de software, patrones de diseño, modelo de datos y protocolos de comunicación implementados en **MediTime** (versión **2.33.0**).
 
 MediTime es una solución móvil empresarial orientada a la salud digital (*mHealth*), construida sobre el framework **Flutter** y el lenguaje **Dart**, con persistencia en la nube provista por **Google Cloud Firebase** y capacidades cognitivas soportadas en modelos fundacionales de inteligencia artificial ejecutados a baja latencia sobre la infraestructura de **Groq Cloud**.
 
@@ -80,14 +80,14 @@ El propósito de este documento es otorgar al equipo de ingeniería, a los evalu
 | Componente | Especificación Técnica | Justificación Tecnológica |
 | :--- | :--- | :--- |
 | **Nombre del Sistema:** | MediTime | Plataforma integral para la gestión farmacológica. |
-| **Versión Actual:** | 2.32.0 | Versión final estable y auditada para C3 (2026). |
+| **Versión Actual:** | 2.33.0 | Versión final estable y auditada para C3 (2026). |
 | **Framework Base:** | Flutter SDK 3.7.0+ (Canal Stable) | Renderizado reactivo a 60/120 fps con Skia/Impeller. |
 | **Lenguaje de Programación:** | Dart 3.7+ con *Sound Null Safety* | Tipado estricto, análisis estático y sealed classes. |
 | **Plataforma Primaria:** | Android (API Level 26 a 34+) | Cobertura superior al 95% del ecosistema móvil colombiano. |
 | **Backend as a Service:** | Google Cloud Firebase | Autenticación federada, base NoSQL en tiempo real y CDN. |
 | **Base de Datos Principal:** | Cloud Firestore (Multi-Región) | Almacén de documentos NoSQL con sincronización offline nativa. |
 | **Motor de IA Generativa:** | Groq Cloud API (LLM Inference Engine) | Inferencia de ultra-baja latencia para streaming conversacional. |
-| **Modelos de IA:** | `llama-3.3-70b-versatile` / `llama-3.1-8b`<br>`qwen/qwen3.6-27b` (Visión) | Razonamiento clínico contextual, tool calling y OCR de fórmulas. |
+| **Modelos de IA:** | `llama-3.3-70b-versatile` / `llama-3.1-8b`<br>`qwen/qwen3.8-27b` (Visión) | Razonamiento clínico contextual, tool calling y OCR de fórmulas. |
 | **Motor de Alarmas:** | `android_alarm_manager_plus`<br>`flutter_local_notifications` | Ejecución en hardware independiente del ciclo de vida del UI. |
 | **Gestión de Estado:** | Provider 6.1.2 + ChangeNotifier | Inyección de dependencias reactiva y desacoplada. |
 | **Motor de Mapas:** | MapLibre GL 0.26.0 + OpenStreetMap | Visualización vectorial de mapas sin dependencia de licencias de pago. |
@@ -226,8 +226,10 @@ A continuación se detalla la responsabilidad técnica de cada uno de los archiv
 - `sign_out_use_case.dart`: Coordina el cierre ordenado de sesión: cancelación de alarmas en memoria, purga de credenciales de Google y desautenticación de Firebase Auth.
 
 ### 4.5. Capa de Servicios (`lib/services/`)
+- `auth_service.dart`: Gestiona el ciclo de vida de autenticación de Firebase y Google Sign-In con `serverClientId` federado. Incorpora reautenticación criptográfica y el método `deleteAccount` para el cumplimiento estricto de las directivas de Google Play Store sobre eliminación de cuenta, coordinando la revocación de alarmas vía `SignOutUseCase`, la purga total de subcolecciones en Cloud Firestore y la desvinculación de proveedores externos.
 - `notification_service.dart`: Sistema integral de alarmas y notificaciones.
   * Configura el plugin `FlutterLocalNotificationsPlugin` con canales de alta prioridad (`high_importance_channel`) y canal de alarma dedicado con reproducción nativa en bucle mediante `FLAG_INSISTENT`.
+  * Soporta mapeo dinámico de canales según el tono seleccionado (`getAlarmChannelId`, `updateAlarmChannelSound`), permitiendo alternar entre tonos personalizados y alarmas del sistema.
   * Implementa el callback de segundo plano `handleNotificationActionBackground` marcado con `@pragma('vm:entry-point')`, ejecutando la detención inmediata de audio y cancelación de la notificación ante botones de acción antes de cualquier procesamiento pesado.
   * Integra `deleteIntent` dinámico mediante `AlarmSoundService.attachDismissListener` para silenciar automáticamente la alarma cuando el usuario descarta la notificación (swipe, "Borrar todo" o expiración por timeout de 5 minutos).
   * Gestiona deep linking: si el usuario pulsa el cuerpo de una notificación, navega a `DetalleRecetaPage`; si la notificación fue disparada en Modo Alarma, invoca `_navigateToAlarmScreen` hacia `AlarmRingingPage`.
@@ -238,20 +240,21 @@ A continuación se detalla la responsabilidad técnica de cada uno de los archiv
   * Si el modo activo es Alarma, delega la emisión del tono y la vibración al canal nativo de alta prioridad del sistema (`FLAG_INSISTENT`), evitando la ejecución de reproductores redundantes o la generación de audios huérfanos en isolates secundarios.
 - `alarm_sound_service.dart`: Controla el ciclo de reproducción y detención de tonos de alarma y vibración rítmica para pruebas y control interactivo en primer plano.
   * Incorpora timer de seguridad de auto-detención (`maxAlarmDuration = 5 minutos`).
-  * Emite broadcasts globales del sistema (`com.example.meditime.STOP_ALARM`) para silenciar cualquier proceso secundario de manera instantánea.
-  * Interactúa con el plugin nativo Kotlin (`AlarmSoundPlugin.kt`) para cancelar notificaciones del canal activo y garantizar el cese absoluto del audio.
+  * Emite broadcasts globales del sistema (`com.meditime.app.STOP_ALARM` y `com.meditime.app.START_ALARM`) para silenciar cualquier proceso secundario de manera instantánea.
+  * Administra el catálogo de 4 tonos integrados de alta fidelidad, tonos de alarma nativos y exploración de tonos instalados mediante `RingtoneManager` y selector del sistema operativo.
+  * Interactúa con el canal nativo Kotlin para cancelar notificaciones del canal activo y garantizar el cese absoluto del audio.
 - `gemini_service.dart`: Orquesta las solicitudes al motor de Groq Cloud API:
   * Implementa conexión HTTP mediante Server-Sent Events (SSE) para renderizar respuestas token a token en tiempo real.
   * Define la matriz de herramientas (*tools*) para Function Calling con esquemas estrictos de parámetros validados mediante pruebas unitarias.
-  * Soporta visión artificial multimodal consumiendo `qwen/qwen3.6-27b` para extracción de texto en recetas.
-  * Genera micro-consejos clínicos de salud (`generateTreatmentTips`) basados en la medicación activa y tasa de adherencia, con pautas heurísticas de contingencia (`getFallbackTips`).
+  * Soporta visión artificial multimodal consumiendo `qwen/qwen3.8-27b` para extracción de texto en recetas.
+  * Genera micro-consejos clínicos de salud (`generateTreatmentTips`) multilingües (español, inglés y portugués) basados en la medicación activa y tasa de adherencia, con pautas heurísticas adaptadas a humanos, mascotas y cuidadores (`getFallbackTips`). Filtra de forma estricta para excluir tratamientos finalizados (`isFinalizado`).
 - `subscription_service.dart`: Administra el ciclo de vida de la suscripción del usuario en Cloud Firestore, actualizando flags `isPremium`, tipo de plan (`monthly`, `annual`, `free`) y fecha de caducidad (`subscriptionExpiresAt`).
 - `profile_cache_service.dart`: Provee almacenamiento en memoria y en disco para avatares fotográficos de usuarios y dependientes, evitando consultas de red repetitivas.
-- `firestore_service.dart`: Operaciones avanzadas con transacciones de base de datos y escritura por lotes (*batch writes*). Incorpora `resolveMedicamentoWithProfile` para localización transparente de tratamientos entre colecciones personales, subcolecciones de perfiles dependientes y perfiles vinculados, así como control fino de invalidación con `clearMedicamentosCache`.
-- `preference_service.dart`: Capa de abstracción sobre `SharedPreferences` para almacenar en almacenamiento local el modo de recordatorio preferido, registros de tutoriales, validaciones offline, parámetros de **Modo Animales** y caché persistente de micro-consejos clínicos de IA con TTL de 12 horas (`getCachedAiTips` y `cacheAiTips`).
+- `firestore_service.dart`: Operaciones avanzadas con transacciones de base de datos y escritura por lotes (*batch writes*). Incorpora `resolveMedicamentoWithProfile` para localización transparente de tratamientos entre colecciones personales, subcolecciones de perfiles dependientes y perfiles vinculados, así como control fino de invalidación con `clearMedicamentosCache` y método `deleteUserData` para purga completa.
+- `preference_service.dart`: Capa de abstracción sobre `SharedPreferences` para almacenar en almacenamiento local el modo de recordatorio preferido, registros de tutoriales, validaciones offline, tonos de alarma seleccionados, protección de pantalla anti-captura (`getSecureScreen` / `saveSecureScreen`), parámetros de **Modo Animales** y caché persistente de micro-consejos clínicos de IA con TTL de 12 horas (`getCachedAiTips` y `cacheAiTips`).
 - `pdf_report_service.dart`: Genera proceduralmente el reporte clínico en formato PDF A4 utilizando el paquete `pdf/widgets`, incrustando el logotipo institucional, tablas formateadas y el render vectorial de la gráfica de adherencia para pacientes humanos o animales.
 - `storage_service.dart`: Gestiona la compresión y subida de imágenes de perfil y recetas a Firebase Storage o Cloudinary.
-- `system_settings_service.dart`: Utiliza `android_intent_plus` para invocar las pantallas del sistema operativo Android donde el usuario puede otorgar permisos de optimización de batería e inicio automático.
+- `system_settings_service.dart`: Utiliza canales de plataforma nativos para invocar pantallas del sistema Android (optimización de batería, inicio automático, selector de ringtones del sistema) y activar la bandera de seguridad contra capturas de pantalla (`FLAG_SECURE`).
 - `voice_service.dart`: Provee Text-to-Speech (TTS) con `flutter_tts` y captura de audio con `record`.
 - `widget_service.dart`: Actualiza los datos transferidos hacia el widget de escritorio de Android mediante `home_widget`.
 
@@ -472,7 +475,7 @@ Para otorgar una experiencia de usuario natural y reducir la latencia percibida,
 ### 7.2. Matriz de Modelos de IA
 - **Modelo Primario de Lenguaje:** `llama-3.3-70b-versatile` (70 mil millones de parámetros), seleccionado por su capacidad de razonamiento clínico y soporte nativo para ejecución de herramientas.
 - **Modelo de Respaldo (Fallback):** `llama-3.1-8b-instant`, activado automáticamente en caso de degradación de cuotas para garantizar disponibilidad permanente.
-- **Modelo de Visión Artificial:** `qwen/qwen3.6-27b` y `openai/gpt-oss-120b`, empleados para el análisis visual de recetas médicas y reconocimiento de caracteres en empaques comerciales.
+- **Modelo de Visión Artificial:** `qwen/qwen3.8-27b`, empleado para el análisis visual de recetas médicas y reconocimiento de caracteres en empaques comerciales.
 
 ### 7.3. Implementación de Tool Calling (Llamada a Funciones en Cliente)
 El asistente Midi tiene acceso a herramientas declaradas mediante esquemas JSON dentro del prompt de la API. Cuando el usuario expresa intenciones como *"¿Qué medicamentos me tocan hoy?"*, el modelo genera una estructura `tool_calls` que es interceptada por el código de Dart:

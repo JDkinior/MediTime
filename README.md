@@ -10,7 +10,7 @@ MediTime es una aplicación móvil multiplataforma desarrollada con Flutter, dis
 
 La aplicación utiliza Firebase como backend para ofrecer una experiencia de usuario fluida y sincronizada en tiempo real, desde la autenticación hasta el almacenamiento seguro de tus datos de salud, siguiendo una arquitectura de software limpia y escalable.
 
-**Versión actual:** 2.32.0
+**Versión actual:** 2.33.0
 
 ## 🔥 Características Principales
 
@@ -501,36 +501,43 @@ Agradecimientos especiales a la **Universidad de Cundinamarca**, seccional Ubat�
 
 ---
 
-**MediTime v2.32.0** - Tu salud, nuestra prioridad 💊✨
+**MediTime v2.33.0** - Tu salud, nuestra prioridad 💊✨
 
-### 🆕 Novedades en v2.32.0
+### 🆕 Novedades en v2.33.0
 
-#### 💎 Modelo de Suscripciones y Monetización
-- **Nivel Freemium y Planes Premium:** Configuración de niveles Gratuito, Premium Mensual y Premium Anual con control de expiración y persistencia en Firestore.
-- **SubscriptionGuard:** Interceptor centralizado de límites que redirige de forma fluida a la pantalla de planes interactiva al intentar superar 3 tratamientos activos o 1 perfil de cuidado.
-- **Pantalla inmersiva de suscripción:** Interfaz moderna con iluminación ambiental, desglose claro de ventajas y alternador interactivo mensual/anual.
+#### 🛡️ Seguridad, Privacidad y Cumplimiento con Google Play Store
+- **Identificador de Paquete Final:** Migración completa de `com.example.meditime` a `com.meditime.app` en Gradle, manifiesto Android, Firebase y código nativo Kotlin.
+- **Eliminación Definitiva de Cuenta y Datos (`deleteAccount`):** Implementación integral en `AuthService` y `DatosPrivacidadPage` conforme a las políticas obligatorias de Google Play, con reautenticación por Google/contraseña, revocación de alarmas y purga total de datos en Firestore.
+- **Protección contra Capturas de Pantalla (`FLAG_SECURE`):** Alternador configurable para bloquear capturas y ocultar la previsualización de la app al cambiar de aplicación en Android.
+- **Ofuscación y Optimización de Producción:** Configuración de ProGuard/R8 (`proguard-rules.pro`), reducción de recursos (`shrinkResources`) y soporte de firmado seguro mediante `key.properties`.
+- **Privacidad en Logs:** Silenciamiento total de trazas en modo producción (`kReleaseMode`) para evitar exposición de datos médicos o PII en Logcat.
 
-#### 🤖 Micro-Consejos Farmacológicos y de Salud con IA
-- **Consejos dinámicos contextuales:** Sugerencias concisas generadas por IA según los medicamentos activos del paciente y adherencia del día.
-- **Caché en disco de 12 horas:** Almacenamiento local persistente por fingerprint para reducir a cero peticiones de red innecesarias y preservar cuotas.
-- **Heurísticas clínicas instantáneas:** Recomendaciones inmediatas para ayunas (omeprazol), administración con alimentos (AINEs), pautas de antibióticos e hidratación.
+#### 🔔 Selector Avanzado de Tonos y Alarmas Nativas
+- **Centro de Personalización Sonora:** Nueva interfaz en opciones de notificaciones con preescucha en tiempo real y selección de tonos.
+- **Sonidos de Alta Fidelidad Integrados:** 4 melodías médicas relajantes y claras incluidas en la app (`assets/sounds/` y `res/raw/`).
+- **Integración con Sistema Operativo:** Detección de tonos del teléfono mediante `RingtoneManager` y selector nativo de sonidos del dispositivo.
 
-#### 👥 Gestión Multiperfil Robusta (Cuidadores y Mascotas)
-- **Resolución transparente multi-fuente:** Método `resolveMedicamentoWithProfile` que localiza dosis y medicamentos en colecciones personales, perfiles gestionados o usuarios vinculados.
-- **Tolerancia temporal en dosis:** Margen de 15 minutos en claves de dosis para sincronización libre de errores de desfase horario.
-- **ProfileAvatar y ProfileCacheService:** Optimización de carga y almacenamiento local de avatares fotográficos.
+#### 🌐 Internacionalización Trilingüe Completa (Español, Inglés y Portugués)
+- **Soporte Oficial para Português (`pt`):** Incorporación completa de cadenas localizadas (`app_pt.arb`, `app_localizations_pt.dart`) y formateo de fechas en `pt_BR`.
+- **Localización Integral:** Traducción de alertas de interacciones medicamentosas, diálogos de dosis, advertencias de inventario bajo y consejos de salud asistidos por IA.
 
-#### 🔔 Optimización de Alarmas y Notificaciones Nativas
-- **Silenciamiento y limpieza limpia:** Manejo refinado en `AlarmSoundPlugin.kt` para cancelar notificaciones del canal activo y evitar hilos huérfanos con `FLAG_INSISTENT`.
-- **Reglas de seguridad Firestore:** Ajustes en `firestore.rules` para autorización granular de cuidadores y perfiles vinculados.
+#### 🧠 Micro-Consejos de Salud con IA y Detección de Interacciones Clínicas
+- **Actualización de Modelos:** Inferencia con `llama-3.3-70b-versatile` y visión artificial con `qwen/qwen3.8-27b`.
+- **Consejos Trilingües Multimodales:** Consejos heurísticos contextualizados para Humanos, Mascotas (Modo Animales), Cuidadores Clínicos y Cuidadores Familiares.
+- **Filtro de Historial Clínico:** Exclusión estricta de tratamientos finalizados (`isFinalizado`), enfocando las recomendaciones exclusivamente en la medicación activa (`isActivo`).
+
+#### 💊 Flexibilidad en Recetas e Inventario
+- **Inventario Opcional:** Posibilidad de registrar tratamientos sin necesidad de especificar stock inicial ni tamaño de caja (`hasInventarioConfigurado`).
+- **Mejoras en Selector de Duración:** Manejo refinado de tratamientos indefinidos y soporte trilingüe en resúmenes de recetas.
 
 ---
 
 ### 📋 Historial de Versiones Anteriores
 
 <details>
-<summary><b>v2.26.5 - v2.31.1</b> (Click para desplegar)</summary>
+<summary><b>v2.26.5 - v2.32.0</b> (Click para desplegar)</summary>
 
+- **v2.32.0:** Modelo de suscripciones Freemium/Premium, micro-consejos IA con caché local persistente de 12h, optimizaciones multiperfil (cuidadores y mascotas) y refinamiento de alarmas.
 - **v2.31.1:** Internacionalización completa (l10n en español e inglés), cronogramas académicos y de desarrollo 2026, optimización robusta de alarmas nativas y manuales institucionales.
 - **v2.26.5:** Clean Architecture, Patrón Result, Lazy loading de dosis, Chatbot Midi bilingüe con Groq API, exportación PDF y constantes centralizadas.
 
