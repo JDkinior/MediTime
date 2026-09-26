@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class SystemSettingsService {
   static const MethodChannel _channel =
-      MethodChannel('com.example.meditime/system_settings');
+      MethodChannel('com.meditime.app/system_settings');
 
   /// Verifica si la aplicación tiene deshabilitada la optimización de batería
   static Future<bool> isIgnoringBatteryOptimizations() async {
@@ -187,5 +187,17 @@ class SystemSettingsService {
       debugPrint('Error opening DontKillMyApp URL: $e');
     }
     return false;
+  }
+
+  /// Activa o desactiva la protección de pantalla contra capturas y vista previa en multitarea (FLAG_SECURE)
+  static Future<bool> setSecureScreen(bool secure) async {
+    try {
+      final bool? result =
+          await _channel.invokeMethod<bool>('setSecureScreen', {'secure': secure});
+      return result ?? false;
+    } catch (e) {
+      debugPrint('Error setting secure screen: $e');
+      return false;
+    }
   }
 }

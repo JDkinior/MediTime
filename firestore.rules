@@ -23,9 +23,14 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAssignedCaregiver(userId) || isAuthenticated();
+      // Bloquear acceso indiscriminado por ID: solo el dueño o el cuidador asignado pueden leer el perfil
+      allow get: if isOwner(userId) || isAssignedCaregiver(userId);
       
-      allow create, update: if isOwner(userId) || (
+      // Permitir 'list' a usuarios autenticados para permitir la vinculación de pacientes por email
+      allow list: if isAuthenticated();
+      
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || (
         isAuthenticated() && 
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['caregiverUid', 'caregivers'])
       );

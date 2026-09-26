@@ -7,19 +7,33 @@ import 'package:meditime/core/result.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/use_cases/sign_out_use_case.dart';
 import 'package:meditime/services/preference_service.dart';
+import 'package:meditime/services/firestore_service.dart';
 
 /// Servicio para gestionar la autenticación de usuarios con Firebase.
 ///
 /// Centraliza todas las operaciones relacionadas con el inicio de sesión,
 /// registro, cierre de sesión y autenticación con proveedores externos como Google.
 /// 
-/// This service now uses the clean architecture pattern with use cases for business logic.
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  static const String defaultServerClientId =
+      '426041654351-49ca7oolgevitqmkgg6qjho9opscrh7f.apps.googleusercontent.com';
+
+  final FirebaseAuth _auth;
+  final GoogleSignIn _googleSignIn;
   final SignOutUseCase _signOutUseCase;
 
-  AuthService(this._signOutUseCase);
+  AuthService(
+    this._signOutUseCase, {
+    FirebaseAuth? auth,
+    GoogleSignIn? googleSignIn,
+  })  : _auth = auth ?? FirebaseAuth.instance,
+        _googleSignIn = googleSignIn ??
+            GoogleSignIn(
+              serverClientId: const String.fromEnvironment(
+                'GOOGLE_SERVER_CLIENT_ID',
+                defaultValue: defaultServerClientId,
+              ),
+            );
 
   /// Un stream que notifica sobre los cambios en el estado de autenticación del usuario.
   ///
@@ -101,30 +115,142 @@ class AuthService {
     }
   }
 
+  /// Indica si el usuario actual inició sesión mediante Google Sign-In.
+  bool get isGoogleUser =>
+      _auth.currentUser?.providerData.any((p) => p.providerId == 'google.com') ?? false;
+
+  /// Reautentica al usuario actual con su cuenta de Google antes de operaciones críticas.
+  Future<Result<void>> reauthenticateWithGoogle() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return const Result.failure('No hay ninguna sesión activa.');
+
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn().timeout(
+        const Duration(seconds: 45),
+        onTimeout: () => null,
+      );
+      if (googleUser == null) {
+        return const Result.failure('Reautenticación con Google cancelada.');
+      }
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await user.reauthenticateWithCredential(credential);
+      return const Result.success(null);
+    } catch (e) {
+      debugPrint('Error al reautenticar con Google: $e');
+      return Result.failure('Error de reautenticación con Google: $e');
+    }
+  }
+
+  /// Elimina permanentemente la cuenta del usuario en Firebase Auth y todos sus datos en Firestore.
+  /// Cumple estrictamente con la directiva obligatoria de Google Play Store sobre eliminación de cuenta.
+  Future<Result<void>> deleteAccount({
+    required ProfileNotifier profileNotifier,
+    String? currentPassword,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return const Result.failure('No hay ninguna sesión activa.');
+      }
+      final userId = user.uid;
+
+      // 1. Reautenticar si se suministró contraseña de correo
+      if (currentPassword != null && user.email != null) {
+        try {
+          final cred = EmailAuthProvider.credential(
+            email: user.email!,
+            password: currentPassword,
+          );
+          await user.reauthenticateWithCredential(cred);
+        } catch (e) {
+          debugPrint('Error reautenticando con contraseña en deleteAccount: $e');
+          return const Result.failure('Contraseña incorrecta. Por favor, verifica tus credenciales.');
+        }
+      }
+
+      // 2. Cancelar y revocar alarmas y notificaciones
+      try {
+        await _signOutUseCase.execute(userId);
+      } catch (e) {
+        debugPrint('Aviso al cancelar alarmas en deleteAccount: $e');
+      }
+
+      // 3. Eliminar todos los datos del usuario en Firestore (medicamentos, subcolecciones, chats, perfil)
+      try {
+        await FirestoreService().deleteUserData(userId);
+      } catch (e) {
+        debugPrint('Aviso al eliminar datos en Firestore en deleteAccount: $e');
+      }
+
+      // 4. Limpiar preferencias locales
+      try {
+        await PreferenceService().clearCurrentUserId();
+      } catch (_) {}
+
+      // 5. Limpiar el estado de ProfileNotifier
+      profileNotifier.clearProfile(userId: userId);
+
+      // 6. Desconectar de Google Sign-In si aplica
+      try {
+        if (await _googleSignIn.isSignedIn()) {
+          await _googleSignIn.disconnect();
+        }
+      } catch (_) {}
+
+      // 7. Eliminar definitivamente el usuario de Firebase Authentication
+      await user.delete();
+
+      return const Result.success(null);
+    } on FirebaseAuthException catch (e) {
+      debugPrint('FirebaseAuthException during deleteAccount: ${e.code} - ${e.message}');
+      if (e.code == 'requires-recent-login') {
+        return const Result.failure('REQUIRES_RECENT_LOGIN');
+      }
+      return Result.failure('Error al eliminar la cuenta (${e.code}): ${e.message ?? 'Fallo de autenticación'}');
+    } catch (e) {
+      debugPrint('Error general during deleteAccount: $e');
+      return Result.failure('Error al eliminar la cuenta: $e');
+    }
+  }
+
   /// Inicia el flujo de autenticación usando una cuenta de Google.
   Future<Result<UserCredential>> signInWithGoogle() async {
     try {
-      // Asegura que se muestre el selector de cuenta en cada intento
+      // Asegura que se muestre el selector de cuenta en cada intento si ya había sesión
       try {
-        await _googleSignIn.signOut();
+        if (await _googleSignIn.isSignedIn()) {
+          await _googleSignIn.signOut().timeout(
+            const Duration(seconds: 3),
+            onTimeout: () => null,
+          );
+        }
       } catch (e, stackTrace) {
         debugPrint('Error signing out before Google sign-in: $e');
         debugPrintStack(stackTrace: stackTrace);
       }
 
-      // Inicia el flujo de inicio de sesión de Google
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      // Inicia el flujo de inicio de sesión de Google con timeout para evitar que la UI quede congelada
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn().timeout(
+        const Duration(seconds: 45),
+        onTimeout: () => null,
+      );
       
       if (googleUser == null) {
-        return const Result.failure('Inicio de sesión con Google cancelado');
+        return const Result.failure('Inicio de sesión con Google cancelado o sin respuesta.');
       }
 
       // Obtiene los detalles de autenticación de la solicitud
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
-      if (googleAuth.idToken == null) {
+      if (googleAuth.idToken == null && googleAuth.accessToken == null) {
         return const Result.failure(
-          'No se pudo obtener el token de Google. Verifica Play Services y configuración OAuth en Firebase.',
+          'No se pudo obtener el token de Google. Verifica Play Services y configuración OAuth/SHA-1 en Firebase.',
         );
       }
 
@@ -145,14 +271,19 @@ class AuthService {
       debugPrint('PlatformException in Google sign-in: ${e.code} - ${e.message}');
       debugPrintStack(stackTrace: stackTrace);
       final message = e.message ?? 'Error de plataforma';
-      if (e.code == 'sign_in_failed' && message.contains('ApiException: 10')) {
+      final isDeveloperError = e.code == 'sign_in_failed' &&
+          (message.contains('ApiException: 10') ||
+              message.contains(': 10') ||
+              message.contains('api.j: 10'));
+      if (isDeveloperError) {
         return const Result.failure(
-          'Google Sign-In rechazado (ApiException 10). Configura SHA-1/SHA-256 del keystore en Firebase para el paquete Android y vuelve a descargar google-services.json.',
+          'Google Sign-In rechazado (Error 10 / DEVELOPER_ERROR). Falta registrar la huella SHA-1 o SHA-256 en Firebase Console para com.meditime.app.',
         );
       }
       return Result.failure('Google Sign-In (${e.code}): $message');
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Error signing in with Google: $e');
+      debugPrintStack(stackTrace: stackTrace);
       return Result.failure('Error al iniciar sesión con Google: $e');
     }
   }

@@ -1,0 +1,13 @@
+# Configuración de Firma para Producción (Google Play Store)
+# INSTRUCCIONES:
+# 1. Genera tu almacén de claves (keystore) ejecutando en la terminal:
+#    keytool -genkey -v -keystore android/app/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+# 2. Copia este archivo como `android/key.properties` (sin .example)
+# 3. Completa los valores con la contraseña y alias elegidos.
+# IMPORTANTE: `key.properties` y `*.jks` están en .gitignore y NUNCA deben subirse a GitHub.
+# Guarda una copia de seguridad segura de tu upload-keystore.jks y contraseñas.
+
+keyAlias=upload
+keyPassword=TU_PASSWORD_AQUI
+storeFile=upload-keystore.jks
+storePassword=TU_PASSWORD_AQUI

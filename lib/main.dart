@@ -39,12 +39,19 @@ import 'package:meditime/repositories/firestore_user_repository.dart';
 import 'package:meditime/use_cases/sign_out_use_case.dart';
 import 'package:meditime/use_cases/load_user_profile_use_case.dart';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:meditime/services/widget_service.dart';
+import 'package:meditime/services/system_settings_service.dart';
 
 /// Punto de entrada principal de la aplicación.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // En modo release (producción), silenciar todos los logs para evitar fuga de datos PII/médicos por Logcat
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
 
   // Enable edge-to-edge: the system navigation bar becomes transparent
   // so the Scaffold background shows through, adapting to any theme.
@@ -55,6 +62,15 @@ void main() async {
     systemNavigationBarContrastEnforced: false,
   ));
 
+  // Aplicar protección de pantalla (FLAG_SECURE) si el usuario lo tenía habilitado
+  try {
+    final prefs = PreferenceService();
+    final isSecure = await prefs.getSecureScreen();
+    if (isSecure) {
+      await SystemSettingsService.setSecureScreen(true);
+    }
+  } catch (_) {}
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Inicializaciones independientes en paralelo para acelerar el arranque (Splash Screen)
@@ -64,6 +80,7 @@ void main() async {
     WidgetService.initialize(),
     initializeDateFormatting('es_ES', null),
     initializeDateFormatting('en_US', null),
+    initializeDateFormatting('pt_BR', null),
   ]);
 
   // Solicitar permisos en segundo plano sin retrasar el pintado de la interfaz

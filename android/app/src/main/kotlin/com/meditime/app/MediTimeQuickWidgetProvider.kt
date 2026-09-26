@@ -1,4 +1,4 @@
-package com.example.meditime
+package com.meditime.app
 
 import android.appwidget.AppWidgetManager
 import android.content.Context

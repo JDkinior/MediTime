@@ -1,4 +1,4 @@
-package com.example.meditime
+package com.meditime.app
 
 import android.app.AlarmManager
 import android.content.ComponentName
@@ -15,7 +15,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val SETTINGS_CHANNEL = "com.example.meditime/system_settings"
+    private val SETTINGS_CHANNEL = "com.meditime.app/system_settings"
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -117,6 +117,19 @@ class MainActivity : FlutterActivity() {
                                     android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
                                 )
                             }
+                        }
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
+                }
+                "setSecureScreen" -> {
+                    val secure = call.argument<Boolean>("secure") ?: false
+                    try {
+                        if (secure) {
+                            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                        } else {
+                            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
                         }
                         result.success(true)
                     } catch (e: Exception) {

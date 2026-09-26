@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:meditime/services/preference_service.dart';
+import 'package:meditime/services/system_settings_service.dart';
+import 'package:meditime/services/notification_service.dart';
 
 class PreferenceNotifier extends ChangeNotifier {
   final PreferenceService _preferenceService;
@@ -15,6 +17,18 @@ class PreferenceNotifier extends ChangeNotifier {
 
   int _snoozeDuration = 10;
   int get snoozeDuration => _snoozeDuration;
+
+  String _alarmSoundType = 'system_alarm';
+  String get alarmSoundType => _alarmSoundType;
+
+  String _alarmSoundTitle = 'Alarma del teléfono (Predeterminada)';
+  String get alarmSoundTitle => _alarmSoundTitle;
+
+  String? _alarmSoundUri = 'content://settings/system/alarm_alert';
+  String? get alarmSoundUri => _alarmSoundUri;
+
+  String? _alarmSoundResource;
+  String? get alarmSoundResource => _alarmSoundResource;
 
   String _calendarFormat = 'weekly';
   String get calendarFormat => _calendarFormat;
@@ -50,6 +64,9 @@ class PreferenceNotifier extends ChangeNotifier {
 
   bool _hideMedicineNameOnLockScreen = false;
   bool get hideMedicineNameOnLockScreen => _hideMedicineNameOnLockScreen;
+
+  bool _secureScreen = false;
+  bool get secureScreen => _secureScreen;
 
   bool _isAnimalMode = false;
   bool get isAnimalMode => _isAnimalMode;
@@ -90,11 +107,46 @@ class PreferenceNotifier extends ChangeNotifier {
     _simplifiedInterface = await _preferenceService.getSimplifiedInterface();
     _showCardBorder = await _preferenceService.getShowCardBorder();
     _hideMedicineNameOnLockScreen = await _preferenceService.getHideMedicineNameOnLockScreen();
+    _secureScreen = await _preferenceService.getSecureScreen();
+    if (_secureScreen) {
+      await SystemSettingsService.setSecureScreen(true);
+    }
     _isAnimalMode = await _preferenceService.getAnimalModeActive();
     _animalModeType = await _preferenceService.getAnimalModeType();
 
+    _alarmSoundType = await _preferenceService.getAlarmSoundType();
+    _alarmSoundTitle = await _preferenceService.getAlarmSoundTitle();
+    _alarmSoundUri = await _preferenceService.getAlarmSoundUri();
+    _alarmSoundResource = await _preferenceService.getAlarmSoundResource();
+
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<void> setAlarmSound({
+    required String type,
+    required String title,
+    String? uri,
+    String? resourceName,
+  }) async {
+    _alarmSoundType = type;
+    _alarmSoundTitle = title;
+    _alarmSoundUri = uri;
+    _alarmSoundResource = resourceName;
+    notifyListeners();
+
+    await _preferenceService.saveAlarmSound(
+      type: type,
+      title: title,
+      uri: uri,
+      resourceName: resourceName,
+    );
+
+    await NotificationService.updateAlarmChannelSound(
+      type: type,
+      uri: uri,
+      resourceName: resourceName,
+    );
   }
 
   Future<void> setReminderMode(DoseReminderMode mode) async {
@@ -185,6 +237,14 @@ class PreferenceNotifier extends ChangeNotifier {
     _hideMedicineNameOnLockScreen = value;
     notifyListeners();
     await _preferenceService.saveHideMedicineNameOnLockScreen(value);
+  }
+
+  Future<void> setSecureScreen(bool value) async {
+    if (_secureScreen == value) return;
+    _secureScreen = value;
+    notifyListeners();
+    await _preferenceService.saveSecureScreen(value);
+    await SystemSettingsService.setSecureScreen(value);
   }
 
   Future<void> applyOnboardingSettings({

@@ -1,35 +1,29 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     
-    <!-- PERMISOS CRÍTICOS PARA ALARMAS Y NOTIFICACIONES -->
+    <!-- PERMISOS PARA ALARMAS Y NOTIFICACIONES -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.ALARM" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
-    
-    <!-- PERMISOS ADICIONALES PARA ANDROID 12+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    
+    <!-- PERMISOS DE UBICACIÓN (Farmacias cercanas) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     
-    <!-- PERMISOS ADICIONALES PARA DESPERTAR PANTALLA -->
-    <uses-permission android:name="android.permission.TURN_SCREEN_ON" />
-    <uses-permission android:name="android.permission.SHOW_WHEN_LOCKED" />
-    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
-    
-    <!-- PERMISO PARA GRABACIÓN DE AUDIO (Chat de voz) -->
+    <!-- PERMISO PARA GRABACIÓN DE AUDIO (Chat con IA por voz) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:label="MediTime"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:requestLegacyExternalStorage="true"
         android:allowBackup="false"
         android:enableOnBackInvokedCallback="true">
@@ -101,7 +95,8 @@
             android:name=".AlarmStopReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.example.meditime.STOP_ALARM" />
+                <action android:name="com.meditime.app.STOP_ALARM" />
+                <action android:name="com.meditime.app.START_ALARM" />
             </intent-filter>
         </receiver>
 
