@@ -17,7 +17,7 @@
 | Campo Institucional | Detalle Oficial del Proyecto |
 | :--- | :--- |
 | **Título del Proyecto:** | Desarrollo de una Aplicación Móvil para la Gestión de Tratamientos Médicos (MediTime) |
-| **Versión del Software:** | 2.33.0 (Corte 3 - Versión Final Desplegada y Mantenible) |
+| **Versión del Software:** | 2.34.0 (Corte 3 - Versión Final Desplegada y Mantenible) |
 | **Autores / Investigadores:** | **Jorge Eliecer Delgado Cortés**<br>**Johan Alexander Arévalo Contreras** |
 | **Programa Académico:** | Ingeniería de Sistemas y Computación |
 | **Facultad:** | Facultad de Ingeniería |
@@ -78,7 +78,7 @@
 # ==========================================
 
 ## 1. INTRODUCCIÓN Y PROPÓSITO DEL MANUAL
-El presente manual tiene por finalidad guiar a los pacientes, familiares y cuidadores en el uso óptimo de **MediTime v2.33.0**, permitiendo la administración rigurosa y sencilla de tratamientos médicos, el seguimiento visual del cumplimiento y la prevención del olvido en la toma de medicamentos.
+El presente manual tiene por finalidad guiar a los pacientes, familiares y cuidadores en el uso óptimo de **MediTime v2.34.0**, permitiendo la administración rigurosa y sencilla de tratamientos médicos, el seguimiento visual del cumplimiento y la prevención del olvido en la toma de medicamentos.
 
 ## 2. REQUISITOS DEL SISTEMA Y DISPOSITIVOS COMPATIBLES
 - **Sistema Operativo:** Android 8.0 (Oreo / API Level 26) o superior.
@@ -174,7 +174,7 @@ Resolución de dudas sobre el funcionamiento offline, resincronización de datos
 # ==========================================
 
 ## 1. INTRODUCCIÓN Y RESUMEN TÉCNICO
-MediTime (v2.33.0) es una aplicación móvil construida en Flutter/Dart, respaldada por servicios serverless de Google Cloud Firebase y modelos cognitivos alojados en Groq Cloud API.
+MediTime (v2.34.0) es una aplicación móvil construida en Flutter/Dart, respaldada por servicios serverless de Google Cloud Firebase y modelos cognitivos alojados en Groq Cloud API.
 
 ## 2. FICHA TÉCNICA DEL SISTEMA
 - **Framework:** Flutter SDK 3.7.0+ / Dart 3.7+ con Sound Null Safety.
@@ -269,7 +269,7 @@ El Plan de Sostenibilidad establece el modelo operativo, organizativo y financie
 - **Roadmap a 24 Meses:** Integración con Google Health Connect, alertas SMS de emergencia y portal clínico para profesionales de salud.
 
 ## 6. ESTRATEGIA DE TRANSFERENCIA Y APROPIACIÓN SOCIAL
-- **Protocolo de Entrega Formal:** Radicación de acta de transferencia y depósito del repositorio Git con etiqueta `v2.33.0-final` bajo licencia académica y social para la Universidad de Cundinamarca.
+- **Protocolo de Entrega Formal:** Radicación de acta de transferencia y depósito del repositorio Git con etiqueta `v2.34.0-final` bajo licencia académica y social para la Universidad de Cundinamarca.
 - **Capacitación Comunitaria:** Ciclo de 3 talleres sobre salud digital, rol del cuidador y uso de reportes de adherencia.
 - **Material Didáctico:** Cartillas ilustradas e infografías de lectura fácil para la comunidad de Ubaté.
 

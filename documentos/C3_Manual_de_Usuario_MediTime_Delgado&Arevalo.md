@@ -16,7 +16,7 @@
 | Campo Institucional | Detalle Oficial del Proyecto |
 | :--- | :--- |
 | **Título del Proyecto:** | Desarrollo de una Aplicación Móvil para la Gestión de Tratamientos Médicos (MediTime) |
-| **Versión del Software:** | 2.33.0 |
+| **Versión del Software:** | 2.34.0 |
 | **Autores / Investigadores:** | **Jorge Eliecer Delgado Cortés**<br>**Johan Alexander Arévalo Contreras** |
 | **Programa Académico:** | Ingeniería de Sistemas y Computación |
 | **Facultad:** | Facultad de Ingeniería |
@@ -88,7 +88,7 @@
 
 ## 1. INTRODUCCIÓN Y PROPÓSITO DEL MANUAL
 
-El presente documento constituye el **Manual de Usuario** oficial de la solución tecnológica **MediTime** en su versión **2.33.0**, desarrollada en el marco del Proyecto de Grado del programa de **Ingeniería de Sistemas y Computación** de la **Universidad de Cundinamarca, Seccional Ubaté**.
+El presente documento constituye el **Manual de Usuario** oficial de la solución tecnológica **MediTime** en su versión **2.34.0**, desarrollada en el marco del Proyecto de Grado del programa de **Ingeniería de Sistemas y Computación** de la **Universidad de Cundinamarca, Seccional Ubaté**.
 
 ### 1.1. Propósito
 El objetivo primordial de esta guía es orientar al usuario final (paciente, familiar o cuidador asistencial) en la correcta operación, parametrización y aprovechamiento de todas las funcionalidades ofrecidas por el aplicativo móvil. La plataforma ha sido diseñada con un enfoque centrado en la accesibilidad, la usabilidad y la confiabilidad, garantizando que personas de diversos grupos etarios puedan gestionar sus tratamientos médicos con total autonomía y precisión.

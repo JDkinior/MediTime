@@ -10,7 +10,7 @@ MediTime es una aplicación móvil multiplataforma desarrollada con Flutter, dis
 
 La aplicación utiliza Firebase como backend para ofrecer una experiencia de usuario fluida y sincronizada en tiempo real, desde la autenticación hasta el almacenamiento seguro de tus datos de salud, siguiendo una arquitectura de software limpia y escalable.
 
-**Versión actual:** 2.33.0
+**Versión actual:** 2.34.0
 
 ## 🔥 Características Principales
 
@@ -501,42 +501,24 @@ Agradecimientos especiales a la **Universidad de Cundinamarca**, seccional Ubat�
 
 ---
 
-**MediTime v2.33.0** - Tu salud, nuestra prioridad 💊✨
+**MediTime v2.34.0** - Tu salud, nuestra prioridad 💊✨
 
-### 🆕 Novedades en v2.33.0
+### 🆕 Novedades en v2.34.0
 
-#### 🛡️ Seguridad, Privacidad y Cumplimiento con Google Play Store
-- **Identificador de Paquete Final:** Migración completa de `com.example.meditime` a `com.meditime.app` en Gradle, manifiesto Android, Firebase y código nativo Kotlin.
-- **Eliminación Definitiva de Cuenta y Datos (`deleteAccount`):** Implementación integral en `AuthService` y `DatosPrivacidadPage` conforme a las políticas obligatorias de Google Play, con reautenticación por Google/contraseña, revocación de alarmas y purga total de datos en Firestore.
-- **Protección contra Capturas de Pantalla (`FLAG_SECURE`):** Alternador configurable para bloquear capturas y ocultar la previsualización de la app al cambiar de aplicación en Android.
-- **Ofuscación y Optimización de Producción:** Configuración de ProGuard/R8 (`proguard-rules.pro`), reducción de recursos (`shrinkResources`) y soporte de firmado seguro mediante `key.properties`.
-- **Privacidad en Logs:** Silenciamiento total de trazas en modo producción (`kReleaseMode`) para evitar exposición de datos médicos o PII en Logcat.
-
-#### 🔔 Selector Avanzado de Tonos y Alarmas Nativas
-- **Centro de Personalización Sonora:** Nueva interfaz en opciones de notificaciones con preescucha en tiempo real y selección de tonos.
-- **Sonidos de Alta Fidelidad Integrados:** 4 melodías médicas relajantes y claras incluidas en la app (`assets/sounds/` y `res/raw/`).
-- **Integración con Sistema Operativo:** Detección de tonos del teléfono mediante `RingtoneManager` y selector nativo de sonidos del dispositivo.
-
-#### 🌐 Internacionalización Trilingüe Completa (Español, Inglés y Portugués)
-- **Soporte Oficial para Português (`pt`):** Incorporación completa de cadenas localizadas (`app_pt.arb`, `app_localizations_pt.dart`) y formateo de fechas en `pt_BR`.
-- **Localización Integral:** Traducción de alertas de interacciones medicamentosas, diálogos de dosis, advertencias de inventario bajo y consejos de salud asistidos por IA.
-
-#### 🧠 Micro-Consejos de Salud con IA y Detección de Interacciones Clínicas
-- **Actualización de Modelos:** Inferencia con `llama-3.3-70b-versatile` y visión artificial con `qwen/qwen3.8-27b`.
-- **Consejos Trilingües Multimodales:** Consejos heurísticos contextualizados para Humanos, Mascotas (Modo Animales), Cuidadores Clínicos y Cuidadores Familiares.
-- **Filtro de Historial Clínico:** Exclusión estricta de tratamientos finalizados (`isFinalizado`), enfocando las recomendaciones exclusivamente en la medicación activa (`isActivo`).
-
-#### 💊 Flexibilidad en Recetas e Inventario
-- **Inventario Opcional:** Posibilidad de registrar tratamientos sin necesidad de especificar stock inicial ni tamaño de caja (`hasInventarioConfigurado`).
-- **Mejoras en Selector de Duración:** Manejo refinado de tratamientos indefinidos y soporte trilingüe en resúmenes de recetas.
+#### 🎨 Modernización de Interfaz: ModernAppBar y Difuminados Continuos en Scroll
+- **ModernAppBar Universal:** Nuevo componente desacoplado que envuelve los `AppBar` de la aplicación, eliminando el entintado forzado de Material 3 (`scrolledUnderElevation: 0.0` y `surfaceTintColor: Colors.transparent`) e incorporando un degradado suave hacia transparente que aparece fluidamente al hacer scroll en modo Moderno.
+- **ModernContentFade:** Componente envoltorio reactivo para listas y vistas desplazables que difumina suavemente el borde superior del contenido que fluye bajo cabeceras estáticas (selectores de fecha, pestañas y títulos de sección), suprimiendo recortes visuales abruptos.
+- **Cobertura Integral en más de 25 Pantallas:** Despliegue estandarizado en pantallas de Inicio, Calendario, Recetas, Pacientes, Detalle de Receta, Gestión de Cuidadores, Chatbot Midi, Perfil, Reportes, Farmacias y todas las vistas de Configuración y Opciones.
+- **Coexistencia y Flexibilidad de Estilos:** Plena reactividad entre el estilo Moderno y Clásico según las preferencias del usuario, manteniendo intacto el comportamiento nativo tradicional en modo Clásico.
 
 ---
 
 ### 📋 Historial de Versiones Anteriores
 
 <details>
-<summary><b>v2.26.5 - v2.32.0</b> (Click para desplegar)</summary>
+<summary><b>v2.26.5 - v2.33.0</b> (Click para desplegar)</summary>
 
+- **v2.33.0:** Identificador `com.meditime.app`, eliminación definitiva de cuenta para Google Play, protección anti-screenshot (`FLAG_SECURE`), ProGuard/R8, selector avanzado de tonos y alarmas nativas, soporte trilingüe completo (portugués, inglés, español) e inventario opcional.
 - **v2.32.0:** Modelo de suscripciones Freemium/Premium, micro-consejos IA con caché local persistente de 12h, optimizaciones multiperfil (cuidadores y mascotas) y refinamiento de alarmas.
 - **v2.31.1:** Internacionalización completa (l10n en español e inglés), cronogramas académicos y de desarrollo 2026, optimización robusta de alarmas nativas y manuales institucionales.
 - **v2.26.5:** Clean Architecture, Patrón Result, Lazy loading de dosis, Chatbot Midi bilingüe con Groq API, exportación PDF y constantes centralizadas.

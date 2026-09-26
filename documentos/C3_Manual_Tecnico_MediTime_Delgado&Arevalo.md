@@ -16,7 +16,7 @@
 | Campo Institucional | Detalle Oficial del Proyecto |
 | :--- | :--- |
 | **Título del Proyecto:** | Desarrollo de una Aplicación Móvil para la Gestión de Tratamientos Médicos (MediTime) |
-| **Versión del Software:** | 2.33.0 |
+| **Versión del Software:** | 2.34.0 |
 | **Autores / Ingenieros Desarrolladores:** | **Jorge Eliecer Delgado Cortés**<br>**Johan Alexander Arévalo Contreras** |
 | **Programa Académico:** | Ingeniería de Sistemas y Computación |
 | **Facultad:** | Facultad de Ingeniería |
@@ -67,7 +67,7 @@
 
 ## 1. INTRODUCCIÓN Y RESUMEN TÉCNICO
 
-El presente **Manual Técnico** provee la especificación rigurosa de la ingeniería, arquitectura de software, patrones de diseño, modelo de datos y protocolos de comunicación implementados en **MediTime** (versión **2.33.0**).
+El presente **Manual Técnico** provee la especificación rigurosa de la ingeniería, arquitectura de software, patrones de diseño, modelo de datos y protocolos de comunicación implementados en **MediTime** (versión **2.34.0**).
 
 MediTime es una solución móvil empresarial orientada a la salud digital (*mHealth*), construida sobre el framework **Flutter** y el lenguaje **Dart**, con persistencia en la nube provista por **Google Cloud Firebase** y capacidades cognitivas soportadas en modelos fundacionales de inteligencia artificial ejecutados a baja latencia sobre la infraestructura de **Groq Cloud**.
 
@@ -80,7 +80,7 @@ El propósito de este documento es otorgar al equipo de ingeniería, a los evalu
 | Componente | Especificación Técnica | Justificación Tecnológica |
 | :--- | :--- | :--- |
 | **Nombre del Sistema:** | MediTime | Plataforma integral para la gestión farmacológica. |
-| **Versión Actual:** | 2.33.0 | Versión final estable y auditada para C3 (2026). |
+| **Versión Actual:** | 2.34.0 | Versión final estable y auditada para C3 (2026). |
 | **Framework Base:** | Flutter SDK 3.7.0+ (Canal Stable) | Renderizado reactivo a 60/120 fps con Skia/Impeller. |
 | **Lenguaje de Programación:** | Dart 3.7+ con *Sound Null Safety* | Tipado estricto, análisis estático y sealed classes. |
 | **Plataforma Primaria:** | Android (API Level 26 a 34+) | Cobertura superior al 95% del ecosistema móvil colombiano. |
@@ -284,7 +284,7 @@ A continuación se detalla la responsabilidad técnica de cada uno de los archiv
 - `screens/reports/`: Vistas de análisis de adherencia (`progreso_page.dart`, `reportes_page.dart`, `adherencia_chart.dart`).
 - `screens/onboarding/onboarding_page.dart`: Asistente de bienvenida y calibración inicial en 5 pasos (perfil/foto, propósito con colores temáticos dinámicos: azul para uso personal, morado para modo cuidador y verde para modo animales con garantía de exclusividad mutua, estilo visual y modalidad de alarmas).
 - `screens/shared/`: Pantallas de configuración, accesibilidad, **Modo Animales (`modo_animales_opciones_page.dart`)**, localización de farmacias, datos de privacidad y guía de optimización por fabricante.
-- `widgets/`: Componentes modulares reutilizables: botones estilizados (`primary_button.dart`), campos de texto (`styled_text_field.dart`), menú lateral con sincronización cromática dinámica en todos los iconos de navegación y badge de modo (`drawer_widget.dart`), diálogos de cuidador/mascotas con aislamiento estricto de perfiles (`patient_selector_dialog.dart`) e indicador de avatar parpadeante (`midi_blinking_icon.dart`).
+- `widgets/`: Componentes modulares reutilizables: contenedor universal de barras superiores con degradado dinámico (`modern_app_bar.dart`), difuminado suave superior para listas desplazables (`modern_content_fade.dart`), botones estilizados (`primary_button.dart`), campos de texto (`styled_text_field.dart`), menú lateral con sincronización cromática dinámica en todos los iconos de navegación y badge de modo (`drawer_widget.dart`), diálogos de cuidador/mascotas con aislamiento estricto de perfiles (`patient_selector_dialog.dart`) e indicador de avatar parpadeante (`midi_blinking_icon.dart`).
 
 ### 4.8. Puntos de Entrada del Sistema
 - `main.dart`: Punto de inicio del runtime. Inicializa los bindings de Flutter, Firebase Core, el servicio de notificaciones, configura la inyección de dependencias con `MultiProvider` y define las rutas de navegación.
