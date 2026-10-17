@@ -25,7 +25,9 @@ import 'package:meditime/widgets/modern_content_fade.dart';
 enum ReportInterval { semana, mes, anio, todo }
 
 class ReportesPage extends StatefulWidget {
-  const ReportesPage({super.key});
+  const ReportesPage({super.key, this.initialInterval});
+
+  final ReportInterval? initialInterval;
 
   @override
   State<ReportesPage> createState() => _ReportesPageState();
@@ -33,7 +35,7 @@ class ReportesPage extends StatefulWidget {
 
 class _ReportesPageState extends State<ReportesPage> {
   // Estado para manejar el intervalo seleccionado
-  ReportInterval _selectedInterval = ReportInterval.todo;
+  late ReportInterval _selectedInterval;
   final GlobalKey _chartKey = GlobalKey();
   final PdfReportService _pdfService = PdfReportService();
   final ScrollController _scrollController = ScrollController();
@@ -42,6 +44,12 @@ class _ReportesPageState extends State<ReportesPage> {
   final Set<String> _expandedTreatments = {};
   bool _isDesgloseExpanded = false;
   bool _showScrollToTop = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedInterval = widget.initialInterval ?? ReportInterval.todo;
+  }
 
   @override
   void dispose() {

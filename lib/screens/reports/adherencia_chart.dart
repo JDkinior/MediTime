@@ -55,7 +55,7 @@ class AdherenceBarChart extends StatelessWidget {
         ),
         barGroups: [
           makeGroupData(0, tomadas, barColor: kPrimaryColor),
-          makeGroupData(1, omitidas, barColor: Colors.red.shade400),
+          makeGroupData(1, omitidas, barColor: AppTheme.errorColor),
         ],
       ),
     );

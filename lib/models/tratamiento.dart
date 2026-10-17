@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:meditime/core/constants.dart';
+import 'package:meditime/theme/app_theme.dart';
 
 class ProcesarTomaResult {
   final Tratamiento tratamiento;
@@ -47,7 +48,7 @@ enum DoseStatus {
       case DoseStatus.tomada:
         return Colors.green;
       case DoseStatus.omitida:
-        return Colors.red;
+        return AppTheme.errorColor;
       case DoseStatus.aplazada:
         return Colors.orange;
     }

@@ -5,6 +5,7 @@ import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
+import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/caregiver/add_edit_caregiver_profile_page.dart';
 import 'package:meditime/core/subscription_guard.dart';
@@ -64,7 +65,7 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
       ),
     );
 
-    if (confirm != true) return;
+    if (confirm != true || !mounted) return;
 
     setState(() => _isLoading = true);
     try {
@@ -75,7 +76,14 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
       final firestoreService = context.read<FirestoreService>();
 
       final profile = caregiverNotifier.managedProfiles.firstWhere((p) => p.id == profileId);
-      await firestoreService.clearAllMedicamentos(userId, profile);
+      final deletedMeds = await firestoreService.clearAllMedicamentos(userId, profile);
+      for (final m in deletedMeds) {
+        if (m.prescriptionAlarmId != 0) {
+          try {
+            await NotificationService.cancelTreatmentAlarms(m.prescriptionAlarmId);
+          } catch (_) {}
+        }
+      }
       await firestoreService.deleteCaregiverProfile(userId, profileId);
       await caregiverNotifier.loadProfiles(userId);
 
@@ -409,7 +417,7 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
                               if (profile.roomNumber != null && profile.roomNumber!.isNotEmpty)
                                 _buildBadge(Icons.meeting_room_outlined, profile.isAnimal ? 'Box: ${profile.roomNumber}' : 'Hab: ${profile.roomNumber}', Colors.amber.shade800),
                               if (profile.bloodType != null && profile.bloodType!.isNotEmpty)
-                                _buildBadge(Icons.bloodtype_outlined, profile.bloodType!, Colors.redAccent),
+                                _buildBadge(Icons.bloodtype_outlined, profile.bloodType!, AppTheme.errorColor),
                               if (profile.isExternalUser)
                                 _buildBadge(Icons.link_rounded, 'Vinculado', Colors.teal),
                               if (profile.allergies != null && profile.allergies!.isNotEmpty)

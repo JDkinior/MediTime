@@ -175,7 +175,7 @@ class ResumenTratamientoPage extends StatelessWidget {
           'Omitidas',
           omitidas.toString(),
           Icons.cancel,
-          Colors.red,
+          AppTheme.errorColor,
         ),
       ],
     );
@@ -225,7 +225,7 @@ class ResumenTratamientoPage extends StatelessWidget {
             ? Colors.green.shade600
             : (cumplimiento >= 50
                 ? Colors.orange.shade600
-                : Colors.red.shade600);
+                : AppTheme.errorColor);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       decoration: BoxDecoration(

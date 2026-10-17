@@ -36,6 +36,15 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _initialSetupDone = false;
   bool _onboardingCompleted = true;
+  Future<void>? _setupFuture;
+  String? _setupUserId;
+  Stream<User?>? _authStateStream;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _authStateStream ??= context.read<AuthService>().authStateChanges;
+  }
 
   bool _isDeprecatedFirebaseStorageUrl(String? url) {
     return url != null && url.contains('firebasestorage.googleapis.com');
@@ -164,22 +173,37 @@ class _AuthWrapperState extends State<AuthWrapper> {
       await WidgetService.handleWidgetLaunch(context);
     }
 
-    // Verificar si ya completó el onboarding inicial
-    bool completed = await PreferenceService().hasCompletedOnboarding(user.uid);
-    if (!completed) {
+    // Verificar si ya completó el onboarding inicial y aceptó los términos legales
+    final prefService = PreferenceService();
+    bool completed = await prefService.hasCompletedOnboarding(user.uid);
+    bool termsAccepted = await prefService.hasAcceptedTerms(user.uid);
+
+    if (!completed || !termsAccepted) {
       final res = await loadUserProfileUseCase.execute(user.uid);
       if (res.isSuccess) {
-        completed = res.data?['onboardingCompleted'] == true;
-        if (completed) {
-          await PreferenceService().saveOnboardingCompleted(user.uid, true);
+        final data = res.data ?? {};
+        final bool remoteOnboarding = data['onboardingCompleted'] == true;
+        final bool remoteTerms = data['termsAccepted'] == true;
+
+        if (remoteOnboarding && remoteTerms) {
+          completed = true;
+          termsAccepted = true;
+          await prefService.saveOnboardingCompleted(user.uid, true);
+          await prefService.saveTermsAccepted(
+            user.uid,
+            accepted: true,
+            version: data['termsAcceptedVersion'] as String? ?? '2.35.0',
+          );
         }
       }
     }
 
+    final bool allDone = completed && termsAccepted;
+
     // Marcamos que la configuración inicial ya se realizó.
     if (mounted) {
       setState(() {
-        _onboardingCompleted = completed;
+        _onboardingCompleted = allDone;
         _initialSetupDone = true;
       });
     }
@@ -188,74 +212,85 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    final authService = context.watch<AuthService>();
+    final authService = context.read<AuthService>();
+    final stream = _authStateStream ?? authService.authStateChanges;
 
     return StreamBuilder<User?>(
-      stream: authService.authStateChanges,
+      stream: stream,
+      initialData: authService.currentUser,
       builder: (context, snapshot) {
-        // Mientras se determina el estado de autenticación, mostramos un loader.
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        final user = snapshot.data ?? authService.currentUser;
+
+        // Solo si la app está recién arrancando, no hay ningún usuario en caché
+        // y el stream está esperando su primer evento, mostramos el loader.
+        if (snapshot.connectionState == ConnectionState.waiting && user == null) {
           return const LoadingScreen();
         }
 
-        final user = snapshot.data;
-
         // Si el usuario ha iniciado sesión
         if (user != null) {
-          // Si la configuración inicial (reactivación de alarmas y carga de perfil)
-          // aún no se ha completado, mostramos un loader mientras se ejecuta.
-          if (!_initialSetupDone) {
-            return FutureBuilder(
-              future: _performInitialSetup(user),
-              builder: (context, setupSnapshot) {
-                // Durante la configuración, seguimos mostrando el loader.
-                if (setupSnapshot.connectionState == ConnectionState.waiting) {
-                  return const LoadingScreen();
-                }
-                // Si hubo un error durante la configuración, lo mostramos.
-                if (setupSnapshot.hasError) {
-                  return const Scaffold(
-                    body: Center(
-                      child: Text('Ocurrió un error al configurar la sesión.'),
-                    ),
-                  );
-                }
-                // Una vez completada la configuración, comprobar si requiere onboarding
-                if (!_onboardingCompleted) {
-                  return OnboardingPage(
-                    user: user,
-                    onCompleted: () {
-                      if (mounted) {
-                        setState(() {
-                          _onboardingCompleted = true;
-                        });
-                      }
-                    },
-                  );
-                }
-                return const HomePage();
-              },
-            );
+          // Si la configuración inicial ya se completó (escenario normal al navegar entre pantallas),
+          // mostramos la página de inmediato sin volver a llamar a _performInitialSetup ni mostrar LoadingScreen.
+          if (_initialSetupDone) {
+            if (!_onboardingCompleted) {
+              return OnboardingPage(
+                user: user,
+                onCompleted: () {
+                  if (mounted) {
+                    setState(() {
+                      _onboardingCompleted = true;
+                    });
+                  }
+                },
+              );
+            }
+            return const HomePage();
           }
-          // Si la configuración ya se hizo:
-          if (!_onboardingCompleted) {
-            return OnboardingPage(
-              user: user,
-              onCompleted: () {
-                if (mounted) {
-                  setState(() {
-                    _onboardingCompleted = true;
-                  });
-                }
-              },
-            );
+
+          // Si es la primera vez que se detecta el usuario en este ciclo de sesión,
+          // inicializamos el Future una sola vez evitando ejecuciones duplicadas en rebuilds.
+          if (_setupFuture == null || _setupUserId != user.uid) {
+            _setupUserId = user.uid;
+            _setupFuture = _performInitialSetup(user);
           }
-          return const HomePage();
+
+          return FutureBuilder<void>(
+            future: _setupFuture,
+            builder: (context, setupSnapshot) {
+              // Durante la configuración inicial de arranque, mostramos el loader
+              if (setupSnapshot.connectionState == ConnectionState.waiting && !_initialSetupDone) {
+                return const LoadingScreen();
+              }
+              // Si hubo un error durante la configuración
+              if (setupSnapshot.hasError && !_initialSetupDone) {
+                return const Scaffold(
+                  body: Center(
+                    child: Text('Ocurrió un error al configurar la sesión.'),
+                  ),
+                );
+              }
+              // Una vez completada la configuración, comprobar si requiere onboarding
+              if (!_onboardingCompleted) {
+                return OnboardingPage(
+                  user: user,
+                  onCompleted: () {
+                    if (mounted) {
+                      setState(() {
+                        _onboardingCompleted = true;
+                      });
+                    }
+                  },
+                );
+              }
+              return const HomePage();
+            },
+          );
         }
 
         // Si el usuario no ha iniciado sesión, reiniciamos el estado
-        // de `_initialSetupDone` y `_onboardingCompleted`
         _initialSetupDone = false;
+        _setupFuture = null;
+        _setupUserId = null;
         _onboardingCompleted = true;
         return const LoginPage();
       },

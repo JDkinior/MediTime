@@ -29,6 +29,7 @@ import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/services/treatment_service.dart';
 import 'package:meditime/services/lazy_treatment_service.dart';
 import 'package:meditime/services/subscription_service.dart';
+import 'package:meditime/services/ai_quota_service.dart';
 import 'package:meditime/notifiers/subscription_notifier.dart';
 
 // Importa repositorios y casos de uso
@@ -134,6 +135,7 @@ class MyApp extends StatelessWidget {
           create: (_) => GeminiService(),
         ),
         Provider<SubscriptionService>(create: (_) => SubscriptionService()),
+        Provider<AiQuotaService>(create: (_) => const AiQuotaService()),
 
         // Notifier providers
         ChangeNotifierProvider<ProfileNotifier>(

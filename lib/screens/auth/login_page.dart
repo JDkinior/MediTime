@@ -170,7 +170,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(error),
-            backgroundColor: Colors.red.shade700,
+            backgroundColor: AppTheme.errorColor,
           ),
         );
         return;
@@ -189,7 +189,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(msg),
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: AppTheme.errorColor,
         ),
       );
     } finally {
@@ -480,7 +480,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                           if (_errorMessage.isNotEmpty)
                             Padding(
                               padding: const EdgeInsets.only(top: 10),
-                              child: Text(_errorMessage, style: const TextStyle(color: Colors.red)),
+                              child: Text(_errorMessage, style: const TextStyle(color: AppTheme.errorColor)),
                             ),
                         ],
                       ),

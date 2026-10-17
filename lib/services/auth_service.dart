@@ -38,7 +38,7 @@ class AuthService {
   /// Un stream que notifica sobre los cambios en el estado de autenticación del usuario.
   ///
   /// Es ideal para usar en un `StreamBuilder` y reaccionar a inicios o cierres de sesión.
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  late final Stream<User?> authStateChanges = _auth.authStateChanges();
 
   /// Obtiene el objeto `User` de Firebase actualmente autenticado.
   ///

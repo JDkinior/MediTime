@@ -201,6 +201,45 @@ class FirestoreService {
     return _medicamentosCache.getLastValue(cacheKey);
   }
 
+  /// Obtiene la lista de medicamentos de una sola vez desde Firestore o caché.
+  Future<List<Tratamiento>> getMedicamentos(String userId, [CaregiverProfile? profile]) async {
+    final cached = getCachedMedicamentos(userId, profile);
+    if (cached != null) return cached;
+    try {
+      final snapshot = await _getMedicamentosCollection(userId, profile).get();
+      return snapshot.docs.map((doc) {
+        return Tratamiento.fromFirestore(
+          doc as DocumentSnapshot<Map<String, dynamic>>,
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint("Error obteniendo medicamentos de Firestore: $e");
+      return [];
+    }
+  }
+
+  /// Obtiene los tratamientos de todos los perfiles de cuidadores humanos.
+  Future<List<Tratamiento>> getCaregiverTreatments(String userId, [List<CaregiverProfile>? profiles]) async {
+    final targetProfiles = profiles ?? await getCaregiverProfiles(userId);
+    final List<Tratamiento> result = [];
+    for (final profile in targetProfiles.where((p) => !p.isAnimal)) {
+      final meds = await getMedicamentos(userId, profile);
+      result.addAll(meds);
+    }
+    return result;
+  }
+
+  /// Obtiene los tratamientos de todos los perfiles de animales / mascotas.
+  Future<List<Tratamiento>> getAnimalTreatments(String userId, [List<CaregiverProfile>? profiles]) async {
+    final targetProfiles = profiles ?? await getCaregiverProfiles(userId);
+    final List<Tratamiento> result = [];
+    for (final profile in targetProfiles.where((p) => p.isAnimal)) {
+      final meds = await getMedicamentos(userId, profile);
+      result.addAll(meds);
+    }
+    return result;
+  }
+
   /// Invalida la caché de medicamentos para un usuario o perfil específico, o toda la caché.
   void clearMedicamentosCache([String? userId, CaregiverProfile? profile]) {
     if (userId == null) {

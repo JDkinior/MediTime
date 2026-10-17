@@ -241,7 +241,7 @@ class TreatmentSummaryCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            color: (formData.cantidadActual < 5) ? Colors.red : Colors.green,
+                            color: (formData.cantidadActual < 5) ? AppTheme.errorColor : Colors.green,
                           ),
                         ),
                       ],
@@ -569,7 +569,7 @@ class TreatmentSummaryCard extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al generar PDF: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.errorColor,
           ),
         );
       }

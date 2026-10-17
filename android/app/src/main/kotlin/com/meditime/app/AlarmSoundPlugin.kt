@@ -356,6 +356,13 @@ class AlarmSoundPlugin : FlutterPlugin, ActivityAware, PluginRegistry.ActivityRe
                 ctx.sendBroadcast(intent)
                 result.success(true)
             }
+            "getDeviceTimeZone" -> {
+                try {
+                    result.success(java.util.TimeZone.getDefault().id)
+                } catch (e: Exception) {
+                    result.success(null)
+                }
+            }
             else -> result.notImplemented()
         }
     }

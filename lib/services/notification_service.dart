@@ -8,6 +8,7 @@ import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/models/caregiver_profile.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -145,20 +146,37 @@ class NotificationService {
 
     tz.initializeTimeZones();
     try {
-      final String currentTimeZone =
-          await FlutterLocalNotificationsPlugin()
-              .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin
-              >()
-              ?.getNotificationChannels()
-              .then((channels) => tz.local.name) ??
-          'America/Bogota';
-      tz.setLocalLocation(tz.getLocation(currentTimeZone));
+      String? deviceTz;
+      try {
+        deviceTz = await const MethodChannel('com.meditime.app/alarm_sound')
+            .invokeMethod<String>('getDeviceTimeZone');
+      } catch (_) {}
+
+      deviceTz ??= DateTime.now().timeZoneName;
+
+      tz.Location? targetLoc;
+      if (tz.timeZoneDatabase.locations.containsKey(deviceTz)) {
+        targetLoc = tz.getLocation(deviceTz);
+      } else {
+        // Fallback: emparejar con una ubicación que coincida con el offset UTC local actual
+        final currentOffset = DateTime.now().timeZoneOffset;
+        for (final loc in tz.timeZoneDatabase.locations.values) {
+          if (tz.TZDateTime.now(loc).timeZoneOffset == currentOffset) {
+            targetLoc = loc;
+            break;
+          }
+        }
+      }
+
+      tz.setLocalLocation(targetLoc ?? tz.getLocation('America/Bogota'));
+      debugPrint("Zona horaria configurada con precisión: ${tz.local.name}");
     } catch (e) {
       debugPrint(
         "Error obteniendo/configurando zona horaria local: $e. Usando America/Bogota como default.",
       );
-      tz.setLocalLocation(tz.getLocation('America/Bogota'));
+      try {
+        tz.setLocalLocation(tz.getLocation('America/Bogota'));
+      } catch (_) {}
     }
 
     // CONFIGURACIÓN CRÍTICA: Configuraciones para Android
@@ -233,10 +251,6 @@ class NotificationService {
       await androidImplementation.requestNotificationsPermission();
       debugPrint("Solicitando permisos de alarma exacta (Android)...");
       await androidImplementation.requestExactAlarmsPermission();
-
-      // MEJORA: Solicitar permisos adicionales para evitar restricciones
-      debugPrint("Solicitando permisos adicionales para alarmas...");
-      await androidImplementation.requestNotificationsPermission();
     }
 
     debugPrint("Solicitando permisos de notificación (iOS)...");
@@ -356,9 +370,12 @@ class NotificationService {
       if (active != null) {
         for (var n in active) {
           final chId = n.channelId ?? '';
-          if (chId.startsWith('meditime_alarm') && n.id != null) {
+          if ((chId.startsWith('meditime_alarm') ||
+                  chId == 'meditime_active_dosis_channel' ||
+                  chId == 'meditime_snooze_channel') &&
+              n.id != null) {
             await _notificationsPlugin.cancel(n.id!);
-            debugPrint("Notificación de alarma cancelada: ID ${n.id} (Canal: $chId)");
+            debugPrint("Notificación de dosis/alarma cancelada: ID ${n.id} (Canal: $chId)");
           }
         }
       }
@@ -845,59 +862,107 @@ class NotificationService {
     if (notificationId == null) return;
 
     await _notificationsPlugin.cancel(notificationId);
+    await stopAlarmSound();
 
-    // Usamos la duración recibida como parámetro
     final snoozeTime = tz.TZDateTime.now(
       tz.local,
     ).add(Duration(minutes: snoozeMinutes));
 
+    final bool isAlarmMode = payload.startsWith('alarm_mode');
+    bool hideOnLockScreen = false;
+    String soundType = 'system_alarm';
+    String? soundUri;
+    String? soundResource;
+
+    try {
+      final pref = PreferenceService();
+      hideOnLockScreen = await pref.getHideMedicineNameOnLockScreen();
+      soundType = await pref.getAlarmSoundType();
+      soundUri = await pref.getAlarmSoundUri();
+      soundResource = await pref.getAlarmSoundResource();
+    } catch (_) {}
+
+    final androidImplementation = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    String channelId = 'meditime_snooze_channel';
+    AndroidNotificationSound? channelSound;
+
+    if (isAlarmMode && androidImplementation != null) {
+      channelId = await ensureAlarmChannel(
+        androidImplementation: androidImplementation,
+        type: soundType,
+        uri: soundUri,
+        resourceName: soundResource,
+      );
+      channelSound = getAlarmSound(
+        type: soundType,
+        uri: soundUri,
+        resourceName: soundResource,
+      );
+    }
+
+    final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      channelId,
+      isAlarmMode ? 'MediTime Alarma Despertador' : 'MediTime Dosis Aplazadas',
+      channelDescription: isAlarmMode
+          ? 'Canal de máxima prioridad para alarmas sonoras continuas de medicamentos.'
+          : 'Canal para recordatorios aplazados.',
+      importance: Importance.max,
+      priority: isAlarmMode ? Priority.max : Priority.high,
+      playSound: true,
+      sound: channelSound,
+      fullScreenIntent: true,
+      category: AndroidNotificationCategory.alarm,
+      audioAttributesUsage: isAlarmMode ? AudioAttributesUsage.alarm : AudioAttributesUsage.notification,
+      visibility: hideOnLockScreen ? NotificationVisibility.private : NotificationVisibility.public,
+      autoCancel: false,
+      ongoing: isAlarmMode,
+      timeoutAfter: isAlarmMode ? 300000 : null,
+      additionalFlags: isAlarmMode ? Int32List.fromList([4]) : null, // FLAG_INSISTENT si es alarma
+      enableVibration: true,
+      styleInformation: BigTextStyleInformation(
+        'Es hora de tomar tu dosis de las ${DateFormat('hh:mm a').format(originalDoseTime)}',
+        contentTitle: isAlarmMode ? '¡ALARMA APLAZADA!' : 'Recordatorio Aplazado',
+        htmlFormatBigText: true,
+        htmlFormatContentTitle: true,
+        summaryText: 'MediTime Aplazado',
+      ),
+      actions: [
+        AndroidNotificationAction(
+          'TOMAR_ACTION',
+          'Tomar',
+          showsUserInterface: false,
+          cancelNotification: true,
+        ),
+        AndroidNotificationAction(
+          'OMITIR_ACTION',
+          'Omitir',
+          showsUserInterface: false,
+          cancelNotification: true,
+        ),
+        AndroidNotificationAction(
+          'APLAZAR_ACTION',
+          'Aplazar $snoozeMinutes min',
+          showsUserInterface: false,
+          cancelNotification: true,
+        ),
+      ],
+    );
+
     await _notificationsPlugin.zonedSchedule(
       notificationId,
-      'Recordatorio Aplazado',
+      isAlarmMode ? '¡ALARMA APLAZADA!' : 'Recordatorio Aplazado',
       'Es hora de tomar tu dosis de las ${DateFormat('hh:mm a').format(originalDoseTime)}',
       snoozeTime,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          'meditime_snooze_channel',
-          'MediTime Dosis Aplazadas',
-          channelDescription: 'Canal para recordatorios aplazados.',
-          importance: Importance.max,
-          priority: Priority.high,
-          styleInformation: BigTextStyleInformation(
-            'Es hora de tomar tu dosis de las ${DateFormat('hh:mm a').format(originalDoseTime)}',
-            contentTitle: 'Recordatorio Aplazado',
-            htmlFormatBigText: true,
-            htmlFormatContentTitle: true,
-            summaryText: 'MediTime Aplazado',
-          ),
-          actions: [
-            AndroidNotificationAction(
-              'TOMAR_ACTION',
-              'Tomar',
-              showsUserInterface: false,
-              cancelNotification: true,
-            ),
-            AndroidNotificationAction(
-              'OMITIR_ACTION',
-              'Omitir',
-              showsUserInterface: false,
-              cancelNotification: true,
-            ),
-            AndroidNotificationAction(
-              'APLAZAR_ACTION',
-              'Aplazar',
-              showsUserInterface: false,
-              cancelNotification: true,
-            ),
-          ],
-        ),
-      ),
+      NotificationDetails(android: androidDetails),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      // CRÍTICO: NO usar matchDateTimeComponents, el aplazamiento debe ser un disparo único
       payload: payload,
     );
     debugPrint(
-      "Notificación $notificationId aplazada por $snoozeMinutes minutos.",
+      "Notificación $notificationId aplazada por $snoozeMinutes minutos (Modo: ${isAlarmMode ? 'Alarma' : 'Activo'}).",
     );
   }
 
@@ -983,7 +1048,28 @@ class NotificationService {
     required String docId,
     CaregiverProfile? profile,
   }) async {
-    if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
+    if (!primeraDosisDateTime.isAfter(fechaFinTratamiento)) {
+      final pref = PreferenceService();
+      if (profile != null) {
+        if (profile.isAnimal) {
+          final isAnimalActive = await pref.getAnimalModeActive();
+          final notifyPatientDoses = await pref.getCaregiverNotifyPatientDoses();
+          if (!isAnimalActive || !notifyPatientDoses) {
+            debugPrint("SCHEDULE OMITIDO: Alarma de mascota '$nombreMedicamento' no programada porque Modo Animales está desactivado.");
+            return;
+          }
+          await pref.addAnimalAlarmId(prescriptionAlarmManagerId);
+        } else {
+          final isCaregiverActive = await pref.getCaregiverModeActive();
+          final notifyPatientDoses = await pref.getCaregiverNotifyPatientDoses();
+          if (!isCaregiverActive || !notifyPatientDoses) {
+            debugPrint("SCHEDULE OMITIDO: Alarma de paciente '$nombreMedicamento' no programada porque Modo Cuidador está desactivado.");
+            return;
+          }
+          await pref.addCaregiverAlarmId(prescriptionAlarmManagerId);
+        }
+      }
+
       debugPrint(
         "SCHEDULE: Programando primera alarma para $nombreMedicamento a las $primeraDosisDateTime con ID de Serie: $prescriptionAlarmManagerId",
       );
@@ -1003,13 +1089,10 @@ class NotificationService {
         habitacion: profile?.roomNumber,
         categoria: profile?.category,
         dosisPorToma: 1, // Default or fetch from formData if needed, but 1 is safe default here if not passed
+        isExternalUser: profile?.isExternalUser,
+        linkedUid: profile?.linkedUid,
+        isAnimal: profile?.isAnimal ?? false,
       );
-      
-      // We pass isExternalUser and linkedUid through _buildAlarmParams by modifying it
-      if (profile != null) {
-        completeParams['isExternalUser'] = profile.isExternalUser;
-        completeParams['linkedUid'] = profile.linkedUid;
-      }
 
       await AndroidAlarmManager.oneShotAt(
         primeraDosisDateTime,
@@ -1033,6 +1116,174 @@ class NotificationService {
       "CANCEL: Cancelando serie de alarmas completa con ID: $prescriptionAlarmId",
     );
     await AndroidAlarmManager.cancel(prescriptionAlarmId);
+  }
+
+  /// Desactiva y cancela todas las alarmas de tratamientos de pacientes de Modo Cuidador.
+  static Future<void> deactivateCaregiverAlarms({
+    required String userId,
+    List<CaregiverProfile>? profiles,
+    FirestoreService? firestoreService,
+  }) async {
+    debugPrint("🛑 Desactivando alarmas de Modo Cuidador para usuario: $userId");
+    final fs = firestoreService ?? FirestoreService();
+    final prefs = PreferenceService();
+
+    try {
+      final targetProfiles = profiles ?? await fs.getCaregiverProfiles(userId);
+      for (final profile in targetProfiles.where((p) => !p.isAnimal)) {
+        try {
+          final treatments = await fs.getMedicamentos(userId, profile);
+          for (final t in treatments) {
+            if (t.prescriptionAlarmId != 0) {
+              await cancelTreatmentAlarms(t.prescriptionAlarmId);
+              await prefs.removeCaregiverAlarmId(t.prescriptionAlarmId);
+            }
+          }
+        } catch (e) {
+          debugPrint("Error cancelando alarmas de perfil ${profile.id}: $e");
+        }
+      }
+    } catch (e) {
+      debugPrint("Error obteniendo perfiles de cuidador para desactivar alarmas: $e");
+    }
+
+    try {
+      final cachedAlarmIds = await prefs.getCaregiverAlarmIds();
+      for (final alarmId in cachedAlarmIds) {
+        await cancelTreatmentAlarms(alarmId);
+      }
+      await prefs.clearCaregiverAlarmIds();
+    } catch (e) {
+      debugPrint("Error cancelando alarmas cacheadas de cuidador: $e");
+    }
+
+    await cancelAllAlarmNotifications();
+    await stopAlarmSound();
+    debugPrint("✅ Alarmas de Modo Cuidador desactivadas.");
+  }
+
+  /// Activa y reprograma las próximas dosis de todos los tratamientos de Modo Cuidador.
+  static Future<void> activateCaregiverAlarms({
+    required String userId,
+    List<CaregiverProfile>? profiles,
+    FirestoreService? firestoreService,
+  }) async {
+    debugPrint("🚀 Activando alarmas de Modo Cuidador para usuario: $userId");
+    final fs = firestoreService ?? FirestoreService();
+    final prefs = PreferenceService();
+
+    try {
+      final targetProfiles = profiles ?? await fs.getCaregiverProfiles(userId);
+      final now = DateTime.now();
+      final List<int> scheduledIds = [];
+
+      for (final profile in targetProfiles.where((p) => !p.isAnimal)) {
+        try {
+          final treatments = await fs.getMedicamentos(userId, profile);
+          for (final t in treatments) {
+            if (t.fechaFinTratamiento.isAfter(now)) {
+              await rescheduleNextPendingDose(t, userId, profile);
+              if (t.prescriptionAlarmId != 0) {
+                scheduledIds.add(t.prescriptionAlarmId);
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint("Error reprogramando alarmas de perfil ${profile.id}: $e");
+        }
+      }
+
+      if (scheduledIds.isNotEmpty) {
+        await prefs.saveCaregiverAlarmIds(scheduledIds);
+      }
+      debugPrint("✅ Alarmas de Modo Cuidador activadas (${scheduledIds.length} series).");
+    } catch (e) {
+      debugPrint("Error activando alarmas de cuidador: $e");
+    }
+  }
+
+  /// Desactiva y cancela todas las alarmas de tratamientos de animales/mascotas de Modo Animales.
+  static Future<void> deactivateAnimalAlarms({
+    required String userId,
+    List<CaregiverProfile>? profiles,
+    FirestoreService? firestoreService,
+  }) async {
+    debugPrint("🛑 Desactivando alarmas de Modo Animales para usuario: $userId");
+    final fs = firestoreService ?? FirestoreService();
+    final prefs = PreferenceService();
+
+    try {
+      final targetProfiles = profiles ?? await fs.getCaregiverProfiles(userId);
+      for (final profile in targetProfiles.where((p) => p.isAnimal)) {
+        try {
+          final treatments = await fs.getMedicamentos(userId, profile);
+          for (final t in treatments) {
+            if (t.prescriptionAlarmId != 0) {
+              await cancelTreatmentAlarms(t.prescriptionAlarmId);
+              await prefs.removeAnimalAlarmId(t.prescriptionAlarmId);
+            }
+          }
+        } catch (e) {
+          debugPrint("Error cancelando alarmas de animal ${profile.id}: $e");
+        }
+      }
+    } catch (e) {
+      debugPrint("Error obteniendo perfiles de animales para desactivar alarmas: $e");
+    }
+
+    try {
+      final cachedAlarmIds = await prefs.getAnimalAlarmIds();
+      for (final alarmId in cachedAlarmIds) {
+        await cancelTreatmentAlarms(alarmId);
+      }
+      await prefs.clearAnimalAlarmIds();
+    } catch (e) {
+      debugPrint("Error cancelando alarmas cacheadas de animales: $e");
+    }
+
+    await cancelAllAlarmNotifications();
+    await stopAlarmSound();
+    debugPrint("✅ Alarmas de Modo Animales desactivadas.");
+  }
+
+  /// Activa y reprograma las próximas dosis de todos los tratamientos de Modo Animales.
+  static Future<void> activateAnimalAlarms({
+    required String userId,
+    List<CaregiverProfile>? profiles,
+    FirestoreService? firestoreService,
+  }) async {
+    debugPrint("🚀 Activando alarmas de Modo Animales para usuario: $userId");
+    final fs = firestoreService ?? FirestoreService();
+    final prefs = PreferenceService();
+
+    try {
+      final targetProfiles = profiles ?? await fs.getCaregiverProfiles(userId);
+      final now = DateTime.now();
+      final List<int> scheduledIds = [];
+
+      for (final profile in targetProfiles.where((p) => p.isAnimal)) {
+        try {
+          final treatments = await fs.getMedicamentos(userId, profile);
+          for (final t in treatments) {
+            if (t.fechaFinTratamiento.isAfter(now)) {
+              await rescheduleNextPendingDose(t, userId, profile);
+              if (t.prescriptionAlarmId != 0) {
+                scheduledIds.add(t.prescriptionAlarmId);
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint("Error reprogramando alarmas de animal ${profile.id}: $e");
+        }
+      }
+
+      if (scheduledIds.isNotEmpty) {
+        await prefs.saveAnimalAlarmIds(scheduledIds);
+      }
+      debugPrint("✅ Alarmas de Modo Animales activadas (${scheduledIds.length} series).");
+    } catch (e) {
+      debugPrint("Error activando alarmas de animales: $e");
+    }
   }
 
   /// Marca un tratamiento como revocado localmente (no se mostrarán notificaciones en callbacks offline)
@@ -1227,6 +1478,7 @@ class NotificationService {
     int? dosisPorToma,
     bool? isExternalUser,
     String? linkedUid,
+    bool? isAnimal,
   }) {
     return {
       // IDs y configuración básica
@@ -1237,19 +1489,20 @@ class NotificationService {
       'doseTime': doseTime.toIso8601String(),
 
       // Datos del medicamento (CRÍTICO: para funcionamiento offline)
-      'nombreMedicamento': nombreMedicamento,
-      'presentacion': presentacion,
-      'intervaloHoras': intervaloHoras,
+      'nombreMedicamento': nombreMedicamento.replaceAll('|', '-'),
+      'presentacion': presentacion.replaceAll('|', '-'),
+      'intervaloHoras': intervaloHoras > 0 ? intervaloHoras : 8,
       'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
 
       // Datos del paciente/cuidador
       'profileId': profileId,
-      'pacienteNombre': pacienteNombre,
-      'habitacion': habitacion,
+      'pacienteNombre': pacienteNombre?.replaceAll('|', '-'),
+      'habitacion': habitacion?.replaceAll('|', '-'),
       'categoria': categoria,
       'dosisPorToma': dosisPorToma ?? 1,
       'isExternalUser': isExternalUser,
       'linkedUid': linkedUid,
+      'isAnimal': isAnimal ?? false,
 
       // Metadatos adicionales
       'scheduledAt': DateTime.now().toIso8601String(),
@@ -1264,6 +1517,34 @@ class NotificationService {
     String userId, [
     CaregiverProfile? profile,
   ]) async {
+    if (profile != null) {
+      final pref = PreferenceService();
+      if (profile.isAnimal) {
+        final isAnimalActive = await pref.getAnimalModeActive();
+        final notifyPatientDoses = await pref.getCaregiverNotifyPatientDoses();
+        if (!isAnimalActive || !notifyPatientDoses) {
+          debugPrint("RESCHEDULE OMITIDO: Alarma de mascota '${tratamiento.nombreMedicamento}' cancelada porque Modo Animales está desactivado.");
+          await AndroidAlarmManager.cancel(tratamiento.prescriptionAlarmId);
+          await pref.removeAnimalAlarmId(tratamiento.prescriptionAlarmId);
+          return;
+        }
+        await pref.addAnimalAlarmId(tratamiento.prescriptionAlarmId);
+      } else {
+        final isCaregiverActive = await pref.getCaregiverModeActive();
+        final notifyPatientDoses = await pref.getCaregiverNotifyPatientDoses();
+        if (!isCaregiverActive || !notifyPatientDoses) {
+          debugPrint("RESCHEDULE OMITIDO: Alarma de paciente '${tratamiento.nombreMedicamento}' cancelada porque Modo Cuidador está desactivado.");
+          await AndroidAlarmManager.cancel(tratamiento.prescriptionAlarmId);
+          await pref.removeCaregiverAlarmId(tratamiento.prescriptionAlarmId);
+          return;
+        }
+        await pref.addCaregiverAlarmId(tratamiento.prescriptionAlarmId);
+      }
+    }
+
+    final int rawHours = tratamiento.intervaloDosis.inHours;
+    final int safeHours = rawHours > 0 ? rawHours : 8;
+
     await AndroidAlarmManager.oneShotAt(
       scheduleTime,
       tratamiento.prescriptionAlarmId,
@@ -1276,7 +1557,7 @@ class NotificationService {
       params: _buildAlarmParams(
         nombreMedicamento: tratamiento.nombreMedicamento,
         presentacion: tratamiento.presentacion,
-        intervaloHoras: tratamiento.intervaloDosis.inHours,
+        intervaloHoras: safeHours,
         fechaFinTratamiento: tratamiento.fechaFinTratamiento,
         prescriptionAlarmId: tratamiento.prescriptionAlarmId,
         userId: userId,
@@ -1289,6 +1570,7 @@ class NotificationService {
         dosisPorToma: tratamiento.dosisPorToma,
         isExternalUser: profile?.isExternalUser,
         linkedUid: profile?.linkedUid,
+        isAnimal: profile?.isAnimal ?? false,
       ),
     );
     debugPrint("Alarma reprogramada para: $scheduleTime con datos completos (${profile?.name ?? 'Personal'})");
@@ -1325,7 +1607,7 @@ class NotificationService {
 
     DateTime currentDose = tratamiento.fechaInicioTratamiento;
 
-    while (currentDose.isBefore(tratamiento.fechaFinTratamiento)) {
+    while (!currentDose.isAfter(tratamiento.fechaFinTratamiento)) {
       if (currentDose.isAfter(now)) {
         // Verificar si esta dosis fue omitida en skippedDoses
         final isSkipped = tratamiento.skippedDoses.any(
@@ -1647,7 +1929,13 @@ class NotificationService {
           if (actionId == 'TOMAR_ACTION' || actionId == 'OMITIR_ACTION') {
             try {
               final docRef = resolved?.docRef ?? firestoreService.getMedicamentoDocRef(userId, docId, profile);
-              final docSnap = await docRef.get().timeout(const Duration(seconds: 3));
+              DocumentSnapshot docSnap;
+              try {
+                docSnap = await docRef.get().timeout(const Duration(seconds: 3));
+              } catch (_) {
+                // Si la red falla o demora, leer inmediatamente de la persistencia/caché local de Firestore
+                docSnap = await docRef.get(const GetOptions(source: Source.cache));
+              }
               if (docSnap.exists) {
                 final tratamiento = Tratamiento.fromFirestore(docSnap as DocumentSnapshot<Map<String, dynamic>>);
                 await rescheduleNextPendingDose(tratamiento, userId, profile);

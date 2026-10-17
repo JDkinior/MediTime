@@ -125,7 +125,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                 child: Text(l10n?.addPrescriptionContinueEditing ?? 'Continuar editando'),
               ),
               TextButton(
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
                 onPressed: () => Navigator.of(dialogContext).pop(true),
                 child: Text(l10n?.addPrescriptionExitAndDiscard ?? 'Salir y descartar'),
               ),
@@ -245,7 +245,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
           content: Text(
             notifier.errorMessage ?? (l10n?.addPrescriptionSaveError ?? 'Error al guardar el tratamiento'),
           ),
-          backgroundColor: Colors.red,
+          backgroundColor: AppTheme.errorColor,
         ),
       );
     }
@@ -456,7 +456,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(displayMsg),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.errorColor,
           ),
         );
       }

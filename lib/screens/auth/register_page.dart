@@ -10,6 +10,7 @@ import 'package:meditime/widgets/styled_text_field.dart';
 
 // CAMBIO: La navegación ahora apunta a la nueva ubicación de LoginPage
 import 'package:meditime/screens/auth/login_page.dart';
+import 'package:meditime/screens/shared/legal_document_page.dart';
 
 
 class RegisterPage extends StatefulWidget {
@@ -132,7 +133,7 @@ class _RegisterPageState extends State<RegisterPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(error),
-            backgroundColor: Colors.red.shade700,
+            backgroundColor: AppTheme.errorColor,
           ),
         );
       }
@@ -145,7 +146,7 @@ class _RegisterPageState extends State<RegisterPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(msg),
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: AppTheme.errorColor,
         ),
       );
     } finally {
@@ -299,7 +300,63 @@ class _RegisterPageState extends State<RegisterPage> {
                     onPressed: (_isLoading || _isGoogleLoading) ? null : _signInWithGoogle,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text.rich(
+                      TextSpan(
+                        text: 'Al registrarte, podrás personalizar tu experiencia y aceptar los ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.secondaryTextColor,
+                        ),
+                        children: [
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: GestureDetector(
+                              onTap: () => LegalDocumentPage.showAsModalSheet(
+                                context,
+                                initialTabIndex: 0,
+                              ),
+                              child: Text(
+                                'Términos de Uso',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppTheme.primaryColor,
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const TextSpan(text: ' y la '),
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: GestureDetector(
+                              onTap: () => LegalDocumentPage.showAsModalSheet(
+                                context,
+                                initialTabIndex: 1,
+                              ),
+                              child: Text(
+                                'Política de Privacidad',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppTheme.primaryColor,
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const TextSpan(text: '.'),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Center(
                   child: TextButton(
                     onPressed: () => Navigator.pushReplacement(
@@ -322,7 +379,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     padding: const EdgeInsets.only(top: 20),
                     child: Text(
                       _errorMessage,
-                      style: const TextStyle(color: Colors.red),
+                      style: const TextStyle(color: AppTheme.errorColor),
                       textAlign: TextAlign.center,
                     ),
                   ),

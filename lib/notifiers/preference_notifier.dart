@@ -272,12 +272,26 @@ class PreferenceNotifier extends ChangeNotifier {
   Future<void> setAnimalMode(bool value) async {
     if (_isAnimalMode == value) return;
     _isAnimalMode = value;
+    final userId = await _preferenceService.getCurrentUserId() ?? '';
+
     if (value) {
       // Exclusividad mutua: desactiva modo cuidador en persistencia
       await _preferenceService.saveCaregiverModeActive(false);
+      await _preferenceService.saveAnimalModeActive(true);
+      if (userId.isNotEmpty) {
+        await NotificationService.deactivateCaregiverAlarms(userId: userId);
+        final notifyPatientDoses = await _preferenceService.getCaregiverNotifyPatientDoses();
+        if (notifyPatientDoses) {
+          await NotificationService.activateAnimalAlarms(userId: userId);
+        }
+      }
+    } else {
+      await _preferenceService.saveAnimalModeActive(false);
+      if (userId.isNotEmpty) {
+        await NotificationService.deactivateAnimalAlarms(userId: userId);
+      }
     }
     notifyListeners();
-    await _preferenceService.saveAnimalModeActive(value);
   }
 
   Future<void> setAnimalModeType(String type) async {

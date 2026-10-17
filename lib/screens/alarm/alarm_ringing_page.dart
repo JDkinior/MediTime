@@ -235,8 +235,12 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
             profile,
           );
 
+          final cleanMed = widget.nombreMedicamento.replaceAll('|', '-');
+          final cleanPres = widget.presentacion.replaceAll('|', '-');
+          final cleanPac = (widget.pacienteNombre ?? "").replaceAll('|', '-');
+          final cleanHab = (widget.habitacion ?? "").replaceAll('|', '-');
           final payload =
-              'active_notification|${widget.userId}|${widget.docId}|${widget.doseTime.toIso8601String()}|${widget.profileId ?? ""}';
+              'alarm_mode|${widget.userId}|${widget.docId}|${widget.doseTime.toIso8601String()}|$cleanMed|${widget.dosisPorToma}|$cleanPres|$cleanPac|$cleanHab|${widget.notificationId ?? 99999}|${widget.profileId ?? ""}';
 
           await NotificationService.snoozeNotification(
             widget.notificationId ?? 99999,

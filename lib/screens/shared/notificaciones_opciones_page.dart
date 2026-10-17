@@ -183,7 +183,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Por favor ingresa un número de minutos válido (mayor a 0).'),
-                      backgroundColor: Colors.redAccent,
+                      backgroundColor: AppTheme.errorColor,
                     ),
                   );
                 }
@@ -775,7 +775,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
             Icon(
               Icons.alarm_on_rounded,
               size: 16,
-              color: isSelected ? const Color(0xFFEF4444) : Colors.grey.shade500,
+              color: isSelected ? AppTheme.errorColor : Colors.grey.shade500,
             ),
             const SizedBox(width: 3),
             Icon(
@@ -791,7 +791,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
           height: 4,
           decoration: BoxDecoration(
             color: isSelected
-                ? const Color(0xFFEF4444).withOpacity(0.4)
+                ? AppTheme.errorColor.withOpacity(0.4)
                 : Colors.grey.shade700.withOpacity(0.25),
             borderRadius: BorderRadius.circular(2),
           ),

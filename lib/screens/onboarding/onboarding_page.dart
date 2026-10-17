@@ -16,6 +16,8 @@ import 'package:meditime/widgets/primary_button.dart';
 import 'package:meditime/widgets/styled_text_field.dart';
 import 'package:meditime/core/subscription_guard.dart';
 import 'package:meditime/notifiers/subscription_notifier.dart';
+import 'package:meditime/core/legal_content.dart';
+import 'package:meditime/screens/shared/legal_document_page.dart';
 
 /// Widget de animación de desvanecimiento y deslizamiento hacia arriba
 /// con retraso escalonado (staggered animation) para cada tarjeta.
@@ -189,6 +191,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
+  Future<void> _openLegalSheet(int initialTabIndex) async {
+    final accepted = await LegalDocumentPage.showAsModalSheet(
+      context,
+      initialTabIndex: initialTabIndex,
+      showAcceptButton: true,
+    );
+    if (accepted == true && mounted) {
+      setState(() => _acceptedTerms = true);
+    }
+  }
+
   Future<void> _completeOnboarding() async {
     if (_isSaving) return;
     setState(() => _isSaving = true);
@@ -219,13 +232,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
         }
       }
 
-      // 2. Guardar perfil en Firestore
+      // 2. Guardar perfil en Firestore con aceptación legal vinculante
+      final nowIso = DateTime.now().toIso8601String();
       await firestoreService.saveUserProfile(userId, {
         'name': effectiveName,
         if (finalImageUrl != null && finalImageUrl.isNotEmpty) 'profileImage': finalImageUrl,
         'onboardingCompleted': true,
+        'termsAccepted': true,
+        'termsAcceptedAt': nowIso,
+        'termsAcceptedVersion': LegalContent.version,
         'appPurpose': _selectedPurpose,
-        'updatedAt': DateTime.now().toIso8601String(),
+        'updatedAt': nowIso,
       });
 
       // 3. Actualizar ProfileNotifier
@@ -278,8 +295,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
         );
       }
 
-      // 6. Marcar onboarding como completado en almacenamiento local
-      await PreferenceService().saveOnboardingCompleted(userId, true);
+      // 6. Marcar onboarding y términos como completados en almacenamiento local
+      final pref = PreferenceService();
+      await pref.saveOnboardingCompleted(userId, true);
+      await pref.saveTermsAccepted(
+        userId,
+        accepted: true,
+        version: LegalContent.version,
+      );
 
       // 7. Notificar finalización para navegación a HomePage
       widget.onCompleted();
@@ -545,7 +568,49 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+
+          // Botones interactivos para consultar documentos legales completos
+          FadeSlideCard(
+            delayMs: 350,
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      side: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.5)),
+                    ),
+                    icon: const Icon(Icons.description_outlined, size: 16),
+                    label: const Text(
+                      'Términos de Uso',
+                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () => _openLegalSheet(0),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      side: BorderSide(color: AppTheme.successColor.withValues(alpha: 0.5)),
+                    ),
+                    icon: const Icon(Icons.shield_outlined, size: 16),
+                    label: const Text(
+                      'Privacidad',
+                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () => _openLegalSheet(1),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
 
           FadeSlideCard(
             delayMs: 380,
@@ -562,6 +627,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Checkbox(
                     value: _acceptedTerms,
@@ -570,16 +636,74 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     onChanged: (val) => setState(() => _acceptedTerms = val ?? false),
                   ),
                   Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _acceptedTerms = !_acceptedTerms),
-                      child: Text(
-                        'He leído y acepto los Términos de Servicio, el Deslinde de Responsabilidad Médica y la Política de Privacidad de Datos de Salud.',
+                    child: RichText(
+                      text: TextSpan(
                         style: TextStyle(
                           fontSize: 12,
                           color: AppTheme.primaryTextColor,
-                          height: 1.3,
+                          height: 1.35,
                         ),
+                        children: [
+                          const TextSpan(text: 'He leído y acepto los '),
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.baseline,
+                            baseline: TextBaseline.alphabetic,
+                            child: GestureDetector(
+                              onTap: () => _openLegalSheet(0),
+                              child: Text(
+                                'Términos de Servicio',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primaryColor,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const TextSpan(text: ' y la '),
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.baseline,
+                            baseline: TextBaseline.alphabetic,
+                            child: GestureDetector(
+                              onTap: () => _openLegalSheet(1),
+                              child: Text(
+                                'Política de Privacidad',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primaryColor,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const TextSpan(text: ' de Salud de MediTime.'),
+                        ],
                       ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          FadeSlideCard(
+            delayMs: 410,
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.lock_outline, size: 13, color: AppTheme.secondaryTextColor),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Directivas Google Play • RGPD • Sin venta de datos médicos',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      color: AppTheme.secondaryTextColor,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],

@@ -83,13 +83,57 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
         }
         return; // No mostrar ni reprogramar nada si el tratamiento fue revocado o cambió de usuario
       }
+
+      // 4.1 Validación de Modo Cuidador / Modo Animales
+      final profileId = params['profileId'] as String?;
+      if (profileId != null && profileId.isNotEmpty) {
+        bool isAnimal = params['isAnimal'] as bool? ?? await preferenceService.isAnimalProfile(profileId);
+        final isCaregiverModeActive = await preferenceService.getCaregiverModeActive();
+        final isAnimalModeActive = await preferenceService.getAnimalModeActive();
+        final notifyPatientDoses = await preferenceService.getCaregiverNotifyPatientDoses();
+
+        bool shouldBlock = false;
+        String reason = '';
+
+        if (isAnimal) {
+          if (!isAnimalModeActive) {
+            shouldBlock = true;
+            reason = 'Modo Animales desactivado';
+          }
+        } else {
+          if (!isCaregiverModeActive) {
+            shouldBlock = true;
+            reason = 'Modo Cuidador desactivado';
+          }
+        }
+
+        if (!shouldBlock && !notifyPatientDoses) {
+          shouldBlock = true;
+          reason = 'Notificaciones de pacientes/animales desactivadas';
+        }
+
+        if (!shouldBlock && !isAnimalModeActive && !isCaregiverModeActive) {
+          shouldBlock = true;
+          reason = 'Modo Cuidador y Modo Animales desactivados';
+        }
+
+        if (shouldBlock) {
+          debugPrint("Guard: Bloqueando alarma de perfil ($profileId, isAnimal=$isAnimal): $reason");
+          if (seriesId != 0) {
+            await NotificationService.cancelTreatmentAlarms(seriesId);
+            debugPrint("Guard: Serie de alarmas cancelada para ID: $seriesId ($reason)");
+          }
+          return;
+        }
+      }
     } catch (e) {
-      debugPrint("ERROR en guard de usuario/revocado: $e");
+      debugPrint("ERROR en guard de usuario/revocado/modo: $e");
     }
 
     // Perfil de paciente/cuidador si aplica
     CaregiverProfile? dummyProfile;
     final profileId = params['profileId'] as String?;
+    final bool isAnimalParam = params['isAnimal'] as bool? ?? false;
     if (profileId != null && profileId.isNotEmpty) {
       dummyProfile = CaregiverProfile(
         id: profileId,
@@ -98,6 +142,7 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
         colorHex: '#000000',
         isExternalUser: params['isExternalUser'] as bool? ?? false,
         linkedUid: params['linkedUid'] as String?,
+        isAnimal: isAnimalParam,
       );
     }
 
@@ -124,11 +169,16 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
     }
 
     // 5. DISPARAR NOTIFICACIÓN Y ALARMA DE FORMA INMEDIATA (CRÍTICO: ANTES DE CUALQUIER RED)
+    final cleanMedName = nombreMedicamento.replaceAll('|', '-');
+    final cleanPres = presentacion.replaceAll('|', '-');
+    final cleanPacName = (pacienteNombre ?? "").replaceAll('|', '-');
+    final cleanHab = (habitacion ?? "").replaceAll('|', '-');
+
     if (reminderMode == DoseReminderMode.alarm) {
       debugPrint("🚨 Modo Alarma disparándose de inmediato para: $nombreMedicamento");
 
       final alarmPayload =
-          'alarm_mode|$userId|$docId|${doseTime.toIso8601String()}|$nombreMedicamento|$dosisPorToma|$presentacion|${pacienteNombre ?? ""}|${habitacion ?? ""}|$notificationId|${profileId ?? ""}';
+          'alarm_mode|$userId|$docId|${doseTime.toIso8601String()}|$cleanMedName|$dosisPorToma|$cleanPres|$cleanPacName|$cleanHab|$notificationId|${profileId ?? ""}';
 
       // NOTA: NotificationService.showAlarmModeNotification usa FLAG_INSISTENT y
       // audioAttributesUsage: AudioAttributesUsage.alarm en el canal de alarma.
@@ -190,19 +240,20 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
           .timeout(const Duration(seconds: 2));
 
       debugPrint("Estado sincronizado en Firestore: $statusToUpdate");
-      syncSuccess = true;
 
-      // Si es modo automático y hay red, reprogramar la siguiente con datos de Firestore
-      if (reminderMode == DoseReminderMode.automatic) {
-        await _reprogramarSiguienteDosis(params, userId, firestoreService, dummyProfile);
-      }
+      // CRÍTICO: Reprogramar la siguiente dosis con datos de Firestore en TODOS los modos
+      // Esto asegura que si el usuario no interactúa con la notificación o la descarta,
+      // la serie de alarmas continúe viva para las dosis siguientes.
+      await _reprogramarSiguienteDosis(params, userId, firestoreService, dummyProfile);
+      syncSuccess = true;
     } catch (syncError) {
       debugPrint("Sincronización en segundo plano omitida o en cola offline (sin conexión): $syncError");
     }
 
-    // 7. SI ES MODO AUTOMÁTICO Y NO HUBO SINCRONIZACIÓN EXITOSA, REPROGRAMAR OFFLINE INMEDIATAMENTE
-    if (reminderMode == DoseReminderMode.automatic && !syncSuccess) {
-      debugPrint("Reprogramando siguiente dosis en modo offline para modo automático...");
+    // 7. SI NO HUBO SINCRONIZACIÓN EXITOSA CON FIREBASE, REPROGRAMAR OFFLINE INMEDIATAMENTE
+    // Aplica a TODOS los modos para garantizar que el tratamiento nunca pierda continuidad.
+    if (!syncSuccess) {
+      debugPrint("Reprogramando siguiente dosis en modo offline para asegurar continuidad...");
       await _reprogramarSiguienteDosisOffline(params);
     }
 
@@ -271,7 +322,8 @@ Future<void> _reprogramarSiguienteDosisOffline(Map<String, dynamic> params) asyn
     }
     
     final doseTime = DateTime.parse(doseTimeString);
-    final intervaloHoras = (params['intervaloHoras'] as int?) ?? 8;
+    final rawInterval = (params['intervaloHoras'] as int?) ?? 8;
+    final intervaloHoras = rawInterval > 0 ? rawInterval : 8;
     final fechaFinTratamientoString = params['fechaFinTratamientoString'] as String?;
     final prescriptionAlarmId = (params['prescriptionAlarmId'] as int?) ?? 0;
     
@@ -287,12 +339,12 @@ Future<void> _reprogramarSiguienteDosisOffline(Map<String, dynamic> params) asyn
     // CRÍTICO: Si la siguiente dosis calculada ya pasó (ej. dispositivo apagado),
     // adelantamos el cálculo hasta encontrar la próxima dosis en el futuro.
     // Esto evita un bucle infinito de alarmas disparándose inmediatamente.
-    while (siguienteDosis.isBefore(now) && siguienteDosis.isBefore(fechaFinTratamiento)) {
+    while (siguienteDosis.isBefore(now) && !siguienteDosis.isAfter(fechaFinTratamiento)) {
       siguienteDosis = siguienteDosis.add(Duration(hours: intervaloHoras));
     }
 
-    // Solo reprogramar si la dosis futura calculada no pasa la fecha de fin
-    if (siguienteDosis.isBefore(fechaFinTratamiento)) {
+    // Solo reprogramar si la dosis futura calculada no pasa la fecha de fin (inclusive)
+    if (!siguienteDosis.isAfter(fechaFinTratamiento)) {
       await NotificationService.scheduleOfflineAlarm(
         scheduleTime: siguienteDosis,
         alarmId: prescriptionAlarmId,

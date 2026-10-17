@@ -27,7 +27,7 @@ class AppTheme {
   static const Color successColor = Color(0xFF10B981);
 
   /// Color for error/warning states (red).
-  static const Color errorColor = Color(0xFFBA1A1A);
+  static const Color errorColor = Colors.red;
 
   /// Color for informational elements.
   static const Color infoColor = Color(0xFF2563EB);
@@ -303,6 +303,7 @@ class AppTheme {
       surface: backgroundColor,
       surfaceContainer: cardColor,
       surfaceContainerHigh: cardColor,
+      error: errorColor,
       brightness: Brightness.light,
     ),
     scaffoldBackgroundColor: backgroundColor,
@@ -341,6 +342,7 @@ class AppTheme {
       surface: backgroundColor,
       surfaceContainer: cardColor,
       surfaceContainerHigh: cardColor,
+      error: errorColor,
       brightness: Brightness.dark,
     ),
     scaffoldBackgroundColor: backgroundColor,

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:meditime/core/constants.dart';
 import 'package:meditime/services/tratamiento_service.dart';
+import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 
 /// Alias for TratamientoService date utility functions
@@ -151,7 +152,7 @@ class AppUtils {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red : null,
+        backgroundColor: isError ? AppTheme.errorColor : null,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(AppConstants.defaultPadding),
         shape: RoundedRectangleBorder(
@@ -253,7 +254,7 @@ class AppUtils {
     } else if (percentage >= 0.6) {
       return Colors.orange;
     } else {
-      return Colors.red;
+      return AppTheme.errorColor;
     }
   }
 

@@ -8,6 +8,7 @@ import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'legal_document_page.dart';
 
 class DatosPrivacidadPage extends StatefulWidget {
   const DatosPrivacidadPage({super.key});
@@ -51,7 +52,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al eliminar historial: $e'),
-            backgroundColor: Colors.redAccent,
+            backgroundColor: AppTheme.errorColor,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -72,7 +73,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
         return AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+              Icon(Icons.warning_amber_rounded, color: AppTheme.errorColor),
               SizedBox(width: 8),
               Text('¿Eliminar historial?'),
             ],
@@ -90,7 +91,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
                 Navigator.pop(dialogContext);
                 _clearMedicationHistory();
               },
-              style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+              style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
               child: const Text('Eliminar Todo'),
             ),
           ],
@@ -127,7 +128,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al eliminar chats: $e'),
-            backgroundColor: Colors.redAccent,
+            backgroundColor: AppTheme.errorColor,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -149,7 +150,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
           backgroundColor: Theme.of(context).cardColor,
           title: const Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+              Icon(Icons.warning_amber_rounded, color: AppTheme.errorColor),
               SizedBox(width: 8),
               Text('¿Eliminar chats con Midi?'),
             ],
@@ -167,7 +168,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
                 Navigator.pop(dialogContext);
                 _clearChatHistory();
               },
-              style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+              style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
               child: const Text('Eliminar Todo'),
             ),
           ],
@@ -214,7 +215,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result.error ?? 'Error al eliminar la cuenta.'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppTheme.errorColor,
         ),
       );
     }
@@ -230,7 +231,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(reauthResult.error ?? 'Error al reautenticar con Google.'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppTheme.errorColor,
         ),
       );
     }
@@ -291,7 +292,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
           backgroundColor: Theme.of(context).cardColor,
           title: const Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
+              Icon(Icons.warning_amber_rounded, color: AppTheme.errorColor, size: 28),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -316,7 +317,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
                 _handleDeleteAccount();
               },
               style: TextButton.styleFrom(
-                foregroundColor: Colors.redAccent,
+                foregroundColor: AppTheme.errorColor,
                 textStyle: const TextStyle(fontWeight: FontWeight.bold),
               ),
               child: const Text('Eliminar Mi Cuenta'),
@@ -432,6 +433,53 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
                 Padding(
                   padding: const EdgeInsets.only(left: 4, bottom: 8),
                   child: Text(
+                    'DOCUMENTACIÓN LEGAL Y TRANSPARENCIA',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.8,
+                      color: AppTheme.secondaryTextColor,
+                    ),
+                  ),
+                ),
+                _buildListTileCard(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.verified_user_outlined, color: AppTheme.primaryColor, size: 22),
+                    ),
+                    title: Text(
+                      'Términos y Política de Privacidad',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryTextColor,
+                      ),
+                    ),
+                    subtitle: const Text(
+                      'Documentos vigentes (v2.4). Conforme a Google Play Health Apps y RGPD.',
+                      style: TextStyle(fontSize: 12.5),
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LegalDocumentPage(initialTabIndex: 1),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 8),
+                  child: Text(
                     'GESTIÓN Y ELIMINACIÓN DE DATOS',
                     style: TextStyle(
                       fontSize: 12,
@@ -495,17 +543,17 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.15),
+                        color: AppTheme.errorColor.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.no_accounts_rounded, color: Colors.red, size: 22),
+                      child: const Icon(Icons.no_accounts_rounded, color: AppTheme.errorColor, size: 22),
                     ),
                     title: const Text(
                       'Eliminar mi cuenta y datos personales',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: Colors.red,
+                        color: AppTheme.errorColor,
                       ),
                     ),
                     subtitle: const Text('Elimina permanentemente tu cuenta y toda tu información'),

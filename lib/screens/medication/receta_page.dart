@@ -434,8 +434,8 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                       ListTile(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                         leading: CircleAvatar(
-                          backgroundColor: Colors.red.withValues(alpha: 0.1),
-                          child: const Icon(Icons.close, color: Colors.red, size: 20),
+                          backgroundColor: AppTheme.errorColor.withValues(alpha: 0.1),
+                          child: const Icon(Icons.close, color: AppTheme.errorColor, size: 20),
                         ),
                         title: Text(
                           l10n?.markAsSkipped ?? 'Marcar como omitida',

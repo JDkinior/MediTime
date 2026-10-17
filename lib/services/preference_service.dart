@@ -79,14 +79,22 @@ class PreferenceService {
   static const String _animalNotifyDosesKey = 'animal_notify_doses';
   static const String _animalIncludeLocationKey = 'animal_include_location';
 
-  // Onboarding key
+  // Onboarding & Terms keys
   static const String _onboardingCompletedPrefix = 'onboarding_completed_';
+  static const String _termsAcceptedPrefix = 'terms_accepted_';
+  static const String _termsAcceptedAtPrefix = 'terms_accepted_at_';
+  static const String _termsAcceptedVersionPrefix = 'terms_accepted_version_';
 
   // Profile cache keys
   static const String _cachedUserNameKey = 'cached_user_name';
   static const String _cachedProfileImageUrlKey = 'cached_profile_image_url';
   static const String _cachedProfileLocalPathKey = 'cached_profile_local_path';
 
+  // Animal & Caregiver Profile & Alarm tracking keys
+  static const String _animalProfileIdsKey = 'animal_profile_ids';
+  static const String _caregiverProfileIdsKey = 'caregiver_profile_ids';
+  static const String _caregiverAlarmIdsKey = 'caregiver_alarm_ids';
+  static const String _animalAlarmIdsKey = 'animal_alarm_ids';
 
   Future<void> saveThemeMode(String themeStr) async {
     final prefs = await SharedPreferences.getInstance();
@@ -454,6 +462,39 @@ class PreferenceService {
     return prefs.getBool('$_onboardingCompletedPrefix$userId') ?? false;
   }
 
+  Future<void> saveTermsAccepted(
+    String userId, {
+    required bool accepted,
+    String version = '2.35.0',
+    DateTime? timestamp,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('$_termsAcceptedPrefix$userId', accepted);
+    if (accepted) {
+      final timeStr = (timestamp ?? DateTime.now()).toIso8601String();
+      await prefs.setString('$_termsAcceptedAtPrefix$userId', timeStr);
+      await prefs.setString('$_termsAcceptedVersionPrefix$userId', version);
+    }
+  }
+
+  Future<bool> hasAcceptedTerms(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool('$_termsAcceptedPrefix$userId') ?? false;
+  }
+
+  Future<String?> getTermsAcceptedAt(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getString('$_termsAcceptedAtPrefix$userId');
+  }
+
+  Future<String?> getTermsAcceptedVersion(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getString('$_termsAcceptedVersionPrefix$userId');
+  }
+
   // --- Animal / Veterinary Mode ---
   Future<void> saveAnimalModeActive(bool isActive) async {
     final prefs = await SharedPreferences.getInstance();
@@ -623,5 +664,104 @@ class PreferenceService {
       await prefs.remove(_cachedProfileImageUrlKey);
       await prefs.remove(_cachedProfileLocalPathKey);
     } catch (_) {}
+  }
+
+  // --- Profile categorization & Alarm ID tracking ---
+  Future<void> saveAnimalProfileIds(List<String> ids) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_animalProfileIdsKey, ids);
+  }
+
+  Future<List<String>> getAnimalProfileIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getStringList(_animalProfileIdsKey) ?? [];
+  }
+
+  Future<bool> isAnimalProfile(String profileId) async {
+    final ids = await getAnimalProfileIds();
+    return ids.contains(profileId);
+  }
+
+  Future<void> saveCaregiverProfileIds(List<String> ids) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_caregiverProfileIdsKey, ids);
+  }
+
+  Future<List<String>> getCaregiverProfileIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getStringList(_caregiverProfileIdsKey) ?? [];
+  }
+
+  Future<bool> isCaregiverProfile(String profileId) async {
+    final ids = await getCaregiverProfileIds();
+    return ids.contains(profileId);
+  }
+
+  // --- Caregiver Alarm IDs ---
+  Future<void> saveCaregiverAlarmIds(List<int> ids) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_caregiverAlarmIdsKey, ids.map((e) => e.toString()).toList());
+  }
+
+  Future<List<int>> getCaregiverAlarmIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    final list = prefs.getStringList(_caregiverAlarmIdsKey) ?? [];
+    return list.map((e) => int.tryParse(e)).whereType<int>().toList();
+  }
+
+  Future<void> addCaregiverAlarmId(int id) async {
+    final ids = await getCaregiverAlarmIds();
+    if (!ids.contains(id)) {
+      ids.add(id);
+      await saveCaregiverAlarmIds(ids);
+    }
+  }
+
+  Future<void> removeCaregiverAlarmId(int id) async {
+    final ids = await getCaregiverAlarmIds();
+    if (ids.remove(id)) {
+      await saveCaregiverAlarmIds(ids);
+    }
+  }
+
+  Future<void> clearCaregiverAlarmIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_caregiverAlarmIdsKey);
+  }
+
+  // --- Animal Alarm IDs ---
+  Future<void> saveAnimalAlarmIds(List<int> ids) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_animalAlarmIdsKey, ids.map((e) => e.toString()).toList());
+  }
+
+  Future<List<int>> getAnimalAlarmIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    final list = prefs.getStringList(_animalAlarmIdsKey) ?? [];
+    return list.map((e) => int.tryParse(e)).whereType<int>().toList();
+  }
+
+  Future<void> addAnimalAlarmId(int id) async {
+    final ids = await getAnimalAlarmIds();
+    if (!ids.contains(id)) {
+      ids.add(id);
+      await saveAnimalAlarmIds(ids);
+    }
+  }
+
+  Future<void> removeAnimalAlarmId(int id) async {
+    final ids = await getAnimalAlarmIds();
+    if (ids.remove(id)) {
+      await saveAnimalAlarmIds(ids);
+    }
+  }
+
+  Future<void> clearAnimalAlarmIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_animalAlarmIdsKey);
   }
 }

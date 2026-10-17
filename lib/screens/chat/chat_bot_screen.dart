@@ -28,6 +28,12 @@ import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/core/subscription_guard.dart';
+import 'package:meditime/notifiers/subscription_notifier.dart';
+import 'package:meditime/notifiers/profile_notifier.dart';
+import 'package:meditime/services/ai_quota_service.dart';
+import 'package:meditime/screens/subscription/subscription_page.dart';
+import 'package:meditime/screens/reports/reportes_page.dart';
+import 'package:meditime/widgets/markdown_message_body.dart';
 
 CaregiverProfile? _getActiveCaregiverProfile(BuildContext context) {
   try {
@@ -85,6 +91,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   bool _wasLastInputVoice = false;
   Timer? _blinkTimer;
   VoiceService? _voiceService;
+  String? _activeModeKey;
 
   @override
   void initState() {
@@ -99,10 +106,59 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     precacheImage(const AssetImage(_midiOpenAsset), context);
     precacheImage(const AssetImage(_midiBlinkAsset), context);
 
+    final prefNotifier = Provider.of<PreferenceNotifier>(context, listen: false);
+    final caregiverNotifier = Provider.of<CaregiverNotifier>(context, listen: false);
+    final isAnimal = prefNotifier.isAnimalMode;
+    final isCaregiver = caregiverNotifier.isCaregiverModeActive;
+    final activeProfile = _getActiveProfile();
+
+    final currentModeKey = isAnimal
+        ? 'animal_${activeProfile?.id ?? "general"}'
+        : (isCaregiver
+            ? 'caregiver_${caregiverNotifier.modeType.name}_${activeProfile?.id ?? "general"}'
+            : 'personal');
+
+    final bool modeChanged = _activeModeKey != null && _activeModeKey != currentModeKey;
+    if (modeChanged) {
+      // Clear conversation and AI history when switching modes to prevent cross-mode leakage
+      final geminiService = context.read<GeminiService>();
+      geminiService.clearHistory();
+      _currentChatId = null;
+      _messages.clear();
+      _messages.add(_ChatMessage(text: '', isUser: false));
+    }
+    _activeModeKey = currentModeKey;
+
     final l10n = AppLocalizations.of(context);
-    if (_messages.length == 1 && !_messages[0].isUser && l10n != null) {
+    if ((_messages.length == 1 && !_messages[0].isUser) || modeChanged) {
+      String welcomeText;
+      if (isAnimal) {
+        if (activeProfile != null) {
+          final petName = activeProfile.name.trim();
+          final species = activeProfile.species?.trim().isNotEmpty == true ? ' (${activeProfile.species!.trim()})' : '';
+          welcomeText = '¡Hola! Soy Midi, tu asistente veterinario de MediTime 🐾. Te ayudo a organizar los tratamientos de **$petName**$species, consultar cuándo finaliza cada medicación, recordar las dosis prescritas por su veterinario y prevenir intoxicaciones con alimentos o fármacos humanos peligrosos. ¿En qué te ayudo hoy?';
+        } else {
+          final petCount = caregiverNotifier.managedProfiles.where((p) => p.isAnimal).length;
+          final petsStr = petCount > 0 ? ' ($petCount mascotas registradas)' : '';
+          welcomeText = '¡Hola! Soy Midi, tu asistente veterinario en la **vista general** 🐾$petsStr. Te ayudo a supervisar los tratamientos de todas tus mascotas, saber cuándo termina el tratamiento de cada una y cuidar su salud sin confusiones. ¿Sobre qué mascota o dosis deseas consultar?';
+        }
+      } else if (isCaregiver) {
+        if (activeProfile != null) {
+          final patientName = activeProfile.name.trim();
+          final room = activeProfile.roomNumber?.trim().isNotEmpty == true ? ' (Hab. ${activeProfile.roomNumber!.trim()})' : '';
+          welcomeText = '¡Hola! Soy Midi, tu asistente de cuidado de MediTime 🩺. Estoy enfocado en los tratamientos y seguridad de **$patientName**$room. Te asisto verificando dosis según los 5 correctos, alertándote de alergias y consultando cuándo termina cada tratamiento. ¿En qué te colaboro hoy?';
+        } else {
+          final patientCount = caregiverNotifier.managedProfiles.where((p) => !p.isAnimal).length;
+          final patientsStr = patientCount > 0 ? ' ($patientCount pacientes asignados)' : '';
+          welcomeText = '¡Hola! Soy Midi, tu asistente de cuidado en la **vista general de pacientes** 🩺$patientsStr. Supervisas múltiples pacientes y te ayudo a organizar sus tomas, revisar qué dosis tocan hoy por paciente y saber cuándo finalizan sus tratamientos. ¿En qué te asisto hoy?';
+        }
+      } else {
+        welcomeText = l10n?.chatBotWelcome ??
+            '¡Hola! Soy Midi, tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis, saber cuándo termina tu tratamiento o responder cualquier duda que tengas sobre tu salud. ¿En qué te puedo ayudar hoy?';
+      }
+
       _messages[0] = _ChatMessage(
-        text: l10n.chatBotWelcome,
+        text: welcomeText,
         isUser: false,
       );
     }
@@ -252,10 +308,94 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
 
   CaregiverProfile? _getActiveProfile() => _getActiveCaregiverProfile(context);
 
+  CaregiverProfile? _resolveCaregiverProfile({String? name, String? id}) {
+    try {
+      final caregiverNotifier = context.read<CaregiverNotifier>();
+      final prefNotifier = context.read<PreferenceNotifier>();
+      final isAnimal = prefNotifier.isAnimalMode;
+      final profiles = caregiverNotifier.managedProfiles;
+
+      // 1. Direct ID match
+      if (id != null && id.isNotEmpty && id != 'general') {
+        final match = profiles.where((p) => p.id == id);
+        if (match.isNotEmpty) return match.first;
+      }
+
+      // 2. Name match
+      if (name != null && name.trim().isNotEmpty) {
+        final cleanName = name.trim().toLowerCase();
+        // Personal profile keywords
+        if (cleanName == 'yo' ||
+            cleanName == 'mi perfil' ||
+            cleanName == 'personal' ||
+            cleanName == 'mí' ||
+            cleanName == 'mi' ||
+            cleanName == 'propio') {
+          return null;
+        }
+
+        final modeProfiles = profiles.where((p) => isAnimal ? p.isAnimal : !p.isAnimal).toList();
+        final pool = modeProfiles.isNotEmpty ? modeProfiles : profiles;
+
+        // Exact match
+        final exact = pool.where((p) => p.name.trim().toLowerCase() == cleanName);
+        if (exact.isNotEmpty) return exact.first;
+
+        // Contains match
+        final contains = pool.where((p) =>
+            p.name.trim().toLowerCase().contains(cleanName) ||
+            cleanName.contains(p.name.trim().toLowerCase()));
+        if (contains.isNotEmpty) return contains.first;
+      }
+
+      // 3. Fallback to active selected profile
+      final active = _getActiveProfile();
+      if (active != null) return active;
+
+      // 4. Default for Animal mode if single animal
+      if (isAnimal) {
+        final pets = profiles.where((p) => p.isAnimal).toList();
+        if (pets.length == 1) return pets.first;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<void> _sendMessage({bool fromVoice = false}) async {
     final text = _messageController.text.trim();
     if (text.isEmpty || _isGenerating) {
       return;
+    }
+
+    final authService = context.read<AuthService>();
+    final user = authService.currentUser;
+    if (user != null) {
+      final quotaService = context.read<AiQuotaService>();
+      final isPremium = context.read<SubscriptionNotifier>().isPremium;
+
+      // 1. Anti-burst cooldown check
+      if (await quotaService.isCoolingDown(user.uid)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Por favor, espera un momento antes de enviar otra consulta.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+
+      // 2. Daily quota limit check
+      final canSend = await quotaService.canSendMessage(user.uid, isPremium: isPremium);
+      if (!canSend) {
+        if (mounted) {
+          _showQuotaExceededDialog(isPremium: isPremium);
+        }
+        return;
+      }
+
+      await quotaService.recordMessageSent(user.uid);
     }
 
     _messageController.clear();
@@ -274,18 +414,48 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     _scrollToBottom();
 
     final geminiService = context.read<GeminiService>();
-    final authService = context.read<AuthService>();
     final firestoreService = context.read<FirestoreService>();
-    final user = authService.currentUser;
+    final prefNotifier = context.read<PreferenceNotifier>();
+    final caregiverNotifier = context.read<CaregiverNotifier>();
+    final isAnimalMode = prefNotifier.isAnimalMode;
+    final isCaregiverMode = caregiverNotifier.isCaregiverModeActive;
+    final caregiverModeType = caregiverNotifier.modeType;
+    final allProfiles = caregiverNotifier.managedProfiles;
     final activeProfile = _getActiveProfile();
 
     List<Tratamiento>? activeTreatments;
     if (user != null) {
       try {
-        final allTreatments = await firestoreService.getMedicamentosStream(user.uid, activeProfile).first;
-        // Filtrar solo tratamientos activos o vigentes (excluyendo historial pasado finalizado)
-        activeTreatments = allTreatments.where((t) => t.isActivo || !t.isFinalizado).toList();
-      } catch (_) {}
+        if (activeProfile != null) {
+          // Vista individual (paciente o mascota específico)
+          final txs = await firestoreService.getMedicamentos(user.uid, activeProfile);
+          activeTreatments = txs.where((t) => t.isActivo || !t.isFinalizado).toList();
+        } else if (isAnimalMode) {
+          // Vista general de animales: Cargar tratamientos de todas las mascotas registradas
+          final petProfiles = allProfiles.where((p) => p.isAnimal).toList();
+          final List<Tratamiento> combined = [];
+          for (final pet in petProfiles) {
+            final txs = await firestoreService.getMedicamentos(user.uid, pet);
+            combined.addAll(txs);
+          }
+          activeTreatments = combined.where((t) => t.isActivo || !t.isFinalizado).toList();
+        } else if (isCaregiverMode) {
+          // Vista general de cuidadores: Cargar tratamientos de todos los pacientes asignados
+          final patientProfiles = allProfiles.where((p) => !p.isAnimal).toList();
+          final List<Tratamiento> combined = [];
+          for (final patient in patientProfiles) {
+            final txs = await firestoreService.getMedicamentos(user.uid, patient);
+            combined.addAll(txs);
+          }
+          activeTreatments = combined.where((t) => t.isActivo || !t.isFinalizado).toList();
+        } else {
+          // Modo Base / Personal
+          final txs = await firestoreService.getMedicamentos(user.uid, null);
+          activeTreatments = txs.where((t) => t.isActivo || !t.isFinalizado).toList();
+        }
+      } catch (e) {
+        debugPrint('Error al obtener medicamentos para Midi: $e');
+      }
     }
 
     final botMessageIndex = _messages.length - 1;
@@ -293,12 +463,25 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     // Variables to collect tool-call actions for the UI
     Map<String, dynamic>? prescriptionData;
     bool showAdherenceChart = false;
+    Map<String, dynamic>? adherenceChartData;
     final List<Map<String, dynamic>> updateDoseActions = [];
 
     try {
+      final profileNotifier = context.read<ProfileNotifier>();
+      final userName = profileNotifier.userName ?? user?.displayName;
+      final lang = prefNotifier.languageCode;
+      final effectiveLang = lang == 'system' ? Localizations.localeOf(context).languageCode : lang;
+
       await for (final partialText in geminiService.streamResponse(
         text,
         activeTreatments: activeTreatments,
+        activeProfile: activeProfile,
+        allProfiles: allProfiles,
+        isAnimalMode: isAnimalMode,
+        isCaregiverMode: isCaregiverMode,
+        caregiverModeType: caregiverModeType,
+        userName: userName,
+        language: effectiveLang,
         onToolCalls: (toolCalls) {
           // Process UI-level tool calls from function calling
           for (final tc in toolCalls) {
@@ -306,12 +489,21 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
               case 'create_treatment':
                 prescriptionData = Map<String, dynamic>.from(tc.arguments);
                 prescriptionData!['isSaved'] = false;
+                final resolved = _resolveCaregiverProfile(
+                  name: prescriptionData!['targetProfileName']?.toString(),
+                  id: prescriptionData!['targetProfileId']?.toString(),
+                );
+                if (resolved != null) {
+                  prescriptionData!['targetProfileId'] = resolved.id;
+                  prescriptionData!['targetProfileName'] = resolved.name;
+                }
                 break;
               case 'update_dose_status':
                 updateDoseActions.add(tc.arguments);
                 break;
               case 'show_adherence_chart':
                 showAdherenceChart = true;
+                adherenceChartData = Map<String, dynamic>.from(tc.arguments);
                 break;
             }
           }
@@ -339,12 +531,36 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
       if (mounted) {
         final botMsg = _messages[botMessageIndex];
 
+        // Automatic fallback: ensure the interactive adherence chart card is ALWAYS rendered
+        // if user asked for a report/progress or if the assistant provided an adherence report
+        if (!showAdherenceChart && _isAdherenceReportRequest(text, botMsg.text)) {
+          showAdherenceChart = true;
+          adherenceChartData ??= _extractAdherencePeriod(text, botMsg.text);
+        }
+
+        // If adherence chart is shown and text caught an error, replace with a clean intro
+        String finalText = botMsg.text.trim();
+        if (showAdherenceChart &&
+            (finalText.contains('Bad state') ||
+             finalText.contains('No fue posible generar una respuesta') ||
+             finalText.isEmpty)) {
+          final args = adherenceChartData ?? {};
+          final p = args['periodo']?.toString() ?? 'solicitado';
+          final pText = p == 'dia'
+              ? 'del día de hoy'
+              : (p == 'mes'
+                  ? 'del mes en curso'
+                  : (p == 'anio' ? 'del año en curso' : 'del período consultado'));
+          finalText = 'Aquí tienes tu reporte de adherencia $pText con el progreso de tus tratamientos y dosis:';
+        }
+
         setState(() {
           _messages[botMessageIndex] = botMsg.copyWith(
-            text: botMsg.text.trim(),
+            text: finalText,
             isStreaming: false,
             prescriptionData: prescriptionData,
             showAdherenceChart: showAdherenceChart,
+            adherenceChartData: adherenceChartData,
           );
           _isGenerating = false;
         });
@@ -355,7 +571,8 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
           final status = action['status']?.toString() ?? 'tomada';
           final mins = int.tryParse(action['minutosAplazo']?.toString() ?? '') ?? 30;
           final updateAll = action['updateAll'] == true || action['updateAll'] == 'true';
-          _executeUpdateDose(med, status, mins, updateAll);
+          final targetProfileName = action['targetProfileName']?.toString();
+          _executeUpdateDose(med, status, mins, updateAll, targetProfileName: targetProfileName);
         }
 
         // TTS: speak response if message came from voice input
@@ -370,6 +587,470 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         _scrollToBottom();
       }
       await _saveChatToFirestore();
+    }
+  }
+
+  bool _isAdherenceReportRequest(String userText, String assistantText) {
+    final u = userText.toLowerCase();
+    final a = assistantText.toLowerCase();
+
+    final userAskedReport = u.contains('reporte') ||
+        u.contains('adherencia') ||
+        u.contains('progreso') ||
+        u.contains('estadistica') ||
+        u.contains('estadística') ||
+        u.contains('cumplimiento') ||
+        u.contains('cómo voy') ||
+        u.contains('como voy');
+
+    final assistantHasReport = a.contains('reporte de adherencia') ||
+        a.contains('informe de adherencia') ||
+        (a.contains('cumplimiento global') && a.contains('dosis'));
+
+    return userAskedReport || assistantHasReport;
+  }
+
+  Map<String, dynamic> _extractAdherencePeriod(String userText, String assistantText) {
+    final combined = '$userText $assistantText'.toLowerCase();
+
+    if (combined.contains('hoy') ||
+        combined.contains('del día') ||
+        combined.contains('del dia') ||
+        combined.contains('de hoy') ||
+        combined.contains('diario')) {
+      return {'periodo': 'dia', 'dias': 1};
+    }
+
+    if (combined.contains('mes') ||
+        combined.contains('mensual') ||
+        combined.contains('30 días') ||
+        combined.contains('30 dias')) {
+      return {'periodo': 'mes', 'dias': 30};
+    }
+
+    if (combined.contains('año') ||
+        combined.contains('ano') ||
+        combined.contains('anual') ||
+        combined.contains('365')) {
+      return {'periodo': 'anio', 'dias': 365};
+    }
+
+    final regexDays = RegExp(r'(\d+)\s+d[ií]as');
+    final match = regexDays.firstMatch(userText.toLowerCase());
+    if (match != null) {
+      final days = int.tryParse(match.group(1) ?? '');
+      if (days != null && days > 0) {
+        return {'periodo': 'personalizado', 'dias': days};
+      }
+    }
+
+    return {'periodo': 'semana', 'dias': 7};
+  }
+
+  void _showQuotaExceededDialog({required bool isPremium}) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.hourglass_top_rounded, color: Colors.amber, size: 24),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Límite diario alcanzado',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          isPremium
+              ? 'Has alcanzado el límite de seguridad de ${AiQuotaService.premiumDailyLimit} consultas diarias con Midi. Tu cuota se reiniciará automáticamente a las 00:00.'
+              : 'Has completado tus ${AiQuotaService.freeDailyLimit} consultas diarias gratuitas con Midi. Tu cuota se renovará automáticamente a medianoche.\n\nPuedes actualizar a MediTime Premium para disfrutar de hasta ${AiQuotaService.premiumDailyLimit} consultas diarias y respuestas prioritarias.',
+          style: const TextStyle(fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Entendido'),
+          ),
+          if (!isPremium)
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                Navigator.pop(dialogCtx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SubscriptionPage(
+                      sourceFeature: 'consultas ampliadas con el asistente de IA Midi',
+                    ),
+                  ),
+                );
+              },
+              child: const Text('Ver Planes Premium'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showQuotaDetailsSheet(int remaining, bool isPremium) {
+    final limit = isPremium ? AiQuotaService.premiumDailyLimit : AiQuotaService.freeDailyLimit;
+    final used = limit - remaining;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: (isPremium ? Colors.purple : AppTheme.primaryColor).withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isPremium ? Icons.auto_awesome_rounded : Icons.chat_bubble_outline_rounded,
+                      color: isPremium ? Colors.purple : AppTheme.primaryColor,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isPremium ? 'Midi • Plan Premium' : 'Midi • Plan Gratuito',
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Cuota de uso inteligente de IA',
+                          style: TextStyle(fontSize: 13, color: AppTheme.secondaryTextColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.borderColor),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Consultas utilizadas hoy:', style: TextStyle(fontSize: 14)),
+                        Text('$used / $limit', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: limit > 0 ? (used / limit).clamp(0.0, 1.0) : 0,
+                        minHeight: 8,
+                        backgroundColor: AppTheme.borderColor.withOpacity(0.3),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          remaining <= 3 ? Colors.amber : (isPremium ? Colors.purple : AppTheme.primaryColor),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '$remaining consultas disponibles',
+                          style: TextStyle(fontSize: 12.5, color: AppTheme.secondaryTextColor),
+                        ),
+                        Text(
+                          'Reinicia a las 00:00',
+                          style: TextStyle(fontSize: 12.5, color: AppTheme.secondaryTextColor),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (!isPremium)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    icon: const Icon(Icons.star_rounded),
+                    label: const Text('Ampliar límite con Premium', style: TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: () {
+                      Navigator.pop(sheetCtx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SubscriptionPage(
+                            sourceFeature: 'hasta 120 consultas diarias con el asistente Midi',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              const SizedBox(height: 6),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuotaActionWidget() {
+    final authService = context.watch<AuthService>();
+    final user = authService.currentUser;
+    if (user == null) return const SizedBox.shrink();
+
+    final quotaService = context.read<AiQuotaService>();
+    final isPremium = context.watch<SubscriptionNotifier>().isPremium;
+
+    return FutureBuilder<int>(
+      future: quotaService.getRemainingMessages(user.uid, isPremium: isPremium),
+      builder: (context, snapshot) {
+        final remaining = snapshot.data ?? (isPremium ? AiQuotaService.premiumDailyLimit : AiQuotaService.freeDailyLimit);
+        final isLow = remaining <= 3;
+
+        return Tooltip(
+          message: isPremium
+              ? 'Plan Premium: $remaining consultas restantes hoy'
+              : '$remaining consultas restantes hoy (se renuevan a medianoche)',
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => _showQuotaDetailsSheet(remaining, isPremium),
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isLow
+                    ? Colors.amber.withOpacity(0.2)
+                    : (isPremium
+                        ? Colors.purple.withOpacity(0.15)
+                        : AppTheme.primaryColor.withOpacity(0.1)),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isLow
+                      ? Colors.amber
+                      : (isPremium
+                          ? Colors.purple.withOpacity(0.4)
+                          : AppTheme.primaryColor.withOpacity(0.3)),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isPremium ? Icons.auto_awesome_rounded : Icons.chat_bubble_outline_rounded,
+                    size: 14,
+                    color: isLow
+                        ? Colors.amber.shade800
+                        : (isPremium ? Colors.purple : AppTheme.primaryColor),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    isPremium ? 'PRO • $remaining' : '$remaining/${AiQuotaService.freeDailyLimit}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isLow
+                          ? Colors.amber.shade900
+                          : (isPremium ? Colors.purple.shade700 : AppTheme.primaryColor),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildModeContextBanner() {
+    final prefNotifier = context.watch<PreferenceNotifier>();
+    final caregiverNotifier = context.watch<CaregiverNotifier>();
+    final isAnimal = prefNotifier.isAnimalMode;
+    final isCaregiver = caregiverNotifier.isCaregiverModeActive;
+
+    if (!isAnimal && !isCaregiver) {
+      return const SizedBox.shrink();
+    }
+
+    final activeProfile = _getActiveProfile();
+
+    if (isAnimal) {
+      if (activeProfile != null) {
+        final petName = activeProfile.name.trim();
+        final species = activeProfile.species?.trim().isNotEmpty == true ? activeProfile.species!.trim() : 'Mascota';
+        final weight = activeProfile.weight?.trim().isNotEmpty == true ? ' • ${activeProfile.weight!.trim()}' : '';
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.green.withOpacity(0.12),
+            border: Border(
+              bottom: BorderSide(color: Colors.green.withOpacity(0.3)),
+            ),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.pets_rounded, size: 18, color: Colors.green),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Modo Mascotas • Asistiendo a $petName ($species$weight)',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.green,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        );
+      } else {
+        final petCount = caregiverNotifier.managedProfiles.where((p) => p.isAnimal).length;
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.green.withOpacity(0.12),
+            border: Border(
+              bottom: BorderSide(color: Colors.green.withOpacity(0.3)),
+            ),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.pets_rounded, size: 18, color: Colors.green),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Modo Mascotas • Vista General ($petCount mascotas registradas)',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.green,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    } else {
+      final isClinico = caregiverNotifier.modeType == CaregiverModeType.clinico;
+      final modeTitle = isClinico ? "Modo Clínico" : "Modo Cuidador";
+
+      if (activeProfile != null) {
+        final patientName = activeProfile.name.trim();
+        final extra = activeProfile.relationship.trim().isNotEmpty == true
+            ? ' • ${activeProfile.relationship.trim()}'
+            : (activeProfile.roomNumber != null ? ' • Hab. ${activeProfile.roomNumber}' : '');
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.indigo.withOpacity(0.10),
+            border: Border(
+              bottom: BorderSide(color: Colors.indigo.withOpacity(0.25)),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(isClinico ? Icons.medical_services_rounded : Icons.family_restroom_rounded, size: 18, color: Colors.indigo),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$modeTitle • Paciente: $patientName$extra',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.indigo,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        );
+      } else {
+        final patientCount = caregiverNotifier.managedProfiles.where((p) => !p.isAnimal).length;
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.indigo.withOpacity(0.10),
+            border: Border(
+              bottom: BorderSide(color: Colors.indigo.withOpacity(0.25)),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(isClinico ? Icons.medical_services_rounded : Icons.family_restroom_rounded, size: 18, color: Colors.indigo),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$modeTitle • Vista General ($patientCount pacientes a cargo)',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.indigo,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
     }
   }
 
@@ -460,7 +1141,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al iniciar grabación: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.errorColor,
           ),
         );
       }
@@ -502,7 +1183,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error al transcribir: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.errorColor,
           ),
         );
       }
@@ -513,19 +1194,62 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     }
   }
 
-  Future<void> _executeUpdateDose(String medName, String statusStr, int minutes, bool updateAll) async {
+  Future<void> _executeUpdateDose(
+    String medName,
+    String statusStr,
+    int minutes,
+    bool updateAll, {
+    String? targetProfileName,
+  }) async {
     final authService = context.read<AuthService>();
     final firestoreService = context.read<FirestoreService>();
     final user = authService.currentUser;
     if (user == null || medName.isEmpty) return;
 
     try {
-      final activeProfile = _getActiveProfile();
-      final treatments = await firestoreService.getMedicamentosStream(user.uid, activeProfile).first;
+      CaregiverProfile? targetProfile;
+      if (targetProfileName != null && targetProfileName.isNotEmpty) {
+        targetProfile = _resolveCaregiverProfile(name: targetProfileName);
+      }
+      targetProfile ??= _getActiveProfile();
+
+      List<Tratamiento> treatments = [];
+
+      // If profile is still null, but in Caregiver or Animal mode in Vista General,
+      // search across managed profiles to find the one holding this medication
+      if (targetProfile == null) {
+        final prefNotifier = context.read<PreferenceNotifier>();
+        final caregiverNotifier = context.read<CaregiverNotifier>();
+        final isAnimal = prefNotifier.isAnimalMode;
+        final isCaregiver = caregiverNotifier.isCaregiverModeActive;
+
+        if (isCaregiver || isAnimal) {
+          final candidates = caregiverNotifier.managedProfiles
+              .where((p) => isAnimal ? p.isAnimal : !p.isAnimal)
+              .toList();
+
+          for (final candidate in candidates) {
+            final txs = await firestoreService.getMedicamentos(user.uid, candidate);
+            final match = txs.any((t) =>
+                (t.isActivo || !t.isFinalizado) &&
+                t.nombreMedicamento.toLowerCase().contains(medName.toLowerCase()));
+            if (match) {
+              targetProfile = candidate;
+              treatments = txs;
+              break;
+            }
+          }
+        }
+      }
+
+      if (treatments.isEmpty) {
+        treatments = await firestoreService.getMedicamentosStream(user.uid, targetProfile).first;
+      }
       // Filter out finished treatments from medical history
       final runningTreatments = treatments.where((t) => t.isActivo || !t.isFinalizado).toList();
 
       final DoseStatus status = DoseStatus.fromString(statusStr);
+      final profileLabel = targetProfile != null ? ' para **${targetProfile.name}**' : '';
 
       final isAll = medName.toLowerCase() == 'todos' ||
           medName.toLowerCase() == 'todas' ||
@@ -570,7 +1294,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         setState(() {
           _messages.add(_ChatMessage(
             text: updatedCount > 0
-                ? '¡Se actualizaron **$updatedCount** dosis de tus medicamentos activos a **${status.displayName}** con éxito!'
+                ? '¡Se actualizaron **$updatedCount** dosis de tus medicamentos activos$profileLabel a **${status.displayName}** con éxito!'
                 : 'No encontré ninguna dosis programada o pendiente cercana para actualizar.',
             isUser: false,
           ));
@@ -598,7 +1322,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
           if (pendingDoses.isEmpty) {
             setState(() {
               _messages.add(_ChatMessage(
-                text: 'No encontré ninguna dosis pendiente o programada cercana para **${treatment.nombreMedicamento}**.',
+                text: 'No encontré ninguna dosis pendiente o programada cercana para **${treatment.nombreMedicamento}**$profileLabel.',
                 isUser: false,
               ));
             });
@@ -639,7 +1363,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
 
           setState(() {
             _messages.add(_ChatMessage(
-              text: '¡Se actualizaron **$updatedCount** dosis de **${treatment.nombreMedicamento}** a **${status.displayName}** con éxito!',
+              text: '¡Se actualizaron **$updatedCount** dosis de **${treatment.nombreMedicamento}**$profileLabel a **${status.displayName}** con éxito!',
               isUser: false,
               timestamp: DateTime.now(),
             ));
@@ -649,7 +1373,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
           if (doseTime == null) {
             setState(() {
               _messages.add(_ChatMessage(
-                text: 'No encontré ninguna dosis pendiente o programada cercana para **${treatment.nombreMedicamento}**.',
+                text: 'No encontré ninguna dosis pendiente o programada cercana para **${treatment.nombreMedicamento}**$profileLabel.',
                 isUser: false,
                 timestamp: DateTime.now(),
               ));
@@ -681,7 +1405,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
 
             setState(() {
               _messages.add(_ChatMessage(
-                text: '¡Dosis de **${treatment.nombreMedicamento}** aplazada por **$minutes minutos** con éxito!',
+                text: '¡Dosis de **${treatment.nombreMedicamento}**$profileLabel aplazada por **$minutes minutos** con éxito!',
                 isUser: false,
               ));
             });
@@ -693,7 +1417,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
               status,
             );
 
-            String successMsg = '¡Dosis de **${treatment.nombreMedicamento}** marcada como **${status.displayName}** con éxito!';
+            String successMsg = '¡Dosis de **${treatment.nombreMedicamento}**$profileLabel marcada como **${status.displayName}** con éxito!';
             if (status == DoseStatus.tomada && inventoryResult?.stockBajo == true) {
               successMsg += '\n⚠️ *Advertencia: Stock bajo de este medicamento. Te quedan ${inventoryResult!.dosisRestantes} dosis.*';
             }
@@ -761,6 +1485,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
               'timestamp': m.timestamp.toIso8601String(),
               if (m.prescriptionData != null) 'prescriptionData': m.prescriptionData,
               if (m.showAdherenceChart) 'showAdherenceChart': true,
+              if (m.adherenceChartData != null) 'adherenceChartData': m.adherenceChartData,
             })
         .toList();
 
@@ -796,6 +1521,9 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                 ? Map<String, dynamic>.from(m['prescriptionData'] as Map)
                 : null,
             showAdherenceChart: m['showAdherenceChart'] as bool? ?? false,
+            adherenceChartData: m['adherenceChartData'] != null
+                ? Map<String, dynamic>.from(m['adherenceChartData'] as Map)
+                : null,
           ));
         }
       }
@@ -934,22 +1662,43 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
 
   Widget _buildDisclaimerCard() {
     final l10n = AppLocalizations.of(context);
+    final prefNotifier = context.watch<PreferenceNotifier>();
+    final caregiverNotifier = context.watch<CaregiverNotifier>();
+    final isAnimal = prefNotifier.isAnimalMode;
+    final isCaregiver = caregiverNotifier.isCaregiverModeActive;
+
+    String disclaimerText;
+    IconData icon = Icons.shield_outlined;
+    Color color = AppTheme.primaryColor;
+
+    if (isAnimal) {
+      disclaimerText = 'Midi no reemplaza la consulta con un médico veterinario colegiado. Ante sospecha de intoxicación por fármacos humanos o emergencias, acude de inmediato a una clínica veterinaria.';
+      icon = Icons.pets_outlined;
+      color = Colors.green;
+    } else if (isCaregiver) {
+      disclaimerText = 'Midi es un asistente de apoyo al cuidado. La administración de medicamentos debe ser verificada según las prescripciones médicas y la regla de los 5 correctos.';
+      icon = Icons.medical_services_outlined;
+      color = Colors.indigo;
+    } else {
+      disclaimerText = l10n?.chatBotMedicalDisclaimer ??
+          'Midi no reemplaza la opinión médica profesional. Ante cualquier duda de salud, consulta a tu médico.';
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withOpacity(0.05),
+        color: color.withOpacity(0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.15)),
+        border: Border.all(color: color.withOpacity(0.15)),
       ),
       child: Row(
         children: [
-          Icon(Icons.shield_outlined, color: AppTheme.primaryColor, size: 24),
+          Icon(icon, color: color, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              l10n?.chatBotMedicalDisclaimer ??
-                  'Midi no reemplaza la opinión médica profesional. Ante cualquier duda de salud, consulta a tu médico.',
+              disclaimerText,
               style: TextStyle(
                 fontSize: 12,
                 color: AppTheme.secondaryTextColor,
@@ -964,6 +1713,217 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
 
   Widget _buildInitialOptions() {
     final l10n = AppLocalizations.of(context);
+    final prefNotifier = context.watch<PreferenceNotifier>();
+    final caregiverNotifier = context.watch<CaregiverNotifier>();
+    final isAnimal = prefNotifier.isAnimalMode;
+    final isCaregiver = caregiverNotifier.isCaregiverModeActive;
+    final activeProfile = _getActiveProfile();
+
+    List<Widget> optionRows;
+
+    if (isAnimal) {
+      if (activeProfile != null) {
+        final petName = activeProfile.name.trim();
+        optionRows = [
+          Row(
+            children: [
+              _buildQuickActionCard(
+                title: 'Plan de $petName',
+                subtitle: 'Dosis y horarios',
+                icon: Icons.medication_rounded,
+                color: const Color(0xFF2F6DB4),
+                onTap: () => _sendSuggestion('¿Cuáles son los tratamientos activos de $petName?'),
+              ),
+              _buildQuickActionCard(
+                title: '¿Cuándo termina?',
+                subtitle: 'Días restantes y fin',
+                icon: Icons.event_available_rounded,
+                color: Colors.teal,
+                onTap: () => _sendSuggestion('¿Cuándo va a terminar el tratamiento de $petName y cuántos días faltan?'),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              _buildQuickActionCard(
+                title: 'Dosis por peso',
+                subtitle: 'Cálculo para $petName',
+                icon: Icons.pets_rounded,
+                color: Colors.green,
+                onTap: () => _sendSuggestion('¿Cómo se calculan las dosis por peso para $petName y por qué es peligroso asumir dosis humanas?'),
+              ),
+              _buildQuickActionCard(
+                title: 'Fármacos tóxicos',
+                subtitle: 'Peligros para mascotas',
+                icon: Icons.warning_amber_rounded,
+                color: Colors.redAccent,
+                onTap: () => _sendSuggestion('¿Qué medicamentos humanos comunes son tóxicos o mortales para perros y gatos?'),
+              ),
+            ],
+          ),
+        ];
+      } else {
+        optionRows = [
+          Row(
+            children: [
+              _buildQuickActionCard(
+                title: 'Tratamientos',
+                subtitle: 'Ver todas las mascotas',
+                icon: Icons.medication_rounded,
+                color: const Color(0xFF2F6DB4),
+                onTap: () => _sendSuggestion('¿Cuáles son los tratamientos activos de cada una de mis mascotas?'),
+              ),
+              _buildQuickActionCard(
+                title: '¿Cuándo terminan?',
+                subtitle: 'Fin por mascota',
+                icon: Icons.event_available_rounded,
+                color: Colors.teal,
+                onTap: () => _sendSuggestion('¿Cuándo finaliza el tratamiento de cada una de mis mascotas y cuántos días le quedan a cada una?'),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              _buildQuickActionCard(
+                title: 'Fármacos tóxicos',
+                subtitle: 'Peligros mortales',
+                icon: Icons.warning_amber_rounded,
+                color: Colors.redAccent,
+                onTap: () => _sendSuggestion('¿Qué medicamentos humanos comunes son tóxicos o mortales para perros y gatos?'),
+              ),
+              _buildQuickActionCard(
+                title: 'Alimentos prohibidos',
+                subtitle: 'Comidas y plantas tóxicas',
+                icon: Icons.no_food_rounded,
+                color: Colors.orange,
+                onTap: () => _sendSuggestion('¿Qué alimentos y plantas habituales en el hogar son tóxicos para perros y gatos?'),
+              ),
+            ],
+          ),
+        ];
+      }
+    } else if (isCaregiver) {
+      if (activeProfile != null) {
+        final patientName = activeProfile.name.trim();
+        optionRows = [
+          Row(
+            children: [
+              _buildQuickActionCard(
+                title: 'Plan de $patientName',
+                subtitle: 'Medicamentos y horarios',
+                icon: Icons.medical_services_rounded,
+                color: Colors.indigo,
+                onTap: () => _sendSuggestion('¿Cuáles son los tratamientos y horarios programados para $patientName?'),
+              ),
+              _buildQuickActionCard(
+                title: '¿Cuándo termina?',
+                subtitle: 'Fechas y días restantes',
+                icon: Icons.event_available_rounded,
+                color: Colors.teal,
+                onTap: () => _sendSuggestion('¿Cuándo finaliza el tratamiento de $patientName y cuántos días le faltan?'),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              _buildQuickActionCard(
+                title: 'Los 5 correctos',
+                subtitle: 'Seguridad en administración',
+                icon: Icons.verified_user_rounded,
+                color: Colors.teal,
+                onTap: () => _sendSuggestion('Recuérdame la regla de los 5 correctos para la administración segura de medicamentos a $patientName.'),
+              ),
+              _buildQuickActionCard(
+                title: 'Alertas y cuidados',
+                subtitle: 'Alergias y notas',
+                icon: Icons.warning_amber_rounded,
+                color: Colors.amber.shade800,
+                onTap: () => _sendSuggestion('¿Qué precauciones y posibles alergias debo vigilar con los tratamientos de $patientName?'),
+              ),
+            ],
+          ),
+        ];
+      } else {
+        optionRows = [
+          Row(
+            children: [
+              _buildQuickActionCard(
+                title: 'Dosis de pacientes',
+                subtitle: 'Resumen de hoy',
+                icon: Icons.medical_services_rounded,
+                color: Colors.indigo,
+                onTap: () => _sendSuggestion('¿Cuáles son las dosis programadas para hoy agrupadas por paciente?'),
+              ),
+              _buildQuickActionCard(
+                title: '¿Cuándo terminan?',
+                subtitle: 'Fin de tratamiento por paciente',
+                icon: Icons.event_available_rounded,
+                color: Colors.teal,
+                onTap: () => _sendSuggestion('¿Cuándo termina el tratamiento de cada paciente y cuántos días restan para cada uno?'),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              _buildQuickActionCard(
+                title: 'Los 5 correctos',
+                subtitle: 'Seguridad clínica',
+                icon: Icons.verified_user_rounded,
+                color: Colors.teal,
+                onTap: () => _sendSuggestion('Recuérdame la regla de los 5 correctos para la administración segura de medicamentos.'),
+              ),
+              _buildQuickActionCard(
+                title: 'Registro de tomas',
+                subtitle: 'Pendientes por paciente',
+                icon: Icons.checklist_rounded,
+                color: Colors.purple,
+                onTap: () => _sendSuggestion('¿Qué dosis de hoy están marcadas como tomadas o pendientes según cada paciente?'),
+              ),
+            ],
+          ),
+        ];
+      }
+    } else {
+      optionRows = [
+        Row(
+          children: [
+            _buildQuickActionCard(
+              title: l10n?.chatBotQuickMeds ?? 'Mis medicamentos',
+              subtitle: l10n?.chatBotQuickMedsSubtitle ?? 'Info, dosis y horarios',
+              icon: Icons.medication_rounded,
+              color: const Color(0xFF2F6DB4),
+              onTap: () => _sendSuggestion('Háblame de mis medicamentos activos'),
+            ),
+            _buildQuickActionCard(
+              title: '¿Cuándo termina?',
+              subtitle: 'Fechas y días restantes',
+              icon: Icons.event_available_rounded,
+              color: Colors.teal,
+              onTap: () => _sendSuggestion('¿Cuándo va a terminar mi tratamiento y cuántos días me faltan?'),
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            _buildQuickActionCard(
+              title: l10n?.chatBotQuickReminders ?? 'Recordatorios',
+              subtitle: l10n?.chatBotQuickRemindersSubtitle ?? 'Alarmas y notificaciones',
+              icon: Icons.notifications_active_rounded,
+              color: Colors.green,
+              onTap: () => _sendSuggestion('¿Cuáles son mis próximos recordatorios para hoy?'),
+            ),
+            _buildQuickActionCard(
+              title: l10n?.chatBotQuickProgress ?? 'Mi progreso',
+              subtitle: l10n?.chatBotQuickProgressSubtitle ?? 'Adherencia y estadísticas',
+              icon: Icons.bar_chart_rounded,
+              color: Colors.purple,
+              onTap: () => _sendSuggestion('Muéstrame mi reporte de progreso y estadísticas de adherencia'),
+            ),
+          ],
+        ),
+      ];
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -980,42 +1940,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            _buildQuickActionCard(
-              title: l10n?.chatBotQuickMeds ?? 'Mis medicamentos',
-              subtitle: l10n?.chatBotQuickMedsSubtitle ?? 'Info, dosis y horarios',
-              icon: Icons.medication_rounded,
-              color: const Color(0xFF2F6DB4),
-              onTap: () => _sendSuggestion('Háblame de mis medicamentos activos'),
-            ),
-            _buildQuickActionCard(
-              title: l10n?.chatBotQuickReminders ?? 'Recordatorios',
-              subtitle: l10n?.chatBotQuickRemindersSubtitle ?? 'Alarmas y notificaciones',
-              icon: Icons.notifications_active_rounded,
-              color: Colors.green,
-              onTap: () => _sendSuggestion('¿Cuáles son mis próximos recordatorios para hoy?'),
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            _buildQuickActionCard(
-              title: l10n?.chatBotQuickProgress ?? 'Mi progreso',
-              subtitle: l10n?.chatBotQuickProgressSubtitle ?? 'Adherencia y estadísticas',
-              icon: Icons.bar_chart_rounded,
-              color: Colors.purple,
-              onTap: () => _sendSuggestion('Muéstrame mi reporte de progreso y estadísticas de adherencia'),
-            ),
-            _buildQuickActionCard(
-              title: l10n?.chatBotQuickFaq ?? 'Dudas frecuentes',
-              subtitle: l10n?.chatBotQuickFaqSubtitle ?? 'Resuelve tus preguntas',
-              icon: Icons.help_outline_rounded,
-              color: Colors.orange,
-              onTap: () => _sendSuggestion('¿Cuáles son las dudas frecuentes sobre el uso de la aplicación?'),
-            ),
-          ],
-        ),
+        ...optionRows,
         const SizedBox(height: 8),
         _buildDisclaimerCard(),
       ],
@@ -1036,9 +1961,9 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.08),
+                color: AppTheme.errorColor.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.red.withOpacity(0.3)),
+                border: Border.all(color: AppTheme.errorColor.withOpacity(0.3)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1051,7 +1976,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                         width: 10,
                         height: 10,
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(value),
+                          color: AppTheme.errorColor.withOpacity(value),
                           shape: BoxShape.circle,
                         ),
                       );
@@ -1061,14 +1986,14 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                   Text(
                     l10n?.chatBotRecordingNotice ?? 'Grabando... Toca el mic para enviar',
                     style: const TextStyle(
-                      color: Colors.red,
+                      color: AppTheme.errorColor,
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.cancel, color: Colors.red),
+                    icon: const Icon(Icons.cancel, color: AppTheme.errorColor),
                     onPressed: _cancelVoiceRecording,
                     tooltip: l10n?.chatBotCancelRecording ?? 'Cancelar grabación',
                     padding: EdgeInsets.zero,
@@ -1086,7 +2011,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(_composerRadius),
-                      border: Border.all(color: _isRecording ? Colors.red.withOpacity(0.4) : AppTheme.borderColor),
+                      border: Border.all(color: _isRecording ? AppTheme.errorColor.withOpacity(0.4) : AppTheme.borderColor),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.02),
@@ -1109,7 +2034,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                               ? (l10n?.chatBotListening ?? 'Escuchando...')
                               : (l10n?.chatBotInputHint ?? 'Pregunta lo que necesitas...'),
                           hintStyle: TextStyle(
-                            color: _isRecording ? Colors.red.withOpacity(0.6) : AppTheme.secondaryTextColor.withOpacity(0.6),
+                            color: _isRecording ? AppTheme.errorColor.withOpacity(0.6) : AppTheme.secondaryTextColor.withOpacity(0.6),
                             fontSize: 16,
                           ),
                           filled: true,
@@ -1172,7 +2097,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: _isRecording
-                                  ? Colors.red
+                                  ? AppTheme.errorColor
                                   : AppTheme.primaryColor.withOpacity(0.08),
                             ),
                             child: Icon(
@@ -1315,7 +2240,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                               ),
                             ),
                             trailing: IconButton(
-                              icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
+                              icon: const Icon(Icons.delete_outline, size: 20, color: AppTheme.errorColor),
                               onPressed: () async {
                                 final confirm = await showDialog<bool>(
                                   context: context,
@@ -1364,35 +2289,53 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     int dosis,
     int duration,
     String notas,
-    Map<String, dynamic> prescriptionData,
-  ) async {
+    Map<String, dynamic> prescriptionData, {
+    CaregiverProfile? targetProfile,
+  }) async {
     final authService = context.read<AuthService>();
+    final treatmentRepo = context.read<TreatmentRepository>();
+    final geminiService = context.read<GeminiService>();
+    final firestoreService = context.read<FirestoreService>();
     final user = authService.currentUser;
     if (user == null) return;
 
+    final CaregiverProfile? effectiveProfile = targetProfile ??
+        _resolveCaregiverProfile(
+          name: prescriptionData['targetProfileName']?.toString(),
+          id: prescriptionData['targetProfileId']?.toString(),
+        ) ??
+        _getActiveProfile();
+
     // Verificar interacciones farmacológicas con IA
     try {
-      final treatmentRepo = context.read<TreatmentRepository>();
       final result = await treatmentRepo.getTreatments(user.uid);
       if (result.isSuccess && result.data != null && result.data!.isNotEmpty) {
-        final geminiService = context.read<GeminiService>();
-        final interactionResult = await geminiService.checkDrugInteractions(
-          newDrugName: name,
-          activeTreatments: result.data!,
-        );
-        if (interactionResult['hasInteraction'] == true && mounted) {
-          final warningMessage = interactionResult['warningMessage'] as String? ??
-              'Se ha detectado una posible interacción medicamentosa.';
-          final proceed = await DrugInteractionDialog.show(
-            context,
-            warningMessage: warningMessage,
+        final profileTreatments = result.data!.where((t) {
+          if (effectiveProfile == null) return t.profileId == null;
+          return t.profileId == effectiveProfile.id;
+        }).toList();
+
+        if (profileTreatments.isNotEmpty) {
+          final interactionResult = await geminiService.checkDrugInteractions(
+            newDrugName: name,
+            activeTreatments: profileTreatments,
           );
-          if (!proceed || !mounted) return;
+          if (interactionResult['hasInteraction'] == true && mounted) {
+            final warningMessage = interactionResult['warningMessage'] as String? ??
+                'Se ha detectado una posible interacción medicamentosa.';
+            final proceed = await DrugInteractionDialog.show(
+              context,
+              warningMessage: warningMessage,
+            );
+            if (!proceed || !mounted) return;
+          }
         }
       }
     } catch (e) {
       debugPrint('Error comprobando interacciones en chat: $e');
     }
+
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -1409,9 +2352,10 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     );
 
     try {
-      final treatmentService = TreatmentService(context.read<FirestoreService>());
+      final treatmentService = TreatmentService(firestoreService);
       await treatmentService.saveTreatment(
         userId: user.uid,
+        profile: effectiveProfile,
         formData: TreatmentFormData(
           nombreMedicamento: name,
           presentacion: pres,
@@ -1430,10 +2374,28 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
 
+        final prefNotifier = context.read<PreferenceNotifier>();
+        final caregiverNotifier = context.read<CaregiverNotifier>();
+        final isAnimal = prefNotifier.isAnimalMode;
+        final isCaregiver = caregiverNotifier.isCaregiverModeActive;
+
+        String successMsg;
+        if (isAnimal && effectiveProfile != null) {
+          successMsg = '¡Tratamiento de **$name** asignado y registrado para **${effectiveProfile.name}** 🐾! Las alarmas y dosis han quedado programadas.';
+        } else if (isCaregiver && effectiveProfile != null) {
+          successMsg = '¡Tratamiento de **$name** asignado con éxito a **${effectiveProfile.name}** 🩺! Las alertas de administración están activas.';
+        } else {
+          successMsg = '¡Tratamiento de **$name** agregado con éxito a tu cuenta de MediTime! Las alarmas y notificaciones han sido configuradas.';
+        }
+
         setState(() {
           prescriptionData['isSaved'] = true;
+          if (effectiveProfile != null) {
+            prescriptionData['targetProfileId'] = effectiveProfile.id;
+            prescriptionData['targetProfileName'] = effectiveProfile.name;
+          }
           _messages.add(_ChatMessage(
-            text: '¡Tratamiento de **$name** agregado con éxito a tu cuenta de MediTime! Las alarmas y notificaciones han sido configuradas.',
+            text: successMsg,
             isUser: false,
           ));
         });
@@ -1444,7 +2406,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error al guardar: $e'), backgroundColor: AppTheme.errorColor),
         );
       }
     }
@@ -1495,6 +2457,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
             ],
           ),
           actions: [
+            _buildQuotaActionWidget(),
             Builder(
               builder: (context) => IconButton(
                 icon: const Icon(Icons.history_rounded),
@@ -1508,6 +2471,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
       ),
       body: Column(
         children: [
+          _buildModeContextBanner(),
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -1523,8 +2487,8 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                     _ChatBubble(
                       message: message,
                       onEdit: message.isUser ? () => _editMessageDialog(index, message.text) : null,
-                      onConfirmRecipe: (name, pres, interval, dosis, duration, notas, pData) {
-                        _handleConfirmRecipe(name, pres, interval, dosis, duration, notas, pData);
+                      onConfirmRecipe: (name, pres, interval, dosis, duration, notas, pData, {targetProfile}) {
+                        _handleConfirmRecipe(name, pres, interval, dosis, duration, notas, pData, targetProfile: targetProfile);
                       },
                     ),
                     if (isFirstGreeting) _buildInitialOptions(),
@@ -1549,8 +2513,9 @@ class _ChatBubble extends StatelessWidget {
     int dosis,
     int duration,
     String notas,
-    Map<String, dynamic> prescriptionData,
-  )? onConfirmRecipe;
+    Map<String, dynamic> prescriptionData, {
+    CaregiverProfile? targetProfile,
+  })? onConfirmRecipe;
 
   final void Function()? onEdit;
 
@@ -1571,7 +2536,9 @@ class _ChatBubble extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 9),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.76,
+          maxWidth: isUser
+              ? MediaQuery.of(context).size.width * 0.78
+              : MediaQuery.of(context).size.width * 0.90,
         ),
         decoration: BoxDecoration(
           color: isUser ? null : Theme.of(context).cardColor,
@@ -1598,7 +2565,7 @@ class _ChatBubble extends StatelessWidget {
                 ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -1610,17 +2577,23 @@ class _ChatBubble extends StatelessWidget {
                 crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  RichText(
-                    text: TextSpan(
-                      children: _buildTextSpans(message.text, textColor),
+                  if (isUser)
+                    RichText(
+                      text: TextSpan(
+                        children: _buildTextSpans(message.text, textColor),
+                      ),
+                    )
+                  else
+                    MarkdownMessageBody(
+                      text: message.text,
+                      textColor: textColor,
                     ),
-                  ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     DateFormat('h:mm a').format(message.timestamp),
                     style: TextStyle(
                       fontSize: 10,
-                      color: isUser ? Colors.white.withOpacity(0.75) : AppTheme.secondaryTextColor,
+                      color: isUser ? Colors.white.withValues(alpha: 0.75) : AppTheme.secondaryTextColor,
                     ),
                   ),
                 ],
@@ -1643,12 +2616,21 @@ class _ChatBubble extends StatelessWidget {
           if (message.prescriptionData != null && onConfirmRecipe != null)
             _PrescriptionFormCard(
               prescriptionData: message.prescriptionData!,
-              onSaved: (name, pres, interval, dosis, duration, notas) {
-                onConfirmRecipe!(name, pres, interval, dosis, duration, notas, message.prescriptionData!);
+              onSaved: (name, pres, interval, dosis, duration, notas, [targetProfile]) {
+                onConfirmRecipe!(
+                  name,
+                  pres,
+                  interval,
+                  dosis,
+                  duration,
+                  notas,
+                  message.prescriptionData!,
+                  targetProfile: targetProfile,
+                );
               },
             ),
           if (message.showAdherenceChart)
-            const _AdherenceChartCard(),
+            _AdherenceChartCard(arguments: message.adherenceChartData),
         ],
       );
     }
@@ -1697,68 +2679,151 @@ class _ChatBubble extends StatelessWidget {
 }
 
 class _AdherenceChartCard extends StatelessWidget {
-  const _AdherenceChartCard();
+  final Map<String, dynamic>? arguments;
 
-  /// Calculates statistics for a treatment using the same logic as reportes_page.dart
-  Map<String, int> _calcularEstadisticas(Tratamiento tratamiento) {
+  const _AdherenceChartCard({this.arguments});
+
+  ({DateTime startDate, DateTime endDate, String label, ReportInterval targetInterval}) _resolvePeriodConfig() {
+    final now = DateTime.now();
+    DateTime startDate;
+    DateTime endDate = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+    ReportInterval targetInterval = ReportInterval.semana;
+
+    const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    final args = arguments ?? {};
+    final String? periodoType = args['periodo']?.toString().toLowerCase().trim();
+    final dynamic diasRaw = args['dias'];
+    final int? daysCount = diasRaw is int
+        ? diasRaw
+        : (diasRaw is String ? int.tryParse(diasRaw) : (diasRaw is num ? diasRaw.toInt() : null));
+    final String? inicioStr = args['fechaInicio']?.toString().trim();
+    final String? finStr = args['fechaFin']?.toString().trim();
+
+    DateTime? customStart = inicioStr != null ? DateTime.tryParse(inicioStr) : null;
+    DateTime? customEnd = finStr != null ? DateTime.tryParse(finStr) : null;
+
+    if (customEnd != null) {
+      endDate = DateTime(customEnd.year, customEnd.month, customEnd.day, 23, 59, 59, 999);
+    }
+
+    String label;
+    if (customStart != null) {
+      startDate = DateTime(customStart.year, customStart.month, customStart.day);
+      targetInterval = ReportInterval.todo;
+      label = '${startDate.day} ${months[startDate.month - 1]} - ${endDate.day} ${months[endDate.month - 1]} ${endDate.year}';
+    } else if (periodoType == 'dia' || periodoType == 'hoy' || daysCount == 1) {
+      startDate = DateTime(now.year, now.month, now.day);
+      endDate = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+      targetInterval = ReportInterval.semana;
+      label = '${now.day} ${months[now.month - 1]} ${now.year} (Hoy)';
+    } else if (periodoType == 'mes' || daysCount == 30) {
+      startDate = DateTime(now.year, now.month, 1);
+      targetInterval = ReportInterval.mes;
+      label = '${startDate.day} ${months[startDate.month - 1]} - ${now.day} ${months[now.month - 1]} ${now.year} (Mes en curso)';
+    } else if (periodoType == 'anio' || periodoType == 'año' || daysCount == 365) {
+      startDate = DateTime(now.year, 1, 1);
+      targetInterval = ReportInterval.anio;
+      label = '${now.year} (Año en curso)';
+    } else if (daysCount != null && daysCount > 0) {
+      startDate = now.subtract(Duration(days: daysCount - 1));
+      startDate = DateTime(startDate.year, startDate.month, startDate.day);
+      targetInterval = daysCount <= 7
+          ? ReportInterval.semana
+          : (daysCount <= 31 ? ReportInterval.mes : ReportInterval.anio);
+      label = '${startDate.day} ${months[startDate.month - 1]} - ${now.day} ${months[now.month - 1]} ${now.year} (Últimos $daysCount días)';
+    } else {
+      startDate = now.subtract(const Duration(days: 6));
+      startDate = DateTime(startDate.year, startDate.month, startDate.day);
+      targetInterval = ReportInterval.semana;
+      label = '${startDate.day} ${months[startDate.month - 1]} - ${now.day} ${months[now.month - 1]} ${now.year} (Últimos 7 días)';
+    }
+
+    return (
+      startDate: startDate,
+      endDate: endDate,
+      label: label,
+      targetInterval: targetInterval,
+    );
+  }
+
+  /// Calculates statistics for a treatment in the given date range using tolerance matching
+  Map<String, int> _calcularEstadisticas(Tratamiento tratamiento, DateTime startDate, DateTime endDate) {
     int tomadas = 0;
     int omitidas = 0;
     int notificadas = 0;
-    int programadasPasadas = 0;
+    int aplazadas = 0;
 
     final now = DateTime.now();
-    final todasLasDosis = TratamientoService.generarDosisTotales(tratamiento);
+    final end = endDate.isBefore(now) ? endDate : now;
 
-    final Map<int, DoseStatus> statusMap = {};
+    // 1. Recopilar dosis registradas explícitamente en doseStatus dentro del rango [startDate, endDate]
+    final List<DateTime> recordedTimes = [];
     tratamiento.doseStatus.forEach((key, status) {
       final parsedTime = DateTime.tryParse(key);
-      if (parsedTime != null) {
-        statusMap[parsedTime.millisecondsSinceEpoch] = status;
+      if (parsedTime != null &&
+          !parsedTime.isBefore(startDate) &&
+          !parsedTime.isAfter(endDate)) {
+        recordedTimes.add(parsedTime);
+        switch (status) {
+          case DoseStatus.tomada:
+            tomadas++;
+            break;
+          case DoseStatus.omitida:
+            omitidas++;
+            break;
+          case DoseStatus.notificada:
+            notificadas++;
+            break;
+          case DoseStatus.aplazada:
+            aplazadas++;
+            break;
+          case DoseStatus.pendiente:
+            omitidas++;
+            break;
+        }
       }
     });
 
-    for (var doseTime in todasLasDosis) {
-      if (doseTime.isBefore(now)) {
-        programadasPasadas++;
-        final status = statusMap[doseTime.millisecondsSinceEpoch];
-        if (status == null) {
-          omitidas++;
-        } else {
-          switch (status) {
-            case DoseStatus.tomada:
-              tomadas++;
-              break;
-            case DoseStatus.omitida:
-              omitidas++;
-              break;
-            case DoseStatus.notificada:
-              notificadas++;
-              break;
-            case DoseStatus.aplazada:
-            case DoseStatus.pendiente:
-              omitidas++;
-              break;
+    // 2. Generar dosis programadas en el rango [startDate, endDate] y verificar las ya pasadas con tolerancia
+    final todasLasDosis = TratamientoService.generarDosisEnRango(tratamiento, startDate, endDate);
+    final intervaloMinutos = tratamiento.intervaloDosis.inMinutes > 0 ? tratamiento.intervaloDosis.inMinutes : 240;
+    final maxToleranceMinutes = (intervaloMinutos / 2).clamp(30.0, 180.0);
+
+    for (final doseTime in todasLasDosis) {
+      if (!doseTime.isBefore(startDate) && doseTime.isBefore(now)) {
+        bool isRecorded = false;
+        for (final rec in recordedTimes) {
+          if (rec.difference(doseTime).inMinutes.abs() <= maxToleranceMinutes) {
+            isRecorded = true;
+            break;
           }
+        }
+        if (!isRecorded) {
+          omitidas++;
         }
       }
     }
+
+    final int programadasPasadas = tomadas + omitidas + notificadas + aplazadas;
 
     return {
       'tomadas': tomadas,
       'omitidas': omitidas,
       'notificadas': notificadas,
+      'aplazadas': aplazadas,
       'programadasPasadas': programadasPasadas,
     };
   }
 
   /// Gets recent dose history entries
-  List<Map<String, dynamic>> _getRecentHistory(List<Tratamiento> tratamientos) {
+  List<Map<String, dynamic>> _getRecentHistory(List<Tratamiento> tratamientos, [DateTime? startDate]) {
     final List<Map<String, dynamic>> history = [];
     final now = DateTime.now();
     for (var t in tratamientos) {
       t.doseStatus.forEach((dateString, status) {
         final doseTime = DateTime.tryParse(dateString);
         if (doseTime != null &&
+            (startDate == null || !doseTime.isBefore(startDate)) &&
             doseTime.isBefore(now) &&
             (status == DoseStatus.tomada || status == DoseStatus.omitida || status == DoseStatus.notificada)) {
           history.add({
@@ -1774,18 +2839,32 @@ class _AdherenceChartCard extends StatelessWidget {
   }
 
   /// Analyzes omission patterns by time of day
-  Map<String, String> _analyzeOmissionsPattern(List<Tratamiento> tratamientos) {
+  Map<String, String> _analyzeOmissionsPattern(
+    List<Tratamiento> tratamientos,
+    int totalOmitidas,
+    DateTime startDate,
+    String periodLabel,
+  ) {
+    if (totalOmitidas == 0) {
+      return {
+        'icon': '🎉',
+        'title': '¡Gran constancia!',
+        'subtitle': 'No presentas omisiones registradas en el período evaluado.',
+      };
+    }
+
     int morningOmissions = 0;
     int afternoonOmissions = 0;
     int nightOmissions = 0;
     int earlyOmissions = 0;
 
     final now = DateTime.now();
+
     for (var t in tratamientos) {
       t.doseStatus.forEach((dateString, status) {
         if (status == DoseStatus.omitida) {
           final doseTime = DateTime.tryParse(dateString);
-          if (doseTime != null && doseTime.isBefore(now)) {
+          if (doseTime != null && !doseTime.isBefore(startDate) && doseTime.isBefore(now)) {
             final hour = doseTime.hour;
             if (hour >= 6 && hour < 12) {
               morningOmissions++;
@@ -1804,39 +2883,39 @@ class _AdherenceChartCard extends StatelessWidget {
     final maxVal = [morningOmissions, afternoonOmissions, nightOmissions, earlyOmissions]
         .reduce((a, b) => a > b ? a : b);
 
-    if (maxVal == 0) {
-      return {
-        'icon': '🎉',
-        'title': '¡Gran constancia!',
-        'subtitle': 'No presentas omisiones registradas.',
-      };
+    if (maxVal > 0) {
+      if (maxVal == morningOmissions) {
+        return {
+          'icon': '🌅',
+          'title': 'Mayor omisión: Mañana',
+          'subtitle': 'Tip: Deja tu pastillero cerca del desayuno.',
+        };
+      } else if (maxVal == afternoonOmissions) {
+        return {
+          'icon': '☀️',
+          'title': 'Mayor omisión: Tarde',
+          'subtitle': 'Tip: Activa recordatorios extra en ese horario.',
+        };
+      } else if (maxVal == nightOmissions) {
+        return {
+          'icon': '🌙',
+          'title': 'Mayor omisión: Noche',
+          'subtitle': 'Tip: Alarma 15 min antes de dormir.',
+        };
+      } else {
+        return {
+          'icon': '🌃',
+          'title': 'Mayor omisión: Madrugada',
+          'subtitle': 'Tip: Ajusta horarios para no interrumpir el sueño.',
+        };
+      }
     }
 
-    if (maxVal == morningOmissions) {
-      return {
-        'icon': '🌅',
-        'title': 'Mayor omisión: Mañana',
-        'subtitle': 'Tip: Deja tu pastillero cerca del desayuno.',
-      };
-    } else if (maxVal == afternoonOmissions) {
-      return {
-        'icon': '☀️',
-        'title': 'Mayor omisión: Tarde',
-        'subtitle': 'Tip: Activa recordatorios extra en ese horario.',
-      };
-    } else if (maxVal == nightOmissions) {
-      return {
-        'icon': '🌙',
-        'title': 'Mayor omisión: Noche',
-        'subtitle': 'Tip: Alarma 15 min antes de dormir.',
-      };
-    } else {
-      return {
-        'icon': '🌃',
-        'title': 'Mayor omisión: Madrugada',
-        'subtitle': 'Tip: Ajusta horarios para no interrumpir el sueño.',
-      };
-    }
+    return {
+      'icon': '💡',
+      'title': 'Oportunidad de mejora',
+      'subtitle': 'Registras $totalOmitidas dosis pendientes o no confirmadas en este período.',
+    };
   }
 
   @override
@@ -1890,6 +2969,12 @@ class _AdherenceChartCard extends StatelessWidget {
         }
 
         // Calculate global stats
+        final periodConfig = _resolvePeriodConfig();
+        final startDate = periodConfig.startDate;
+        final endDate = periodConfig.endDate;
+        final periodLabel = periodConfig.label;
+        final targetInterval = periodConfig.targetInterval;
+
         int totalTomadas = 0;
         int totalOmitidas = 0;
         int totalNotificadas = 0;
@@ -1898,7 +2983,7 @@ class _AdherenceChartCard extends StatelessWidget {
         final List<Map<String, dynamic>> perTreatmentStats = [];
 
         for (var t in tratamientos) {
-          final stats = _calcularEstadisticas(t);
+          final stats = _calcularEstadisticas(t, startDate, endDate);
           totalTomadas += stats['tomadas']!;
           totalOmitidas += stats['omitidas']!;
           totalNotificadas += stats['notificadas']!;
@@ -1913,10 +2998,19 @@ class _AdherenceChartCard extends StatelessWidget {
             ? (totalTomadas / totalProgramadas) * 100
             : 0.0;
 
-        final recentHistory = _getRecentHistory(tratamientos);
-        final omissionsInfo = _analyzeOmissionsPattern(tratamientos);
+        final recentHistory = _getRecentHistory(tratamientos, startDate);
+        final omissionsInfo = _analyzeOmissionsPattern(tratamientos, totalOmitidas, startDate, periodLabel);
 
         final bool isGoodAdherence = overallAdherence >= 80;
+
+        void navigateToReportes() {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ReportesPage(initialInterval: targetInterval),
+            ),
+          );
+        }
 
         return Container(
           margin: const EdgeInsets.symmetric(vertical: 12),
@@ -1933,42 +3027,60 @@ class _AdherenceChartCard extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ─── 1. HEADER: Overall Adherence ───
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: Row(
-                  children: [
-                    Icon(Icons.insights_rounded, color: AppTheme.primaryColor, size: 20),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'Reporte de Adherencia',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isGoodAdherence
-                            ? AppTheme.successColor.withValues(alpha: 0.12)
-                            : AppTheme.errorColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        isGoodAdherence ? '✓ Buena' : '⚠ Mejorable',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isGoodAdherence ? AppTheme.successColor : AppTheme.errorColor,
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: navigateToReportes,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ─── 1. HEADER: Overall Adherence ───
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.insights_rounded, color: AppTheme.primaryColor, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Reporte de Adherencia',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                periodLabel,
+                                style: TextStyle(fontSize: 11, color: AppTheme.secondaryTextColor),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isGoodAdherence
+                                ? AppTheme.successColor.withValues(alpha: 0.12)
+                                : AppTheme.errorColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            isGoodAdherence ? '✓ Buena' : '⚠ Mejorable',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: isGoodAdherence ? AppTheme.successColor : AppTheme.errorColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(Icons.arrow_forward_ios_rounded, size: 12, color: AppTheme.secondaryTextColor),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
 
               const SizedBox(height: 16),
 
@@ -2300,7 +3412,7 @@ class _AdherenceChartCard extends StatelessWidget {
 
               // ─── 7. SUGGESTION BANNER ───
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
@@ -2340,9 +3452,42 @@ class _AdherenceChartCard extends StatelessWidget {
                   ),
                 ),
               ),
+
+              // ─── 8. TAP FOOTER HINT ───
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
+                  border: Border(top: BorderSide(color: AppTheme.borderColor)),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.bar_chart_rounded, size: 15, color: AppTheme.primaryColor),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Toca para ver el reporte completo y tendencias',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.chevron_right_rounded, size: 16, color: AppTheme.primaryColor),
+                  ],
+                ),
+              ),
             ],
           ),
-        );
+        ),
+      ),
+    );
       },
     );
   }
@@ -2407,7 +3552,15 @@ class _AdherenceChartCard extends StatelessWidget {
 
 class _PrescriptionFormCard extends StatefulWidget {
   final Map<String, dynamic> prescriptionData;
-  final void Function(String name, String pres, int interval, int dosis, int duration, String notas) onSaved;
+  final void Function(
+    String name,
+    String pres,
+    int interval,
+    int dosis,
+    int duration,
+    String notas, [
+    CaregiverProfile? targetProfile,
+  ]) onSaved;
 
   const _PrescriptionFormCard({
     required this.prescriptionData,
@@ -2425,6 +3578,9 @@ class _PrescriptionFormCardState extends State<_PrescriptionFormCard> {
   late final TextEditingController _duracionController;
   late final TextEditingController _notasController;
   late String _selectedPresentacion;
+
+  CaregiverProfile? _selectedProfile;
+  bool _profileInitialized = false;
 
   final List<String> _presentaciones = [
     'Comprimidos',
@@ -2449,6 +3605,60 @@ class _PrescriptionFormCardState extends State<_PrescriptionFormCard> {
 
     final rawPres = data['presentacion']?.toString() ?? 'Comprimidos';
     _selectedPresentacion = _normalizePresentacion(rawPres);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_profileInitialized) {
+      _profileInitialized = true;
+      _initSelectedProfile();
+    }
+  }
+
+  void _initSelectedProfile() {
+    final prefNotifier = context.read<PreferenceNotifier>();
+    final caregiverNotifier = context.read<CaregiverNotifier>();
+    final isAnimal = prefNotifier.isAnimalMode;
+    final allProfiles = caregiverNotifier.managedProfiles;
+    final data = widget.prescriptionData;
+
+    final targetId = data['targetProfileId']?.toString();
+    final targetName = data['targetProfileName']?.toString();
+
+    if (targetId != null && targetId.isNotEmpty && targetId != 'general') {
+      try {
+        _selectedProfile = allProfiles.firstWhere((p) => p.id == targetId);
+        return;
+      } catch (_) {}
+    }
+
+    if (targetName != null && targetName.trim().isNotEmpty) {
+      final clean = targetName.trim().toLowerCase();
+      if (clean != 'personal' && clean != 'yo' && clean != 'mí' && clean != 'mi perfil') {
+        final modeProfiles = allProfiles.where((p) => isAnimal ? p.isAnimal : !p.isAnimal).toList();
+        final pool = modeProfiles.isNotEmpty ? modeProfiles : allProfiles;
+        try {
+          _selectedProfile = pool.firstWhere((p) => p.name.trim().toLowerCase() == clean);
+          return;
+        } catch (_) {
+          try {
+            _selectedProfile = pool.firstWhere((p) =>
+                p.name.trim().toLowerCase().contains(clean) ||
+                clean.contains(p.name.trim().toLowerCase()));
+            return;
+          } catch (_) {}
+        }
+      }
+    }
+
+    _selectedProfile = caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimal);
+    if (_selectedProfile == null && isAnimal) {
+      final animals = allProfiles.where((p) => p.isAnimal).toList();
+      if (animals.isNotEmpty) {
+        _selectedProfile = animals.first;
+      }
+    }
   }
 
   String _normalizePresentacion(String rawValue) {
@@ -2486,6 +3696,13 @@ class _PrescriptionFormCardState extends State<_PrescriptionFormCard> {
   @override
   Widget build(BuildContext context) {
     final isSaved = widget.prescriptionData['isSaved'] == true;
+    final prefNotifier = context.watch<PreferenceNotifier>();
+    final caregiverNotifier = context.watch<CaregiverNotifier>();
+    final isAnimal = prefNotifier.isAnimalMode;
+    final isCaregiver = caregiverNotifier.isCaregiverModeActive;
+    final availableProfiles = caregiverNotifier.managedProfiles
+        .where((p) => isAnimal ? p.isAnimal : !p.isAnimal)
+        .toList();
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 12),
@@ -2528,6 +3745,169 @@ class _PrescriptionFormCardState extends State<_PrescriptionFormCard> {
             ],
           ),
           const SizedBox(height: 16),
+          if (isCaregiver || isAnimal) ...[
+            if (isSaved)
+              Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: (isAnimal ? Colors.teal : AppTheme.primaryColor).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: (isAnimal ? Colors.teal : AppTheme.primaryColor).withOpacity(0.25),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isAnimal ? Icons.pets_rounded : Icons.person_rounded,
+                      size: 20,
+                      color: isAnimal ? Colors.teal : AppTheme.primaryColor,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isAnimal ? 'Mascota / Paciente' : 'Paciente asignado',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isAnimal ? Colors.teal : AppTheme.primaryColor,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _selectedProfile != null
+                                ? '${_selectedProfile!.name} (${isAnimal ? (_selectedProfile!.species ?? "Mascota") : _selectedProfile!.relationship})'
+                                : 'Mi Perfil Personal (Yo)',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryTextColor,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.check_circle_rounded,
+                      size: 18,
+                      color: isAnimal ? Colors.teal : AppTheme.primaryColor,
+                    ),
+                  ],
+                ),
+              )
+            else
+              Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          isAnimal ? Icons.pets_rounded : Icons.person_outline_rounded,
+                          size: 16,
+                          color: isAnimal ? Colors.teal : AppTheme.primaryColor,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          isAnimal ? 'Paciente / Mascota a tratar' : 'Paciente asignado',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isAnimal ? Colors.teal : AppTheme.primaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<CaregiverProfile?>(
+                      value: availableProfiles.contains(_selectedProfile) ? _selectedProfile : null,
+                      dropdownColor: Theme.of(context).cardColor,
+                      isExpanded: true,
+                      style: TextStyle(
+                        color: AppTheme.primaryTextColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                      items: [
+                        if (!isAnimal)
+                          const DropdownMenuItem<CaregiverProfile?>(
+                            value: null,
+                            child: Row(
+                              children: [
+                                Icon(Icons.person_pin_rounded, size: 18, color: Colors.grey),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Mi Perfil Personal (Yo)',
+                                  style: TextStyle(fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ...availableProfiles.map((p) {
+                          Color pColor = isAnimal ? Colors.teal : AppTheme.primaryColor;
+                          try {
+                            pColor = Color(int.parse(p.colorHex.replaceFirst('#', '0xFF')));
+                          } catch (_) {}
+                          return DropdownMenuItem<CaregiverProfile?>(
+                            value: p,
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    color: pColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '${p.name} (${isAnimal ? (p.species ?? "Mascota") : p.relationship})',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedProfile = val;
+                          widget.prescriptionData['targetProfileId'] = val?.id;
+                          widget.prescriptionData['targetProfileName'] = val?.name;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: AppTheme.borderColor),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                            color: isAnimal ? Colors.teal : AppTheme.primaryColor,
+                          ),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: AppTheme.borderColor),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
           _buildField(
             label: 'Nombre del Medicamento',
             controller: _nameController,
@@ -2636,7 +4016,7 @@ class _PrescriptionFormCardState extends State<_PrescriptionFormCard> {
                     return;
                   }
 
-                  widget.onSaved(name, pres, interval, dosis, duration, notas);
+                  widget.onSaved(name, pres, interval, dosis, duration, notas, _selectedProfile);
                 },
                 child: const Text('Confirmar y Guardar'),
               ),
@@ -2756,6 +4136,7 @@ class _ChatMessage {
     this.isStreaming = false,
     this.prescriptionData,
     this.showAdherenceChart = false,
+    this.adherenceChartData,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 
@@ -2764,6 +4145,7 @@ class _ChatMessage {
   final bool isStreaming;
   final Map<String, dynamic>? prescriptionData;
   final bool showAdherenceChart;
+  final Map<String, dynamic>? adherenceChartData;
   final DateTime timestamp;
 
   _ChatMessage copyWith({
@@ -2772,6 +4154,7 @@ class _ChatMessage {
     bool? isStreaming,
     Map<String, dynamic>? prescriptionData,
     bool? showAdherenceChart,
+    Map<String, dynamic>? adherenceChartData,
     DateTime? timestamp,
   }) {
     return _ChatMessage(
@@ -2780,6 +4163,7 @@ class _ChatMessage {
       isStreaming: isStreaming ?? this.isStreaming,
       prescriptionData: prescriptionData ?? this.prescriptionData,
       showAdherenceChart: showAdherenceChart ?? this.showAdherenceChart,
+      adherenceChartData: adherenceChartData ?? this.adherenceChartData,
       timestamp: timestamp ?? this.timestamp,
     );
   }

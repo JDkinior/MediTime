@@ -121,6 +121,7 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
                         isAnimalMode: true,
                         animalModeType: animalModeType,
                       );
+                      await caregiverNotifier.onAnimalModeToggled(true);
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -133,6 +134,7 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
                       await preferenceNotifier.setAnimalMode(false);
                       await caregiverNotifier.setModeType(CaregiverModeType.familiar);
                       caregiverNotifier.clearActiveProfile();
+                      await caregiverNotifier.onAnimalModeToggled(false);
                     }
                   },
                 ),
