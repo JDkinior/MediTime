@@ -17,7 +17,7 @@
 | Campo Institucional | Detalle Oficial del Proyecto |
 | :--- | :--- |
 | **Título del Proyecto:** | Desarrollo de una Aplicación Móvil para la Gestión de Tratamientos Médicos (MediTime) |
-| **Versión del Software:** | 2.34.0 (Corte 3 - Versión Final Desplegada y Mantenible) |
+| **Versión del Software:** | 2.35.0 (Corte 3 - Versión Final Desplegada y Mantenible) |
 | **Autores / Investigadores:** | **Jorge Eliecer Delgado Cortés**<br>**Johan Alexander Arévalo Contreras** |
 | **Programa Académico:** | Ingeniería de Sistemas y Computación |
 | **Facultad:** | Facultad de Ingeniería |
@@ -78,7 +78,7 @@
 # ==========================================
 
 ## 1. INTRODUCCIÓN Y PROPÓSITO DEL MANUAL
-El presente manual tiene por finalidad guiar a los pacientes, familiares y cuidadores en el uso óptimo de **MediTime v2.34.0**, permitiendo la administración rigurosa y sencilla de tratamientos médicos, el seguimiento visual del cumplimiento y la prevención del olvido en la toma de medicamentos.
+El presente manual tiene por finalidad guiar a los pacientes, familiares y cuidadores en el uso óptimo de **MediTime v2.35.0**, permitiendo la administración rigurosa y sencilla de tratamientos médicos, el seguimiento visual del cumplimiento y la prevención del olvido en la toma de medicamentos.
 
 ## 2. REQUISITOS DEL SISTEMA Y DISPOSITIVOS COMPATIBLES
 - **Sistema Operativo:** Android 8.0 (Oreo / API Level 26) o superior.
@@ -174,7 +174,7 @@ Resolución de dudas sobre el funcionamiento offline, resincronización de datos
 # ==========================================
 
 ## 1. INTRODUCCIÓN Y RESUMEN TÉCNICO
-MediTime (v2.34.0) es una aplicación móvil construida en Flutter/Dart, respaldada por servicios serverless de Google Cloud Firebase y modelos cognitivos alojados en Groq Cloud API.
+MediTime (v2.35.0) es una aplicación móvil construida en Flutter/Dart, respaldada por servicios serverless de Google Cloud Firebase y modelos cognitivos alojados en Groq Cloud API.
 
 ## 2. FICHA TÉCNICA DEL SISTEMA
 - **Framework:** Flutter SDK 3.7.0+ / Dart 3.7+ con Sound Null Safety.
@@ -193,7 +193,7 @@ MediTime (v2.34.0) es una aplicación móvil construida en Flutter/Dart, respald
 - **Lazy Loading y StreamCache:** Generación procedural de dosis futuras en tratamientos indefinidos con memoria O(1) y reuso de suscripciones a Firestore.
 
 ## 4. DESGLOSE EXHAUSTIVO DEL CÓDIGO FUENTE (ESTRUCTURA LIB/)
-- **`lib/core/`:** Constantes globales (`constants.dart`), patrón `result.dart`, guardián de límites (`subscription_guard.dart`), georreferenciación (`location_helper.dart`), `stream_cache.dart`, `treatment_constants.dart`, `utils.dart` y `navigator_key.dart` para navegación desacoplada.
+- **`lib/core/`:** Constantes globales (`constants.dart`), patrón `result.dart`, guardián de límites (`subscription_guard.dart`), georreferenciación (`location_helper.dart`), repositorio normativo y consentimientos informados (`legal_content.dart`), `stream_cache.dart`, `treatment_constants.dart`, `utils.dart` y `navigator_key.dart` para navegación desacoplada.
 - **`lib/models/`:** Entidades inmutables `Tratamiento` (con `profileId`), `Usuario` (con `isPremium`, `subscriptionTier` y vigencia), `CaregiverProfile`, `LazyTreatment`, `TreatmentFormData` y enums `DoseStatus` y `ViewState`.
 - **`lib/repositories/`:** Contratos abstractos e implementaciones concretas en Cloud Firestore.
 - **`lib/use_cases/`:** Casos de uso atómicos `LoadUserProfileUseCase` y `SignOutUseCase`.
@@ -269,7 +269,7 @@ El Plan de Sostenibilidad establece el modelo operativo, organizativo y financie
 - **Roadmap a 24 Meses:** Integración con Google Health Connect, alertas SMS de emergencia y portal clínico para profesionales de salud.
 
 ## 6. ESTRATEGIA DE TRANSFERENCIA Y APROPIACIÓN SOCIAL
-- **Protocolo de Entrega Formal:** Radicación de acta de transferencia y depósito del repositorio Git con etiqueta `v2.34.0-final` bajo licencia académica y social para la Universidad de Cundinamarca.
+- **Protocolo de Entrega Formal:** Radicación de acta de transferencia y depósito del repositorio Git con etiqueta `v2.35.0-final` bajo licencia académica y social para la Universidad de Cundinamarca.
 - **Capacitación Comunitaria:** Ciclo de 3 talleres sobre salud digital, rol del cuidador y uso de reportes de adherencia.
 - **Material Didáctico:** Cartillas ilustradas e infografías de lectura fácil para la comunidad de Ubaté.
 

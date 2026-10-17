@@ -10,7 +10,7 @@ MediTime es una aplicación móvil multiplataforma desarrollada con Flutter, dis
 
 La aplicación utiliza Firebase como backend para ofrecer una experiencia de usuario fluida y sincronizada en tiempo real, desde la autenticación hasta el almacenamiento seguro de tus datos de salud, siguiendo una arquitectura de software limpia y escalable.
 
-**Versión actual:** 2.34.0
+**Versión actual:** 2.35.0
 
 ## 🔥 Características Principales
 
@@ -501,23 +501,32 @@ Agradecimientos especiales a la **Universidad de Cundinamarca**, seccional Ubat�
 
 ---
 
-**MediTime v2.34.0** - Tu salud, nuestra prioridad 💊✨
+**MediTime v2.35.0** - Tu salud, nuestra prioridad 💊✨
 
-### 🆕 Novedades en v2.34.0
+### 🆕 Novedades en v2.35.0
 
-#### 🎨 Modernización de Interfaz: ModernAppBar y Difuminados Continuos en Scroll
-- **ModernAppBar Universal:** Nuevo componente desacoplado que envuelve los `AppBar` de la aplicación, eliminando el entintado forzado de Material 3 (`scrolledUnderElevation: 0.0` y `surfaceTintColor: Colors.transparent`) e incorporando un degradado suave hacia transparente que aparece fluidamente al hacer scroll en modo Moderno.
-- **ModernContentFade:** Componente envoltorio reactivo para listas y vistas desplazables que difumina suavemente el borde superior del contenido que fluye bajo cabeceras estáticas (selectores de fecha, pestañas y títulos de sección), suprimiendo recortes visuales abruptos.
-- **Cobertura Integral en más de 25 Pantallas:** Despliegue estandarizado en pantallas de Inicio, Calendario, Recetas, Pacientes, Detalle de Receta, Gestión de Cuidadores, Chatbot Midi, Perfil, Reportes, Farmacias y todas las vistas de Configuración y Opciones.
-- **Coexistencia y Flexibilidad de Estilos:** Plena reactividad entre el estilo Moderno y Clásico según las preferencias del usuario, manteniendo intacto el comportamiento nativo tradicional en modo Clásico.
+#### 🤖 Asistente Inteligente Midi: Soporte Multiperfil, Cuotas Diarias y Markdown Enriquecido
+- **Herramientas Multiperfil en Function Calling:** El asistente conversacional Midi ahora reconoce parámetros de destinatario (`targetProfileName`) para programar medicamentos (`create_treatment`), actualizar estados de dosis (`update_dose_status`), consultar recetas del día (`get_today_medications`) y evaluar dosis omitidas (`get_missed_doses`) directamente para el paciente o mascota especificado sin ambigüedad.
+- **Sistema de Cuotas y Límites Diarios (`AiQuotaService`):** Control estricto de consumo de tokens y mensajes por nivel de usuario (20 interacciones diarias en el nivel gratuito con reinicio automático a medianoche y enfriamiento anti-burst para prevenir saturación de cuota).
+- **Renderizado Markdown Enriquecido (`MarkdownMessageBody`):** Visualización avanzada de tablas médicas estructuradas, bloques de código, listas, enlaces y formateo clínico en las respuestas de Midi.
+- **Farmacovigilancia y Detección de Interacciones Críticas:** Alertas proactivas automáticas en prompts ante combinaciones de alto riesgo (como Warfarina con AINEs o Cefalexina) y consideración de omisiones anticipadas.
+
+#### ⚖️ Marco Legal y Consentimiento Informado (Health Apps Policy)
+- **Términos de Servicio y Política de Privacidad Rigurosa (`LegalContent`, `LegalDocumentPage`):** 10 cláusulas legales exhaustivas conforme a las normativas de aplicaciones de salud de Google Play Store, RGPD y Ley 1581 de 2012 (deslinde explícito de responsabilidad médica, protocolos de emergencia 911 y consentimiento informado).
+- **Flujo de Aceptación Obligatoria:** Verificación de consentimiento en el registro y onboarding, y persistencia local y en nube en el perfil de usuario.
+
+#### 🔔 Resiliencia en Alarmas Nativas y Aislamiento de Perfiles
+- **Blindaje en Isolate de Alarmas (`alarm_callback_handler.dart`):** Manejo refinado de excepciones y sincronización precisa con `AlarmSoundPlugin.kt`.
+- **Aislamiento Multiperfil en Modo Cuidador y Animales:** Coordinación estricta de IDs de alarmas y preferencias con validaciones automatizadas.
 
 ---
 
 ### 📋 Historial de Versiones Anteriores
 
 <details>
-<summary><b>v2.26.5 - v2.33.0</b> (Click para desplegar)</summary>
+<summary><b>v2.26.5 - v2.34.0</b> (Click para desplegar)</summary>
 
+- **v2.34.0:** Componentes `ModernAppBar` y `ModernContentFade` con difuminados continuos al hacer scroll, anulación de entintado forzado de Material 3 y modernización homogénea en más de 25 pantallas.
 - **v2.33.0:** Identificador `com.meditime.app`, eliminación definitiva de cuenta para Google Play, protección anti-screenshot (`FLAG_SECURE`), ProGuard/R8, selector avanzado de tonos y alarmas nativas, soporte trilingüe completo (portugués, inglés, español) e inventario opcional.
 - **v2.32.0:** Modelo de suscripciones Freemium/Premium, micro-consejos IA con caché local persistente de 12h, optimizaciones multiperfil (cuidadores y mascotas) y refinamiento de alarmas.
 - **v2.31.1:** Internacionalización completa (l10n en español e inglés), cronogramas académicos y de desarrollo 2026, optimización robusta de alarmas nativas y manuales institucionales.
