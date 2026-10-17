@@ -59,14 +59,14 @@ class _ModernContentFadeState extends State<ModernContentFade> {
         return false;
       },
       child: Stack(
-        clipBehavior: Clip.none,
+        clipBehavior: Clip.hardEdge,
         children: [
           widget.child,
           if (_opacity > 0)
             Positioned(
               left: 0,
               right: 0,
-              top: widget.topOffset,
+              top: widget.topOffset.clamp(0.0, double.infinity),
               height: widget.height,
               child: IgnorePointer(
                 child: Opacity(

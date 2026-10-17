@@ -1068,7 +1068,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
 
           Expanded(
             child: ModernContentFade(
-              topOffset: -6,
+              topOffset: 0.0,
               height: 28,
               child: Builder(
                 builder: (context) {

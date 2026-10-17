@@ -16,14 +16,18 @@ class ModernAppBar extends StatefulWidget implements PreferredSizeWidget {
   final bool showFade;
 
   /// Notificador opcional para habilitar/deshabilitar el degradado reactivamente
-  /// (por ejemplo, en vistas con pestañas donde algunas tienen cabeceras estáticas).
+  /// (por ejemplo, en vistas con pestañas donde algunas tienen cabeceras estáticas o banners).
   final ValueListenable<bool>? fadeEnabledNotifier;
+
+  /// Extensión opcional por debajo de la AppBar (por defecto 0.0 para no sobreponerse a elementos inferiores).
+  final double fadeExtension;
 
   const ModernAppBar({
     super.key,
     required this.child,
     this.showFade = true,
     this.fadeEnabledNotifier,
+    this.fadeExtension = 0.0,
   });
 
   @override
@@ -62,10 +66,12 @@ class _ModernAppBarState extends State<ModernAppBar> {
       oldWidget.fadeEnabledNotifier?.removeListener(_onFadeNotifierChanged);
       widget.fadeEnabledNotifier?.addListener(_onFadeNotifierChanged);
     }
-    if (!_isFadeActive && _scrollProgress != 0.0) {
-      setState(() {
+    if (oldWidget.showFade != widget.showFade ||
+        oldWidget.fadeEnabledNotifier != widget.fadeEnabledNotifier) {
+      if (!_isFadeActive && _scrollProgress != 0.0) {
         _scrollProgress = 0.0;
-      });
+      }
+      setState(() {});
     }
   }
 
@@ -78,11 +84,11 @@ class _ModernAppBarState extends State<ModernAppBar> {
   }
 
   void _onFadeNotifierChanged() {
-    if (!_isFadeActive && _scrollProgress != 0.0) {
-      setState(() {
+    setState(() {
+      if (!_isFadeActive) {
         _scrollProgress = 0.0;
-      });
-    }
+      }
+    });
   }
 
   void _handleScrollNotification(ScrollNotification notification) {
@@ -98,7 +104,7 @@ class _ModernAppBarState extends State<ModernAppBar> {
     final metrics = notification.metrics;
     if (metrics.axis == Axis.vertical) {
       final double extent = metrics.extentBefore;
-      final double progress = (extent / 20.0).clamp(0.0, 1.0);
+      final double progress = (extent / 24.0).clamp(0.0, 1.0);
       if ((progress - _scrollProgress).abs() > 0.01) {
         setState(() {
           _scrollProgress = progress;
@@ -162,11 +168,11 @@ class _ModernAppBarState extends State<ModernAppBar> {
         ? (widget.child as AppBar).backgroundColor!
         : Theme.of(context).scaffoldBackgroundColor;
 
-    // Si el degradado no está activo (ej. páginas con cabeceras estáticas como Calendario o Progreso),
-    // mantenemos un fondo completamente plano y sólido.
-    if (!_isFadeActive) {
+    // Si el degradado no está activo o no se ha hecho scroll, mantenemos un fondo completamente plano y sólido.
+    // Esto previene difuminados en reposo y evita sobreponerse a elementos inferiores (como banners o calendarios).
+    if (!_isFadeActive || _scrollProgress == 0.0) {
       return Stack(
-        clipBehavior: Clip.none,
+        clipBehavior: Clip.hardEdge,
         children: [
           Positioned(
             left: 0,
@@ -178,25 +184,27 @@ class _ModernAppBarState extends State<ModernAppBar> {
           Theme(
             data: Theme.of(context).copyWith(
               appBarTheme: Theme.of(context).appBarTheme.copyWith(
+                    backgroundColor: Colors.transparent,
                     scrolledUnderElevation: 0.0,
                     surfaceTintColor: Colors.transparent,
+                    elevation: 0.0,
                   ),
             ),
-            child: widget.child,
+            child: _makeTransparentAppBar(widget.child),
           ),
         ],
       );
     }
 
-    // En modo moderno con difuminado activo:
+    // En modo moderno con difuminado activo Y habiendo hecho scroll:
     // 1. Barra de estado sólida para proteger los iconos del sistema.
-    // 2. La barra superior NO es sólida en su parte inferior: se disuelve en degradado continuo hacia transparente,
-    //    permitiendo que el contenido scrolleado fluya detrás y se desvanezca suavemente (análogo a la barra inferior).
-    const double fadeExtension = 40.0;
-    final double gradientHeight = widget.preferredSize.height + fadeExtension;
+    // 2. Fondo sólido base que se atenúa suavemente con _scrollProgress.
+    // 3. Degradado continuo proporcional a _scrollProgress.
+    final currentExtension = widget.fadeExtension * _scrollProgress;
+    final double gradientHeight = widget.preferredSize.height + currentExtension;
 
     return Stack(
-      clipBehavior: Clip.none,
+      clipBehavior: currentExtension > 0 ? Clip.none : Clip.hardEdge,
       children: [
         // 1. Fondo sólido solo para la barra de estado (y notch)
         if (topPadding > 0)
@@ -207,40 +215,54 @@ class _ModernAppBarState extends State<ModernAppBar> {
             height: topPadding,
             child: Container(color: bgColor),
           ),
-        // 2. Degradado continuo que protege el título y se difumina suavemente hacia abajo
+        // 2. Fondo sólido base para la barra que se transiciona
+        Positioned(
+          left: 0,
+          right: 0,
+          top: topPadding,
+          height: widget.preferredSize.height,
+          child: Opacity(
+            opacity: (1.0 - _scrollProgress).clamp(0.0, 1.0),
+            child: Container(color: bgColor),
+          ),
+        ),
+        // 3. Degradado continuo proporcional a _scrollProgress
         Positioned(
           left: 0,
           right: 0,
           top: topPadding,
           height: gradientHeight,
           child: IgnorePointer(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    bgColor,
-                    bgColor,
-                    bgColor.withValues(alpha: 0.88),
-                    bgColor.withValues(alpha: 0.52),
-                    bgColor.withValues(alpha: 0.20),
-                    bgColor.withValues(alpha: 0.0),
-                  ],
-                  stops: const [
-                    0.0,
-                    0.44,
-                    0.54,
-                    0.66,
-                    0.80,
-                    1.0,
-                  ],
+            child: Opacity(
+              opacity: _scrollProgress,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      bgColor,
+                      bgColor,
+                      bgColor.withValues(alpha: 0.88),
+                      bgColor.withValues(alpha: 0.52),
+                      bgColor.withValues(alpha: 0.20),
+                      bgColor.withValues(alpha: 0.0),
+                    ],
+                    stops: const [
+                      0.0,
+                      0.44,
+                      0.54,
+                      0.66,
+                      0.80,
+                      1.0,
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
-        // 3. AppBar transparente con sus iconos y títulos
+        // 4. AppBar transparente con sus iconos y títulos
         Theme(
           data: Theme.of(context).copyWith(
             appBarTheme: Theme.of(context).appBarTheme.copyWith(

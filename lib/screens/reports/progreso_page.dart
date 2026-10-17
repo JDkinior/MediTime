@@ -1361,7 +1361,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
               _buildIntervalSelector(),
               Expanded(
                 child: ModernContentFade(
-                  topOffset: -8,
+                  topOffset: 0.0,
                   height: 32,
                   child: StreamBuilder<List<Map<String, dynamic>>>(
                   key: ValueKey('${isGeneralMode}_${activeProfile?.id}_$isManagedMode'),

@@ -548,7 +548,7 @@ class _ReportesPageState extends State<ReportesPage> {
                 _buildIntervalSelector(),
                 Expanded(
                   child: ModernContentFade(
-                    topOffset: -8,
+                    topOffset: 0.0,
                     height: 32,
                     child: StreamBuilder<List<Tratamiento>>(
                     initialData: firestoreService.getCachedMedicamentos(user.uid),

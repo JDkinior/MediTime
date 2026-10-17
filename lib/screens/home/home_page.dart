@@ -70,8 +70,20 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  bool _shouldEnableAppBarFade() {
+    if (!mounted) return false;
+    final preferenceNotifier = context.read<PreferenceNotifier>();
+    final caregiverNotifier = context.read<CaregiverNotifier>();
+    final isAnimalMode = preferenceNotifier.isAnimalMode;
+    final isManagedModeActive = caregiverNotifier.isCaregiverModeActive || isAnimalMode;
+    final activeProfile = caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimalMode);
+    final hasManagedBanner = isManagedModeActive && (caregiverNotifier.isGeneralMode || activeProfile != null);
+
+    return _currentIndexNotifier.value == 0 && !hasManagedBanner;
+  }
+
   void _updateAppBarFadeState() {
-    final shouldFade = _currentIndexNotifier.value == 0;
+    final shouldFade = _shouldEnableAppBarFade();
     if (_appBarFadeEnabledNotifier.value != shouldFade) {
       _appBarFadeEnabledNotifier.value = shouldFade;
     }
@@ -286,7 +298,17 @@ class _HomePageState extends State<HomePage> {
         final isCaregiverActive = caregiverNotifier.isCaregiverModeActive;
         final isManagedModeActive = isCaregiverActive || isAnimalMode;
         final activeProfile = caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimalMode);
+        final hasManagedBanner = isManagedModeActive && (caregiverNotifier.isGeneralMode || activeProfile != null);
         final isDark = Theme.of(context).brightness == Brightness.dark;
+
+        final shouldFadeAppBar = _currentIndexNotifier.value == 0 && !hasManagedBanner;
+        if (_appBarFadeEnabledNotifier.value != shouldFadeAppBar) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _appBarFadeEnabledNotifier.value != shouldFadeAppBar) {
+              _appBarFadeEnabledNotifier.value = shouldFadeAppBar;
+            }
+          });
+        }
 
         return Scaffold(
           extendBody: isModern,
@@ -488,7 +510,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                         Padding(
                           padding: EdgeInsets.only(
-                            top: isModern ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0,
+                            top: (isModern && !hasManagedBanner) ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0,
                           ),
                           child: CalendarioPage(
                             calendarKey: _calendarKey,
@@ -497,7 +519,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         Padding(
                           padding: EdgeInsets.only(
-                            top: isModern ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0,
+                            top: (isModern && !hasManagedBanner) ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0,
                           ),
                           child: ProgresoPage(
                             progressRingKey: _progressRingKey,
