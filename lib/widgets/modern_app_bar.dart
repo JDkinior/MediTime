@@ -168,55 +168,40 @@ class _ModernAppBarState extends State<ModernAppBar> {
         ? (widget.child as AppBar).backgroundColor!
         : Theme.of(context).scaffoldBackgroundColor;
 
-    // Si el degradado no está activo o no se ha hecho scroll, mantenemos un fondo completamente plano y sólido.
-    // Esto previene difuminados en reposo y evita sobreponerse a elementos inferiores (como banners o calendarios).
-    if (!_isFadeActive || _scrollProgress == 0.0) {
-      return Stack(
-        clipBehavior: Clip.hardEdge,
-        children: [
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            height: totalAppBarHeight,
-            child: Container(color: bgColor),
-          ),
-          Theme(
-            data: Theme.of(context).copyWith(
-              appBarTheme: Theme.of(context).appBarTheme.copyWith(
-                    backgroundColor: Colors.transparent,
-                    scrolledUnderElevation: 0.0,
-                    surfaceTintColor: Colors.transparent,
-                    elevation: 0.0,
-                  ),
-            ),
-            child: _makeTransparentAppBar(widget.child),
-          ),
-        ],
-      );
-    }
-
-    // En modo moderno con difuminado activo Y habiendo hecho scroll:
-    // 1. Fondo 100% SÓLIDO para la barra de estado Y la toolbar completa (de 0 a totalAppBarHeight).
-    //    Esto protege al 100% el título ("Medicamentos"), iconos y botones, garantizando que el texto
-    //    NUNCA quede sobre un fondo translúcido ni se corte a la mitad.
-    // 2. Degradado continuo proyectado suavemente por DEBAJO de la toolbar (si currentExtension > 0).
-    final currentExtension = widget.fadeExtension * _scrollProgress;
+    final currentExtension = (_isFadeActive && _scrollProgress > 0.0)
+        ? (widget.fadeExtension * _scrollProgress)
+        : 0.0;
+    final showGradient = _isFadeActive && currentExtension > 0.0;
 
     return Stack(
-      clipBehavior: currentExtension > 0 ? Clip.none : Clip.hardEdge,
+      clipBehavior: showGradient ? Clip.none : Clip.hardEdge,
       children: [
         // 1. Fondo sólido completo para barra de estado y toolbar
         Positioned(
+          key: const ValueKey('modern_app_bar_bg'),
           left: 0,
           right: 0,
           top: 0,
           height: totalAppBarHeight,
           child: Container(color: bgColor),
         ),
-        // 2. Degradado continuo suave proyectado exclusivamente por DEBAJO de la toolbar
-        if (currentExtension > 0)
+        // 2. AppBar transparente con sus iconos y títulos (Key y orden estables para preservar el render tree de Showcase)
+        Theme(
+          key: const ValueKey('modern_app_bar_theme'),
+          data: Theme.of(context).copyWith(
+            appBarTheme: Theme.of(context).appBarTheme.copyWith(
+                  backgroundColor: Colors.transparent,
+                  scrolledUnderElevation: 0.0,
+                  surfaceTintColor: Colors.transparent,
+                  elevation: 0.0,
+                ),
+          ),
+          child: _makeTransparentAppBar(widget.child),
+        ),
+        // 3. Degradado continuo suave proyectado exclusivamente por DEBAJO de la toolbar
+        if (showGradient)
           Positioned(
+            key: const ValueKey('modern_app_bar_gradient'),
             left: 0,
             right: 0,
             top: totalAppBarHeight,
@@ -249,18 +234,6 @@ class _ModernAppBarState extends State<ModernAppBar> {
               ),
             ),
           ),
-        // 3. AppBar transparente con sus iconos y títulos
-        Theme(
-          data: Theme.of(context).copyWith(
-            appBarTheme: Theme.of(context).appBarTheme.copyWith(
-                  backgroundColor: Colors.transparent,
-                  scrolledUnderElevation: 0.0,
-                  surfaceTintColor: Colors.transparent,
-                  elevation: 0.0,
-                ),
-          ),
-          child: _makeTransparentAppBar(widget.child),
-        ),
       ],
     );
   }
