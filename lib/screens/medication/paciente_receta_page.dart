@@ -6,6 +6,7 @@ import 'package:meditime/services/tratamiento_service.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'package:meditime/enums/view_state.dart';
 import 'package:meditime/screens/medication/detalle_receta_page.dart';
+import 'package:meditime/widgets/container_transform_card.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:provider/provider.dart';
@@ -107,22 +108,21 @@ class PacienteRecetaPage extends StatelessWidget {
               final DateTime horaDosis = doseData['doseTime'];
               final horaFormateada = DateFormat('hh:mm a, d MMM', 'es_ES').format(horaDosis);
 
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ListTile(
-                  leading: Icon(Icons.medical_services, color: AppTheme.primaryColor),
-                  title: Text(tratamiento.nombreMedicamento),
-                  subtitle: Text('Dosis: ${tratamiento.dosisPorToma} ${tratamiento.presentacion}\nPróxima toma: $horaFormateada'),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DetalleRecetaPage(
-                          tratamiento: tratamiento,
-                          horaDosis: horaDosis,
-                        ),
-                      ),
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ContainerTransformCard<void>(
+                  borderRadius: BorderRadius.circular(12),
+                  openBuilder: (context, _) => DetalleRecetaPage(
+                    tratamiento: tratamiento,
+                    horaDosis: horaDosis,
+                  ),
+                  closedBuilder: (context, openContainer) {
+                    return ListTile(
+                      leading: Icon(Icons.medical_services, color: AppTheme.primaryColor),
+                      title: Text(tratamiento.nombreMedicamento),
+                      subtitle: Text('Dosis: ${tratamiento.dosisPorToma} ${tratamiento.presentacion}\nPróxima toma: $horaFormateada'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: openContainer,
                     );
                   },
                 ),

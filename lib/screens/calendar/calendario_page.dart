@@ -19,6 +19,7 @@ import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/tratamiento_service.dart';
 import 'package:meditime/widgets/tutorial_tooltip.dart';
 import 'package:meditime/screens/medication/detalle_receta_page.dart';
+import 'package:meditime/widgets/container_transform_card.dart';
 import 'package:meditime/screens/medication/agregar_receta_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:meditime/core/utils.dart';
@@ -1367,127 +1368,122 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => DetalleRecetaPage(
-                        tratamiento: tratamiento,
-                        horaDosis: doseTime,
-                        profile: profile,
-                      )),
+                  ContainerTransformCard<void>(
+                    openBuilder: (context, _) => DetalleRecetaPage(
+                      tratamiento: tratamiento,
+                      horaDosis: doseTime,
+                      profile: profile,
                     ),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppTheme.cardColor,
-                        borderRadius: BorderRadius.circular(16),
-                        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-                            ? Border.all(color: AppTheme.borderColor)
-                            : null,
-                        boxShadow: AppTheme.cardShadow,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    closedBuilder: (context, openContainer) {
+                      return InkWell(
+                        onTap: openContainer,
+                        borderRadius: BorderRadius.circular(20),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          timeStr,
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.primaryColor,
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: chipBgColor,
+                                            borderRadius: BorderRadius.circular(20),
+                                            border: Border.all(color: chipBorderColor),
+                                          ),
+                                          child: Text(
+                                            statusText,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                              color: chipTextColor,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
                                     Text(
-                                      timeStr,
+                                      tratamiento.nombreMedicamento,
                                       style: TextStyle(
-                                        fontSize: 18,
+                                        fontSize: 16,
                                         fontWeight: FontWeight.bold,
-                                        color: AppTheme.primaryColor,
+                                        color: AppTheme.primaryTextColor,
                                       ),
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: chipBgColor,
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(color: chipBorderColor),
-                                      ),
-                                      child: Text(
-                                        statusText,
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w600,
-                                          color: chipTextColor,
+                                    const SizedBox(height: 4),
+                                    Builder(
+                                      builder: (context) {
+                                        final localizedPres = AppUtils.localizePresentation(context, tratamiento.presentacion);
+                                        final localizedFreq = tratamiento.intervaloDosis.inHours == 1
+                                            ? (l10n?.everyHourSingle ?? 'Cada hora')
+                                            : (l10n?.everyHours(tratamiento.intervaloDosis.inHours) ?? 'Cada ${tratamiento.intervaloDosis.inHours} horas');
+                                        return Text(
+                                          '$localizedPres · $localizedFreq',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppTheme.secondaryTextColor,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    if (profile != null) ...[
+                                      const SizedBox(height: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16)).withOpacity(0.05),
+                                          borderRadius: BorderRadius.circular(4),
+                                          border: Border.all(color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16)).withOpacity(0.2)),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.person, size: 12, color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16))),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              profile.name,
+                                              style: TextStyle(
+                                                fontSize: 11, 
+                                                fontWeight: FontWeight.bold, 
+                                                color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16)),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                    ),
+                                    ],
                                   ],
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  tratamiento.nombreMedicamento,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.primaryTextColor,
-                                  ),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () => _showDoseOptionsDialog(context, tratamiento, profile, doseTime, status),
+                                behavior: HitTestBehavior.opaque,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Icon(Icons.more_vert, color: AppTheme.secondaryTextColor),
                                 ),
-                                 const SizedBox(height: 4),
-                                 Builder(
-                                   builder: (context) {
-                                     final localizedPres = AppUtils.localizePresentation(context, tratamiento.presentacion);
-                                     final localizedFreq = tratamiento.intervaloDosis.inHours == 1
-                                         ? (l10n?.everyHourSingle ?? 'Cada hora')
-                                         : (l10n?.everyHours(tratamiento.intervaloDosis.inHours) ?? 'Cada ${tratamiento.intervaloDosis.inHours} horas');
-                                     return Text(
-                                       '$localizedPres · $localizedFreq',
-                                       style: TextStyle(
-                                         fontSize: 12,
-                                         color: AppTheme.secondaryTextColor,
-                                       ),
-                                     );
-                                   },
-                                 ),
-                                 if (profile != null) ...[
-                                   const SizedBox(height: 8),
-                                   Container(
-                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                     decoration: BoxDecoration(
-                                       color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16)).withOpacity(0.05),
-                                       borderRadius: BorderRadius.circular(4),
-                                       border: Border.all(color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16)).withOpacity(0.2)),
-                                     ),
-                                     child: Row(
-                                       mainAxisSize: MainAxisSize.min,
-                                       children: [
-                                         Icon(Icons.person, size: 12, color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16))),
-                                         const SizedBox(width: 4),
-                                         Text(
-                                           profile.name,
-                                           style: TextStyle(
-                                             fontSize: 11, 
-                                             fontWeight: FontWeight.bold, 
-                                             color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16)),
-                                           ),
-                                         ),
-                                       ],
-                                     ),
-                                   ),
-                                 ],
-                               ],
-                             ),
-                           ),
-                           const SizedBox(width: 8),
-                           GestureDetector(
-                             onTap: () => _showDoseOptionsDialog(context, tratamiento, profile, doseTime, status),
-                             behavior: HitTestBehavior.opaque,
-                             child: Container(
-                               padding: const EdgeInsets.all(8.0),
-                               child: Icon(Icons.more_vert, color: AppTheme.secondaryTextColor),
-                             ),
-                           )
-                         ],
-                       ),
-                     ),
-                   ),
+                              )
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
 
                    // Quick Action Buttons below if it's notified or pending past (pending response)
                    if (status == DoseStatus.notificada || (status == DoseStatus.pendiente && isPast))
