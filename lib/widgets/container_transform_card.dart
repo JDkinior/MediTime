@@ -270,6 +270,11 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
   @override
   final Duration reverseTransitionDuration;
 
+  Animation<double>? _curvedAnimation;
+  Animation<double>? _openOpacityAnimation;
+  Animation<double>? _closedOpacityAnimation;
+  Animation<Color?>? _colorAnimation;
+
   static final Animatable<double> _closedOpacityTween = TweenSequence<double>([
     TweenSequenceItem<double>(
       tween: Tween<double>(begin: 1.0, end: 0.0).chain(CurveTween(curve: Curves.easeOut)),
@@ -329,6 +334,33 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
   @override
   bool get maintainState => true;
 
+  void _ensureAnimations() {
+    if (_curvedAnimation != null || animation == null) return;
+    final parent = animation!;
+    _curvedAnimation = CurvedAnimation(
+      parent: parent,
+      curve: curve,
+      reverseCurve: curve.flipped,
+    );
+
+    _openOpacityAnimation = _openOpacityTween.animate(_curvedAnimation!);
+    _closedOpacityAnimation = _closedOpacityTween.animate(_curvedAnimation!);
+    _colorAnimation = TweenSequence<Color?>([
+      TweenSequenceItem<Color?>(
+        tween: ConstantTween<Color>(closedColor),
+        weight: 15,
+      ),
+      TweenSequenceItem<Color?>(
+        tween: ColorTween(begin: closedColor, end: openColor).chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 70,
+      ),
+      TweenSequenceItem<Color?>(
+        tween: ConstantTween<Color>(openColor),
+        weight: 15,
+      ),
+    ]).animate(_curvedAnimation!);
+  }
+
   @override
   Widget buildPage(
     BuildContext context,
@@ -349,8 +381,10 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
       return child;
     }
 
+    _ensureAnimations();
+
     final Size screenSize = MediaQuery.sizeOf(context);
-    final double curvedValue = curve.transform(animation.value);
+    final double curvedValue = _curvedAnimation?.value ?? curve.transform(animation.value);
 
     // Dimensiones y posición interpoladas O(1) matemáticamente sin recorrer el árbol
     final Rect fullScreenRect = Offset.zero & screenSize;
@@ -362,19 +396,9 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
     final double radiusProgress = Curves.easeInCubic.transform(curvedValue);
     final BorderRadius currentRadius = BorderRadius.lerp(borderRadius, BorderRadius.zero, radiusProgress)!;
 
-    // Desvanecimiento suave y progresivo del color de fondo de la tarjeta:
-    // Mantiene el color cerrado mientras inicia la elevación, transiciona
-    // gradualmente hacia el color de fondo de la pantalla de detalle, y
-    // se consolida antes de finalizar la expansión.
-    final Color currentColor;
-    if (animation.value <= 0.15) {
-      currentColor = closedColor;
-    } else if (animation.value >= 0.82) {
-      currentColor = openColor;
-    } else {
-      final double colorProgress = (animation.value - 0.15) / 0.67;
-      currentColor = Color.lerp(closedColor, openColor, Curves.easeInOut.transform(colorProgress))!;
-    }
+    // Color de fondo interpolado suavemente mediante tween sequence
+    final Color currentColor = _colorAnimation?.value ??
+        Color.lerp(closedColor, openColor, Curves.easeInOut.transform(animation.value))!;
 
     // Elevación física acelerada por hardware (shaders nativos de GPU)
     final double currentElevation = curvedValue > 0.98
@@ -389,10 +413,6 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
           )
         : BorderSide.none;
 
-    // Opacidades cruzadas fluidas y orgánicas sobre la línea de tiempo real
-    final double closedOpacity = _closedOpacityTween.transform(animation.value);
-    final double openOpacity = _openOpacityTween.transform(animation.value);
-
     return Align(
       alignment: Alignment.topLeft,
       child: Transform.translate(
@@ -401,29 +421,30 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
           width: currentRect.width,
           height: currentRect.height,
           child: Material(
+            animationDuration: Duration.zero, // CRÍTICO: evita 130 tickers de animación implícita por segundo
             color: currentColor,
             elevation: currentElevation,
             shape: RoundedRectangleBorder(
               borderRadius: currentRadius,
               side: currentBorderSide,
             ),
+            clipBehavior: Clip.none, // Evita doble clip stencil con ClipRRect
             child: ClipRRect(
               borderRadius: currentRadius,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Pantalla abierta: pre-renderizada desde el frame 0 en RepaintBoundary
-                  // Evita frame-drops al no tener que inflar widgets pesados a mitad del vuelo
-                  Offstage(
-                    offstage: openOpacity <= 0.0,
-                    child: FadeTransition(
-                      opacity: AlwaysStoppedAnimation<double>(openOpacity),
-                      child: OverflowBox(
-                        alignment: Alignment.topLeft,
-                        minWidth: screenSize.width,
-                        maxWidth: screenSize.width,
-                        minHeight: screenSize.height,
-                        maxHeight: screenSize.height,
+                  // Pantalla abierta: Sized a dimensiones completas con BoxFit.none.
+                  // Se renderiza exactamente 1 vez y se cachea en RepaintBoundary en GPU.
+                  // Sin Offstage: FadeTransition omite el pintado internamente en opacidad 0 sin invalidar layout.
+                  FadeTransition(
+                    opacity: _openOpacityAnimation!,
+                    child: FittedBox(
+                      fit: BoxFit.none,
+                      alignment: Alignment.topLeft,
+                      child: SizedBox(
+                        width: screenSize.width,
+                        height: screenSize.height,
                         child: RepaintBoundary(
                           child: child,
                         ),
@@ -431,17 +452,16 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
                     ),
                   ),
 
-                  // Tarjeta cerrada: desvaneciéndose en su posición nativa sin repintar
-                  Offstage(
-                    offstage: closedOpacity <= 0.0,
-                    child: FadeTransition(
-                      opacity: AlwaysStoppedAnimation<double>(closedOpacity),
-                      child: OverflowBox(
-                        alignment: Alignment.topLeft,
-                        minWidth: originRect.width,
-                        maxWidth: originRect.width,
-                        minHeight: originRect.height,
-                        maxHeight: originRect.height,
+                  // Tarjeta cerrada: Sized a dimensiones de origen con BoxFit.none.
+                  // Se renderiza exactamente 1 vez y se cachea en RepaintBoundary en GPU.
+                  FadeTransition(
+                    opacity: _closedOpacityAnimation!,
+                    child: FittedBox(
+                      fit: BoxFit.none,
+                      alignment: Alignment.topLeft,
+                      child: SizedBox(
+                        width: originRect.width,
+                        height: originRect.height,
                         child: RepaintBoundary(
                           child: closedChild,
                         ),
