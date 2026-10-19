@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 class AccesibilidadPage extends StatelessWidget {
   const AccesibilidadPage({super.key});
@@ -23,57 +24,59 @@ class AccesibilidadPage extends StatelessWidget {
       ),
       body: preferenceNotifier.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _buildIntroText(),
-                const SizedBox(height: 24),
-                _buildAccessibilityOption(
-                  context: context,
-                  title: 'Alto Contraste',
-                  description: 'Aumenta el contraste de los colores para mejorar la legibilidad.',
-                  value: preferenceNotifier.highContrast,
-                  onChanged: (val) => preferenceNotifier.setHighContrast(val),
-                  icon: Icons.contrast_rounded,
-                  demoWidget: _buildHighContrastDemo(context, preferenceNotifier.highContrast),
-                ),
-                _buildAccessibilityOption(
-                  context: context,
-                  title: 'Texto Grande',
-                  description: 'Aumenta el tamaño global del texto para facilitar la lectura.',
-                  value: preferenceNotifier.largeText,
-                  onChanged: (val) => preferenceNotifier.setLargeText(val),
-                  icon: Icons.format_size_rounded,
-                  demoWidget: _buildLargeTextDemo(context),
-                ),
-                _buildAccessibilityOption(
-                  context: context,
-                  title: 'Botones Grandes',
-                  description: 'Expande el tamaño de los botones principales (mín. 64px) para tocarlos más fácilmente.',
-                  value: preferenceNotifier.largeButtons,
-                  onChanged: (val) => preferenceNotifier.setLargeButtons(val),
-                  icon: Icons.smart_button_rounded,
-                  demoWidget: _buildLargeButtonsDemo(context),
-                ),
-                _buildAccessibilityOption(
-                  context: context,
-                  title: 'Borde en tarjetas',
-                  description: 'Muestra un borde visible alrededor de todas las tarjetas para definir sus contornos.',
-                  value: preferenceNotifier.showCardBorder,
-                  onChanged: (val) => preferenceNotifier.setShowCardBorder(val),
-                  icon: Icons.crop_square_rounded,
-                  demoWidget: _buildCardBorderDemo(context, preferenceNotifier.showCardBorder),
-                ),
-                _buildAccessibilityOption(
-                  context: context,
-                  title: 'Interfaz Simplificada',
-                  description: 'Oculta opciones secundarias y se enfoca solo en lo más importante (tus alarmas y medicamentos).',
-                  value: preferenceNotifier.simplifiedInterface,
-                  onChanged: (val) => preferenceNotifier.setSimplifiedInterface(val),
-                  icon: Icons.clean_hands_rounded,
-                  demoWidget: _buildSimplifiedInterfaceDemo(context),
-                ),
-              ],
+          : ModernContentFade(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildIntroText(),
+                  const SizedBox(height: 24),
+                  _buildAccessibilityOption(
+                    context: context,
+                    title: 'Alto Contraste',
+                    description: 'Aumenta el contraste de los colores para mejorar la legibilidad.',
+                    value: preferenceNotifier.highContrast,
+                    onChanged: (val) => preferenceNotifier.setHighContrast(val),
+                    icon: Icons.contrast_rounded,
+                    demoWidget: _buildHighContrastDemo(context, preferenceNotifier.highContrast),
+                  ),
+                  _buildAccessibilityOption(
+                    context: context,
+                    title: 'Texto Grande',
+                    description: 'Aumenta el tamaño global del texto para facilitar la lectura.',
+                    value: preferenceNotifier.largeText,
+                    onChanged: (val) => preferenceNotifier.setLargeText(val),
+                    icon: Icons.format_size_rounded,
+                    demoWidget: _buildLargeTextDemo(context),
+                  ),
+                  _buildAccessibilityOption(
+                    context: context,
+                    title: 'Botones Grandes',
+                    description: 'Expande el tamaño de los botones principales (mín. 64px) para tocarlos más fácilmente.',
+                    value: preferenceNotifier.largeButtons,
+                    onChanged: (val) => preferenceNotifier.setLargeButtons(val),
+                    icon: Icons.smart_button_rounded,
+                    demoWidget: _buildLargeButtonsDemo(context),
+                  ),
+                  _buildAccessibilityOption(
+                    context: context,
+                    title: 'Borde en tarjetas',
+                    description: 'Muestra un borde visible alrededor de todas las tarjetas para definir sus contornos.',
+                    value: preferenceNotifier.showCardBorder,
+                    onChanged: (val) => preferenceNotifier.setShowCardBorder(val),
+                    icon: Icons.crop_square_rounded,
+                    demoWidget: _buildCardBorderDemo(context, preferenceNotifier.showCardBorder),
+                  ),
+                  _buildAccessibilityOption(
+                    context: context,
+                    title: 'Interfaz Simplificada',
+                    description: 'Oculta opciones secundarias y se enfoca solo en lo más importante (tus alarmas y medicamentos).',
+                    value: preferenceNotifier.simplifiedInterface,
+                    onChanged: (val) => preferenceNotifier.setSimplifiedInterface(val),
+                    icon: Icons.clean_hands_rounded,
+                    demoWidget: _buildSimplifiedInterfaceDemo(context),
+                  ),
+                ],
+              ),
             ),
     );
   }

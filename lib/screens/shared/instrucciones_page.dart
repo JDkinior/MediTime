@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 class InstruccionesPage extends StatelessWidget {
   const InstruccionesPage({super.key});
@@ -15,8 +16,9 @@ class InstruccionesPage extends StatelessWidget {
           title: const Text('¿Cómo usar la aplicación?'),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
+      body: ModernContentFade(
+        child: SingleChildScrollView(
+          child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,6 +72,7 @@ class InstruccionesPage extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

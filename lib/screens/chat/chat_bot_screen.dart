@@ -27,6 +27,7 @@ import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 import 'package:meditime/core/subscription_guard.dart';
 import 'package:meditime/notifiers/subscription_notifier.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
@@ -2215,8 +2216,9 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
 
                       final docs = snapshot.data!.docs;
 
-                      return ListView.builder(
-                        padding: EdgeInsets.zero,
+                      return ModernContentFade(
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
                         itemCount: docs.length,
                         itemBuilder: (context, index) {
                           final doc = docs[index];
@@ -2273,7 +2275,8 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                             },
                           );
                         },
-                      );
+                      ),
+                    );
                     },
                   ),
           ),
@@ -2473,28 +2476,34 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         children: [
           _buildModeContextBanner(),
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                final isFirstGreeting = index == 0 && _messages.length == 1;
+            child: ModernContentFade(
+              enableTopFade: true,
+              enableBottomFade: true,
+              height: 24,
+              bottomHeight: 24,
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  final message = _messages[index];
+                  final isFirstGreeting = index == 0 && _messages.length == 1;
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _ChatBubble(
-                      message: message,
-                      onEdit: message.isUser ? () => _editMessageDialog(index, message.text) : null,
-                      onConfirmRecipe: (name, pres, interval, dosis, duration, notas, pData, {targetProfile}) {
-                        _handleConfirmRecipe(name, pres, interval, dosis, duration, notas, pData, targetProfile: targetProfile);
-                      },
-                    ),
-                    if (isFirstGreeting) _buildInitialOptions(),
-                  ],
-                );
-              },
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _ChatBubble(
+                        message: message,
+                        onEdit: message.isUser ? () => _editMessageDialog(index, message.text) : null,
+                        onConfirmRecipe: (name, pres, interval, dosis, duration, notas, pData, {targetProfile}) {
+                          _handleConfirmRecipe(name, pres, interval, dosis, duration, notas, pData, targetProfile: targetProfile);
+                        },
+                      ),
+                      if (isFirstGreeting) _buildInitialOptions(),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
           _buildComposer(),

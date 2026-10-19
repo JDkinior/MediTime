@@ -12,6 +12,7 @@ import 'package:meditime/notifiers/caregiver_notifier.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'package:meditime/enums/view_state.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 class GeneralCaregiverPage extends StatefulWidget {
   const GeneralCaregiverPage({super.key});
@@ -185,13 +186,15 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
             ),
           );
 
-          return ListView(
-            padding: EdgeInsets.only(
-              left: 20.0,
-              right: 20.0,
-              top: 16.0,
-              bottom: isModern ? 100.0 : 16.0,
-            ),
+          return ModernContentFade(
+            height: 28,
+            child: ListView(
+              padding: EdgeInsets.only(
+                left: 20.0,
+                right: 20.0,
+                top: 16.0,
+                bottom: isModern ? 100.0 : 16.0,
+              ),
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,8 +263,9 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
                   }),
                 ),
             ],
-          );
-        },
+          ),
+        );
+      },
       ),
     );
   }

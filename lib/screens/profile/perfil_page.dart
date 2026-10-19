@@ -17,6 +17,7 @@ import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/widgets/profile_avatar.dart';
 import 'package:meditime/services/profile_cache_service.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 class PerfilPage extends StatefulWidget {
   final GlobalKey? profileKey;
@@ -451,9 +452,11 @@ class _PerfilPageState extends State<PerfilPage> {
             ],
           ),
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
+        body: ModernContentFade(
+          height: 28,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Profile Card (Header)
@@ -666,6 +669,7 @@ class _PerfilPageState extends State<PerfilPage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

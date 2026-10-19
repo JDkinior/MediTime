@@ -168,10 +168,11 @@ class _ModernAppBarState extends State<ModernAppBar> {
         ? (widget.child as AppBar).backgroundColor!
         : Theme.of(context).scaffoldBackgroundColor;
 
-    final currentExtension = (_isFadeActive && _scrollProgress > 0.0)
+    final isScrollFadeEnabled = preferenceNotifier.enableScrollFade;
+    final currentExtension = (isScrollFadeEnabled && _isFadeActive && _scrollProgress > 0.0)
         ? (widget.fadeExtension * _scrollProgress)
         : 0.0;
-    final showGradient = _isFadeActive && currentExtension > 0.0;
+    final showGradient = isScrollFadeEnabled && _isFadeActive && currentExtension > 0.0;
 
     return Stack(
       clipBehavior: showGradient ? Clip.none : Clip.hardEdge,

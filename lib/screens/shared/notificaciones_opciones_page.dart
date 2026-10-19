@@ -10,6 +10,7 @@ import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/alarm/alarm_ringing_page.dart';
 import 'package:meditime/screens/shared/guia_optimizacion_page.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 class NotificacionesOpcionesPage extends StatefulWidget {
   const NotificacionesOpcionesPage({super.key});
@@ -229,8 +230,9 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
       ),
       body: _isRescheduling
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
+          : ModernContentFade(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
               children: [
                 _buildOptionCardWrapper(
                   title: 'Gestión de tomas',
@@ -505,6 +507,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                 ),
                 ],
               ),
+            ),
       );
     }
 

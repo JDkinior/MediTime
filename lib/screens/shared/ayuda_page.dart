@@ -4,6 +4,7 @@ import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/primary_button.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'guia_optimizacion_page.dart';
@@ -41,8 +42,9 @@ class AyudaPage extends StatelessWidget {
           foregroundColor: primaryTextColor,
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      body: ModernContentFade(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         children: <Widget>[
           // Tarjeta Destacada: Guía de Optimización de Recordatorios
           _buildSpecialCard(
@@ -274,7 +276,8 @@ class AyudaPage extends StatelessWidget {
           const SizedBox(height: 20),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildSpecialCard({

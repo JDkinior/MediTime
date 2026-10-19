@@ -60,6 +60,7 @@ class PreferenceService {
   static const String _largeButtonsKey = 'large_buttons_active';
   static const String _simplifiedInterfaceKey = 'simplified_interface_active';
   static const String _showCardBorderKey = 'show_card_border_active';
+  static const String _enableScrollFadeKey = 'enable_scroll_fade_active';
 
   // Caregiver Mode keys
   static const String _caregiverModeActiveKey = 'caregiver_mode_active';
@@ -127,6 +128,17 @@ class PreferenceService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.reload();
     return prefs.getString(_interfaceStyleKey) ?? 'classic';
+  }
+
+  Future<void> saveEnableScrollFade(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_enableScrollFadeKey, value);
+  }
+
+  Future<bool> getEnableScrollFade() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    return prefs.getBool(_enableScrollFadeKey) ?? true;
   }
 
   Future<void> saveCalendarFormat(String format) async {

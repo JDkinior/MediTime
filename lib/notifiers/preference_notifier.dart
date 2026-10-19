@@ -36,6 +36,9 @@ class PreferenceNotifier extends ChangeNotifier {
   String _interfaceStyle = 'classic';
   String get interfaceStyle => _interfaceStyle;
 
+  bool _enableScrollFade = true;
+  bool get enableScrollFade => _enableScrollFade;
+
   String _themeMode = 'system';
   String get themeMode => _themeMode;
 
@@ -98,6 +101,7 @@ class PreferenceNotifier extends ChangeNotifier {
     _snoozeDuration = await _preferenceService.getSnoozeDuration();
     _calendarFormat = await _preferenceService.getCalendarFormat();
     _interfaceStyle = await _preferenceService.getInterfaceStyle();
+    _enableScrollFade = await _preferenceService.getEnableScrollFade();
     _themeMode = await _preferenceService.getThemeMode();
     _languageCode = await _preferenceService.getLanguageCode();
 
@@ -181,6 +185,13 @@ class PreferenceNotifier extends ChangeNotifier {
     _interfaceStyle = style;
     notifyListeners();
     await _preferenceService.saveInterfaceStyle(style);
+  }
+
+  Future<void> setEnableScrollFade(bool value) async {
+    if (_enableScrollFade == value) return;
+    _enableScrollFade = value;
+    notifyListeners();
+    await _preferenceService.saveEnableScrollFade(value);
   }
 
   Future<void> setThemeMode(String themeStr) async {

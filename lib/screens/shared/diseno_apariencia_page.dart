@@ -4,6 +4,7 @@ import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
 
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 class DisenoAparienciaPage extends StatefulWidget {
   const DisenoAparienciaPage({super.key});
@@ -61,89 +62,142 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
       ),
       body: preferenceNotifier.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _buildOptionCardWrapper(
-                  title: 'Modo de pantalla',
-                  subtitle: 'Elige cómo se verá la aplicación.',
-                  child: Row(
-                    children: [
-                      _buildThemeOptionCard(
-                        id: 'light',
-                        title: 'Claro',
-                        subtitle: 'Modo diurno',
-                        preview: const Icon(Icons.light_mode_rounded, color: Colors.orange, size: 28),
-                      ),
-                      const SizedBox(width: 10),
-                      _buildThemeOptionCard(
-                        id: 'dark',
-                        title: 'Oscuro',
-                        subtitle: 'Modo nocturno',
-                        preview: const Icon(Icons.dark_mode_rounded, color: Colors.amber, size: 28),
-                      ),
-                      const SizedBox(width: 10),
-                      _buildThemeOptionCard(
-                        id: 'system',
-                        title: 'Sistema',
-                        subtitle: 'Auto (sistema)',
-                        preview: const Icon(Icons.settings_brightness_rounded, color: Colors.blue, size: 28),
-                      ),
-                    ],
+          : ModernContentFade(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildOptionCardWrapper(
+                    title: 'Modo de pantalla',
+                    subtitle: 'Elige cómo se verá la aplicación.',
+                    child: Row(
+                      children: [
+                        _buildThemeOptionCard(
+                          id: 'light',
+                          title: 'Claro',
+                          subtitle: 'Modo diurno',
+                          preview: const Icon(Icons.light_mode_rounded, color: Colors.orange, size: 28),
+                        ),
+                        const SizedBox(width: 10),
+                        _buildThemeOptionCard(
+                          id: 'dark',
+                          title: 'Oscuro',
+                          subtitle: 'Modo nocturno',
+                          preview: const Icon(Icons.dark_mode_rounded, color: Colors.amber, size: 28),
+                        ),
+                        const SizedBox(width: 10),
+                        _buildThemeOptionCard(
+                          id: 'system',
+                          title: 'Sistema',
+                          subtitle: 'Auto (sistema)',
+                          preview: const Icon(Icons.settings_brightness_rounded, color: Colors.blue, size: 28),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
 
-                _buildOptionCardWrapper(
-                  title: 'Estilo de navegación',
-                  subtitle: 'Selecciona el estilo de tu barra de navegación.',
-                  child: Row(
-                    children: [
-                      _buildInterfaceOptionCard(
-                        id: 'classic',
-                        title: 'Clásica',
-                        subtitle: 'Nav bar tradicional',
-                        preview: _buildClassicPreview(isSelected: preferenceNotifier.interfaceStyle == 'classic'),
-                      ),
-                      const SizedBox(width: 12),
-                      _buildInterfaceOptionCard(
-                        id: 'modern',
-                        title: 'Moderna',
-                        subtitle: 'Flotante premium',
-                        preview: _buildModernPreview(isSelected: preferenceNotifier.interfaceStyle == 'modern'),
-                      ),
-                    ],
+                  _buildOptionCardWrapper(
+                    title: 'Estilo de navegación',
+                    subtitle: 'Selecciona el estilo de tu barra de navegación.',
+                    child: Row(
+                      children: [
+                        _buildInterfaceOptionCard(
+                          id: 'classic',
+                          title: 'Clásica',
+                          subtitle: 'Nav bar tradicional',
+                          preview: _buildClassicPreview(isSelected: preferenceNotifier.interfaceStyle == 'classic'),
+                        ),
+                        const SizedBox(width: 12),
+                        _buildInterfaceOptionCard(
+                          id: 'modern',
+                          title: 'Moderna',
+                          subtitle: 'Flotante premium',
+                          preview: _buildModernPreview(isSelected: preferenceNotifier.interfaceStyle == 'modern'),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
 
-                _buildOptionCardWrapper(
-                  title: 'Vista de calendario',
-                  subtitle: 'Elige cómo quieres ver el calendario.',
-                  child: Row(
-                    children: [
-                      _buildCalendarOptionCard(
-                        id: 'weekly',
-                        title: 'Semanal',
-                        subtitle: '1 fila',
-                        previewRows: 1,
-                      ),
-                      const SizedBox(width: 10),
-                      _buildCalendarOptionCard(
-                        id: 'biweekly',
-                        title: 'Quincenal',
-                        subtitle: '2 filas',
-                        previewRows: 2,
-                      ),
-                      const SizedBox(width: 10),
-                      _buildCalendarOptionCard(
-                        id: 'monthly',
-                        title: 'Mensual',
-                        subtitle: 'Completo',
-                        previewRows: 4,
-                      ),
-                    ],
+                  _buildOptionCardWrapper(
+                    title: 'Vista de calendario',
+                    subtitle: 'Elige cómo quieres ver el calendario.',
+                    child: Row(
+                      children: [
+                        _buildCalendarOptionCard(
+                          id: 'weekly',
+                          title: 'Semanal',
+                          subtitle: '1 fila',
+                          previewRows: 1,
+                        ),
+                        const SizedBox(width: 10),
+                        _buildCalendarOptionCard(
+                          id: 'biweekly',
+                          title: 'Quincenal',
+                          subtitle: '2 filas',
+                          previewRows: 2,
+                        ),
+                        const SizedBox(width: 10),
+                        _buildCalendarOptionCard(
+                          id: 'monthly',
+                          title: 'Mensual',
+                          subtitle: 'Completo',
+                          previewRows: 4,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+
+                  _buildOptionCardWrapper(
+                    title: 'Difuminado de scroll',
+                    subtitle: 'Efecto degradado en extremos de listas al desplazarse.',
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                preferenceNotifier.enableScrollFade ? 'Activado' : 'Desactivado',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: preferenceNotifier.enableScrollFade
+                                      ? AppTheme.primaryColor
+                                      : AppTheme.secondaryTextColor,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Atenúa suavemente los extremos superior e inferior en modo moderno para evitar cortes abruptos al hacer scroll.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppTheme.secondaryTextColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: preferenceNotifier.enableScrollFade,
+                          onChanged: (val) async {
+                            await preferenceNotifier.setEnableScrollFade(val);
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(val
+                                    ? 'Difuminado de scroll activado.'
+                                    : 'Difuminado de scroll desactivado.'),
+                                backgroundColor: Colors.green,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          activeColor: AppTheme.primaryColor,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
     );
   }

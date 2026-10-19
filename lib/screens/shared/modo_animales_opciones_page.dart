@@ -7,6 +7,7 @@ import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/caregiver/manage_caregiver_profiles_page.dart';
 import 'package:meditime/core/subscription_guard.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 class ModoAnimalesOpcionesPage extends StatefulWidget {
   const ModoAnimalesOpcionesPage({super.key});
@@ -39,8 +40,9 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
           foregroundColor: AppTheme.primaryTextColor,
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: ModernContentFade(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
         children: [
           // Banner de estado con cambio a verde
           Container(
@@ -319,6 +321,7 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
           ],
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

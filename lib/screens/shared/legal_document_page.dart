@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:meditime/core/legal_content.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 import 'package:meditime/widgets/primary_button.dart';
 
 /// Pantalla completa y visor modal interactivo de Términos de Servicio y Política de Privacidad.
@@ -180,13 +181,15 @@ class _LegalDocumentPageState extends State<LegalDocumentPage>
   }
 
   Widget _buildLegalList(List<LegalSection> sections, bool isDark) {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      itemCount: sections.length,
-      itemBuilder: (context, index) {
-        final sec = sections[index];
-        return _buildSectionCard(sec, isDark);
-      },
+    return ModernContentFade(
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        itemCount: sections.length,
+        itemBuilder: (context, index) {
+          final sec = sections[index];
+          return _buildSectionCard(sec, isDark);
+        },
+      ),
     );
   }
 

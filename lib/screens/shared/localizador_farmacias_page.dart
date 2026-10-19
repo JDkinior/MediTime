@@ -5,6 +5,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:meditime/core/location_helper.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 class LocalizadorFarmaciasPage extends StatefulWidget {
   const LocalizadorFarmaciasPage({super.key});
@@ -452,7 +453,9 @@ class _LocalizadorFarmaciasPageState extends State<LocalizadorFarmaciasPage> {
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: ListView.separated(
+            child: ModernContentFade(
+              height: 20,
+              child: ListView.separated(
               itemCount: _pharmacies.length,
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
@@ -527,6 +530,7 @@ class _LocalizadorFarmaciasPageState extends State<LocalizadorFarmaciasPage> {
                 );
               },
             ),
+          ),
           ),
         ],
       ),

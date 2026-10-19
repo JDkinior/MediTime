@@ -10,6 +10,7 @@ import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/caregiver/add_edit_caregiver_profile_page.dart';
 import 'package:meditime/core/subscription_guard.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 class ManageCaregiverProfilesPage extends StatefulWidget {
   final bool isAnimalMode;
@@ -190,8 +191,10 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
       ),
       body: Stack(
         children: [
-          ListView(
-            padding: const EdgeInsets.all(16.0),
+          ModernContentFade(
+            height: 28,
+            child: ListView(
+              padding: const EdgeInsets.all(16.0),
             children: [
               // Dashboard Stats Card
               Container(
@@ -434,6 +437,7 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
               const SizedBox(height: 80), // bottom space for FAB
             ],
           ),
+        ),
           if (_isLoading)
             Container(
               color: Colors.black.withOpacity(0.3),

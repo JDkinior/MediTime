@@ -9,6 +9,7 @@ import 'package:meditime/screens/medication/detalle_receta_page.dart';
 import 'package:meditime/widgets/container_transform_card.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 import 'package:provider/provider.dart';
 
 class PacienteRecetaPage extends StatelessWidget {
@@ -100,34 +101,37 @@ class PacienteRecetaPage extends StatelessWidget {
             );
           }
 
-          return ListView.builder(
-            itemCount: dosisPendientes.length,
-            itemBuilder: (context, index) {
-              final doseData = dosisPendientes[index];
-              final Tratamiento tratamiento = doseData['tratamiento'];
-              final DateTime horaDosis = doseData['doseTime'];
-              final horaFormateada = DateFormat('hh:mm a, d MMM', 'es_ES').format(horaDosis);
+          return ModernContentFade(
+            height: 28,
+            child: ListView.builder(
+              itemCount: dosisPendientes.length,
+              itemBuilder: (context, index) {
+                final doseData = dosisPendientes[index];
+                final Tratamiento tratamiento = doseData['tratamiento'];
+                final DateTime horaDosis = doseData['doseTime'];
+                final horaFormateada = DateFormat('hh:mm a, d MMM', 'es_ES').format(horaDosis);
 
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ContainerTransformCard<void>(
-                  borderRadius: BorderRadius.circular(12),
-                  openBuilder: (context, _) => DetalleRecetaPage(
-                    tratamiento: tratamiento,
-                    horaDosis: horaDosis,
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ContainerTransformCard<void>(
+                    borderRadius: BorderRadius.circular(12),
+                    openBuilder: (context, _) => DetalleRecetaPage(
+                      tratamiento: tratamiento,
+                      horaDosis: horaDosis,
+                    ),
+                    closedBuilder: (context, openContainer) {
+                      return ListTile(
+                        leading: Icon(Icons.medical_services, color: AppTheme.primaryColor),
+                        title: Text(tratamiento.nombreMedicamento),
+                        subtitle: Text('Dosis: ${tratamiento.dosisPorToma} ${tratamiento.presentacion}\nPróxima toma: $horaFormateada'),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                        onTap: openContainer,
+                      );
+                    },
                   ),
-                  closedBuilder: (context, openContainer) {
-                    return ListTile(
-                      leading: Icon(Icons.medical_services, color: AppTheme.primaryColor),
-                      title: Text(tratamiento.nombreMedicamento),
-                      subtitle: Text('Dosis: ${tratamiento.dosisPorToma} ${tratamiento.presentacion}\nPróxima toma: $horaFormateada'),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: openContainer,
-                    );
-                  },
-                ),
-              );
-            },
+                );
+              },
+            ),
           );
         },
       ),

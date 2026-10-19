@@ -16,12 +16,15 @@ void main() {
 
   Widget buildTestWidget({
     required Widget child,
+    PreferenceNotifier? prefNotifier,
   }) {
-    final prefNotifier = PreferenceNotifier(PreferenceService());
-    prefNotifier.setInterfaceStyle('modern');
+    final notifier = prefNotifier ?? PreferenceNotifier(PreferenceService());
+    if (prefNotifier == null) {
+      notifier.setInterfaceStyle('modern');
+    }
 
     return ChangeNotifierProvider<PreferenceNotifier>.value(
-      value: prefNotifier,
+      value: notifier,
       child: MaterialApp(
         home: child,
       ),
@@ -138,6 +141,38 @@ void main() {
       );
       expect(gradientFinder, findsOneWidget);
     });
+
+    testWidgets('ModernAppBar disables fade when global enableScrollFade is false', (tester) async {
+      final notifier = PreferenceNotifier(PreferenceService());
+      notifier.setInterfaceStyle('modern');
+      notifier.setEnableScrollFade(false);
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          prefNotifier: notifier,
+          child: Scaffold(
+            appBar: ModernAppBar(
+              fadeExtension: 28.0,
+              child: AppBar(title: const Text('Global Toggle Test')),
+            ),
+            body: ListView.builder(
+              itemCount: 50,
+              itemBuilder: (context, index) => ListTile(title: Text('Item $index')),
+            ),
+          ),
+        ),
+      );
+
+      // Scroll the list
+      await tester.drag(find.text('Item 0'), const Offset(0, -200));
+      await tester.pumpAndSettle();
+
+      // Verify no gradient is shown because enableScrollFade is false
+      final gradientFinder = find.byWidgetPredicate(
+        (w) => w is Positioned && w.height == 28.0 && w.child is IgnorePointer,
+      );
+      expect(gradientFinder, findsNothing);
+    });
   });
 
   group('ModernContentFade Widget Tests', () {
@@ -162,6 +197,86 @@ void main() {
 
       // At rest (0 scroll), no fade overlay Positioned exists
       expect(find.byType(Positioned), findsNothing);
+    });
+
+    testWidgets('ModernContentFade returns child directly when enableScrollFade is false', (tester) async {
+      final notifier = PreferenceNotifier(PreferenceService());
+      notifier.setInterfaceStyle('modern');
+      notifier.setEnableScrollFade(false);
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          prefNotifier: notifier,
+          child: Scaffold(
+            body: ModernContentFade(
+              child: ListView(
+                children: const [Text('Item 1')],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Should not contain a Stack created by ModernContentFade
+      final stackFinder = find.descendant(
+        of: find.byType(ModernContentFade),
+        matching: find.byType(Stack),
+      );
+      expect(stackFinder, findsNothing);
+      expect(find.text('Item 1'), findsOneWidget);
+    });
+
+    testWidgets('ModernContentFade displays top fade when scrolled down', (tester) async {
+      await tester.pumpWidget(
+        buildTestWidget(
+          child: Scaffold(
+            body: ModernContentFade(
+              height: 28,
+              child: ListView.builder(
+                itemCount: 50,
+                itemBuilder: (context, index) => ListTile(title: Text('Item $index')),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Scroll down
+      await tester.drag(find.text('Item 0'), const Offset(0, -200));
+      await tester.pumpAndSettle();
+
+      // Top fade overlay positioned widget should now exist
+      final topFadeFinder = find.byWidgetPredicate(
+        (w) => w is Positioned && w.top == 0.0 && w.height == 28.0 && w.child is IgnorePointer,
+      );
+      expect(topFadeFinder, findsOneWidget);
+    });
+
+    testWidgets('ModernContentFade with enableBottomFade shows bottom fade when content exists below', (tester) async {
+      await tester.pumpWidget(
+        buildTestWidget(
+          child: Scaffold(
+            body: ModernContentFade(
+              height: 24,
+              bottomHeight: 24,
+              enableTopFade: true,
+              enableBottomFade: true,
+              child: ListView.builder(
+                itemCount: 50,
+                itemBuilder: (context, index) => ListTile(title: Text('Item $index')),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Bottom fade overlay positioned widget should be active since extentAfter > 0
+      final bottomFadeFinder = find.byWidgetPredicate(
+        (w) => w is Positioned && w.bottom == 0.0 && w.height == 24.0 && w.child is IgnorePointer,
+      );
+      expect(bottomFadeFinder, findsOneWidget);
     });
   });
 }

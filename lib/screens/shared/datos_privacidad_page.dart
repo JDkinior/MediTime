@@ -8,6 +8,7 @@ import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 import 'legal_document_page.dart';
 
 class DatosPrivacidadPage extends StatefulWidget {
@@ -342,8 +343,9 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
+          : ModernContentFade(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
               children: [
                 Padding(
                   padding: const EdgeInsets.only(left: 4, bottom: 8),
@@ -562,6 +564,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
                 ),
               ],
             ),
+          ),
     );
   }
 

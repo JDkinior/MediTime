@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 
 class IdiomaOpcionesPage extends StatelessWidget {
@@ -29,8 +30,9 @@ class IdiomaOpcionesPage extends StatelessWidget {
       ),
       body: preferenceNotifier.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
+          : ModernContentFade(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
               children: [
                 Padding(
                   padding: const EdgeInsets.only(left: 4, bottom: 16),
@@ -83,6 +85,7 @@ class IdiomaOpcionesPage extends StatelessWidget {
                 ),
               ],
             ),
+          ),
     );
   }
 

@@ -12,6 +12,7 @@ import 'package:meditime/screens/shared/modo_cuidador_opciones_page.dart';
 import 'package:meditime/screens/shared/modo_animales_opciones_page.dart';
 import 'package:meditime/screens/shared/idioma_opciones_page.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 
 class OpcionesPage extends StatelessWidget {
@@ -31,8 +32,9 @@ class OpcionesPage extends StatelessWidget {
           foregroundColor: AppTheme.primaryTextColor,
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: ModernContentFade(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
         children: [
           _buildCategoryCard(
             context: context,
@@ -119,7 +121,8 @@ class OpcionesPage extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildCategoryCard({

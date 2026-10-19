@@ -13,6 +13,7 @@ import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 // CAMBIO: Convertimos a StatefulWidget para manejar el temporizador de la cuenta regresiva
 class DetalleRecetaPage extends StatefulWidget {
@@ -217,23 +218,25 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       appBar: ModernAppBar(
         child: AppBar(title: Text(widget.tratamiento.nombreMedicamento)),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildSelectedDoseDisplay(selectedDoseTime, l10n),
-              const SizedBox(height: 32),
-              _buildNextDoseInfo(_nextUpcomingDose, selectedDoseTime, l10n),
-              const SizedBox(height: 32),
-              const Divider(),
-              const SizedBox(height: 32),
-              TreatmentSummaryCard(
-                formData: formData,
-                summaryInfo: _getSummaryInfo(formData, context),
-              ),
-            ],
+      body: ModernContentFade(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildSelectedDoseDisplay(selectedDoseTime, l10n),
+                const SizedBox(height: 32),
+                _buildNextDoseInfo(_nextUpcomingDose, selectedDoseTime, l10n),
+                const SizedBox(height: 32),
+                const Divider(),
+                const SizedBox(height: 32),
+                TreatmentSummaryCard(
+                  formData: formData,
+                  summaryInfo: _getSummaryInfo(formData, context),
+                ),
+              ],
+            ),
           ),
         ),
       ),

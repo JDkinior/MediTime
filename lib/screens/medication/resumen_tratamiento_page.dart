@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:meditime/models/tratamiento.dart'; // <-- CAMBIO: Importar modelo
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 class ResumenTratamientoPage extends StatelessWidget {
   // CAMBIO: El constructor ahora espera un objeto Tratamiento
@@ -55,19 +56,22 @@ class ResumenTratamientoPage extends StatelessWidget {
           foregroundColor: Colors.black87,
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildHeaderCard(nombreMedicamento, fechaInicio, fechaFin),
-            const SizedBox(height: 24),
-            _buildStatsGrid(totalDosis, numTomadas, numOmitidas),
-            const SizedBox(height: 24),
-            _buildComplianceCard(context, cumplimiento),
-            const SizedBox(height: 24),
-            _buildSkippedDosesList(dosisOmitidas),
-          ],
+      body: ModernContentFade(
+        height: 28,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHeaderCard(nombreMedicamento, fechaInicio, fechaFin),
+              const SizedBox(height: 24),
+              _buildStatsGrid(totalDosis, numTomadas, numOmitidas),
+              const SizedBox(height: 24),
+              _buildComplianceCard(context, cumplimiento),
+              const SizedBox(height: 24),
+              _buildSkippedDosesList(dosisOmitidas),
+            ],
+          ),
         ),
       ),
     );

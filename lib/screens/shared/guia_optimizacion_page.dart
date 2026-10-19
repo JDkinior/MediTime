@@ -6,6 +6,7 @@ import 'package:meditime/services/system_settings_service.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/primary_button.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 class GuiaOptimizacionPage extends StatefulWidget {
   const GuiaOptimizacionPage({super.key});
@@ -100,8 +101,9 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          : ModernContentFade(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               children: [
                 // Banner Informativo Superior
                 _buildHeroBanner(isDark, primaryTextColor, secondaryTextColor),
@@ -168,6 +170,7 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
                 const SizedBox(height: 24),
               ],
             ),
+          ),
     );
   }
 
