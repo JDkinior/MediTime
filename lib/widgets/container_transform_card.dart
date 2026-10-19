@@ -30,10 +30,10 @@ class ContainerTransformCard<T extends Object?> extends StatefulWidget {
   /// Constructor del widget en estado abierto (pantalla de detalle).
   final Widget Function(BuildContext context, VoidCallback closeContainer) openBuilder;
 
-  /// Duración de la animación de apertura. Por defecto 420ms.
+  /// Duración de la animación de apertura. Por defecto 320ms para máxima fluidez.
   final Duration transitionDuration;
 
-  /// Duración de la animación de cierre/retorno. Por defecto 360ms.
+  /// Duración de la animación de cierre/retorno. Por defecto 280ms.
   final Duration reverseTransitionDuration;
 
   /// Curva de animación para la transformación. Por defecto [Curves.fastOutSlowIn].
@@ -74,8 +74,8 @@ class ContainerTransformCard<T extends Object?> extends StatefulWidget {
     super.key,
     required this.closedBuilder,
     required this.openBuilder,
-    this.transitionDuration = const Duration(milliseconds: 420),
-    this.reverseTransitionDuration = const Duration(milliseconds: 360),
+    this.transitionDuration = const Duration(milliseconds: 320),
+    this.reverseTransitionDuration = const Duration(milliseconds: 280),
     this.curve = Curves.fastOutSlowIn,
     this.borderRadius = const BorderRadius.all(Radius.circular(20)),
     this.closedShadows,
@@ -115,19 +115,22 @@ class ContainerTransformCardState<T extends Object?> extends State<ContainerTran
     final effectiveOpenColor = widget.openColor ?? Theme.of(context).scaffoldBackgroundColor;
     final effectiveClosedShadows = widget.closedShadows ?? AppTheme.cardShadow;
 
-    final closedPreview = DecoratedBox(
-      decoration: BoxDecoration(
-        color: effectiveClosedColor,
-        borderRadius: widget.borderRadius,
-        border: hasBorder
-            ? Border.all(color: effectiveBorderColor, width: widget.borderWidth)
-            : null,
-      ),
-      child: ClipRRect(
-        borderRadius: widget.borderRadius,
-        child: Material(
-          type: MaterialType.transparency,
-          child: widget.closedBuilder(context, () {}),
+    // Aislamos la tarjeta cerrada en un RepaintBoundary para rasterizarla una sola vez
+    final closedPreview = RepaintBoundary(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: effectiveClosedColor,
+          borderRadius: widget.borderRadius,
+          border: hasBorder
+              ? Border.all(color: effectiveBorderColor, width: widget.borderWidth)
+              : null,
+        ),
+        child: ClipRRect(
+          borderRadius: widget.borderRadius,
+          child: Material(
+            type: MaterialType.transparency,
+            child: widget.closedBuilder(context, () {}),
+          ),
         ),
       ),
     );
@@ -237,11 +240,16 @@ class ContainerTransformCardState<T extends Object?> extends State<ContainerTran
   }
 }
 
-/// Ruta de transición especializada en Container Transform.
+/// Ruta de transición especializada en Container Transform de alto rendimiento.
 ///
-/// Mantiene `barrierColor: Colors.transparent` para que el fondo NO se oscurezca,
-/// conserva la curvatura de las esquinas (`borderRadius`) durante el recorrido
-/// y evita deformaciones por escalado.
+/// Optimizaciones clave para 60/120 FPS en dispositivos móviles:
+/// 1. Fondo completamente transparente sin oscurecimiento (`barrierColor: Colors.transparent`, `opaque: false`).
+/// 2. Geometría de esquinas redondeadas preservada casi todo el vuelo ([Curves.easeInCubic]).
+/// 3. Aislamiento de capas con [RepaintBoundary] para pantalla completa y tarjeta cerrada:
+///    elimina repintados innecesarios por frame (GPU texture caching).
+/// 4. Cero recorridos de árbol por frame (`findRenderObject` y `localToGlobal` eliminados en `buildTransitions`).
+/// 5. Elevación y sombras aceleradas por hardware vía [Material] en vez de rasterizado Gaussian de CPU.
+/// 6. Pre-calentamiento de vista con [Offstage] para evitar tirones (jank) al inflar la pantalla a mitad del trayecto.
 class ContainerTransformPageRoute<T> extends PageRoute<T> {
   final GlobalKey sourceKey;
   final Rect originRect;
@@ -261,6 +269,32 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
 
   @override
   final Duration reverseTransitionDuration;
+
+  static final Animatable<double> _closedOpacityTween = TweenSequence<double>([
+    TweenSequenceItem<double>(
+      tween: Tween<double>(begin: 1.0, end: 0.0),
+      weight: 25,
+    ),
+    TweenSequenceItem<double>(
+      tween: ConstantTween<double>(0.0),
+      weight: 75,
+    ),
+  ]);
+
+  static final Animatable<double> _openOpacityTween = TweenSequence<double>([
+    TweenSequenceItem<double>(
+      tween: ConstantTween<double>(0.0),
+      weight: 15,
+    ),
+    TweenSequenceItem<double>(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      weight: 25,
+    ),
+    TweenSequenceItem<double>(
+      tween: ConstantTween<double>(1.0),
+      weight: 60,
+    ),
+  ]);
 
   ContainerTransformPageRoute({
     required this.sourceKey,
@@ -318,107 +352,97 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
     final Size screenSize = MediaQuery.sizeOf(context);
     final double curvedValue = curve.transform(animation.value);
 
-    // Calcular la posición actual de la tarjeta en caso de que la vista se haya ajustado
-    Rect currentOrigin = originRect;
-    final currentBox = sourceKey.currentContext?.findRenderObject() as RenderBox?;
-    if (currentBox != null && currentBox.hasSize) {
-      currentOrigin = currentBox.localToGlobal(Offset.zero) & currentBox.size;
-    }
-
+    // Dimensiones y posición interpoladas O(1) matemáticamente sin recorrer el árbol
     final Rect fullScreenRect = Offset.zero & screenSize;
-    final Rect currentRect = Rect.lerp(currentOrigin, fullScreenRect, curvedValue)!;
+    final Rect currentRect = Rect.lerp(originRect, fullScreenRect, curvedValue)!;
 
     // Preservar la curvatura redondeada durante casi toda la expansión:
-    // solo se suaviza a 0 al alcanzar los extremos de la pantalla.
-    final double radiusProgress = Curves.easeInQuad.transform(curvedValue);
+    // Curves.easeInCubic asegura que la tarjeta se mantenga redondeada durante más del 80%
+    // del recorrido, suavizándose a 0 únicamente en los extremos exactos de la pantalla.
+    final double radiusProgress = Curves.easeInCubic.transform(curvedValue);
     final BorderRadius currentRadius = BorderRadius.lerp(borderRadius, BorderRadius.zero, radiusProgress)!;
 
-    // Interpolar color entre la tarjeta y la pantalla de detalle
+    // Color interpolado suavemente
     final Color currentColor = Color.lerp(closedColor, openColor, curvedValue)!;
 
-    // Elevación y sombra física durante el vuelo
-    final List<BoxShadow> currentShadows;
-    if (curvedValue > 0.98) {
-      currentShadows = const [];
-    } else {
-      final double elevationFactor = math.sin(curvedValue * math.pi);
-      final double shadowAlpha = (AppTheme.currentIsDark ? 0.32 : 0.08) * (1.0 - curvedValue * 0.4);
-      currentShadows = [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: shadowAlpha),
-          blurRadius: 10.0 + 16.0 * elevationFactor,
-          spreadRadius: 0.5 * elevationFactor,
-          offset: Offset(0, 4.0 + 8.0 * elevationFactor),
-        ),
-      ];
-    }
+    // Elevación física acelerada por hardware (shaders nativos de GPU)
+    final double currentElevation = curvedValue > 0.98
+        ? 0.0
+        : (5.0 * math.sin(curvedValue * math.pi)).clamp(0.0, 5.0);
 
-    // Borde de la tarjeta si el contraste lo requiere
-    final Border? currentBorder = hasBorder && curvedValue < 0.8
-        ? Border.all(
-            color: borderColor.withValues(alpha: (1.0 - (curvedValue / 0.8)).clamp(0.0, 1.0)),
+    // Borde de contraste si aplica
+    final BorderSide currentBorderSide = hasBorder && curvedValue < 0.75
+        ? BorderSide(
+            color: borderColor.withValues(alpha: (1.0 - (curvedValue / 0.75)).clamp(0.0, 1.0)),
             width: borderWidth,
           )
-        : null;
+        : BorderSide.none;
 
-    // Transición de contenido:
-    // El contenido cerrado se desvanece suavemente en el primer 35% del trayecto
-    final double closedOpacity = (1.0 - (curvedValue / 0.35)).clamp(0.0, 1.0);
-    // El contenido abierto se revela con fundido del 20% al 100%
-    final double openOpacity = ((curvedValue - 0.20) / 0.80).clamp(0.0, 1.0);
+    // Opacidades cruzadas desde secuencia estática
+    final double closedOpacity = _closedOpacityTween.transform(curvedValue);
+    final double openOpacity = _openOpacityTween.transform(curvedValue);
 
-    return Stack(
-      children: [
-        Positioned(
-          left: currentRect.left,
-          top: currentRect.top,
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Transform.translate(
+        offset: Offset(currentRect.left, currentRect.top),
+        child: SizedBox(
           width: currentRect.width,
           height: currentRect.height,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: currentColor,
+          child: Material(
+            color: currentColor,
+            elevation: currentElevation,
+            shape: RoundedRectangleBorder(
               borderRadius: currentRadius,
-              border: currentBorder,
-              boxShadow: currentShadows,
+              side: currentBorderSide,
             ),
             child: ClipRRect(
               borderRadius: currentRadius,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Pantalla abierta revelándose de manera limpia y sin deformaciones
-                  if (openOpacity > 0.0)
-                    Opacity(
-                      opacity: openOpacity,
+                  // Pantalla abierta: pre-renderizada desde el frame 0 en RepaintBoundary
+                  // Evita frame-drops al no tener que inflar widgets pesados a mitad del vuelo
+                  Offstage(
+                    offstage: openOpacity <= 0.0,
+                    child: FadeTransition(
+                      opacity: AlwaysStoppedAnimation<double>(openOpacity),
                       child: OverflowBox(
                         alignment: Alignment.topLeft,
                         minWidth: screenSize.width,
                         maxWidth: screenSize.width,
                         minHeight: screenSize.height,
                         maxHeight: screenSize.height,
-                        child: child,
+                        child: RepaintBoundary(
+                          child: child,
+                        ),
                       ),
                     ),
+                  ),
 
-                  // Tarjeta cerrada desvaneciéndose en su tamaño y alineación original
-                  if (closedOpacity > 0.0)
-                    Opacity(
-                      opacity: closedOpacity,
+                  // Tarjeta cerrada: desvaneciéndose en su posición nativa sin repintar
+                  Offstage(
+                    offstage: closedOpacity <= 0.0,
+                    child: FadeTransition(
+                      opacity: AlwaysStoppedAnimation<double>(closedOpacity),
                       child: OverflowBox(
                         alignment: Alignment.topLeft,
-                        minWidth: currentOrigin.width,
-                        maxWidth: currentOrigin.width,
-                        minHeight: currentOrigin.height,
-                        maxHeight: currentOrigin.height,
-                        child: closedChild,
+                        minWidth: originRect.width,
+                        maxWidth: originRect.width,
+                        minHeight: originRect.height,
+                        maxHeight: originRect.height,
+                        child: RepaintBoundary(
+                          child: closedChild,
+                        ),
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
