@@ -17,6 +17,8 @@ typedef CloseContainerAction<T> = void Function([T? returnValue]);
 ///
 /// Características clave de rendimiento y diseño:
 /// 1. Rendimiento 120 FPS fijado por hardware:
+///    - Cero parpadeo o desaparición al pulsar: la tarjeta original permanece visible
+///      hasta que la capa de transición está dibujada exactamente sobre ella en pantalla.
 ///    - Cero recalculo de layout por frame: [child] y [closedChild] tienen dimensiones
 ///      estables fijas y se escalan mediante transformaciones de matriz 2D en GPU con [FittedBox(fit: BoxFit.fitWidth)].
 ///    - Aislamiento de rasterizado [RepaintBoundary]: ambas pantallas se renderizan exactamente una vez
@@ -112,7 +114,15 @@ class ContainerTransformCardState<T extends Object?> extends State<ContainerTran
     final renderBox = _cardKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null || !renderBox.hasSize) return;
 
-    final originRect = renderBox.localToGlobal(Offset.zero) & renderBox.size;
+    final navigator = Navigator.of(context, rootNavigator: widget.useRootNavigator);
+    final navRenderBox = navigator.context.findRenderObject() as RenderBox?;
+    final originRect = navRenderBox != null
+        ? MatrixUtils.transformRect(
+            renderBox.getTransformTo(navRenderBox),
+            Offset.zero & renderBox.size,
+          )
+        : renderBox.localToGlobal(Offset.zero) & renderBox.size;
+
     final preferenceNotifier = _getPreferenceNotifier();
     final hasBorder = widget.showBorder ??
         (preferenceNotifier != null &&
@@ -143,11 +153,10 @@ class ContainerTransformCardState<T extends Object?> extends State<ContainerTran
       ),
     );
 
-    setState(() {
-      _isRouteActive = true;
-      _placeholderSize = originRect.size;
-    });
-
+    // CRÍTICO: No ocultamos la tarjeta aquí inmediatamente con setState() para evitar
+    // el molesto parpadeo o desaparición en blanco de varios milisegundos mientras la ruta
+    // se instancia y realiza su primer frame de layout. La tarjeta permanece intacta en la
+    // lista hasta que la capa de transición ya está montada y dibujada encima de ella.
     final route = ContainerTransformPageRoute<T>(
       sourceKey: _cardKey,
       originRect: originRect,
@@ -162,6 +171,14 @@ class ContainerTransformCardState<T extends Object?> extends State<ContainerTran
       reverseTransitionDuration: widget.reverseTransitionDuration,
       curve: widget.curve,
       closedChild: closedPreview,
+      onTransitionStart: () {
+        if (mounted && !_isRouteActive) {
+          setState(() {
+            _isRouteActive = true;
+            _placeholderSize = originRect.size;
+          });
+        }
+      },
       builder: (routeContext) {
         return widget.openBuilder(
           routeContext,
@@ -170,9 +187,7 @@ class ContainerTransformCardState<T extends Object?> extends State<ContainerTran
       },
     );
 
-    Navigator.of(context, rootNavigator: widget.useRootNavigator)
-        .push(route)
-        .then((result) {
+    navigator.push(route).then((result) {
       if (mounted) {
         setState(() {
           _isRouteActive = false;
@@ -262,6 +277,7 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
   final Widget closedChild;
   final WidgetBuilder builder;
   final Curve curve;
+  final VoidCallback? onTransitionStart;
 
   @override
   final Duration transitionDuration;
@@ -273,6 +289,7 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
   Animation<double>? _openOpacityAnimation;
   Animation<double>? _closedOpacityAnimation;
   Animation<Color?>? _colorAnimation;
+  bool _hasReportedStart = false;
 
   // Secuencia de opacidad optimizada para hardware:
   // Closed card se desvanece de 1.0 a 0.0 en el primer 22%.
@@ -315,6 +332,7 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
     required this.transitionDuration,
     required this.reverseTransitionDuration,
     this.curve = Curves.fastOutSlowIn,
+    this.onTransitionStart,
     super.settings,
   });
 
@@ -372,6 +390,13 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
+    if (!_hasReportedStart) {
+      _hasReportedStart = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        onTransitionStart?.call();
+      });
+    }
+
     if (animation.status == AnimationStatus.completed) {
       return child;
     }
