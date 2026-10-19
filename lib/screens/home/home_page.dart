@@ -34,7 +34,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final PageController _pageController = PageController();
   final ValueNotifier<int> _currentIndexNotifier = ValueNotifier<int>(0);
-  late final ValueNotifier<bool> _appBarFadeEnabledNotifier;
   bool _isTutorialRunning = false;
 
   // Showcase keys (un step por funcionalidad clave)
@@ -61,8 +60,6 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _appBarFadeEnabledNotifier = ValueNotifier<bool>(_currentIndexNotifier.value == 0);
-    _currentIndexNotifier.addListener(_updateAppBarFadeState);
     // Espera a que el primer frame se pinte (y _showcaseContext quede asignado)
     // antes de verificar si hay que mostrar el tutorial.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -70,29 +67,8 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  bool _shouldEnableAppBarFade() {
-    if (!mounted) return false;
-    final preferenceNotifier = context.read<PreferenceNotifier>();
-    final caregiverNotifier = context.read<CaregiverNotifier>();
-    final isAnimalMode = preferenceNotifier.isAnimalMode;
-    final isManagedModeActive = caregiverNotifier.isCaregiverModeActive || isAnimalMode;
-    final activeProfile = caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimalMode);
-    final hasManagedBanner = isManagedModeActive && (caregiverNotifier.isGeneralMode || activeProfile != null);
-
-    return _currentIndexNotifier.value == 0 && !hasManagedBanner;
-  }
-
-  void _updateAppBarFadeState() {
-    final shouldFade = _shouldEnableAppBarFade();
-    if (_appBarFadeEnabledNotifier.value != shouldFade) {
-      _appBarFadeEnabledNotifier.value = shouldFade;
-    }
-  }
-
   @override
   void dispose() {
-    _currentIndexNotifier.removeListener(_updateAppBarFadeState);
-    _appBarFadeEnabledNotifier.dispose();
     _hideSkipButton();
     _pageController.dispose();
     _currentIndexNotifier.dispose();
@@ -301,21 +277,10 @@ class _HomePageState extends State<HomePage> {
         final hasManagedBanner = isManagedModeActive && (caregiverNotifier.isGeneralMode || activeProfile != null);
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
-        final shouldFadeAppBar = _currentIndexNotifier.value == 0 && !hasManagedBanner;
-        if (_appBarFadeEnabledNotifier.value != shouldFadeAppBar) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && _appBarFadeEnabledNotifier.value != shouldFadeAppBar) {
-              _appBarFadeEnabledNotifier.value = shouldFadeAppBar;
-            }
-          });
-        }
-
         return Scaffold(
           extendBody: isModern,
           extendBodyBehindAppBar: isModern,
           appBar: ModernAppBar(
-            fadeEnabledNotifier: _appBarFadeEnabledNotifier,
-            fadeExtension: 28.0,
             child: AppBar(
             centerTitle: true,
             title: isManagedModeActive
@@ -502,13 +467,18 @@ class _HomePageState extends State<HomePage> {
                         }
                       },
                       children: [
-                        (isManagedModeActive && caregiverNotifier.isGeneralMode)
-                            ? const GeneralCaregiverPage()
-                            : RecetaPage(
-                                fabKey: isModern ? null : _classicFabKey,
-                                summaryKey: _summaryKey,
-                                dateKey: _dateKey,
-                              ),
+                        Padding(
+                          padding: EdgeInsets.only(
+                            top: (isModern && !hasManagedBanner) ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0,
+                          ),
+                          child: (isManagedModeActive && caregiverNotifier.isGeneralMode)
+                              ? const GeneralCaregiverPage()
+                              : RecetaPage(
+                                  fabKey: isModern ? null : _classicFabKey,
+                                  summaryKey: _summaryKey,
+                                  dateKey: _dateKey,
+                                ),
+                        ),
                         Padding(
                           padding: EdgeInsets.only(
                             top: (isModern && !hasManagedBanner) ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0,

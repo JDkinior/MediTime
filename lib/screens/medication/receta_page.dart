@@ -29,6 +29,7 @@ import 'package:meditime/core/subscription_guard.dart';
 import 'package:meditime/services/gemini_service.dart';
 import 'package:meditime/notifiers/subscription_notifier.dart';
 import 'package:meditime/screens/subscription/subscription_page.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 
 class RecetaPage extends StatefulWidget {
   final GlobalKey? fabKey;
@@ -1036,19 +1037,15 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
             l10n: l10n,
           );
 
-          final hasManagedBanner = isManagedMode && (caregiverNotifier.isGeneralMode || activeProfile != null);
-
-          return ListView(
-            padding: EdgeInsets.only(
-              left: 20.0,
-              right: 20.0,
-              top: isModern
-                  ? (hasManagedBanner
-                      ? 16.0
-                      : (MediaQuery.paddingOf(context).top + 16.0))
-                  : 16.0,
-              bottom: isModern ? 100.0 : 16.0,
-            ),
+          return ModernContentFade(
+            height: 28,
+            child: ListView(
+              padding: EdgeInsets.only(
+                left: 20.0,
+                right: 20.0,
+                top: 16.0,
+                bottom: isModern ? 100.0 : 16.0,
+              ),
             children: [
               // Header/Saludo Section
               Column(
@@ -1157,8 +1154,9 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                   }),
                 ),
             ],
-          );
-        },
+          ),
+        );
+      },
       ),
       floatingActionButton: isModern ? null : _buildFab(context),
     );
