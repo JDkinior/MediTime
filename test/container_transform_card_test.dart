@@ -232,8 +232,8 @@ void main() {
       // Tap to trigger transition
       await tester.tap(find.text('Medicamento Rounded'));
       await tester.pump(); // Start transition
-      // Pump halfway through the animation (160ms of 320ms)
-      await tester.pump(const Duration(milliseconds: 160));
+      // Pump halfway through the animation (180ms of 360ms)
+      await tester.pump(const Duration(milliseconds: 180));
 
       // Find the ContainerTransformPageRoute in modal routes
       final modalRoute = ModalRoute.of(tester.element(find.text('Detalle Pantalla')));

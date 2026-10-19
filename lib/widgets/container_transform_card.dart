@@ -30,13 +30,13 @@ class ContainerTransformCard<T extends Object?> extends StatefulWidget {
   /// Constructor del widget en estado abierto (pantalla de detalle).
   final Widget Function(BuildContext context, VoidCallback closeContainer) openBuilder;
 
-  /// Duración de la animación de apertura. Por defecto 320ms para máxima fluidez.
+  /// Duración de la animación de apertura. Por defecto 360ms para un despliegue sedoso y natural.
   final Duration transitionDuration;
 
-  /// Duración de la animación de cierre/retorno. Por defecto 280ms.
+  /// Duración de la animación de cierre/retorno. Por defecto 300ms.
   final Duration reverseTransitionDuration;
 
-  /// Curva de animación para la transformación. Por defecto [Curves.fastOutSlowIn].
+  /// Curva de animación para la transformación. Por defecto [Curves.easeInOutCubic].
   final Curve curve;
 
   /// Radio de las esquinas redondeadas de la tarjeta. Por defecto 20.0 (estilo tarjeta MediTime).
@@ -74,9 +74,9 @@ class ContainerTransformCard<T extends Object?> extends StatefulWidget {
     super.key,
     required this.closedBuilder,
     required this.openBuilder,
-    this.transitionDuration = const Duration(milliseconds: 320),
-    this.reverseTransitionDuration = const Duration(milliseconds: 280),
-    this.curve = Curves.fastOutSlowIn,
+    this.transitionDuration = const Duration(milliseconds: 360),
+    this.reverseTransitionDuration = const Duration(milliseconds: 300),
+    this.curve = Curves.easeInOutCubic,
     this.borderRadius = const BorderRadius.all(Radius.circular(20)),
     this.closedShadows,
     this.closedColor,
@@ -272,27 +272,27 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
 
   static final Animatable<double> _closedOpacityTween = TweenSequence<double>([
     TweenSequenceItem<double>(
-      tween: Tween<double>(begin: 1.0, end: 0.0),
-      weight: 25,
+      tween: Tween<double>(begin: 1.0, end: 0.0).chain(CurveTween(curve: Curves.easeOut)),
+      weight: 30,
     ),
     TweenSequenceItem<double>(
       tween: ConstantTween<double>(0.0),
-      weight: 75,
+      weight: 70,
     ),
   ]);
 
   static final Animatable<double> _openOpacityTween = TweenSequence<double>([
     TweenSequenceItem<double>(
       tween: ConstantTween<double>(0.0),
-      weight: 15,
+      weight: 18,
     ),
     TweenSequenceItem<double>(
-      tween: Tween<double>(begin: 0.0, end: 1.0),
-      weight: 25,
+      tween: Tween<double>(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.easeInOut)),
+      weight: 64,
     ),
     TweenSequenceItem<double>(
       tween: ConstantTween<double>(1.0),
-      weight: 60,
+      weight: 18,
     ),
   ]);
 
@@ -310,7 +310,7 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
     required this.builder,
     required this.transitionDuration,
     required this.reverseTransitionDuration,
-    this.curve = Curves.fastOutSlowIn,
+    this.curve = Curves.easeInOutCubic,
     super.settings,
   });
 
@@ -362,8 +362,19 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
     final double radiusProgress = Curves.easeInCubic.transform(curvedValue);
     final BorderRadius currentRadius = BorderRadius.lerp(borderRadius, BorderRadius.zero, radiusProgress)!;
 
-    // Color interpolado suavemente
-    final Color currentColor = Color.lerp(closedColor, openColor, curvedValue)!;
+    // Desvanecimiento suave y progresivo del color de fondo de la tarjeta:
+    // Mantiene el color cerrado mientras inicia la elevación, transiciona
+    // gradualmente hacia el color de fondo de la pantalla de detalle, y
+    // se consolida antes de finalizar la expansión.
+    final Color currentColor;
+    if (animation.value <= 0.15) {
+      currentColor = closedColor;
+    } else if (animation.value >= 0.82) {
+      currentColor = openColor;
+    } else {
+      final double colorProgress = (animation.value - 0.15) / 0.67;
+      currentColor = Color.lerp(closedColor, openColor, Curves.easeInOut.transform(colorProgress))!;
+    }
 
     // Elevación física acelerada por hardware (shaders nativos de GPU)
     final double currentElevation = curvedValue > 0.98
@@ -371,16 +382,16 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
         : (5.0 * math.sin(curvedValue * math.pi)).clamp(0.0, 5.0);
 
     // Borde de contraste si aplica
-    final BorderSide currentBorderSide = hasBorder && curvedValue < 0.75
+    final BorderSide currentBorderSide = hasBorder && animation.value < 0.70
         ? BorderSide(
-            color: borderColor.withValues(alpha: (1.0 - (curvedValue / 0.75)).clamp(0.0, 1.0)),
+            color: borderColor.withValues(alpha: (1.0 - (animation.value / 0.70)).clamp(0.0, 1.0)),
             width: borderWidth,
           )
         : BorderSide.none;
 
-    // Opacidades cruzadas desde secuencia estática
-    final double closedOpacity = _closedOpacityTween.transform(curvedValue);
-    final double openOpacity = _openOpacityTween.transform(curvedValue);
+    // Opacidades cruzadas fluidas y orgánicas sobre la línea de tiempo real
+    final double closedOpacity = _closedOpacityTween.transform(animation.value);
+    final double openOpacity = _openOpacityTween.transform(animation.value);
 
     return Align(
       alignment: Alignment.topLeft,
