@@ -197,72 +197,59 @@ class _ModernAppBarState extends State<ModernAppBar> {
     }
 
     // En modo moderno con difuminado activo Y habiendo hecho scroll:
-    // 1. Barra de estado sólida para proteger los iconos del sistema.
-    // 2. Fondo sólido base que se atenúa suavemente con _scrollProgress.
-    // 3. Degradado continuo proporcional a _scrollProgress.
+    // 1. Fondo 100% SÓLIDO para la barra de estado Y la toolbar completa (de 0 a totalAppBarHeight).
+    //    Esto protege al 100% el título ("Medicamentos"), iconos y botones, garantizando que el texto
+    //    NUNCA quede sobre un fondo translúcido ni se corte a la mitad.
+    // 2. Degradado continuo proyectado suavemente por DEBAJO de la toolbar (si currentExtension > 0).
     final currentExtension = widget.fadeExtension * _scrollProgress;
-    final double gradientHeight = widget.preferredSize.height + currentExtension;
 
     return Stack(
       clipBehavior: currentExtension > 0 ? Clip.none : Clip.hardEdge,
       children: [
-        // 1. Fondo sólido solo para la barra de estado (y notch)
-        if (topPadding > 0)
+        // 1. Fondo sólido completo para barra de estado y toolbar
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          height: totalAppBarHeight,
+          child: Container(color: bgColor),
+        ),
+        // 2. Degradado continuo suave proyectado exclusivamente por DEBAJO de la toolbar
+        if (currentExtension > 0)
           Positioned(
             left: 0,
             right: 0,
-            top: 0,
-            height: topPadding,
-            child: Container(color: bgColor),
-          ),
-        // 2. Fondo sólido base para la barra que se transiciona
-        Positioned(
-          left: 0,
-          right: 0,
-          top: topPadding,
-          height: widget.preferredSize.height,
-          child: Opacity(
-            opacity: (1.0 - _scrollProgress).clamp(0.0, 1.0),
-            child: Container(color: bgColor),
-          ),
-        ),
-        // 3. Degradado continuo proporcional a _scrollProgress
-        Positioned(
-          left: 0,
-          right: 0,
-          top: topPadding,
-          height: gradientHeight,
-          child: IgnorePointer(
-            child: Opacity(
-              opacity: _scrollProgress,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      bgColor,
-                      bgColor,
-                      bgColor.withValues(alpha: 0.88),
-                      bgColor.withValues(alpha: 0.52),
-                      bgColor.withValues(alpha: 0.20),
-                      bgColor.withValues(alpha: 0.0),
-                    ],
-                    stops: const [
-                      0.0,
-                      0.44,
-                      0.54,
-                      0.66,
-                      0.80,
-                      1.0,
-                    ],
+            top: totalAppBarHeight,
+            height: currentExtension,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: _scrollProgress,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        bgColor,
+                        bgColor.withValues(alpha: 0.70),
+                        bgColor.withValues(alpha: 0.35),
+                        bgColor.withValues(alpha: 0.10),
+                        bgColor.withValues(alpha: 0.0),
+                      ],
+                      stops: const [
+                        0.0,
+                        0.25,
+                        0.55,
+                        0.80,
+                        1.0,
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-        // 4. AppBar transparente con sus iconos y títulos
+        // 3. AppBar transparente con sus iconos y títulos
         Theme(
           data: Theme.of(context).copyWith(
             appBarTheme: Theme.of(context).appBarTheme.copyWith(

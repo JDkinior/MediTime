@@ -107,6 +107,37 @@ void main() {
       final stackFinder = find.byWidgetPredicate((w) => w is Stack && w.clipBehavior == Clip.hardEdge);
       expect(stackFinder, findsWidgets);
     });
+
+    testWidgets('toolbar remains solid and gradient projects below toolbar when scrolling with fadeExtension', (tester) async {
+      await tester.pumpWidget(
+        buildTestWidget(
+          child: Scaffold(
+            appBar: ModernAppBar(
+              fadeExtension: 28.0,
+              child: AppBar(title: const Text('Title')),
+            ),
+            body: ListView.builder(
+              itemCount: 50,
+              itemBuilder: (context, index) => ListTile(title: Text('Item $index')),
+            ),
+          ),
+        ),
+      );
+
+      // Scroll the list
+      await tester.drag(find.text('Item 0'), const Offset(0, -200));
+      await tester.pumpAndSettle();
+
+      // Verify Stack has Clip.none because currentExtension > 0
+      final stackFinder = find.byWidgetPredicate((w) => w is Stack && w.clipBehavior == Clip.none);
+      expect(stackFinder, findsOneWidget);
+
+      // Verify the gradient container is present and positioned at top: totalAppBarHeight
+      final gradientFinder = find.byWidgetPredicate(
+        (w) => w is Positioned && w.height == 28.0 && w.child is IgnorePointer,
+      );
+      expect(gradientFinder, findsOneWidget);
+    });
   });
 
   group('ModernContentFade Widget Tests', () {

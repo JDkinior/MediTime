@@ -315,6 +315,7 @@ class _HomePageState extends State<HomePage> {
           extendBodyBehindAppBar: isModern,
           appBar: ModernAppBar(
             fadeEnabledNotifier: _appBarFadeEnabledNotifier,
+            fadeExtension: 28.0,
             child: AppBar(
             centerTitle: true,
             title: isManagedModeActive
