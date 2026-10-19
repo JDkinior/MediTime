@@ -4,3 +4,4 @@ export '../styled_text_field.dart';
 export '../estado_vista.dart';
 export '../tutorial_tooltip.dart';
 export '../modern_app_bar.dart';
+export '../container_transform_card.dart';

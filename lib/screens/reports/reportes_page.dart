@@ -16,6 +16,7 @@ import 'dart:math';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:meditime/screens/medication/detalle_receta_page.dart';
+import 'package:meditime/widgets/container_transform_card.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/core/subscription_guard.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
@@ -1503,42 +1504,44 @@ class _ReportesPageState extends State<ReportesPage> {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DetalleRecetaPage(
-                              tratamiento: tratamiento,
-                              horaDosis: DateTime.now(),
+                    ContainerTransformCard<void>(
+                      borderRadius: BorderRadius.circular(12),
+                      closedColor: Colors.transparent,
+                      closedShadows: const [],
+                      showBorder: false,
+                      openBuilder: (context, _) => DetalleRecetaPage(
+                        tratamiento: tratamiento,
+                        horaDosis: DateTime.now(),
+                      ),
+                      closedBuilder: (context, openContainer) {
+                        return InkWell(
+                          onTap: openContainer,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.2)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.visibility_outlined, size: 16, color: AppTheme.primaryColor),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "Ver detalle completo del medicamento",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.primaryColor,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         );
                       },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.2)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.visibility_outlined, size: 16, color: AppTheme.primaryColor),
-                            const SizedBox(width: 8),
-                            Text(
-                              "Ver detalle completo del medicamento",
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
                   ],
                 ),
