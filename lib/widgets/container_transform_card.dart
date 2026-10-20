@@ -19,6 +19,9 @@ typedef CloseContainerAction<T> = void Function([T? returnValue]);
 /// 1. Rendimiento 120 FPS fijado por hardware:
 ///    - Cero parpadeo o desaparición al pulsar: la tarjeta original permanece visible
 ///      hasta que la capa de transición está dibujada exactamente sobre ella en pantalla.
+///    - Cero tirones o reinicio de estado al terminar de escalar: la pantalla de destino conserva
+///      su posición estable en el árbol con [KeyedSubtree] y estructura idéntica, eliminando
+///      el lag de destrucción/reconstrucción de RenderObjects al llegar al 100%.
 ///    - Cero recalculo de layout por frame: [child] y [closedChild] tienen dimensiones
 ///      estables fijas y se escalan mediante transformaciones de matriz 2D en GPU con [FittedBox(fit: BoxFit.fitWidth)].
 ///    - Aislamiento de rasterizado [RepaintBoundary]: ambas pantallas se renderizan exactamente una vez
@@ -285,6 +288,7 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
   @override
   final Duration reverseTransitionDuration;
 
+  final GlobalKey _openPageKey = GlobalKey();
   Animation<double>? _curvedAnimation;
   Animation<double>? _openOpacityAnimation;
   Animation<double>? _closedOpacityAnimation;
@@ -380,7 +384,10 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
     Animation<double> animation,
     Animation<double> secondaryAnimation,
   ) {
-    return builder(context);
+    return KeyedSubtree(
+      key: _openPageKey,
+      child: builder(context),
+    );
   }
 
   @override
@@ -395,10 +402,6 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         onTransitionStart?.call();
       });
-    }
-
-    if (animation.status == AnimationStatus.completed) {
-      return child;
     }
 
     _ensureAnimations();
@@ -426,30 +429,36 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
           )
         : BorderSide.none;
 
+    final bool isCompleted = animation.status == AnimationStatus.completed;
+
     return Align(
       alignment: Alignment.topLeft,
       child: Transform.translate(
-        offset: Offset(currentRect.left, currentRect.top),
+        offset: isCompleted ? Offset.zero : Offset(currentRect.left, currentRect.top),
         child: SizedBox(
-          width: currentRect.width,
-          height: currentRect.height,
+          width: isCompleted ? screenSize.width : currentRect.width,
+          height: isCompleted ? screenSize.height : currentRect.height,
           child: Material(
             animationDuration: Duration.zero,
             color: currentColor,
             elevation: 0.0, // CERO cálculo de sombras Skia por frame
             shape: RoundedRectangleBorder(
-              borderRadius: currentRadius,
-              side: currentBorderSide,
+              borderRadius: isCompleted ? BorderRadius.zero : currentRadius,
+              side: isCompleted ? BorderSide.none : currentBorderSide,
             ),
             clipBehavior: Clip.none,
             child: ClipRRect(
-              borderRadius: currentRadius,
+              borderRadius: isCompleted ? BorderRadius.zero : currentRadius,
               child: Stack(
                 fit: StackFit.passthrough,
                 children: [
-                  // Pantalla abierta: Dimensiones fijas screenSize con escala GPU vía BoxFit.fitWidth
+                  // Pantalla abierta: Dimensiones estables screenSize.
+                  // CRÍTICO: La pantalla abierta se mantiene siempre en esta misma posición
+                  // del árbol con key estable para que al completarse la animación (100%)
+                  // NO se destruya ni reinicie su State, eliminando de raíz el tirón/lag
+                  // que ocurría justo al terminar de escalar la segunda pantalla.
                   FadeTransition(
-                    opacity: _openOpacityAnimation!,
+                    opacity: isCompleted ? const AlwaysStoppedAnimation(1.0) : _openOpacityAnimation!,
                     child: FittedBox(
                       fit: BoxFit.fitWidth,
                       alignment: Alignment.topLeft,
@@ -463,21 +472,22 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
                     ),
                   ),
 
-                  // Tarjeta cerrada: Dimensiones fijas originRect con escala GPU vía BoxFit.fitWidth
-                  FadeTransition(
-                    opacity: _closedOpacityAnimation!,
-                    child: FittedBox(
-                      fit: BoxFit.fitWidth,
-                      alignment: Alignment.topLeft,
-                      child: SizedBox(
-                        width: originRect.width,
-                        height: originRect.height,
-                        child: RepaintBoundary(
-                          child: closedChild,
+                  // Tarjeta cerrada: solo visible durante el vuelo, se omite al completar
+                  if (!isCompleted)
+                    FadeTransition(
+                      opacity: _closedOpacityAnimation!,
+                      child: FittedBox(
+                        fit: BoxFit.fitWidth,
+                        alignment: Alignment.topLeft,
+                        child: SizedBox(
+                          width: originRect.width,
+                          height: originRect.height,
+                          child: RepaintBoundary(
+                            child: closedChild,
+                          ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
