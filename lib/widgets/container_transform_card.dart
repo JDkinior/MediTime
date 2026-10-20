@@ -17,18 +17,16 @@ typedef CloseContainerAction<T> = void Function([T? returnValue]);
 ///
 /// Características clave de rendimiento y diseño:
 /// 1. Rendimiento 120 FPS fijado por hardware:
-///    - Cero parpadeo o desaparición al pulsar: la tarjeta original permanece visible
-///      hasta que la capa de transición está dibujada exactamente sobre ella en pantalla.
-///    - Cero tirones o reinicio de estado al terminar de escalar: la pantalla de destino conserva
-///      su posición estable en el árbol con [KeyedSubtree] y estructura idéntica, eliminando
-///      el lag de destrucción/reconstrucción de RenderObjects al llegar al 100%.
-///    - Cero recalculo de layout por frame: [child] y [closedChild] tienen dimensiones
-///      estables fijas y se escalan mediante transformaciones de matriz 2D en GPU con [FittedBox(fit: BoxFit.fitWidth)].
+///    - Cero parpadeo al pulsar: la tarjeta original se reemplaza por un [_placeholderSize] exacto
+///      únicamente una vez iniciado el primer frame de la transición, evitando re-layouts de listas y manteniendo el espacio exacto.
+///    - Cero efecto entrecortado al entrar: [FadeTransition] opera con dimensiones fijas [SizedBox]
+///      debajo de [FittedBox], eliminando la reasignación continua de texturas GPU en cada frame.
+///    - Desvanecimiento lineal y homogéneo: la opacidad de entrada y salida se evalúa sobre la progresión
+///      temporal lineal (como en el estándar de Google), eliminando el triple suavizado curvo que provocaba saltos visuales.
+///    - Cero tirones al terminar de escalar: la pantalla abierta conserva su posición y clave [KeyedSubtree],
+///      garantizando que no se destruya ni reinicie su State al alcanzar el 100%.
 ///    - Aislamiento de rasterizado [RepaintBoundary]: ambas pantallas se renderizan exactamente una vez
 ///      en la GPU y sus texturas se reutilizan frame a frame.
-///    - Disolución orgánica sin sobrecoste de composición: la opacidad de salida (22%) y de entrada (82%)
-///      minimizan la superposición de capas `saveLayer` en GPU.
-///    - Sin sombras dinámicas de CPU: elevación plana a 0.0 para eliminar el cálculo de polígonos Gaussianos en cada frame.
 /// 2. Mantiene de forma continua las esquinas redondeadas ([borderRadius]) durante
 ///    el 75%+ de la trayectoria ([Curves.easeInCubic]), aplanándose con gracia únicamente
 ///    al tocar los límites de la pantalla.
@@ -156,10 +154,6 @@ class ContainerTransformCardState<T extends Object?> extends State<ContainerTran
       ),
     );
 
-    // CRÍTICO: No ocultamos la tarjeta aquí inmediatamente con setState() para evitar
-    // el molesto parpadeo o desaparición en blanco de varios milisegundos mientras la ruta
-    // se instancia y realiza su primer frame de layout. La tarjeta permanece intacta en la
-    // lista hasta que la capa de transición ya está montada y dibujada encima de ella.
     final route = ContainerTransformPageRoute<T>(
       sourceKey: _cardKey,
       originRect: originRect,
@@ -295,29 +289,30 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
   Animation<Color?>? _colorAnimation;
   bool _hasReportedStart = false;
 
-  // Secuencia de opacidad optimizada para hardware:
-  // Closed card se desvanece de 1.0 a 0.0 en el primer 22%.
-  // Open card se revela de 0.0 a 1.0 a partir del 18%.
-  // Minimiza la concurrencia de capas OpacityLayer / saveLayer en GPU.
+  // Secuencia de opacidad limpia sin curvas anidadas:
+  // Closed card se desvanece de 1.0 a 0.0 de forma uniforme en el primer 20%.
+  // Open card se revela de 0.0 a 1.0 en el 80% restante.
+  // Al evaluarse sobre el progreso temporal lineal (parent), la entrada de la segunda página
+  // se siente continua, sedosa y sin saltos visuales entrecortados.
   static final Animatable<double> _closedOpacityTween = TweenSequence<double>([
     TweenSequenceItem<double>(
-      tween: Tween<double>(begin: 1.0, end: 0.0).chain(CurveTween(curve: Curves.easeOut)),
-      weight: 22,
+      tween: Tween<double>(begin: 1.0, end: 0.0),
+      weight: 20,
     ),
     TweenSequenceItem<double>(
       tween: ConstantTween<double>(0.0),
-      weight: 78,
+      weight: 80,
     ),
   ]);
 
   static final Animatable<double> _openOpacityTween = TweenSequence<double>([
     TweenSequenceItem<double>(
       tween: ConstantTween<double>(0.0),
-      weight: 18,
+      weight: 20,
     ),
     TweenSequenceItem<double>(
-      tween: Tween<double>(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.easeIn)),
-      weight: 82,
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      weight: 80,
     ),
   ]);
 
@@ -364,18 +359,24 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
       reverseCurve: curve.flipped,
     );
 
-    _openOpacityAnimation = _openOpacityTween.animate(_curvedAnimation!);
-    _closedOpacityAnimation = _closedOpacityTween.animate(_curvedAnimation!);
+    // CRÍTICO: Las animaciones de opacidad y color se evalúan sobre la progresión LINEAL (parent),
+    // tal como en el OpenContainer oficial de Google/Flutter.
+    // Esto evita el triple suavizado curvo (fastOutSlowIn + easeIn) que causaba que la segunda pantalla
+    // entrara de forma entrecortada y a tirones.
+    _openOpacityAnimation = _openOpacityTween.animate(parent);
+    _closedOpacityAnimation = _closedOpacityTween.animate(parent);
+
+    final middleColor = Color.lerp(closedColor, openColor, 0.5) ?? closedColor;
     _colorAnimation = TweenSequence<Color?>([
       TweenSequenceItem<Color?>(
-        tween: ColorTween(begin: closedColor, end: Color.lerp(closedColor, openColor, 0.4)),
-        weight: 25,
+        tween: ColorTween(begin: closedColor, end: middleColor),
+        weight: 20,
       ),
       TweenSequenceItem<Color?>(
-        tween: ColorTween(begin: Color.lerp(closedColor, openColor, 0.4), end: openColor),
-        weight: 75,
+        tween: ColorTween(begin: middleColor, end: openColor),
+        weight: 80,
       ),
-    ]).animate(_curvedAnimation!);
+    ]).animate(parent);
   }
 
   @override
@@ -409,7 +410,7 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
     final Size screenSize = MediaQuery.sizeOf(context);
     final double curvedValue = _curvedAnimation?.value ?? curve.transform(animation.value);
 
-    // Dimensiones y posición interpoladas matemáticamente O(1)
+    // Dimensiones y posición interpoladas matemáticamente O(1) con la curva de aceleración física
     final Rect fullScreenRect = Offset.zero & screenSize;
     final Rect currentRect = Rect.lerp(originRect, fullScreenRect, curvedValue)!;
 
@@ -419,7 +420,7 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
 
     // Color de fondo suavemente interpolado
     final Color currentColor = _colorAnimation?.value ??
-        Color.lerp(closedColor, openColor, curvedValue)!;
+        Color.lerp(closedColor, openColor, animation.value)!;
 
     // Borde de contraste opcional (fading out al inicio)
     final BorderSide currentBorderSide = hasBorder && animation.value < 0.70
@@ -452,19 +453,21 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
               child: Stack(
                 fit: StackFit.passthrough,
                 children: [
-                  // Pantalla abierta: Dimensiones estables screenSize.
-                  // CRÍTICO: La pantalla abierta se mantiene siempre en esta misma posición
-                  // del árbol con key estable para que al completarse la animación (100%)
-                  // NO se destruya ni reinicie su State, eliminando de raíz el tirón/lag
-                  // que ocurría justo al terminar de escalar la segunda pantalla.
-                  FadeTransition(
-                    opacity: isCompleted ? const AlwaysStoppedAnimation(1.0) : _openOpacityAnimation!,
-                    child: FittedBox(
-                      fit: BoxFit.fitWidth,
-                      alignment: Alignment.topLeft,
-                      child: SizedBox(
-                        width: screenSize.width,
-                        height: screenSize.height,
+                  // Pantalla abierta:
+                  // 1. FittedBox está AFUERA de SizedBox para aplicar escalado GPU sin alterar
+                  //    las dimensiones de la capa de opacidad.
+                  // 2. SizedBox tiene dimensiones constantes (screenSize) para que la textura
+                  //    en GPU NUNCA se redimensione ni se reasigne frame a frame.
+                  // 3. FadeTransition está DENTRO de SizedBox con tamaño fijo para evitar reasignar
+                  //    el render target en cada cuadro, eliminando de raíz el efecto entrecortado.
+                  FittedBox(
+                    fit: BoxFit.fitWidth,
+                    alignment: Alignment.topLeft,
+                    child: SizedBox(
+                      width: screenSize.width,
+                      height: screenSize.height,
+                      child: FadeTransition(
+                        opacity: isCompleted ? const AlwaysStoppedAnimation(1.0) : _openOpacityAnimation!,
                         child: RepaintBoundary(
                           child: child,
                         ),
@@ -472,16 +475,16 @@ class ContainerTransformPageRoute<T> extends PageRoute<T> {
                     ),
                   ),
 
-                  // Tarjeta cerrada: solo visible durante el vuelo, se omite al completar
+                  // Tarjeta cerrada: solo visible durante el vuelo (primer 20%), se omite al completar
                   if (!isCompleted)
-                    FadeTransition(
-                      opacity: _closedOpacityAnimation!,
-                      child: FittedBox(
-                        fit: BoxFit.fitWidth,
-                        alignment: Alignment.topLeft,
-                        child: SizedBox(
-                          width: originRect.width,
-                          height: originRect.height,
+                    FittedBox(
+                      fit: BoxFit.fitWidth,
+                      alignment: Alignment.topLeft,
+                      child: SizedBox(
+                        width: originRect.width,
+                        height: originRect.height,
+                        child: FadeTransition(
+                          opacity: _closedOpacityAnimation!,
                           child: RepaintBoundary(
                             child: closedChild,
                           ),
