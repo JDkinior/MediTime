@@ -1319,7 +1319,7 @@ class GeminiService {
     final choice = initialResponse['choices']?[0] as Map<String, dynamic>?;
     if (choice == null) {
       final adhSummary = calculateAdherenceSummary(treatments, now: DateTime.now());
-      yield 'Aquí tienes el reporte con el progreso de tus tratamientos. '
+      yield 'Aquí tienes el reporte con el progreso de tus tratamientos (${adhSummary["adherence"]}% de cumplimiento). '
           'Recuerda tomar cada dosis según los intervalos programados para mantener la efectividad de tus medicamentos.';
       return;
     }

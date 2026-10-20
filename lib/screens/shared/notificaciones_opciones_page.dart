@@ -155,7 +155,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                 style: TextStyle(color: AppTheme.primaryTextColor),
                 decoration: InputDecoration(
                   hintText: 'Ej. 8',
-                  hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.5)),
+                  hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withValues(alpha: 0.5)),
                   suffixText: 'min',
                   suffixStyle: TextStyle(color: AppTheme.secondaryTextColor),
                   enabledBorder: UnderlineInputBorder(
@@ -303,7 +303,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withOpacity(0.1),
+                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(Icons.snooze_outlined, color: AppTheme.primaryColor, size: 20),
@@ -389,13 +389,13 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: (_isIgnoringBattery && _canScheduleExact)
-                                ? const Color(0xFF10B981).withOpacity(0.1)
-                                : const Color(0xFFF59E0B).withOpacity(0.1),
+                                ? const Color(0xFF10B981).withValues(alpha: 0.1)
+                                : const Color(0xFFF59E0B).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: (_isIgnoringBattery && _canScheduleExact)
-                                  ? const Color(0xFF10B981).withOpacity(0.3)
-                                  : const Color(0xFFF59E0B).withOpacity(0.3),
+                                  ? const Color(0xFF10B981).withValues(alpha: 0.3)
+                                  : const Color(0xFFF59E0B).withValues(alpha: 0.3),
                             ),
                           ),
                           child: Row(
@@ -486,7 +486,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                       ),
                     ),
                     value: preferenceNotifier.hideMedicineNameOnLockScreen,
-                    activeColor: AppTheme.primaryColor,
+                    activeThumbColor: AppTheme.primaryColor,
                     onChanged: (bool value) async {
                       await preferenceNotifier.setHideMedicineNameOnLockScreen(value);
                       if (context.mounted) {
@@ -527,7 +527,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
             : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -570,7 +570,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
             : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -599,7 +599,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
           decoration: BoxDecoration(
             color: isSelected
-                ? AppTheme.primaryColor.withOpacity(0.05)
+                ? AppTheme.primaryColor.withValues(alpha: 0.05)
                 : Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
@@ -608,7 +608,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -701,7 +701,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
               width: 26, 
               height: 4, 
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.primaryColor.withOpacity(0.4) : Colors.grey.shade700.withOpacity(0.3),
+                color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.4) : Colors.grey.shade700.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -715,7 +715,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
               width: 22,
               height: 8,
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.primaryColor.withOpacity(0.2) : Colors.grey.shade700.withOpacity(0.2),
+                color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.2) : Colors.grey.shade700.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(3),
               ),
               child: Center(child: Container(width: 10, height: 2, color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500)),
@@ -725,7 +725,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
               width: 22,
               height: 8,
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.primaryColor.withOpacity(0.2) : Colors.grey.shade700.withOpacity(0.2),
+                color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.2) : Colors.grey.shade700.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(3),
               ),
               child: Center(child: Container(width: 10, height: 2, color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500)),
@@ -749,7 +749,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
               width: 26, 
               height: 4, 
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.successColor.withOpacity(0.4) : Colors.grey.shade700.withOpacity(0.3),
+                color: isSelected ? AppTheme.successColor.withValues(alpha: 0.4) : Colors.grey.shade700.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -760,7 +760,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
           width: 38, 
           height: 3, 
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.successColor.withOpacity(0.3) : Colors.grey.shade700.withOpacity(0.2),
+            color: isSelected ? AppTheme.successColor.withValues(alpha: 0.3) : Colors.grey.shade700.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(1.5),
           ),
         ),
@@ -794,8 +794,8 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
           height: 4,
           decoration: BoxDecoration(
             color: isSelected
-                ? AppTheme.errorColor.withOpacity(0.4)
-                : Colors.grey.shade700.withOpacity(0.25),
+                ? AppTheme.errorColor.withValues(alpha: 0.4)
+                : Colors.grey.shade700.withValues(alpha: 0.25),
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -831,7 +831,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                   color: AppTheme.surfaceColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: AppTheme.borderColor.withOpacity(0.7),
+                    color: AppTheme.borderColor.withValues(alpha: 0.7),
                   ),
                 ),
                 child: Row(
@@ -840,7 +840,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withOpacity(0.12),
+                        color: AppTheme.primaryColor.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -874,8 +874,8 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                                 ),
                                 decoration: BoxDecoration(
                                   color: isCustom
-                                      ? Colors.indigo.withOpacity(0.12)
-                                      : Colors.teal.withOpacity(0.12),
+                                      ? Colors.indigo.withValues(alpha: 0.12)
+                                      : Colors.teal.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -1072,7 +1072,7 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
             : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -1147,7 +1147,7 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
                     color: AppTheme.surfaceColor,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: AppTheme.borderColor.withOpacity(0.6),
+                      color: AppTheme.borderColor.withValues(alpha: 0.6),
                     ),
                   ),
                   child: Row(
@@ -1404,10 +1404,10 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.08),
+              color: AppTheme.primaryColor.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: AppTheme.primaryColor.withOpacity(0.3),
+                color: AppTheme.primaryColor.withValues(alpha: 0.3),
               ),
             ),
             child: Row(
@@ -1535,13 +1535,13 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: isSelected
-            ? AppTheme.primaryColor.withOpacity(0.06)
+            ? AppTheme.primaryColor.withValues(alpha: 0.06)
             : AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isSelected
               ? AppTheme.primaryColor
-              : AppTheme.borderColor.withOpacity(0.6),
+              : AppTheme.borderColor.withValues(alpha: 0.6),
           width: isSelected ? 1.5 : 1,
         ),
       ),
@@ -1553,8 +1553,8 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
           height: 38,
           decoration: BoxDecoration(
             color: isSelected
-                ? AppTheme.primaryColor.withOpacity(0.15)
-                : AppTheme.borderColor.withOpacity(0.2),
+                ? AppTheme.primaryColor.withValues(alpha: 0.15)
+                : AppTheme.borderColor.withValues(alpha: 0.2),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -1578,7 +1578,7 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
               decoration: BoxDecoration(
-                color: badgeColor.withOpacity(0.12),
+                color: badgeColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(

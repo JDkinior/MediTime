@@ -308,7 +308,7 @@ class _AddCaregiverProfileDialogState extends State<AddCaregiverProfileDialog> w
             isClinico ? 'Relación / Identificador' : 'Parentesco',
             isDark,
           ),
-          value: _selectedRelationship,
+          initialValue: _selectedRelationship,
           items: (isClinico ? _clinicRelationships : _familyRelationships).map((String value) {
             return DropdownMenuItem<String>(
               value: value,
@@ -335,7 +335,7 @@ class _AddCaregiverProfileDialogState extends State<AddCaregiverProfileDialog> w
             dropdownColor: Theme.of(context).cardColor,
             style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 15),
             decoration: _buildDropdownDecoration('Categoría / Piso', isDark),
-            value: _selectedCategory,
+            initialValue: _selectedCategory,
             items: _clinicCategories.map((String value) {
               return DropdownMenuItem<String>(
                 value: value,
@@ -368,7 +368,7 @@ class _AddCaregiverProfileDialogState extends State<AddCaregiverProfileDialog> w
           dropdownColor: Theme.of(context).cardColor,
           style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 15),
           decoration: _buildDropdownDecoration('Tipo de Sangre (Opcional)', isDark),
-          value: _selectedBloodType,
+          initialValue: _selectedBloodType,
           items: _bloodTypes.map((String value) {
             return DropdownMenuItem<String>(
               value: value,

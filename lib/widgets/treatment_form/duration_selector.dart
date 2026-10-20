@@ -74,7 +74,7 @@ class DurationSelector extends StatelessWidget {
               Expanded(
                 flex: 3,
                 child: DropdownButtonFormField<String>(
-                  value: esIndefinido ? 'Indefinido' : duracionUnidad.displayName,
+                  initialValue: esIndefinido ? 'Indefinido' : duracionUnidad.displayName,
                   decoration: AppInputDecoration.standard,
                   items: [
                     ...DurationUnit.values.map((unit) => 

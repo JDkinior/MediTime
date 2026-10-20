@@ -392,8 +392,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
-            color: AppTheme.primaryColor.withOpacity(0.05),
-            border: Border.all(color: AppTheme.primaryColor.withOpacity(0.15)),
+            color: AppTheme.primaryColor.withValues(alpha: 0.05),
+            border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.15)),
             borderRadius: BorderRadius.circular(12),
           ),
           alignment: Alignment.center,
@@ -1146,9 +1146,9 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
             child: Container(
               margin: const EdgeInsets.all(5.0),
               decoration: BoxDecoration(
-                color: dayColor.withOpacity(0.15),
+                color: dayColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12.0),
-                border: Border.all(color: dayColor.withOpacity(0.4), width: 1.5),
+                border: Border.all(color: dayColor.withValues(alpha: 0.4), width: 1.5),
               ),
               child: Center(
                 child: Text(
@@ -1169,7 +1169,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                 borderRadius: BorderRadius.circular(12.0),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primaryColor.withOpacity(0.3),
+                    color: AppTheme.primaryColor.withValues(alpha: 0.3),
                     blurRadius: 6,
                     offset: const Offset(0, 3),
                   ),
@@ -1274,8 +1274,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
         decoration: BoxDecoration(shape: BoxShape.circle, color: nodeColor),
         child: const Icon(Icons.check, color: Colors.white, size: 14),
       );
-      chipBorderColor = AppTheme.successColor.withOpacity(0.3);
-      chipBgColor = AppTheme.successColor.withOpacity(0.08);
+      chipBorderColor = AppTheme.successColor.withValues(alpha: 0.3);
+      chipBgColor = AppTheme.successColor.withValues(alpha: 0.08);
       chipTextColor = AppTheme.successColor;
       statusText = l10n?.doseStatusTaken ?? 'Tomada';
     } else if (status == DoseStatus.omitida) {
@@ -1286,8 +1286,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
         decoration: BoxDecoration(shape: BoxShape.circle, color: nodeColor),
         child: const Icon(Icons.close, color: Colors.white, size: 14),
       );
-      chipBorderColor = AppTheme.errorColor.withOpacity(0.3);
-      chipBgColor = AppTheme.errorColor.withOpacity(0.08);
+      chipBorderColor = AppTheme.errorColor.withValues(alpha: 0.3);
+      chipBgColor = AppTheme.errorColor.withValues(alpha: 0.08);
       chipTextColor = AppTheme.errorColor;
       statusText = l10n?.doseStatusSkipped ?? 'Omitida';
     } else if (status == DoseStatus.aplazada) {
@@ -1298,8 +1298,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
         decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.orange),
         child: const Icon(Icons.watch_later_outlined, color: Colors.white, size: 14),
       );
-      chipBorderColor = Colors.orange.withOpacity(0.3);
-      chipBgColor = Colors.orange.withOpacity(0.08);
+      chipBorderColor = Colors.orange.withValues(alpha: 0.3);
+      chipBgColor = Colors.orange.withValues(alpha: 0.08);
       chipTextColor = Colors.orange;
       statusText = l10n?.doseStatusSnoozed ?? 'Aplazada';
     } else if (status == DoseStatus.notificada || (status == DoseStatus.pendiente && isPast)) {
@@ -1310,8 +1310,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
         decoration: BoxDecoration(shape: BoxShape.circle, color: nodeColor),
         child: const Icon(Icons.notifications, color: Colors.white, size: 14),
       );
-      chipBorderColor = Colors.amber.withOpacity(0.3);
-      chipBgColor = Colors.amber.withOpacity(0.08);
+      chipBorderColor = Colors.amber.withValues(alpha: 0.3);
+      chipBgColor = Colors.amber.withValues(alpha: 0.08);
       chipTextColor = Colors.amber;
       statusText = l10n?.doseStatusNotified ?? 'Notificada';
     } else {
@@ -1325,7 +1325,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
           border: Border.all(color: nodeColor, width: 2),
         ),
       );
-      chipBorderColor = const Color(0xFFC3C6D7).withOpacity(0.4);
+      chipBorderColor = const Color(0xFFC3C6D7).withValues(alpha: 0.4);
       chipBgColor = AppTheme.surfaceColor;
       chipTextColor = AppTheme.secondaryTextColor;
       statusText = l10n?.doseStatusScheduled ?? 'Programada';
@@ -1346,14 +1346,14 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                   Container(
                     width: 2,
                     height: 18,
-                    color: const Color(0xFFC3C6D7).withOpacity(0.4),
+                    color: const Color(0xFFC3C6D7).withValues(alpha: 0.4),
                   ),
                 nodeWidget,
                 if (!isLast)
                   Expanded(
                     child: Container(
                       width: 2,
-                      color: const Color(0xFFC3C6D7).withOpacity(0.4),
+                      color: const Color(0xFFC3C6D7).withValues(alpha: 0.4),
                     ),
                   ),
               ],
@@ -1445,9 +1445,9 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16)).withOpacity(0.05),
+                                          color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16)).withValues(alpha: 0.05),
                                           borderRadius: BorderRadius.circular(4),
-                                          border: Border.all(color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16)).withOpacity(0.2)),
+                                          border: Border.all(color: Color(int.parse(profile.colorHex.replaceFirst('#', 'FF'), radix: 16)).withValues(alpha: 0.2)),
                                         ),
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
@@ -1495,7 +1495,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                              icon: const Icon(Icons.check, size: 14),
                              label: Text(l10n?.doseStatusTaken ?? 'Tomada', style: const TextStyle(fontSize: 11)),
                              style: FilledButton.styleFrom(
-                               backgroundColor: AppTheme.successColor.withOpacity(0.12),
+                               backgroundColor: AppTheme.successColor.withValues(alpha: 0.12),
                                foregroundColor: AppTheme.successColor,
                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -1503,7 +1503,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                              ),
                              onPressed: () async {
                                final result = await firestoreService.updateDoseStatus(widget.userId, tratamiento.id, doseTime, DoseStatus.tomada, profile);
-                               if (result?.stockBajo == true && context.mounted) {
+                               if (!mounted) return;
+                                if (result?.stockBajo == true) {
                                  ScaffoldMessenger.of(context).showSnackBar(
                                    SnackBar(
                                      content: Text('Stock bajo: te quedan ${result!.dosisRestantes} dosis'),
@@ -1525,7 +1526,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                              icon: const Icon(Icons.close, size: 14),
                              label: Text(l10n?.doseStatusSkipped ?? 'Omitida', style: const TextStyle(fontSize: 11)),
                             style: FilledButton.styleFrom(
-                              backgroundColor: AppTheme.errorColor.withOpacity(0.12),
+                              backgroundColor: AppTheme.errorColor.withValues(alpha: 0.12),
                               foregroundColor: AppTheme.errorColor,
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

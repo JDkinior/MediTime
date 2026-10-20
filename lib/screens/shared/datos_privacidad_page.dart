@@ -384,7 +384,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
                     ),
                     value: context.watch<PreferenceNotifier>().secureScreen,
                     activeThumbImage: null,
-                    activeColor: AppTheme.primaryColor,
+                    activeThumbColor: AppTheme.primaryColor,
                     onChanged: (bool value) {
                       context.read<PreferenceNotifier>().setSecureScreen(value);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -425,7 +425,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
                       style: TextStyle(fontSize: 12.5),
                     ),
                     value: context.watch<PreferenceNotifier>().hideMedicineNameOnLockScreen,
-                    activeColor: AppTheme.primaryColor,
+                    activeThumbColor: AppTheme.primaryColor,
                     onChanged: (bool value) {
                       context.read<PreferenceNotifier>().setHideMedicineNameOnLockScreen(value);
                     },

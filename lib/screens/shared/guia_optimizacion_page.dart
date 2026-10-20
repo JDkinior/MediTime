@@ -195,7 +195,7 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
         border: hasBorder ? Border.all(color: AppTheme.borderColor) : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -251,10 +251,10 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withOpacity(isDark ? 0.15 : 0.08),
+        color: AppTheme.primaryColor.withValues(alpha: isDark ? 0.15 : 0.08),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppTheme.primaryColor.withOpacity(0.2),
+          color: AppTheme.primaryColor.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -263,7 +263,7 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.15),
+              color: AppTheme.primaryColor.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -311,8 +311,8 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: allOk
-            ? AppTheme.successColor.withOpacity(0.12)
-            : Colors.amber.withOpacity(0.15),
+            ? AppTheme.successColor.withValues(alpha: 0.12)
+            : Colors.amber.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -410,8 +410,8 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
           height: 34,
           decoration: BoxDecoration(
             color: isOk
-                ? AppTheme.successColor.withOpacity(0.12)
-                : Colors.amber.withOpacity(0.15),
+                ? AppTheme.successColor.withValues(alpha: 0.12)
+                : Colors.amber.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -453,13 +453,13 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: isOk
-                  ? AppTheme.borderColor.withOpacity(0.5)
-                  : AppTheme.primaryColor.withOpacity(0.12),
+                  ? AppTheme.borderColor.withValues(alpha: 0.5)
+                  : AppTheme.primaryColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isOk
                     ? AppTheme.borderColor
-                    : AppTheme.primaryColor.withOpacity(0.3),
+                    : AppTheme.primaryColor.withValues(alpha: 0.3),
               ),
             ),
             child: Text(
@@ -546,7 +546,7 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: iconColor.withOpacity(0.12),
+                        color: iconColor.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(item['icon'] as IconData,
@@ -637,7 +637,7 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -758,7 +758,7 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
         leading: Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: AppTheme.primaryColor.withOpacity(0.1),
+            color: AppTheme.primaryColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -818,7 +818,7 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
         border: hasBorder ? Border.all(color: AppTheme.borderColor) : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -829,7 +829,7 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.12),
+              color: AppTheme.primaryColor.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(

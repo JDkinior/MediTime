@@ -106,7 +106,7 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
                 ),
                 Switch(
                   value: isAnimalActive,
-                  activeColor: Colors.white,
+                  activeThumbColor: Colors.white,
                   activeTrackColor: Colors.white.withValues(alpha: 0.4),
                   onChanged: (val) async {
                     if (val) {
@@ -163,46 +163,40 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
                     ? Border.all(color: AppTheme.borderColor)
                     : null,
               ),
-              child: Column(
-                children: [
-                  RadioListTile<String>(
-                    title: const Text(
-                      'Mascota Individual / Hogar',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+              child: RadioGroup<String>(
+                groupValue: animalModeType,
+                onChanged: (val) {
+                  if (val != null) {
+                    preferenceNotifier.setAnimalModeType(val);
+                  }
+                },
+                child: Column(
+                  children: [
+                    RadioListTile<String>(
+                      title: const Text(
+                        'Mascota Individual / Hogar',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: const Text(
+                        'Para tutores de una sola mascota o animal en tratamiento doméstico en casa.',
+                      ),
+                      secondary: Icon(Icons.pets_rounded, color: AppTheme.primaryColor),
+                      value: 'individual',
                     ),
-                    subtitle: const Text(
-                      'Para tutores de una sola mascota o animal en tratamiento doméstico en casa.',
+                    const Divider(height: 1),
+                    RadioListTile<String>(
+                      title: const Text(
+                        'Clínica Veterinaria / Multi-Animales',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: const Text(
+                        'Para veterinarias, consultorios o refugios con múltiples animales, boxes/jaulas y fichas clínicas.',
+                      ),
+                      secondary: Icon(Icons.local_hospital_rounded, color: AppTheme.primaryColor),
+                      value: 'veterinaria',
                     ),
-                    secondary: Icon(Icons.pets_rounded, color: AppTheme.primaryColor),
-                    value: 'individual',
-                    groupValue: animalModeType,
-                    activeColor: AppTheme.primaryColor,
-                    onChanged: (val) {
-                      if (val != null) {
-                        preferenceNotifier.setAnimalModeType(val);
-                      }
-                    },
-                  ),
-                  const Divider(height: 1),
-                  RadioListTile<String>(
-                    title: const Text(
-                      'Clínica Veterinaria / Multi-Animales',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: const Text(
-                      'Para veterinarias, consultorios o refugios con múltiples animales, boxes/jaulas y fichas clínicas.',
-                    ),
-                    secondary: Icon(Icons.local_hospital_rounded, color: AppTheme.primaryColor),
-                    value: 'veterinaria',
-                    groupValue: animalModeType,
-                    activeColor: AppTheme.primaryColor,
-                    onChanged: (val) {
-                      if (val != null) {
-                        preferenceNotifier.setAnimalModeType(val);
-                      }
-                    },
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -236,7 +230,7 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
                     ),
                     secondary: Icon(Icons.notifications_active_rounded, color: AppTheme.primaryColor),
                     value: caregiverNotifier.notifyPatientDoses,
-                    activeColor: AppTheme.primaryColor,
+                    activeThumbColor: AppTheme.primaryColor,
                     onChanged: (val) {
                       caregiverNotifier.setNotifyPatientDoses(val);
                     },
@@ -252,7 +246,7 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
                     ),
                     secondary: Icon(Icons.meeting_room_rounded, color: AppTheme.primaryColor),
                     value: caregiverNotifier.includeLocationInNotifications,
-                    activeColor: AppTheme.primaryColor,
+                    activeThumbColor: AppTheme.primaryColor,
                     onChanged: caregiverNotifier.notifyPatientDoses
                         ? (val) {
                             caregiverNotifier.setIncludeLocationInNotifications(val);

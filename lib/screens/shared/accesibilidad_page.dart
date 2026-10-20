@@ -128,7 +128,7 @@ class AccesibilidadPage extends StatelessWidget {
         border: Border.all(color: AppTheme.borderColor, width: value ? 2 : 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -163,7 +163,7 @@ class AccesibilidadPage extends StatelessWidget {
             ),
             value: value,
             onChanged: onChanged,
-            activeColor: AppTheme.primaryColor,
+            activeThumbColor: AppTheme.primaryColor,
           ),
           const Divider(height: 1),
           Container(
@@ -256,7 +256,7 @@ class AccesibilidadPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.1),
+              color: AppTheme.primaryColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.medication_rounded, color: AppTheme.primaryColor, size: 20),

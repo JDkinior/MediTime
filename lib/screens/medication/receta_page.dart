@@ -1,9 +1,8 @@
 // lib/screens/medication/receta_page.dart
+import 'package:meditime/widgets/medication/receta_summary_card.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:intl/intl.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/models/caregiver_profile.dart';
@@ -29,7 +28,6 @@ import 'package:meditime/widgets/tutorial_tooltip.dart';
 import 'package:meditime/core/subscription_guard.dart';
 import 'package:meditime/services/gemini_service.dart';
 import 'package:meditime/notifiers/subscription_notifier.dart';
-import 'package:meditime/screens/subscription/subscription_page.dart';
 import 'package:meditime/widgets/modern_content_fade.dart';
 
 class RecetaPage extends StatefulWidget {
@@ -256,8 +254,8 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
-            color: AppTheme.primaryColor.withOpacity(0.05),
-            border: Border.all(color: AppTheme.primaryColor.withOpacity(0.15)),
+            color: AppTheme.primaryColor.withValues(alpha: 0.05),
+            border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.15)),
             borderRadius: BorderRadius.circular(12),
           ),
           alignment: Alignment.center,
@@ -947,7 +945,7 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                               surface: Theme.of(context).cardColor,
                               onSurface: AppTheme.primaryTextColor,
                             ),
-                      dialogBackgroundColor: Theme.of(context).cardColor,
+                      dialogTheme: DialogThemeData(backgroundColor: Theme.of(context).cardColor),
                     ),
                     child: child!,
                   );
@@ -1194,8 +1192,8 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
         decoration: BoxDecoration(shape: BoxShape.circle, color: nodeColor),
         child: const Icon(Icons.check, color: Colors.white, size: 14),
       );
-      chipBorderColor = AppTheme.successColor.withOpacity(0.3);
-      chipBgColor = AppTheme.successColor.withOpacity(0.08);
+      chipBorderColor = AppTheme.successColor.withValues(alpha: 0.3);
+      chipBgColor = AppTheme.successColor.withValues(alpha: 0.08);
       chipTextColor = AppTheme.successColor;
       statusText = l10n?.doseStatusTaken ?? 'Tomada';
     } else if (status == DoseStatus.omitida) {
@@ -1206,8 +1204,8 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
         decoration: BoxDecoration(shape: BoxShape.circle, color: nodeColor),
         child: const Icon(Icons.close, color: Colors.white, size: 14),
       );
-      chipBorderColor = AppTheme.errorColor.withOpacity(0.3);
-      chipBgColor = AppTheme.errorColor.withOpacity(0.08);
+      chipBorderColor = AppTheme.errorColor.withValues(alpha: 0.3);
+      chipBgColor = AppTheme.errorColor.withValues(alpha: 0.08);
       chipTextColor = AppTheme.errorColor;
       statusText = l10n?.doseStatusSkipped ?? 'Omitida';
     } else if (status == DoseStatus.aplazada) {
@@ -1218,8 +1216,8 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
         decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.orange),
         child: const Icon(Icons.watch_later_outlined, color: Colors.white, size: 14),
       );
-      chipBorderColor = Colors.orange.withOpacity(0.3);
-      chipBgColor = Colors.orange.withOpacity(0.08);
+      chipBorderColor = Colors.orange.withValues(alpha: 0.3);
+      chipBgColor = Colors.orange.withValues(alpha: 0.08);
       chipTextColor = Colors.orange;
       statusText = l10n?.doseStatusSnoozed ?? 'Aplazada';
     } else if (status == DoseStatus.notificada || (status == DoseStatus.pendiente && isPast)) {
@@ -1230,8 +1228,8 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
         decoration: BoxDecoration(shape: BoxShape.circle, color: nodeColor),
         child: const Icon(Icons.notifications, color: Colors.white, size: 14),
       );
-      chipBorderColor = Colors.amber.withOpacity(0.3);
-      chipBgColor = Colors.amber.withOpacity(0.08);
+      chipBorderColor = Colors.amber.withValues(alpha: 0.3);
+      chipBgColor = Colors.amber.withValues(alpha: 0.08);
       chipTextColor = Colors.amber;
       statusText = l10n?.doseStatusNotified ?? 'Notificada';
     } else {
@@ -1246,7 +1244,7 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
           border: Border.all(color: nodeColor, width: 2),
         ),
       );
-      chipBorderColor = const Color(0xFFC3C6D7).withOpacity(0.4);
+      chipBorderColor = const Color(0xFFC3C6D7).withValues(alpha: 0.4);
       chipBgColor = AppTheme.surfaceColor;
       chipTextColor = AppTheme.secondaryTextColor;
       statusText = l10n?.doseStatusScheduled ?? 'Programada';
@@ -1267,14 +1265,14 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
                   Container(
                     width: 2,
                     height: 18,
-                    color: const Color(0xFFC3C6D7).withOpacity(0.4),
+                    color: const Color(0xFFC3C6D7).withValues(alpha: 0.4),
                   ),
                 nodeWidget,
                 if (!isLast)
                   Expanded(
                     child: Container(
                       width: 2,
-                      color: const Color(0xFFC3C6D7).withOpacity(0.4),
+                      color: const Color(0xFFC3C6D7).withValues(alpha: 0.4),
                     ),
                   ),
               ],
@@ -1420,568 +1418,5 @@ class _RecetaPageState extends State<RecetaPage> with AutomaticKeepAliveClientMi
   }
 }
 
-class _RecetaSummaryCard extends StatefulWidget {
-  final DateTime selectedDate;
-  final int pendientesHoy;
-  final int tomadasHoy;
-  final double adherenciaHoy;
-  final bool isPremium;
-  final List<Map<String, String>> effectiveTips;
-  final AppLocalizations? l10n;
-
-  const _RecetaSummaryCard({
-    super.key,
-    required this.selectedDate,
-    required this.pendientesHoy,
-    required this.tomadasHoy,
-    required this.adherenciaHoy,
-    required this.isPremium,
-    required this.effectiveTips,
-    required this.l10n,
-  });
-
-  @override
-  State<_RecetaSummaryCard> createState() => _RecetaSummaryCardState();
-}
-
-class _RecetaSummaryCardState extends State<_RecetaSummaryCard>
-    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  late final AnimationController _waveController;
-  late final PageController _summaryPageController;
-  int _currentSummaryIndex = 0;
-  Timer? _autoSlideTimer;
-  Timer? _dotsFadeTimer;
-  bool _showDotsIndicator = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _waveController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    )..repeat();
-    _summaryPageController = PageController();
-
-    _dotsFadeTimer = Timer(const Duration(milliseconds: 2200), () {
-      if (mounted) {
-        setState(() {
-          _showDotsIndicator = false;
-        });
-      }
-    });
-
-    if (widget.isPremium) {
-      _startAutoSlideTimer();
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant _RecetaSummaryCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.isPremium != widget.isPremium) {
-      if (widget.isPremium) {
-        _startAutoSlideTimer();
-      } else {
-        _autoSlideTimer?.cancel();
-        _autoSlideTimer = null;
-      }
-    }
-
-    final total = _getTotalSlides();
-    if (_currentSummaryIndex >= total) {
-      _currentSummaryIndex = 0;
-      if (_summaryPageController.hasClients) {
-        _summaryPageController.jumpToPage(0);
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _autoSlideTimer?.cancel();
-    _dotsFadeTimer?.cancel();
-    _waveController.dispose();
-    _summaryPageController.dispose();
-    super.dispose();
-  }
-
-  int _getTotalSlides() {
-    if (!widget.isPremium) return 2;
-    if (widget.effectiveTips.isEmpty) return 1;
-    return 1000;
-  }
-
-  int _getCycleLength() {
-    if (!widget.isPremium) return 2;
-    if (widget.effectiveTips.isEmpty) return 1;
-    return widget.effectiveTips.length * 2;
-  }
-
-  void _startAutoSlideTimer() {
-    _autoSlideTimer?.cancel();
-    if (!widget.isPremium) return;
-
-    _autoSlideTimer = Timer(const Duration(milliseconds: 6000), () {
-      if (!mounted || !_summaryPageController.hasClients) return;
-
-      final total = _getTotalSlides();
-      if (_currentSummaryIndex >= total - 1) {
-        _summaryPageController.animateToPage(
-          0,
-          duration: const Duration(milliseconds: 650),
-          curve: Curves.easeInOutCubic,
-        );
-      } else {
-        _summaryPageController.nextPage(
-          duration: const Duration(milliseconds: 650),
-          curve: Curves.easeInOutCubic,
-        );
-      }
-    });
-  }
-
-  void _onSummaryPageChanged(int idx) {
-    _dotsFadeTimer?.cancel();
-    setState(() {
-      _currentSummaryIndex = idx;
-      _showDotsIndicator = true;
-    });
-
-    _dotsFadeTimer = Timer(const Duration(milliseconds: 1800), () {
-      if (mounted) {
-        setState(() {
-          _showDotsIndicator = false;
-        });
-      }
-    });
-
-    _startAutoSlideTimer();
-  }
-
-  bool _esHoy(DateTime date) {
-    final now = DateTime.now();
-    return date.year == now.year && date.month == now.month && date.day == now.day;
-  }
-
-  Widget _buildSummaryItem(String number, String label) {
-    return Column(
-      children: [
-        Text(
-          number,
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: Colors.white.withValues(alpha: 0.8),
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSummaryMetricsSlide() {
-    final l10n = widget.l10n;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            _esHoy(widget.selectedDate)
-                ? (l10n?.summaryToday ?? 'Resumen de hoy')
-                : (l10n?.summaryDay ?? 'Resumen del día'),
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: Colors.white.withValues(alpha: 0.95),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildSummaryItem(widget.pendientesHoy.toString(), l10n?.pendingUppercase ?? 'PENDIENTES'),
-              _buildSummaryItem(widget.tomadasHoy.toString(), l10n?.takenUppercase ?? 'TOMADAS'),
-              _buildSummaryItem('${widget.adherenciaHoy.toStringAsFixed(0)}%', l10n?.adherenceUppercase ?? 'ADHERENCIA'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAiTipSlide({
-    required Map<String, String> tip,
-    required int tipNumber,
-    required int totalTips,
-  }) {
-    final content = tip['content']?.trim() ?? '';
-    final isAi = tip['isAi'] == 'true';
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 16, 28, 16),
-      child: Stack(
-        children: [
-          if (isAi)
-            Positioned(
-              top: 0,
-              right: 0,
-              child: IgnorePointer(
-                child: Icon(
-                  Icons.auto_awesome_rounded,
-                  color: Colors.white.withValues(alpha: 0.25),
-                  size: 20,
-                ),
-              ),
-            ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              content,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 17.0,
-                fontWeight: FontWeight.w600,
-                height: 1.35,
-                letterSpacing: -0.2,
-              ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProTeaserSlide(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.auto_awesome_rounded, color: Colors.amberAccent, size: 13),
-                    const SizedBox(width: 5),
-                    Text(
-                      widget.l10n?.cardAiHealthTips ?? 'Consejos de Salud con IA',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                  ),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'PRO',
-                  style: TextStyle(
-                    color: Colors.black87,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.l10n?.cardAiTipsDescription ??
-                      'Recibe recomendaciones y precauciones personalizadas para tus medicamentos.',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    height: 1.3,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SubscriptionPage(
-                        sourceFeature: 'los consejos de tratamiento con Inteligencia Artificial',
-                      ),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppTheme.primaryColor,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  visualDensity: VisualDensity.compact,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  widget.l10n?.cardViewPro ?? 'Ver PRO',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-
-    final cycleLength = _getCycleLength();
-    final totalSlides = _getTotalSlides();
-    final dotsCount = cycleLength;
-    final activeDot = _currentSummaryIndex % dotsCount;
-
-    return Container(
-      height: 154,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryColor.withValues(alpha: 0.18),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: RepaintBoundary(
-              child: AnimatedBuilder(
-                animation: _waveController,
-                builder: (context, child) {
-                  return CustomPaint(
-                    painter: WavePainter(animationValue: _waveController.value),
-                  );
-                },
-              ),
-            ),
-          ),
-          PageView.builder(
-            controller: _summaryPageController,
-            itemCount: totalSlides,
-            onPageChanged: _onSummaryPageChanged,
-            itemBuilder: (context, index) {
-              Widget slideContent;
-              if (!widget.isPremium) {
-                if (index == 0) {
-                  slideContent = _buildSummaryMetricsSlide();
-                } else {
-                  slideContent = _buildProTeaserSlide(context);
-                }
-              } else {
-                if (widget.effectiveTips.isEmpty || index % 2 == 0) {
-                  slideContent = _buildSummaryMetricsSlide();
-                } else {
-                  final tips = widget.effectiveTips;
-                  final tipIdx = (index % cycleLength) ~/ 2;
-                  final tip = tips[tipIdx % tips.length];
-                  slideContent = _buildAiTipSlide(
-                    tip: tip,
-                    tipNumber: (tipIdx % tips.length) + 1,
-                    totalTips: tips.length,
-                  );
-                }
-              }
-
-              // Robust slide transition that NEVER hides the active slide:
-              return AnimatedBuilder(
-                animation: _summaryPageController,
-                builder: (context, child) {
-                  // If controller is not ready or has no dimensions, ALWAYS show child at 100% opacity!
-                  if (!_summaryPageController.hasClients ||
-                      !_summaryPageController.position.haveDimensions) {
-                    return child!;
-                  }
-
-                  final double? page = _summaryPageController.page;
-                  if (page == null || page.isNaN) {
-                    return child!;
-                  }
-
-                  final double diff = (index - page).clamp(-1.0, 1.0);
-                  // Gentle opacity: never 0 for the active or settling page
-                  final double opacity = (1.0 - (diff.abs() * 0.6)).clamp(0.0, 1.0);
-                  final double extraSlide = diff * 24.0;
-
-                  return Opacity(
-                    opacity: opacity,
-                    child: Transform.translate(
-                      offset: Offset(extraSlide, 0),
-                      child: child,
-                    ),
-                  );
-                },
-                child: slideContent,
-              );
-            },
-          ),
-          if (dotsCount > 1)
-            Positioned(
-              bottom: 8,
-              left: 0,
-              right: 0,
-              child: AnimatedOpacity(
-                opacity: _showDotsIndicator ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 350),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(dotsCount, (dotIdx) {
-                    final isSelected = dotIdx == activeDot;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeOut,
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: isSelected ? 16 : 5,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.35),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class WavePainter extends CustomPainter {
-  final double animationValue;
-
-  WavePainter({required this.animationValue});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint1 = Paint()
-      ..color = Colors.white.withValues(alpha: 0.12)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0;
-
-    final paint2 = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-
-    final paint3 = Paint()
-      ..color = Colors.white.withValues(alpha: 0.06)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-
-    final paint4 = Paint()
-      ..color = Colors.white.withValues(alpha: 0.04)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-
-    final path1 = Path();
-    final path2 = Path();
-    final path3 = Path();
-    final path4 = Path();
-
-    final yOffset1 = size.height * 0.6;
-    final yOffset2 = size.height * 0.45;
-    final yOffset3 = size.height * 0.75;
-    final yOffset4 = size.height * 0.35;
-
-    const amplitude1 = 12.0;
-    const amplitude2 = 8.0;
-    const amplitude3 = 10.0;
-    const amplitude4 = 6.0;
-
-    final wavelength1 = size.width * 1.2;
-    final wavelength2 = size.width * 0.9;
-    final wavelength3 = size.width * 1.5;
-    final wavelength4 = size.width * 0.7;
-
-    path1.moveTo(0, yOffset1);
-    path2.moveTo(0, yOffset2);
-    path3.moveTo(0, yOffset3);
-    path4.moveTo(0, yOffset4);
-
-    for (double x = 0; x <= size.width; x++) {
-      // First wave (moving left to right)
-      final relativeX1 = x / wavelength1;
-      final y1 = yOffset1 + math.sin((relativeX1 * 2 * math.pi) + (animationValue * 2 * math.pi)) * amplitude1;
-      path1.lineTo(x, y1);
-
-      // Second wave (moving right to left)
-      final relativeX2 = x / wavelength2;
-      final y2 = yOffset2 + math.sin((relativeX2 * 2 * math.pi) - (animationValue * 2 * math.pi) + (math.pi / 3)) * amplitude2;
-      path2.lineTo(x, y2);
-
-      // Third wave (slower / wider)
-      final relativeX3 = x / wavelength3;
-      final y3 = yOffset3 + math.sin((relativeX3 * 2 * math.pi) + (animationValue * 2 * math.pi) - (math.pi / 4)) * amplitude3;
-      path3.lineTo(x, y3);
-
-      // Fourth wave (faster / narrower)
-      final relativeX4 = x / wavelength4;
-      final y4 = yOffset4 + math.sin((relativeX4 * 2 * math.pi) - (animationValue * 4 * math.pi) + (math.pi / 6)) * amplitude4;
-      path4.lineTo(x, y4);
-    }
-
-    canvas.drawPath(path1, paint1);
-    canvas.drawPath(path2, paint2);
-    canvas.drawPath(path3, paint3);
-    canvas.drawPath(path4, paint4);
-  }
-
-  @override
-  bool shouldRepaint(covariant WavePainter oldDelegate) {
-    return oldDelegate.animationValue != animationValue;
-  }
-}
+// Typedefs para mantener compatibilidad interna tras modularización
+typedef _RecetaSummaryCard = RecetaSummaryCard;

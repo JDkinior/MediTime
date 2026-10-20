@@ -82,7 +82,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.4 : 0.12),
+              color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.12),
               blurRadius: 24,
               offset: const Offset(0, 8),
             ),
@@ -104,21 +104,21 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                         style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 14),
                         decoration: InputDecoration(
                           hintText: isAnimalMode ? 'Buscar mascota, especie o box...' : 'Buscar paciente o habitación...',
-                          hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.6), fontSize: 13),
+                          hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withValues(alpha: 0.6), fontSize: 13),
                           prefixIcon: Icon(isAnimalMode ? Icons.pets_rounded : Icons.search_rounded, size: 20, color: AppTheme.primaryColor),
                           filled: true,
                           fillColor: searchBg,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
-                            borderSide: isDark ? BorderSide(color: Colors.white.withOpacity(0.08)) : BorderSide.none,
+                            borderSide: isDark ? BorderSide(color: Colors.white.withValues(alpha: 0.08)) : BorderSide.none,
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
-                            borderSide: isDark ? BorderSide(color: Colors.white.withOpacity(0.08)) : BorderSide.none,
+                            borderSide: isDark ? BorderSide(color: Colors.white.withValues(alpha: 0.08)) : BorderSide.none,
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(color: AppTheme.primaryColor.withOpacity(0.5), width: 1.5),
+                            borderSide: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.5), width: 1.5),
                           ),
                           contentPadding: const EdgeInsets.symmetric(vertical: 12),
                         ),
@@ -129,7 +129,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                       decoration: BoxDecoration(
                         color: searchBg,
                         borderRadius: BorderRadius.circular(16),
-                        border: isDark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
+                        border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.08)) : null,
                       ),
                       child: IconButton(
                         icon: Icon(
@@ -165,12 +165,12 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: caregiverNotifier.activeProfileId == null
-                                ? (isDark ? AppTheme.primaryColor.withOpacity(0.18) : const Color(0xFFEBF3FE))
+                                ? (isDark ? AppTheme.primaryColor.withValues(alpha: 0.18) : const Color(0xFFEBF3FE))
                                 : (isDark ? AppTheme.backgroundColor : const Color(0xFFFAFCFF)),
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(
                               color: caregiverNotifier.activeProfileId == null
-                                  ? AppTheme.primaryColor.withOpacity(isDark ? 0.3 : 0.2)
+                                  ? AppTheme.primaryColor.withValues(alpha: isDark ? 0.3 : 0.2)
                                   : AppTheme.borderColor,
                             ),
                           ),
@@ -179,7 +179,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primaryColor.withOpacity(isDark ? 0.3 : 0.15),
+                                  color: AppTheme.primaryColor.withValues(alpha: isDark ? 0.3 : 0.15),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Icon(Icons.person_pin_rounded, color: AppTheme.primaryColor, size: 22),
@@ -230,12 +230,12 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: caregiverNotifier.isGeneralMode
-                              ? (isDark ? AppTheme.primaryColor.withOpacity(0.18) : const Color(0xFFEBF3FE))
+                              ? (isDark ? AppTheme.primaryColor.withValues(alpha: 0.18) : const Color(0xFFEBF3FE))
                               : (isDark ? AppTheme.backgroundColor : const Color(0xFFFAFCFF)),
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                             color: caregiverNotifier.isGeneralMode
-                                ? AppTheme.primaryColor.withOpacity(isDark ? 0.3 : 0.2)
+                                ? AppTheme.primaryColor.withValues(alpha: isDark ? 0.3 : 0.2)
                                 : AppTheme.borderColor,
                           ),
                         ),
@@ -244,7 +244,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryColor.withOpacity(isDark ? 0.3 : 0.15),
+                                color: AppTheme.primaryColor.withValues(alpha: isDark ? 0.3 : 0.15),
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Icon(
@@ -284,7 +284,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryColor.withOpacity(0.15),
+                                color: AppTheme.primaryColor.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
@@ -317,7 +317,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: AppTheme.secondaryTextColor.withOpacity(0.7),
+                              color: AppTheme.secondaryTextColor.withValues(alpha: 0.7),
                               letterSpacing: 0.8,
                             ),
                           ),
@@ -372,7 +372,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                     child: Container(
                                       decoration: BoxDecoration(
                                         color: isSelected
-                                            ? (isDark ? color.withOpacity(0.15) : color.withOpacity(0.08))
+                                            ? (isDark ? color.withValues(alpha: 0.15) : color.withValues(alpha: 0.08))
                                             : Colors.transparent,
                                         borderRadius: BorderRadius.circular(14),
                                       ),
@@ -382,7 +382,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                           Container(
                                             padding: const EdgeInsets.all(10),
                                             decoration: BoxDecoration(
-                                              color: color.withOpacity(0.12),
+                                              color: color.withValues(alpha: 0.12),
                                               borderRadius: BorderRadius.circular(14),
                                             ),
                                             child: Icon(
@@ -436,7 +436,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                               decoration: BoxDecoration(
-                                                color: color.withOpacity(0.1),
+                                                color: color.withValues(alpha: 0.1),
                                                 borderRadius: BorderRadius.circular(10),
                                               ),
                                               child: Text(
@@ -452,7 +452,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                                             Icon(
                                               Icons.chevron_right_rounded,
                                               size: 18,
-                                              color: AppTheme.secondaryTextColor.withOpacity(0.5),
+                                              color: AppTheme.secondaryTextColor.withValues(alpha: 0.5),
                                             ),
                                           ],
                                         ],
@@ -495,7 +495,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryColor.withOpacity(0.1),
+                                color: AppTheme.primaryColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Icon(
@@ -533,7 +533,7 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                             Icon(
                               Icons.chevron_right_rounded,
                               size: 18,
-                              color: AppTheme.secondaryTextColor.withOpacity(0.5),
+                              color: AppTheme.secondaryTextColor.withValues(alpha: 0.5),
                             ),
                           ],
                         ),

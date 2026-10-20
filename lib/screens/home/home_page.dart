@@ -302,7 +302,7 @@ class _HomePageState extends State<HomePage> {
                             : null,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: Colors.black.withValues(alpha: 0.04),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -586,7 +586,7 @@ class _HomePageState extends State<HomePage> {
                                       currentIndex: currentIndex,
                                       selectedItemColor: AppTheme.primaryColor,
                                       unselectedItemColor:
-                                          AppTheme.secondaryTextColor.withOpacity(0.6),
+                                          AppTheme.secondaryTextColor.withValues(alpha: 0.6),
                                       backgroundColor: Colors.transparent,
                                       elevation: 0,
                                       type: BottomNavigationBarType.fixed,
@@ -679,7 +679,7 @@ class _HomePageState extends State<HomePage> {
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppTheme.primaryColor.withOpacity(0.3),
+                                    color: AppTheme.primaryColor.withValues(alpha: 0.3),
                                     blurRadius: 8,
                                     offset: const Offset(0, 4),
                                   ),
@@ -734,7 +734,7 @@ class _HomePageState extends State<HomePage> {
                           onTap: _onTabTapped,
                           currentIndex: currentIndex,
                           selectedItemColor: AppTheme.primaryColor,
-                          unselectedItemColor: AppTheme.secondaryTextColor.withOpacity(0.6),
+                          unselectedItemColor: AppTheme.secondaryTextColor.withValues(alpha: 0.6),
                           backgroundColor: Colors.transparent,
                           elevation: 0,
                           items: [

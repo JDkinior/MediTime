@@ -1,5 +1,6 @@
 // lib/services/storage_service.dart
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -24,16 +25,20 @@ class StorageService {
         cloudinaryUploadPreset != 'YOUR_UNSIGNED_UPLOAD_PRESET';
   }
 
-  /// Comprime una imagen a 300x300px con calidad 70%
+  /// Comprime una imagen a 300x300px con calidad 70% en un Isolate secundario
+  /// para evitar congelamientos en el hilo principal (UI thread).
   Future<Uint8List> _compressImage(File imageFile) async {
     try {
-      final originalImage = img.decodeImage(await imageFile.readAsBytes());
-      if (originalImage == null) {
-        throw Exception('No se pudo decodificar la imagen');
-      }
-      final resizedImage = img.copyResize(originalImage, width: 300);
-      final compressedImage = img.encodeJpg(resizedImage, quality: 70);
-      return Uint8List.fromList(compressedImage);
+      final bytes = await imageFile.readAsBytes();
+      return await Isolate.run(() {
+        final originalImage = img.decodeImage(bytes);
+        if (originalImage == null) {
+          throw Exception('No se pudo decodificar la imagen');
+        }
+        final resizedImage = img.copyResize(originalImage, width: 300);
+        final compressedImage = img.encodeJpg(resizedImage, quality: 70);
+        return Uint8List.fromList(compressedImage);
+      });
     } catch (e) {
       debugPrint('Error al comprimir imagen: $e');
       rethrow;

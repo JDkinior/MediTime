@@ -162,7 +162,7 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
               decoration: BoxDecoration(
                 color: AppTheme.surfaceColor,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFC3C6D7).withOpacity(0.3)),
+                border: Border.all(color: const Color(0xFFC3C6D7).withValues(alpha: 0.3)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -299,7 +299,7 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
                   });
                 }
               },
-              selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+              selectedColor: AppTheme.primaryColor.withValues(alpha: 0.2),
               backgroundColor: AppTheme.surfaceColor,
               labelStyle: TextStyle(
                 color: isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
@@ -494,10 +494,10 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isCompleted ? AppTheme.successColor.withOpacity(0.05) : AppTheme.cardColor,
+                    color: isCompleted ? AppTheme.successColor.withValues(alpha: 0.05) : AppTheme.cardColor,
                     borderRadius: BorderRadius.circular(16),
                     border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-                        ? Border.all(color: isCompleted ? AppTheme.successColor.withOpacity(0.3) : AppTheme.borderColor)
+                        ? Border.all(color: isCompleted ? AppTheme.successColor.withValues(alpha: 0.3) : AppTheme.borderColor)
                         : null,
                     boxShadow: AppTheme.cardShadow,
                   ),
@@ -529,9 +529,9 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: patientColor.withOpacity(0.05),
+                              color: patientColor.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: patientColor.withOpacity(0.2)),
+                              border: Border.all(color: patientColor.withValues(alpha: 0.2)),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -566,9 +566,9 @@ class _GeneralCaregiverPageState extends State<GeneralCaregiverPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withOpacity(0.05),
+        color: AppTheme.primaryColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.2)),
+        border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

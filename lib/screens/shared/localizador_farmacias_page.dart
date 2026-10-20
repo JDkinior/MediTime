@@ -264,12 +264,15 @@ class _LocalizadorFarmaciasPageState extends State<LocalizadorFarmaciasPage> {
     final googleMapsUri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$latitude,$longitude&query_place_id=$encodedName');
 
     try {
-      if (!await launchUrl(googleMapsUri, mode: LaunchMode.externalApplication)) {
+      final launched = await launchUrl(googleMapsUri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No se pudo abrir la aplicación de mapas.')),
         );
       }
     } catch (_) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No se pudo abrir la aplicación de mapas.')),
       );
@@ -351,7 +354,7 @@ class _LocalizadorFarmaciasPageState extends State<LocalizadorFarmaciasPage> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text('${_radiusMeters} m'),
+                        Text('$_radiusMeters m'),
                       ],
                     ),
                   ),
