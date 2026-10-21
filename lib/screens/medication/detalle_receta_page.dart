@@ -242,36 +242,65 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     final l10n = AppLocalizations.of(context);
     final status = _getDoseStatus(selectedDoseTime);
     final isNotificada = status == DoseStatus.notificada;
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
       extendBody: isNotificada,
       appBar: ModernAppBar(
         child: AppBar(title: Text(widget.tratamiento.nombreMedicamento)),
       ),
-      body: ModernContentFade(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            left: 24.0,
-            right: 24.0,
-            top: 24.0,
-            bottom: isNotificada ? 96.0 : 24.0,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildSelectedDoseDisplay(selectedDoseTime, l10n),
-              const SizedBox(height: 32),
-              _buildNextDoseInfo(_nextUpcomingDose, selectedDoseTime, l10n),
-              const SizedBox(height: 32),
-              const Divider(),
-              const SizedBox(height: 32),
-              TreatmentSummaryCard(
-                formData: formData,
-                summaryInfo: _getSummaryInfo(formData, context),
+      body: Stack(
+        children: [
+          ModernContentFade(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 24.0,
+                right: 24.0,
+                top: 24.0,
+                bottom: isNotificada ? 116.0 : 24.0,
               ),
-            ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildSelectedDoseDisplay(selectedDoseTime, l10n),
+                  const SizedBox(height: 32),
+                  _buildNextDoseInfo(_nextUpcomingDose, selectedDoseTime, l10n),
+                  const SizedBox(height: 32),
+                  const Divider(),
+                  const SizedBox(height: 32),
+                  TreatmentSummaryCard(
+                    formData: formData,
+                    summaryInfo: _getSummaryInfo(formData, context),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+          if (isNotificada)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 160,
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        bgColor.withValues(alpha: 0.0),
+                        bgColor.withValues(alpha: 0.35),
+                        bgColor.withValues(alpha: 0.8),
+                        bgColor.withValues(alpha: 0.98),
+                      ],
+                      stops: const [0.0, 0.35, 0.7, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       bottomNavigationBar: isNotificada ? _buildFloatingActionBar(l10n) : null,
     );
@@ -492,7 +521,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
         borderRadius: BorderRadius.circular(30),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          height: isHero ? 48 : 44,
+          height: isHero ? 56 : 50,
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.circular(30),
@@ -500,16 +529,16 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
                 isHero
                     ? [
                       BoxShadow(
-                        color: color.withValues(alpha: 0.4),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+                        color: color.withValues(alpha: 0.38),
+                        blurRadius: 12,
+                        offset: const Offset(0, 5),
                       ),
                     ]
                     : [
                       BoxShadow(
                         color: color.withValues(alpha: 0.25),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
                       ),
                     ],
           ),
@@ -528,8 +557,8 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(icon, color: Colors.white, size: isHero ? 19 : 17),
-                        const SizedBox(width: 5),
+                        Icon(icon, color: Colors.white, size: isHero ? 20 : 18),
+                        const SizedBox(width: 6),
                         Flexible(
                           child: Text(
                             label,
@@ -537,7 +566,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: isHero ? 14.5 : 13,
+                              fontSize: isHero ? 15 : 13.5,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 0.2,
                             ),
