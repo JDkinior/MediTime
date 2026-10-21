@@ -240,19 +240,21 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     final DateTime selectedDoseTime = widget.horaDosis;
     final formData = _convertToFormData();
     final l10n = AppLocalizations.of(context);
+    final status = _getDoseStatus(selectedDoseTime);
+    final isNotificada = status == DoseStatus.notificada;
 
     return Scaffold(
-      extendBody: true,
+      extendBody: isNotificada,
       appBar: ModernAppBar(
         child: AppBar(title: Text(widget.tratamiento.nombreMedicamento)),
       ),
       body: ModernContentFade(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(
+          padding: EdgeInsets.only(
             left: 24.0,
             right: 24.0,
             top: 24.0,
-            bottom: 96.0,
+            bottom: isNotificada ? 96.0 : 24.0,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -271,7 +273,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildFloatingActionBar(l10n),
+      bottomNavigationBar: isNotificada ? _buildFloatingActionBar(l10n) : null,
     );
   }
 
@@ -422,85 +424,55 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
   }
 
   Widget _buildFloatingActionBar(AppLocalizations? l10n) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return SafeArea(
       bottom: true,
       child: Padding(
-        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12, top: 4),
-        child: Container(
-          height: 64,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: isDark ? Colors.white10 : AppTheme.borderColor,
-              width: 1,
+        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 4),
+        child: Row(
+          children: [
+            // Left: Snooze / Aplazar
+            Expanded(
+              flex: 3,
+              child: _buildPillActionButton(
+                icon: Icons.access_alarm_rounded,
+                label: l10n?.actionSnooze ?? 'Aplazar',
+                color: const Color(0xFFF59E0B),
+                onTap:
+                    _isProcessing
+                        ? null
+                        : () => _handleDoseAction(DoseStatus.aplazada),
+              ),
             ),
-            boxShadow: [
-              BoxShadow(
-                color:
-                    isDark
-                        ? Colors.black.withValues(alpha: 0.45)
-                        : Colors.black.withValues(alpha: 0.08),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
+            const SizedBox(width: 10),
+            // Center: Take / Tomar (Hero action)
+            Expanded(
+              flex: 4,
+              child: _buildPillActionButton(
+                icon: Icons.check_rounded,
+                label: l10n?.actionTake ?? 'Tomar',
+                color: const Color(0xFF10B981),
+                isHero: true,
+                onTap:
+                    _isProcessing
+                        ? null
+                        : () => _handleDoseAction(DoseStatus.tomada),
               ),
-              if (!isDark)
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-            ],
-          ),
-          child: Row(
-            children: [
-              // Left: Snooze / Aplazar
-              Expanded(
-                flex: 3,
-                child: _buildPillActionButton(
-                  icon: Icons.access_alarm_rounded,
-                  label: l10n?.actionSnooze ?? 'Aplazar',
-                  color: const Color(0xFFF59E0B),
-                  onTap:
-                      _isProcessing
-                          ? null
-                          : () => _handleDoseAction(DoseStatus.aplazada),
-                ),
+            ),
+            const SizedBox(width: 10),
+            // Right: Skip / Omitir
+            Expanded(
+              flex: 3,
+              child: _buildPillActionButton(
+                icon: Icons.close_rounded,
+                label: l10n?.actionSkip ?? 'Omitir',
+                color: const Color(0xFFEF4444),
+                onTap:
+                    _isProcessing
+                        ? null
+                        : () => _handleDoseAction(DoseStatus.omitida),
               ),
-              const SizedBox(width: 8),
-              // Center: Take / Tomar (Hero action)
-              Expanded(
-                flex: 4,
-                child: _buildPillActionButton(
-                  icon: Icons.check_rounded,
-                  label: l10n?.actionTake ?? 'Tomar',
-                  color: const Color(0xFF10B981),
-                  isHero: true,
-                  onTap:
-                      _isProcessing
-                          ? null
-                          : () => _handleDoseAction(DoseStatus.tomada),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Right: Skip / Omitir
-              Expanded(
-                flex: 3,
-                child: _buildPillActionButton(
-                  icon: Icons.close_rounded,
-                  label: l10n?.actionSkip ?? 'Omitir',
-                  color: const Color(0xFFEF4444),
-                  onTap:
-                      _isProcessing
-                          ? null
-                          : () => _handleDoseAction(DoseStatus.omitida),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
