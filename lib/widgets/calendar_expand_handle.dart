@@ -51,59 +51,6 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
     }
   }
 
-  /// Determina el formato objetivo paso a paso en base al desplazamiento total [dy]
-  /// desde el inicio del arrastre y el formato actualmente alcanzado.
-  /// Garantiza que nunca se salten formatos intermedios (progreso continuo adyacente).
-  CalendarFormat _computeTargetFormat({
-    required CalendarFormat startFormat,
-    required CalendarFormat currentFormat,
-    required double dy,
-  }) {
-    switch (startFormat) {
-      case CalendarFormat.week:
-        if (currentFormat == CalendarFormat.month) {
-          if (dy < 56.0) return CalendarFormat.twoWeeks;
-          return CalendarFormat.month;
-        } else if (currentFormat == CalendarFormat.twoWeeks) {
-          if (dy >= 72.0) return CalendarFormat.month;
-          if (dy < 20.0) return CalendarFormat.week;
-          return CalendarFormat.twoWeeks;
-        } else {
-          // currentFormat == CalendarFormat.week
-          if (dy >= 36.0) return CalendarFormat.twoWeeks;
-          return CalendarFormat.week;
-        }
-
-      case CalendarFormat.twoWeeks:
-        if (currentFormat == CalendarFormat.month) {
-          if (dy < 20.0) return CalendarFormat.twoWeeks;
-          return CalendarFormat.month;
-        } else if (currentFormat == CalendarFormat.week) {
-          if (dy > -20.0) return CalendarFormat.twoWeeks;
-          return CalendarFormat.week;
-        } else {
-          // currentFormat == CalendarFormat.twoWeeks
-          if (dy >= 36.0) return CalendarFormat.month;
-          if (dy <= -36.0) return CalendarFormat.week;
-          return CalendarFormat.twoWeeks;
-        }
-
-      case CalendarFormat.month:
-        if (currentFormat == CalendarFormat.week) {
-          if (dy > -56.0) return CalendarFormat.twoWeeks;
-          return CalendarFormat.week;
-        } else if (currentFormat == CalendarFormat.twoWeeks) {
-          if (dy <= -72.0) return CalendarFormat.week;
-          if (dy > -20.0) return CalendarFormat.month;
-          return CalendarFormat.twoWeeks;
-        } else {
-          // currentFormat == CalendarFormat.month
-          if (dy <= -36.0) return CalendarFormat.twoWeeks;
-          return CalendarFormat.month;
-        }
-    }
-  }
-
   void _stepExpand() {
     final currentIndex = _formatOrder.indexOf(widget.calendarFormat).clamp(0, _formatOrder.length - 1);
     if (currentIndex < _formatOrder.length - 1) {
@@ -182,18 +129,59 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
           },
           onVerticalDragUpdate: (details) {
             _totalDragY += details.delta.dy;
-            _visualOffset = (_totalDragY * 0.2).clamp(-8.0, 8.0);
+            _visualOffset = (_totalDragY * 0.35).clamp(-24.0, 24.0);
 
-            // Resuelve transiciones secuenciales hacia el formato objetivo según dy
-            while (true) {
-              final nextFormat = _computeTargetFormat(
-                startFormat: _dragStartFormat,
-                currentFormat: _currentFormatDuringDrag,
-                dy: _totalDragY,
-              );
-              if (nextFormat == _currentFormatDuringDrag) break;
-              _currentFormatDuringDrag = nextFormat;
-              widget.onFormatChanged(nextFormat);
+            // Gestionar niveles intermedios de forma gradual:
+            // Nivel 1: Semana | Nivel 2: Quincenal | Nivel 3: Transición gradual | Nivel 4: Mes
+            if (_dragStartFormat == CalendarFormat.week) {
+              if (_currentFormatDuringDrag == CalendarFormat.week && _totalDragY >= 36.0) {
+                // Baja el primer nivel a quincenal (nivel 2)
+                _currentFormatDuringDrag = CalendarFormat.twoWeeks;
+                widget.onFormatChanged(CalendarFormat.twoWeeks);
+              }
+              if (_currentFormatDuringDrag == CalendarFormat.twoWeeks && _totalDragY >= 80.0) {
+                // Al continuar hasta el 4to nivel durante el arrastre, alcanza mes
+                _currentFormatDuringDrag = CalendarFormat.month;
+                widget.onFormatChanged(CalendarFormat.month);
+              } else if (_currentFormatDuringDrag == CalendarFormat.month && _totalDragY < 68.0) {
+                // Al regresar hacia arriba
+                _currentFormatDuringDrag = CalendarFormat.twoWeeks;
+                widget.onFormatChanged(CalendarFormat.twoWeeks);
+              } else if (_currentFormatDuringDrag == CalendarFormat.twoWeeks && _totalDragY < 18.0) {
+                _currentFormatDuringDrag = CalendarFormat.week;
+                widget.onFormatChanged(CalendarFormat.week);
+              }
+            } else if (_dragStartFormat == CalendarFormat.month) {
+              if (_currentFormatDuringDrag == CalendarFormat.month && _totalDragY <= -45.0) {
+                // Sube hacia quincenal (nivel 2) tras recorrer el 3er nivel
+                _currentFormatDuringDrag = CalendarFormat.twoWeeks;
+                widget.onFormatChanged(CalendarFormat.twoWeeks);
+              }
+              if (_currentFormatDuringDrag == CalendarFormat.twoWeeks && _totalDragY <= -75.0) {
+                // Sube hasta nivel 1 semanal
+                _currentFormatDuringDrag = CalendarFormat.week;
+                widget.onFormatChanged(CalendarFormat.week);
+              } else if (_currentFormatDuringDrag == CalendarFormat.week && _totalDragY > -60.0) {
+                _currentFormatDuringDrag = CalendarFormat.twoWeeks;
+                widget.onFormatChanged(CalendarFormat.twoWeeks);
+              } else if (_currentFormatDuringDrag == CalendarFormat.twoWeeks && _totalDragY > -25.0) {
+                _currentFormatDuringDrag = CalendarFormat.month;
+                widget.onFormatChanged(CalendarFormat.month);
+              }
+            } else if (_dragStartFormat == CalendarFormat.twoWeeks) {
+              if (_currentFormatDuringDrag == CalendarFormat.twoWeeks && _totalDragY >= 50.0) {
+                _currentFormatDuringDrag = CalendarFormat.month;
+                widget.onFormatChanged(CalendarFormat.month);
+              } else if (_currentFormatDuringDrag == CalendarFormat.twoWeeks && _totalDragY <= -36.0) {
+                _currentFormatDuringDrag = CalendarFormat.week;
+                widget.onFormatChanged(CalendarFormat.week);
+              } else if (_currentFormatDuringDrag == CalendarFormat.month && _totalDragY < 35.0) {
+                _currentFormatDuringDrag = CalendarFormat.twoWeeks;
+                widget.onFormatChanged(CalendarFormat.twoWeeks);
+              } else if (_currentFormatDuringDrag == CalendarFormat.week && _totalDragY > -18.0) {
+                _currentFormatDuringDrag = CalendarFormat.twoWeeks;
+                widget.onFormatChanged(CalendarFormat.twoWeeks);
+              }
             }
 
             if (mounted) {
@@ -202,23 +190,78 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
           },
           onVerticalDragEnd: (details) {
             final velocity = details.primaryVelocity ?? 0.0;
-            // Si el arrastre no cambió de formato por distancia, pero hubo un flick veloz
-            if (_currentFormatDuringDrag == _dragStartFormat) {
-              if (velocity > 150 || _totalDragY >= 20.0) {
-                _stepExpand();
-              } else if (velocity < -150 || _totalDragY <= -20.0) {
-                _stepCollapse();
+
+            if (_dragStartFormat == CalendarFormat.week) {
+              // Si se soltó en el 3er nivel (o 4to) o hubo flick rápido hacia abajo:
+              // termina de adaptarse al 4to nivel (mes completo)
+              if (_totalDragY >= 65.0) {
+                if (_currentFormatDuringDrag != CalendarFormat.month) {
+                  _currentFormatDuringDrag = CalendarFormat.month;
+                  widget.onFormatChanged(CalendarFormat.month);
+                }
+              } else if (_totalDragY >= 25.0 || velocity > 150.0) {
+                // Se soltó en nivel quincenal o flick rápido
+                if (_currentFormatDuringDrag != CalendarFormat.twoWeeks) {
+                  _currentFormatDuringDrag = CalendarFormat.twoWeeks;
+                  widget.onFormatChanged(CalendarFormat.twoWeeks);
+                }
+              } else {
+                if (_currentFormatDuringDrag != CalendarFormat.week) {
+                  _currentFormatDuringDrag = CalendarFormat.week;
+                  widget.onFormatChanged(CalendarFormat.week);
+                }
+              }
+            } else if (_dragStartFormat == CalendarFormat.month) {
+              // Al contraer: si se empujó hacia arriba hasta el 1er nivel semanal
+              if (_totalDragY <= -65.0) {
+                if (_currentFormatDuringDrag != CalendarFormat.week) {
+                  _currentFormatDuringDrag = CalendarFormat.week;
+                  widget.onFormatChanged(CalendarFormat.week);
+                }
+              } else if (_totalDragY <= -25.0 || velocity < -150.0) {
+                // Se soltó en nivel quincenal o flick rápido hacia arriba
+                if (_currentFormatDuringDrag != CalendarFormat.twoWeeks) {
+                  _currentFormatDuringDrag = CalendarFormat.twoWeeks;
+                  widget.onFormatChanged(CalendarFormat.twoWeeks);
+                }
+              } else {
+                // Se soltó cerca de mes: se adapta de nuevo a mensual
+                if (_currentFormatDuringDrag != CalendarFormat.month) {
+                  _currentFormatDuringDrag = CalendarFormat.month;
+                  widget.onFormatChanged(CalendarFormat.month);
+                }
+              }
+            } else if (_dragStartFormat == CalendarFormat.twoWeeks) {
+              if (_totalDragY >= 40.0 || velocity > 150.0) {
+                if (_currentFormatDuringDrag != CalendarFormat.month) {
+                  _currentFormatDuringDrag = CalendarFormat.month;
+                  widget.onFormatChanged(CalendarFormat.month);
+                }
+              } else if (_totalDragY <= -25.0 || velocity < -150.0) {
+                if (_currentFormatDuringDrag != CalendarFormat.week) {
+                  _currentFormatDuringDrag = CalendarFormat.week;
+                  widget.onFormatChanged(CalendarFormat.week);
+                }
+              } else {
+                if (_currentFormatDuringDrag != CalendarFormat.twoWeeks) {
+                  _currentFormatDuringDrag = CalendarFormat.twoWeeks;
+                  widget.onFormatChanged(CalendarFormat.twoWeeks);
+                }
               }
             }
+
             _resetDrag();
           },
           onVerticalDragCancel: _resetDrag,
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.only(top: 4.0, bottom: 9.0),
+            padding: EdgeInsets.only(
+              top: 4.0 + (_visualOffset > 0 ? _visualOffset * 0.3 : 0.0),
+              bottom: 9.0 + (_visualOffset < 0 ? -_visualOffset * 0.3 : 0.0),
+            ),
             alignment: Alignment.center,
             child: Transform.translate(
-              offset: Offset(0, _visualOffset),
+              offset: Offset(0, _visualOffset * 0.7),
               child: AnimatedContainer(
                 key: const Key('calendar_expand_handle_bar'),
                 duration: const Duration(milliseconds: 150),

@@ -201,20 +201,20 @@ void main() {
       final gesture = await tester.startGesture(center);
       await tester.pump();
 
-      // Break slop and move down into month (total dy = 82px)
+      // Break slop and move down into 4th level month (total dy = 102px)
       await gesture.moveBy(const Offset(0, 25));
-      await gesture.moveBy(const Offset(0, 75));
+      await gesture.moveBy(const Offset(0, 95));
       await tester.pump();
       expect(formatTransitions, contains(CalendarFormat.twoWeeks));
       expect(formatTransitions.last, CalendarFormat.month);
 
-      // Now reverse without lifting finger, back up into twoWeeks zone (dy drops to ~45px)
-      await gesture.moveBy(const Offset(0, -35));
+      // Now reverse without lifting finger, back up into twoWeeks zone (dy drops to ~62px)
+      await gesture.moveBy(const Offset(0, -40));
       await tester.pump();
       expect(formatTransitions.last, CalendarFormat.twoWeeks);
 
-      // Continue moving up into week zone (dy drops to ~10px)
-      await gesture.moveBy(const Offset(0, -35));
+      // Continue moving up into week zone (dy drops to ~12px)
+      await gesture.moveBy(const Offset(0, -50));
       await tester.pump();
       expect(formatTransitions.last, CalendarFormat.week);
 
