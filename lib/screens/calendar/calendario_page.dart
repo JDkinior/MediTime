@@ -1648,11 +1648,11 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
             child: Column(
               children: [
                 if (isFirst)
-                  const SizedBox(height: 18)
+                  const SizedBox(height: 22)
                 else
                   Container(
                     width: 2,
-                    height: 18,
+                    height: 22,
                     color: const Color(0xFFC3C6D7).withValues(alpha: 0.4),
                   ),
                 nodeWidget,
@@ -1666,7 +1666,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
               ],
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 18),
 
           // Dose Card (Right)
           Expanded(
@@ -1699,9 +1699,11 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                         onTap: openContainer,
                         borderRadius: BorderRadius.circular(20),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
+                          padding: const EdgeInsets.only(
+                            left: 24,
+                            right: 14,
+                            top: 22,
+                            bottom: 22,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1724,7 +1726,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                           color: AppTheme.primaryColor,
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 6),
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
@@ -1749,10 +1751,10 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
 
                                   // Subtle Vertical Divider
                                   Container(
-                                    height: 32,
+                                    height: 42,
                                     width: 1,
                                     margin: const EdgeInsets.symmetric(
-                                      horizontal: 14,
+                                      horizontal: 16,
                                     ),
                                     color: AppTheme.secondaryTextColor
                                         .withValues(alpha: 0.18),
@@ -1775,7 +1777,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                             color: AppTheme.primaryTextColor,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
+                                        const SizedBox(height: 6),
                                         Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
