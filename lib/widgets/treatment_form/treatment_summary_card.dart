@@ -223,31 +223,13 @@ class TreatmentSummaryCard extends StatelessWidget {
                     children: [
                       _buildSection(
                         title: l10n?.treatmentSummaryDuration ?? 'Duración',
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              getLocalizedDuration(),
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryTextColor,
-                              ),
-                            ),
-                            if (!formData.esIndefinido) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                l10n?.treatmentSummaryDaysInParentheses(
-                                      formData.duracionEnDias,
-                                    ) ??
-                                    '(${formData.duracionEnDias} días)',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Color(0xFF8E9BAE),
-                                ),
-                              ),
-                            ],
-                          ],
+                        child: Text(
+                          getLocalizedDuration(),
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryTextColor,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 14),
