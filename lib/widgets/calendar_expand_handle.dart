@@ -35,12 +35,6 @@ class CalendarExpandHandle extends StatefulWidget {
 }
 
 class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
-  static const List<CalendarFormat> _formatOrder = [
-    CalendarFormat.week,
-    CalendarFormat.twoWeeks,
-    CalendarFormat.month,
-  ];
-
   late CalendarFormat _dragStartFormat;
   late CalendarFormat _currentFormatDuringDrag;
   double _totalDragY = 0.0;
