@@ -1636,6 +1636,10 @@ class _RecetaPageState extends State<RecetaPage>
                     context,
                     tratamiento.presentacion,
                   );
+                  final dosePresentationText =
+                      tratamiento.dosisPorToma > 0
+                          ? '${tratamiento.dosisPorToma} $localizedPres'
+                          : localizedPres;
                   final localizedFreq =
                       tratamiento.intervaloDosis.inHours == 1
                           ? (l10n?.everyHourSingle ?? 'Cada hora')
@@ -1729,7 +1733,7 @@ class _RecetaPageState extends State<RecetaPage>
                                     const SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
-                                        localizedPres,
+                                        dosePresentationText,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
