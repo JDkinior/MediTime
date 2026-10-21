@@ -242,31 +242,36 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
+      extendBody: true,
       appBar: ModernAppBar(
         child: AppBar(title: Text(widget.tratamiento.nombreMedicamento)),
       ),
       body: ModernContentFade(
         child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildSelectedDoseDisplay(selectedDoseTime, l10n),
-                const SizedBox(height: 32),
-                _buildNextDoseInfo(_nextUpcomingDose, selectedDoseTime, l10n),
-                const SizedBox(height: 32),
-                const Divider(),
-                const SizedBox(height: 32),
-                TreatmentSummaryCard(
-                  formData: formData,
-                  summaryInfo: _getSummaryInfo(formData, context),
-                ),
-              ],
-            ),
+          padding: const EdgeInsets.only(
+            left: 24.0,
+            right: 24.0,
+            top: 24.0,
+            bottom: 96.0,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildSelectedDoseDisplay(selectedDoseTime, l10n),
+              const SizedBox(height: 32),
+              _buildNextDoseInfo(_nextUpcomingDose, selectedDoseTime, l10n),
+              const SizedBox(height: 32),
+              const Divider(),
+              const SizedBox(height: 32),
+              TreatmentSummaryCard(
+                formData: formData,
+                summaryInfo: _getSummaryInfo(formData, context),
+              ),
+            ],
           ),
         ),
       ),
+      bottomNavigationBar: _buildFloatingActionBar(l10n),
     );
   }
 
@@ -412,61 +417,165 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
             ],
           ),
         ),
-        if (status == DoseStatus.notificada) ...[
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed:
-                      _isProcessing
-                          ? null
-                          : () => _handleDoseAction(DoseStatus.tomada),
-                  icon: const Icon(Icons.check, size: 18),
-                  label: Text(l10n?.actionTake ?? 'Tomar'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.successColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
+      ],
+    );
+  }
+
+  Widget _buildFloatingActionBar(AppLocalizations? l10n) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return SafeArea(
+      bottom: true,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12, top: 4),
+        child: Container(
+          height: 64,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: isDark ? Colors.white10 : AppTheme.borderColor,
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color:
+                    isDark
+                        ? Colors.black.withValues(alpha: 0.45)
+                        : Colors.black.withValues(alpha: 0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
               ),
-              const SizedBox(width: 8),
+              if (!isDark)
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 4,
+                  offset: const Offset(0, -2),
+                ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Left: Snooze / Aplazar
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed:
+                flex: 3,
+                child: _buildPillActionButton(
+                  icon: Icons.access_alarm_rounded,
+                  label: l10n?.actionSnooze ?? 'Aplazar',
+                  color: const Color(0xFFF59E0B),
+                  onTap:
                       _isProcessing
                           ? null
                           : () => _handleDoseAction(DoseStatus.aplazada),
-                  icon: const Icon(Icons.snooze, size: 18),
-                  label: Text(l10n?.actionSnooze ?? 'Aplazar'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.orange.shade700,
-                    side: BorderSide(color: Colors.orange.shade700),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
                 ),
               ),
               const SizedBox(width: 8),
+              // Center: Take / Tomar (Hero action)
               Expanded(
-                child: TextButton.icon(
-                  onPressed:
+                flex: 4,
+                child: _buildPillActionButton(
+                  icon: Icons.check_rounded,
+                  label: l10n?.actionTake ?? 'Tomar',
+                  color: const Color(0xFF10B981),
+                  isHero: true,
+                  onTap:
+                      _isProcessing
+                          ? null
+                          : () => _handleDoseAction(DoseStatus.tomada),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Right: Skip / Omitir
+              Expanded(
+                flex: 3,
+                child: _buildPillActionButton(
+                  icon: Icons.close_rounded,
+                  label: l10n?.actionSkip ?? 'Omitir',
+                  color: const Color(0xFFEF4444),
+                  onTap:
                       _isProcessing
                           ? null
                           : () => _handleDoseAction(DoseStatus.omitida),
-                  icon: const Icon(Icons.close, size: 18),
-                  label: Text(l10n?.actionSkip ?? 'Omitir'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.errorColor,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
                 ),
               ),
             ],
           ),
-        ],
-      ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPillActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback? onTap,
+    bool isHero = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(30),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: isHero ? 48 : 44,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(30),
+            boxShadow:
+                isHero
+                    ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.4),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                    : [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.25),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+          ),
+          child: Center(
+            child:
+                _isProcessing
+                    ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                    : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, color: Colors.white, size: isHero ? 19 : 17),
+                        const SizedBox(width: 5),
+                        Flexible(
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: isHero ? 14.5 : 13,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+          ),
+        ),
+      ),
     );
   }
 
