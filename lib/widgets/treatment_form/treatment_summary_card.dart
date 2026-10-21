@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
@@ -8,6 +9,7 @@ import 'package:printing/printing.dart';
 import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/core/utils.dart';
+import 'package:meditime/widgets/pill_icon.dart';
 
 /// Widget para mostrar el resumen del tratamiento
 class TreatmentSummaryCard extends StatelessWidget {
@@ -26,7 +28,9 @@ class TreatmentSummaryCard extends StatelessWidget {
     final langCode = Localizations.localeOf(context).languageCode;
 
     String getLocalizedDuration() {
-      if (formData.esIndefinido) return l10n?.durationIndefinite ?? 'Indefinido';
+      if (formData.esIndefinido) {
+        return l10n?.durationIndefinite ?? 'Indefinido';
+      }
       final n = formData.duracionNumero;
       switch (formData.duracionUnidad) {
         case DurationUnit.days:
@@ -44,7 +48,12 @@ class TreatmentSummaryCard extends StatelessWidget {
       }
     }
 
-    final localizedPresentation = AppUtils.localizePresentation(context, formData.presentacion);
+    final localizedPresentation = AppUtils.localizePresentation(
+      context,
+      formData.presentacion,
+    );
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       width: double.infinity,
@@ -52,9 +61,11 @@ class TreatmentSummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-            ? Border.all(color: AppTheme.borderColor)
-            : null,
+        border:
+            (context.watch<PreferenceNotifier>().showCardBorder ||
+                    context.watch<PreferenceNotifier>().highContrast)
+                ? Border.all(color: AppTheme.borderColor)
+                : null,
         boxShadow: AppTheme.cardShadow,
       ),
       child: Column(
@@ -64,251 +75,480 @@ class TreatmentSummaryCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color:
+                      isDark
+                          ? const Color(0xFF1E293B)
+                          : const Color(0xFFDEEEFD),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                alignment: Alignment.center,
+                child: MedicationPresentationIcon(
+                  presentation: formData.presentacion,
+                  size: 22,
+                  color: const Color(0xFF0C53E8),
+                ),
+              ),
+              const SizedBox(width: 14),
               Expanded(
-                child: _buildSection(
-                  title: l10n?.treatmentSummaryMedicine ?? 'Medicamento',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        formData.nombreMedicamento,
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryTextColor,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      (l10n?.treatmentSummaryMedicine ?? 'Medicamento')
+                          .toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: Color(0xFF8E9BAE),
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      formData.nombreMedicamento,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryTextColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text.rich(
+                      TextSpan(
+                        text:
+                            '${l10n?.localeName == 'en'
+                                ? 'Presentation'
+                                : l10n?.localeName == 'pt'
+                                ? 'Apresentação'
+                                : 'Presentación'}: ',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF8E9BAE),
+                          fontWeight: FontWeight.w400,
                         ),
+                        children: [
+                          TextSpan(
+                            text: localizedPresentation,
+                            style: TextStyle(
+                              color: AppTheme.primaryTextColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        l10n?.treatmentSummaryPresentation(localizedPresentation) ??
-                            'Presentación: $localizedPresentation',
-                        style: TextStyle(fontSize: 16, color: AppTheme.secondaryTextColor),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               // Botón PDF
-              Container(
-                margin: const EdgeInsets.only(top: 30),
-                child: IconButton(
-                  onPressed: () => _generatePDF(context),
-                  icon: const Icon(
-                    Icons.picture_as_pdf,
-                    color: kInfoColor,
-                    size: 32,
+              Tooltip(
+                message:
+                    l10n?.treatmentSummaryDownloadPdfTooltip ?? 'Descargar PDF',
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => _generatePDF(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            isDark
+                                ? const Color(0xFF1E293B)
+                                : const Color(0xFFE0F0FD),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.picture_as_pdf_rounded,
+                            size: 14,
+                            color: Color(0xFF0C53E8),
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'PDF',
+                            style: TextStyle(
+                              color: Color(0xFF0C53E8),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  tooltip: l10n?.treatmentSummaryDownloadPdfTooltip ?? 'Descargar PDF',
                 ),
               ),
             ],
           ),
- 
+
           _buildDivider(),
- 
-          // Sección Horarios y Duración
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Horarios
-              Expanded(
-                child: _buildSection(
-                  title: l10n?.treatmentSummarySchedules ?? 'Horarios',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: _generateScheduleTimes(context),
+
+          // Sección Horarios y Duración con divisor vertical
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Horarios
+                Expanded(
+                  child: _buildSection(
+                    title: l10n?.treatmentSummarySchedules ?? 'Horarios',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: _generateScheduleTimes(context),
+                    ),
                   ),
                 ),
-              ),
- 
-              // Duración
-              Expanded(
-                child: _buildSection(
-                  title: l10n?.treatmentSummaryDuration ?? 'Duración',
+
+                Container(
+                  width: 1,
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  color: AppTheme.borderColor.withValues(alpha: 0.5),
+                ),
+
+                // Duración y Frecuencia
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _buildSection(
+                        title: l10n?.treatmentSummaryDuration ?? 'Duración',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              getLocalizedDuration(),
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryTextColor,
+                              ),
+                            ),
+                            if (!formData.esIndefinido) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                l10n?.treatmentSummaryDaysInParentheses(
+                                      formData.duracionEnDias,
+                                    ) ??
+                                    '(${formData.duracionEnDias} días)',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF8E9BAE),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
                       Text(
-                        getLocalizedDuration(),
-                        style: TextStyle(
-                          fontSize: 20,
+                        (l10n?.treatmentSummaryFrequency ?? 'Frecuencia')
+                            .toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: Color(0xFF8E9BAE),
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.primaryTextColor,
+                          letterSpacing: 1.2,
                         ),
                       ),
-                      if (!formData.esIndefinido) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          l10n?.treatmentSummaryDaysInParentheses(formData.duracionEnDias) ??
-                              '(${formData.duracionEnDias} días)',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppTheme.secondaryTextColor,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 6),
                       Text(
-                        l10n?.treatmentSummaryFrequency ?? 'Frecuencia',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: AppTheme.secondaryTextColor,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n?.treatmentSummaryEveryHours(formData.intervaloDosis) ??
+                        l10n?.treatmentSummaryEveryHours(
+                              formData.intervaloDosis,
+                            ) ??
                             'Cada ${formData.intervaloDosis} horas',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.primaryTextColor,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0C53E8),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
- 
-          const SizedBox(height: 20),
- 
-          // Información adicional
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  formData.esIndefinido
-                      ? (l10n?.treatmentSummaryAutoGenerated ?? '• Dosis generadas automáticamente')
-                      : (l10n?.treatmentSummaryTotalDoses(summaryInfo['totalDoses'] ?? formData.totalDoses.toString()) ??
-                          '• Total ${summaryInfo['totalDoses']} dosis'),
-                  style: TextStyle(fontSize: 14, color: AppTheme.secondaryTextColor),
+
+          _buildDivider(),
+
+          // Información adicional con iconos y divisor vertical
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.vaccines_rounded,
+                      size: 17,
+                      color: Color(0xFF8E9BAE),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      formData.esIndefinido
+                          ? (l10n?.treatmentSummaryAutoGenerated ??
+                              'Dosis generadas automáticamente')
+                          : (l10n?.treatmentSummaryTotalDoses(
+                                    summaryInfo['totalDoses'] ??
+                                        formData.totalDoses.toString(),
+                                  ) ??
+                                  'Total ${summaryInfo['totalDoses']} dosis')
+                              .replaceFirst(RegExp(r'^[•\s]+'), ''),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.secondaryTextColor,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              Expanded(
-                child: Text(
-                  l10n?.treatmentSummaryUntil(summaryInfo['endDate'] ?? '') ??
-                      '• Hasta ${summaryInfo['endDate']}',
-                  style: TextStyle(fontSize: 14, color: AppTheme.secondaryTextColor),
+                Container(
+                  width: 1,
+                  height: 16,
+                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                  color: AppTheme.borderColor.withValues(alpha: 0.5),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today_rounded,
+                        size: 15,
+                        color: Color(0xFF8E9BAE),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          (l10n?.treatmentSummaryUntil(
+                                    summaryInfo['endDate'] ?? '',
+                                  ) ??
+                                  'Hasta ${summaryInfo['endDate']}')
+                              .replaceFirst(RegExp(r'^[•\s]+'), ''),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.secondaryTextColor,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
- 
-          if (formData.cantidadTotalCaja > 0 || formData.cantidadActual > 0) ...[
+
+          if (formData.cantidadTotalCaja > 0 ||
+              formData.cantidadActual > 0) ...[
             _buildDivider(),
             _buildSection(
               title: l10n?.treatmentSummaryStockTitle ?? 'Inventario y Stock',
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n?.treatmentSummaryStockAvailable(
-                                  formData.cantidadActual, formData.cantidadTotalCaja) ??
-                              'Disponible: ${formData.cantidadActual} de ${formData.cantidadTotalCaja}',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.primaryTextColor,
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n?.treatmentSummaryStockAvailable(
+                                  formData.cantidadActual,
+                                  formData.cantidadTotalCaja,
+                                ) ??
+                                'Disponible: ${formData.cantidadActual} de ${formData.cantidadTotalCaja}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.primaryTextColor,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          l10n?.treatmentSummaryDosePerIntake(formData.dosisPorToma) ??
-                              'Dosis por toma: ${formData.dosisPorToma}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppTheme.secondaryTextColor,
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n?.treatmentSummaryDosePerIntake(
+                                  formData.dosisPorToma,
+                                ) ??
+                                'Dosis por toma: ${formData.dosisPorToma}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.secondaryTextColor,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n?.treatmentSummaryRemainingIntakes((formData.dosisPorToma > 0)
-                                  ? (formData.cantidadActual / formData.dosisPorToma).floor()
-                                  : 0) ??
-                              'Tomas restantes: ${(formData.dosisPorToma > 0) ? (formData.cantidadActual / formData.dosisPorToma).floor() : 0}',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: (formData.cantidadActual < 5) ? AppTheme.errorColor : Colors.green,
-                          ),
-                        ),
-                      ],
+                    Container(
+                      width: 1,
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      color: AppTheme.borderColor.withValues(alpha: 0.5),
                     ),
-                  ),
-                ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n?.treatmentSummaryRemainingIntakes(
+                                  (formData.dosisPorToma > 0)
+                                      ? (formData.cantidadActual /
+                                              formData.dosisPorToma)
+                                          .floor()
+                                      : 0,
+                                ) ??
+                                'Tomas restantes: ${(formData.dosisPorToma > 0) ? (formData.cantidadActual / formData.dosisPorToma).floor() : 0}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color:
+                                  (formData.cantidadActual < 5)
+                                      ? AppTheme.errorColor
+                                      : Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
- 
-          // Notas (solo si hay)
-          if (formData.notas.isNotEmpty) ...[
+
+          // Notas contenidas dentro de la tarjeta
+          if (formData.notas.trim().isNotEmpty) ...[
             _buildDivider(),
-            _buildSection(
-              title: l10n?.treatmentSummaryNotes ?? 'Notas',
-              child: Text(
-                '• ${formData.notas}',
-                style: TextStyle(fontSize: 16, color: AppTheme.primaryTextColor),
-              ),
-            ),
-          ] else ...[
-            _buildDivider(),
-            _buildSection(
-              title: l10n?.treatmentSummaryNotes ?? 'Notas',
-              child: Text(
-                l10n?.treatmentSummaryNoNotes ?? '• Ninguna',
-                style: TextStyle(fontSize: 16, color: AppTheme.secondaryTextColor),
-              ),
-            ),
+            _buildNotesSection(context, l10n),
           ],
         ],
       ),
     );
   }
- 
+
+  Widget _buildNotesSection(BuildContext context, AppLocalizations? l10n) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF4F8FE),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color:
+                      isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFDEEEFD),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.description_rounded,
+                  size: 18,
+                  color: Color(0xFF0C53E8),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                (l10n?.treatmentSummaryNotes ?? 'Notas').toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF8E9BAE),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text.rich(
+            TextSpan(
+              children: [
+                const TextSpan(
+                  text: '• ',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0C53E8),
+                  ),
+                ),
+                TextSpan(
+                  text: formData.notas.replaceFirst(RegExp(r'^[•\s]+'), ''),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.primaryTextColor,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSection({required String title, required Widget child}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          title,
-          style: TextStyle(
-            fontSize: 16,
-            color: AppTheme.secondaryTextColor,
-            fontWeight: FontWeight.w500,
+          title.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 12.5,
+            color: Color(0xFF8E9BAE),
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.2,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         child,
       ],
     );
   }
- 
+
   Widget _buildDivider() {
     return Column(
       children: [
-        const SizedBox(height: 24),
-        Divider(color: AppTheme.borderColor),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
+        Divider(color: AppTheme.borderColor.withValues(alpha: 0.5), height: 1),
+        const SizedBox(height: 16),
       ],
     );
   }
- 
+
+  String _formatScheduleTime(BuildContext context, TimeOfDay time) {
+    final now = DateTime.now();
+    final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    final localeStr = Localizations.localeOf(context).toString();
+    try {
+      return DateFormat('hh:mm a', localeStr).format(dt);
+    } catch (_) {
+      return AppUtils.formatDoseTimeOfDay(time);
+    }
+  }
+
   List<Widget> _generateScheduleTimes(BuildContext context) {
     final schedule = formData.generateDailySchedule();
     final l10n = AppLocalizations.of(context);
- 
+
     if (schedule.isEmpty) {
       return [
         Text(
@@ -317,18 +557,31 @@ class TreatmentSummaryCard extends StatelessWidget {
         ),
       ];
     }
- 
+
     return schedule
         .map(
           (time) => Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Text(
-              '• ${time.format(context)}',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: AppTheme.primaryTextColor,
-              ),
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  '• ',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0C53E8),
+                  ),
+                ),
+                Text(
+                  _formatScheduleTime(context, time),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryTextColor,
+                  ),
+                ),
+              ],
             ),
           ),
         )

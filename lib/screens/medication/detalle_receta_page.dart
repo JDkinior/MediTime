@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:meditime/core/utils.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/models/tratamiento.dart'; // <-- CAMBIO: Importar modelo
@@ -66,7 +67,8 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
 
   Future<void> _handleDoseAction(DoseStatus newStatus) async {
     if (_isProcessing) return;
-    final userId = FirebaseAuth.instance.currentUser?.uid ??
+    final userId =
+        FirebaseAuth.instance.currentUser?.uid ??
         await PreferenceService().getCurrentUserId();
     if (userId == null) return;
 
@@ -112,20 +114,32 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
           doseTime,
           snoozeMinutes,
         );
-        
+
         if (mounted) {
           final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n?.doseSnoozedSuccess(snoozeMinutes) ?? 'Dosis aplazada por $snoozeMinutes minutos')),
+            SnackBar(
+              content: Text(
+                l10n?.doseSnoozedSuccess(snoozeMinutes) ??
+                    'Dosis aplazada por $snoozeMinutes minutos',
+              ),
+            ),
           );
         }
       } else {
         // Reprogramar próxima dosis
-        final docRef = resolved?.docRef ??
-            firestoreService.getMedicamentoDocRef(userId, docId, effectiveProfile);
+        final docRef =
+            resolved?.docRef ??
+            firestoreService.getMedicamentoDocRef(
+              userId,
+              docId,
+              effectiveProfile,
+            );
         final docSnap = await docRef.get();
         if (docSnap.exists) {
-          final freshTratamiento = Tratamiento.fromFirestore(docSnap as dynamic);
+          final freshTratamiento = Tratamiento.fromFirestore(
+            docSnap as dynamic,
+          );
           await NotificationService.rescheduleNextPendingDose(
             freshTratamiento,
             userId,
@@ -145,7 +159,11 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
           _isProcessing = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n?.doseDetailUpdateError ?? 'Error al actualizar la dosis')),
+          SnackBar(
+            content: Text(
+              l10n?.doseDetailUpdateError ?? 'Error al actualizar la dosis',
+            ),
+          ),
         );
       }
     }
@@ -192,19 +210,28 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     final ahora = DateTime.now();
     final diferencia = proximaDosis.difference(ahora);
 
-    if (diferencia.isNegative) return l10n?.doseDetailTimeNow ?? 'Es momento de tomar la dosis';
+    if (diferencia.isNegative) {
+      return l10n?.doseDetailTimeNow ?? 'Es momento de tomar la dosis';
+    }
 
     // Si falta menos de un minuto, muestra los segundos
     if (diferencia.inMinutes < 1) {
-      return l10n?.doseDetailInSeconds(diferencia.inSeconds) ?? 'En ${diferencia.inSeconds} segundos';
+      return l10n?.doseDetailInSeconds(diferencia.inSeconds) ??
+          'En ${diferencia.inSeconds} segundos';
     }
 
     final dias = diferencia.inDays;
     final horas = diferencia.inHours % 24;
     final minutos = diferencia.inMinutes % 60;
 
-    if (dias > 0) return l10n?.doseDetailInDaysHours(dias, horas) ?? 'En $dias días y $horas horas';
-    if (horas > 0) return l10n?.doseDetailInHoursMinutes(horas, minutos) ?? 'En $horas horas y $minutos minutos';
+    if (dias > 0) {
+      return l10n?.doseDetailInDaysHours(dias, horas) ??
+          'En $dias días y $horas horas';
+    }
+    if (horas > 0) {
+      return l10n?.doseDetailInHoursMinutes(horas, minutos) ??
+          'En $horas horas y $minutos minutos';
+    }
     return l10n?.doseDetailInMinutes(minutos) ?? 'En $minutos minutos';
   }
 
@@ -213,45 +240,115 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     final DateTime selectedDoseTime = widget.horaDosis;
     final formData = _convertToFormData();
     final l10n = AppLocalizations.of(context);
+    final status = _getDoseStatus(selectedDoseTime);
+    final isNotificada = status == DoseStatus.notificada;
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
+      extendBody: isNotificada,
       appBar: ModernAppBar(
-        child: AppBar(title: Text(widget.tratamiento.nombreMedicamento)),
-      ),
-      body: ModernContentFade(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildSelectedDoseDisplay(selectedDoseTime, l10n),
-                const SizedBox(height: 32),
-                _buildNextDoseInfo(_nextUpcomingDose, selectedDoseTime, l10n),
-                const SizedBox(height: 32),
-                const Divider(),
-                const SizedBox(height: 32),
-                TreatmentSummaryCard(
-                  formData: formData,
-                  summaryInfo: _getSummaryInfo(formData, context),
+        child: AppBar(
+          centerTitle: true,
+          title: Text(
+            AppUtils.capitalize(widget.tratamiento.nombreMedicamento),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          ),
+          leading: Center(
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: Icon(
+                  Icons.chevron_left_rounded,
+                  size: 26,
+                  color: AppTheme.primaryTextColor,
                 ),
-              ],
+                onPressed: () => Navigator.of(context).maybePop(),
+              ),
             ),
           ),
         ),
       ),
+      body: Stack(
+        children: [
+          ModernContentFade(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 24.0,
+                right: 24.0,
+                top: 24.0,
+                bottom: isNotificada ? 116.0 : 24.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildSelectedDoseDisplay(selectedDoseTime, l10n),
+                  const SizedBox(height: 24),
+                  _buildNextDoseInfo(_nextUpcomingDose, selectedDoseTime, l10n),
+                  const SizedBox(height: 14),
+                  const Divider(height: 1),
+                  const SizedBox(height: 14),
+                  TreatmentSummaryCard(
+                    formData: formData,
+                    summaryInfo: _getSummaryInfo(formData, context),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isNotificada)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 160,
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        bgColor.withValues(alpha: 0.0),
+                        bgColor.withValues(alpha: 0.35),
+                        bgColor.withValues(alpha: 0.8),
+                        bgColor.withValues(alpha: 0.98),
+                      ],
+                      stops: const [0.0, 0.35, 0.7, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+      bottomNavigationBar: isNotificada ? _buildFloatingActionBar(l10n) : null,
     );
   }
 
   // --- El resto de los widgets de construcción ---
 
   DoseStatus _getDoseStatus(DateTime doseTime) {
-    if (_currentStatus != null && doseTime.difference(widget.horaDosis).inMinutes.abs() <= 5) {
+    if (_currentStatus != null &&
+        doseTime.difference(widget.horaDosis).inMinutes.abs() <= 5) {
       return _currentStatus!;
     }
 
     // 1. Coincidencia directa por clave ISO
-    final directStatus = widget.tratamiento.doseStatus[doseTime.toIso8601String()];
+    final directStatus =
+        widget.tratamiento.doseStatus[doseTime.toIso8601String()];
     if (directStatus != null) return directStatus;
 
     // 2. Coincidencia aproximada dentro de una tolerancia (30 min)
@@ -263,7 +360,9 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     }
 
     // 3. Revisar si está en dosis omitidas
-    if (widget.tratamiento.skippedDoses.any((d) => d.difference(doseTime).inMinutes.abs() <= 30)) {
+    if (widget.tratamiento.skippedDoses.any(
+      (d) => d.difference(doseTime).inMinutes.abs() <= 30,
+    )) {
       return DoseStatus.omitida;
     }
 
@@ -282,15 +381,19 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       case DoseStatus.omitida:
         return AppTheme.errorColor;
       case DoseStatus.notificada:
-        return const Color(0xFFFFB703);
+        return const Color(0xFFF59E0B);
       case DoseStatus.aplazada:
         return Colors.orange;
       case DoseStatus.pendiente:
-        return isPast ? const Color(0xFFFFB703) : AppTheme.primaryColor;
+        return isPast ? const Color(0xFFF59E0B) : AppTheme.primaryColor;
     }
   }
 
-  String _getDoseStatusText(DoseStatus status, bool isPast, AppLocalizations? l10n) {
+  String _getDoseStatusText(
+    DoseStatus status,
+    bool isPast,
+    AppLocalizations? l10n,
+  ) {
     switch (status) {
       case DoseStatus.tomada:
         return l10n?.doseStatusTaken ?? 'Tomada';
@@ -314,11 +417,11 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       case DoseStatus.omitida:
         return Icons.cancel_outlined;
       case DoseStatus.notificada:
-        return Icons.notifications_none;
+        return Icons.notifications;
       case DoseStatus.aplazada:
         return Icons.schedule;
       case DoseStatus.pendiente:
-        return isPast ? Icons.notifications_none : Icons.alarm;
+        return isPast ? Icons.notifications : Icons.alarm;
     }
   }
 
@@ -330,28 +433,61 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     final statusIcon = _getDoseStatusIcon(status, isPast);
     final localeStr = Localizations.localeOf(context).toString();
 
+    final timeFormatted = AppUtils.formatDoseTime(doseTime);
+    final timeParts = timeFormatted.split(' ');
+    final timeDigits = timeParts[0];
+    final timePeriod = timeParts.length > 1 ? timeParts[1] : '';
+
+    final doseLabel = l10n?.doseDetailDoseTime ?? 'Dose time';
+
     return Column(
       children: [
         Text(
-          l10n?.doseDetailDoseTime ?? 'Hora de esta toma',
+          doseLabel.toUpperCase(),
           style: TextStyle(
-            fontSize: 18,
-            color: AppTheme.secondaryTextColor,
-            fontWeight: FontWeight.w500,
+            fontSize: 13,
+            color: AppTheme.secondaryTextColor.withValues(alpha: 0.8),
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.2,
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          DateFormat('hh:mm a', localeStr).format(doseTime),
-          style: TextStyle(
-            fontSize: 52,
-            fontWeight: FontWeight.bold,
-            color: statusColor,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              timeDigits,
+              style: TextStyle(
+                fontSize: 54,
+                fontWeight: FontWeight.bold,
+                color: statusColor,
+                letterSpacing: -0.5,
+              ),
+            ),
+            if (timePeriod.isNotEmpty) ...[
+              const SizedBox(width: 6),
+              Text(
+                timePeriod,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: statusColor,
+                ),
+              ),
+            ],
+          ],
         ),
+        const SizedBox(height: 4),
         Text(
           DateFormat('EEEE, d MMMM', localeStr).format(doseTime),
-          style: TextStyle(fontSize: 18, color: AppTheme.secondaryTextColor),
+          style: TextStyle(
+            fontSize: 16,
+            color: AppTheme.secondaryTextColor,
+            fontWeight: FontWeight.w300,
+            letterSpacing: 0.2,
+          ),
         ),
         const SizedBox(height: 12),
         Container(
@@ -359,7 +495,6 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
           decoration: BoxDecoration(
             color: statusColor.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: statusColor.withValues(alpha: 0.3)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -377,119 +512,301 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
             ],
           ),
         ),
-        if (status == DoseStatus.notificada) ...[
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isProcessing ? null : () => _handleDoseAction(DoseStatus.tomada),
-                  icon: const Icon(Icons.check, size: 18),
-                  label: Text(l10n?.actionTake ?? 'Tomar'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.successColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _isProcessing ? null : () => _handleDoseAction(DoseStatus.aplazada),
-                  icon: const Icon(Icons.snooze, size: 18),
-                  label: Text(l10n?.actionSnooze ?? 'Aplazar'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.orange.shade700,
-                    side: BorderSide(color: Colors.orange.shade700),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextButton.icon(
-                  onPressed: _isProcessing ? null : () => _handleDoseAction(DoseStatus.omitida),
-                  icon: const Icon(Icons.close, size: 18),
-                  label: Text(l10n?.actionSkip ?? 'Omitir'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.errorColor,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ],
     );
   }
 
-  Widget _buildNextDoseInfo(DateTime? nextDose, DateTime selectedDose, AppLocalizations? l10n) {
+  Widget _buildFloatingActionBar(AppLocalizations? l10n) {
+    return SafeArea(
+      bottom: true,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 4),
+        child: Row(
+          children: [
+            // Left: Snooze / Aplazar
+            Expanded(
+              flex: 3,
+              child: _buildPillActionButton(
+                icon: Icons.access_alarm_rounded,
+                label: l10n?.actionSnooze ?? 'Aplazar',
+                color: const Color(0xFFF59E0B),
+                onTap:
+                    _isProcessing
+                        ? null
+                        : () => _handleDoseAction(DoseStatus.aplazada),
+              ),
+            ),
+            const SizedBox(width: 10),
+            // Center: Take / Tomar (Hero action)
+            Expanded(
+              flex: 4,
+              child: _buildPillActionButton(
+                icon: Icons.check_rounded,
+                label: l10n?.actionTake ?? 'Tomar',
+                color: const Color(0xFF10B981),
+                isHero: true,
+                onTap:
+                    _isProcessing
+                        ? null
+                        : () => _handleDoseAction(DoseStatus.tomada),
+              ),
+            ),
+            const SizedBox(width: 10),
+            // Right: Skip / Omitir
+            Expanded(
+              flex: 3,
+              child: _buildPillActionButton(
+                icon: Icons.close_rounded,
+                label: l10n?.actionSkip ?? 'Omitir',
+                color: const Color(0xFFEF4444),
+                onTap:
+                    _isProcessing
+                        ? null
+                        : () => _handleDoseAction(DoseStatus.omitida),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPillActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback? onTap,
+    bool isHero = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(30),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: isHero ? 56 : 50,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(30),
+            boxShadow:
+                isHero
+                    ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.38),
+                        blurRadius: 12,
+                        offset: const Offset(0, 5),
+                      ),
+                    ]
+                    : [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+          ),
+          child: Center(
+            child:
+                _isProcessing
+                    ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                    : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, color: Colors.white, size: isHero ? 20 : 18),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: isHero ? 15 : 13.5,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNextDoseInfo(
+    DateTime? nextDose,
+    DateTime selectedDose,
+    AppLocalizations? l10n,
+  ) {
     if (nextDose == null) {
-      return _buildInfoCard(
-        icon: Icons.check_circle,
+      return _buildStatusBannerCard(
+        icon: Icons.check_circle_rounded,
         color: AppTheme.successColor,
-        title: l10n?.doseDetailTreatmentFinished ?? 'Tratamiento Finalizado',
-        subtitle: l10n?.doseDetailNoMoreDoses ?? 'No hay más dosis programadas.',
+        title:
+            (l10n?.doseDetailTreatmentFinished ?? 'Tratamiento Finalizado')
+                .toUpperCase(),
+        subtitle:
+            l10n?.doseDetailNoMoreDoses ?? 'No hay más dosis programadas.',
       );
     }
 
     if (nextDose.isAtSameMomentAs(selectedDose)) {
-      return _buildInfoCard(
-        icon: Icons.notifications_active,
+      return _buildStatusBannerCard(
+        icon: Icons.notifications_active_rounded,
         color: AppTheme.primaryColor,
-        title: l10n?.doseDetailNextDosePrompt ?? 'Esta es la próxima dosis',
+        title:
+            (l10n?.doseDetailNextDosePrompt ?? 'Esta es la próxima dosis')
+                .toUpperCase(),
         subtitle: _getTiempoRestante(nextDose, l10n),
       );
     }
 
+    return _buildNextAlarmCard(nextDose: nextDose, l10n: l10n);
+  }
+
+  Widget _buildNextAlarmCard({
+    required DateTime nextDose,
+    required AppLocalizations? l10n,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final localeStr = Localizations.localeOf(context).toString();
-    return _buildInfoCard(
-      icon: Icons.update,
-      color: Colors.orange.shade700,
-      title: l10n?.doseDetailNextAlarm ?? 'Próxima Alarma:',
-      subtitle:
-          '${DateFormat('hh:mm a, d MMM', localeStr).format(nextDose)}\n${_getTiempoRestante(nextDose, l10n)}',
+    final title =
+        (l10n?.doseDetailNextAlarm ?? 'Próxima Alarma')
+            .replaceAll(':', '')
+            .trim()
+            .toUpperCase();
+    final timeStr = DateFormat('hh:mm a, d MMM', localeStr).format(nextDose);
+    final remainingStr = _getTiempoRestante(nextDose, l10n);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder:
+                  (_) => DetalleRecetaPage(
+                    tratamiento: widget.tratamiento,
+                    horaDosis: nextDose,
+                    profile: widget.profile,
+                  ),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF261D16) : const Color(0xFFFCF4ED),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              // Clock Icon without circle
+              const Icon(
+                Icons.access_time_rounded,
+                color: Color(0xFFFE8A23),
+                size: 32,
+              ),
+              const SizedBox(width: 14),
+              // Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFFE8A23),
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      timeStr,
+                      style: TextStyle(
+                        fontSize: 17.5,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryTextColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      remainingStr,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFF6D7A90),
+                size: 24,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildInfoCard({
+  Widget _buildStatusBannerCard({
     required IconData icon,
     required Color color,
     required String title,
     required String subtitle,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(15),
+        color: color.withValues(alpha: isDark ? 0.15 : 0.08),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 40),
-          const SizedBox(width: 16),
+          Icon(icon, color: color, size: 32),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
                     color: color,
+                    letterSpacing: 1.2,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                     color: AppTheme.primaryTextColor,
-                    height: 1.4,
                   ),
                 ),
               ],
@@ -539,9 +856,12 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     );
   }
 
-  Map<String, String> _getSummaryInfo(TreatmentFormData formData, BuildContext context) {
+  Map<String, String> _getSummaryInfo(
+    TreatmentFormData formData,
+    BuildContext context,
+  ) {
     final localeStr = Localizations.localeOf(context).toString();
-    final DateFormat formatter = DateFormat.yMMMMd(localeStr);
+    final DateFormat formatter = DateFormat.yMMMd(localeStr);
     final fechaFin = widget.tratamiento.fechaFinTratamiento;
 
     return {

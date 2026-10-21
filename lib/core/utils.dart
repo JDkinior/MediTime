@@ -1,6 +1,7 @@
 // lib/core/utils.dart
 import 'package:flutter/material.dart';
 import 'package:meditime/core/constants.dart';
+import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/services/tratamiento_service.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
@@ -9,7 +10,7 @@ import 'package:meditime/l10n/generated/app_localizations.dart';
 typedef TreatmentDateUtils = TratamientoService;
 
 /// Utility class containing common helper functions used throughout the application.
-/// 
+///
 /// This class provides static methods for common operations like time formatting,
 /// validation, and UI helpers to avoid code duplication.
 class AppUtils {
@@ -35,6 +36,49 @@ class AppUtils {
     return TimeOfDay(hour: hour, minute: minute);
   }
 
+  /// Formats a DateTime into a standardized 12-hour dose time string (e.g. '05:47 a.m.').
+  ///
+  /// Guarantees a consistent standard ('hh:mm a.m.' / 'hh:mm p.m.') across all
+  /// locales, preventing localized differences like extra spaces (e.g. 'a. m.').
+  static String formatDoseTime(DateTime time) {
+    final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
+    final hourStr = hour.toString().padLeft(2, '0');
+    final minuteStr = time.minute.toString().padLeft(2, '0');
+    final period = time.hour < 12 ? 'a.m.' : 'p.m.';
+    return '$hourStr:$minuteStr $period';
+  }
+
+  /// Formats a TimeOfDay into a standardized 12-hour dose time string (e.g. '05:47 a.m.').
+  static String formatDoseTimeOfDay(TimeOfDay time) {
+    final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
+    final hourStr = hour.toString().padLeft(2, '0');
+    final minuteStr = time.minute.toString().padLeft(2, '0');
+    final period = time.hour < 12 ? 'a.m.' : 'p.m.';
+    return '$hourStr:$minuteStr $period';
+  }
+
+  /// Returns the indicator color for a dose time based on its status.
+  ///
+  /// - tomada: green (AppTheme.successColor)
+  /// - omitida: red (AppTheme.errorColor)
+  /// - notificada / pendiente pasada: yellow (Colors.amber)
+  /// - aplazada: orange (Colors.orange)
+  /// - pendiente futura: AppTheme.primaryColor
+  static Color getDoseStatusColor(DoseStatus status, {bool isPast = false}) {
+    switch (status) {
+      case DoseStatus.tomada:
+        return AppTheme.successColor;
+      case DoseStatus.omitida:
+        return AppTheme.errorColor;
+      case DoseStatus.aplazada:
+        return Colors.orange;
+      case DoseStatus.notificada:
+        return Colors.amber;
+      case DoseStatus.pendiente:
+        return isPast ? Colors.amber : AppTheme.primaryColor;
+    }
+  }
+
   /// Formats a Duration to a human-readable string
   static String formatDuration(Duration duration) {
     if (duration.inDays > 0) {
@@ -49,9 +93,11 @@ class AppUtils {
   /// Gets the appropriate greeting based on current time
   static String getTimeBasedGreeting() {
     final hour = DateTime.now().hour;
-    if (hour >= AppConstants.morningStartHour && hour < AppConstants.afternoonStartHour) {
+    if (hour >= AppConstants.morningStartHour &&
+        hour < AppConstants.afternoonStartHour) {
       return AppConstants.morningGreeting;
-    } else if (hour >= AppConstants.afternoonStartHour && hour < AppConstants.eveningStartHour) {
+    } else if (hour >= AppConstants.afternoonStartHour &&
+        hour < AppConstants.eveningStartHour) {
       return AppConstants.afternoonGreeting;
     } else {
       return AppConstants.eveningGreeting;
@@ -62,9 +108,11 @@ class AppUtils {
   static String getLocalizedGreeting(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final hour = DateTime.now().hour;
-    if (hour >= AppConstants.morningStartHour && hour < AppConstants.afternoonStartHour) {
+    if (hour >= AppConstants.morningStartHour &&
+        hour < AppConstants.afternoonStartHour) {
       return l10n?.homeGreetingMorning ?? AppConstants.morningGreeting;
-    } else if (hour >= AppConstants.afternoonStartHour && hour < AppConstants.eveningStartHour) {
+    } else if (hour >= AppConstants.afternoonStartHour &&
+        hour < AppConstants.eveningStartHour) {
       return l10n?.homeGreetingAfternoon ?? AppConstants.afternoonGreeting;
     } else {
       return l10n?.homeGreetingEvening ?? AppConstants.eveningGreeting;
@@ -72,7 +120,10 @@ class AppUtils {
   }
 
   /// Localizes a medication presentation (e.g. Sobres -> Sachets)
-  static String localizePresentation(BuildContext context, String presentation) {
+  static String localizePresentation(
+    BuildContext context,
+    String presentation,
+  ) {
     final l10n = AppLocalizations.of(context);
     if (l10n == null) return presentation;
     switch (presentation.toLowerCase().trim()) {
@@ -103,7 +154,7 @@ class AppUtils {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final dateToCheck = DateTime(date.year, date.month, date.day);
-    
+
     if (dateToCheck == today) {
       return 'Hoy';
     } else if (dateToCheck == today.subtract(const Duration(days: 1))) {
@@ -131,9 +182,9 @@ class AppUtils {
 
   /// Validates a name
   static bool isValidName(String name) {
-    return name.isNotEmpty && 
-           name.length <= AppConstants.maxNameLength &&
-           RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$').hasMatch(name);
+    return name.isNotEmpty &&
+        name.length <= AppConstants.maxNameLength &&
+        RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$').hasMatch(name);
   }
 
   /// Validates a phone number (basic validation)
@@ -146,9 +197,13 @@ class AppUtils {
   // -------------------
 
   /// Shows a snackbar with the given message
-  static void showSnackBar(BuildContext context, String message, {bool isError = false}) {
+  static void showSnackBar(
+    BuildContext context,
+    String message, {
+    bool isError = false,
+  }) {
     if (!context.mounted) return;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -165,22 +220,23 @@ class AppUtils {
   /// Shows a loading dialog
   static void showLoadingDialog(BuildContext context, {String? message}) {
     if (!context.mounted) return;
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            if (message != null) ...[
-              const SizedBox(height: AppConstants.defaultPadding),
-              Text(message),
-            ],
-          ],
-        ),
-      ),
+      builder:
+          (context) => AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                if (message != null) ...[
+                  const SizedBox(height: AppConstants.defaultPadding),
+                  Text(message),
+                ],
+              ],
+            ),
+          ),
     );
   }
 
@@ -200,25 +256,26 @@ class AppUtils {
     String cancelText = 'Cancelar',
   }) async {
     if (!context.mounted) return false;
-    
+
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(cancelText),
+      builder:
+          (context) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(cancelText),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(confirmText),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(confirmText),
-          ),
-        ],
-      ),
     );
-    
+
     return result ?? false;
   }
 
