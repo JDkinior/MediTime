@@ -29,6 +29,7 @@ import 'package:meditime/core/subscription_guard.dart';
 import 'package:meditime/services/gemini_service.dart';
 import 'package:meditime/notifiers/subscription_notifier.dart';
 import 'package:meditime/widgets/modern_content_fade.dart';
+import 'package:meditime/widgets/pill_icon.dart';
 
 class RecetaPage extends StatefulWidget {
   final GlobalKey? fabKey;
@@ -1631,65 +1632,117 @@ class _RecetaPageState extends State<RecetaPage>
                       profile: activeProfile,
                     ),
                 closedBuilder: (context, openContainer) {
+                  final localizedPres = AppUtils.localizePresentation(
+                    context,
+                    tratamiento.presentacion,
+                  );
+                  final localizedFreq =
+                      tratamiento.intervaloDosis.inHours == 1
+                          ? (l10n?.everyHourSingle ?? 'Cada hora')
+                          : (l10n?.everyHours(
+                                tratamiento.intervaloDosis.inHours,
+                              ) ??
+                              'Cada ${tratamiento.intervaloDosis.inHours} horas');
+
                   return InkWell(
                     onTap: openContainer,
                     borderRadius: BorderRadius.circular(20),
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
+                          // Left Column: Time & Frequency
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                timeStr,
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primaryColor,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.access_time_rounded,
+                                    size: 13,
+                                    color: AppTheme.secondaryTextColor,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    localizedFreq,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.secondaryTextColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+
+                          // Subtle Vertical Divider
+                          Container(
+                            height: 32,
+                            width: 1,
+                            margin: const EdgeInsets.symmetric(horizontal: 14),
+                            color: AppTheme.secondaryTextColor.withValues(
+                              alpha: 0.18,
+                            ),
+                          ),
+
+                          // Right Column: Medication Name & Presentation
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  timeStr,
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.primaryColor,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
                                   tratamiento.nombreMedicamento,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                     color: AppTheme.primaryTextColor,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                Builder(
-                                  builder: (context) {
-                                    final localizedPres =
-                                        AppUtils.localizePresentation(
-                                          context,
-                                          tratamiento.presentacion,
-                                        );
-                                    final localizedFreq =
-                                        tratamiento.intervaloDosis.inHours == 1
-                                            ? (l10n?.everyHourSingle ??
-                                                'Cada hora')
-                                            : (l10n?.everyHours(
-                                                  tratamiento
-                                                      .intervaloDosis
-                                                      .inHours,
-                                                ) ??
-                                                'Cada ${tratamiento.intervaloDosis.inHours} horas');
-                                    return Text(
-                                      '$localizedPres · $localizedFreq',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: AppTheme.secondaryTextColor,
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    PillIcon(
+                                      size: 13,
+                                      color: AppTheme.secondaryTextColor,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        localizedPres,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppTheme.secondaryTextColor,
+                                        ),
                                       ),
-                                    );
-                                  },
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 8),
+
+                          // Three-dot Options Menu
                           GestureDetector(
                             onTap:
                                 () => _showDoseOptionsDialog(
@@ -1699,8 +1752,8 @@ class _RecetaPageState extends State<RecetaPage>
                                   status,
                                 ),
                             behavior: HitTestBehavior.opaque,
-                            child: Container(
-                              padding: const EdgeInsets.all(8.0),
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 6.0),
                               child: Icon(
                                 Icons.more_vert,
                                 color: AppTheme.secondaryTextColor,
