@@ -306,6 +306,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
                   TreatmentSummaryCard(
                     formData: formData,
                     summaryInfo: _getSummaryInfo(formData, context),
+                    status: status,
                   ),
                 ],
               ),

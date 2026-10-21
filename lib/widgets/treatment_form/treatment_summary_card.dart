@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:meditime/models/treatment_form_data.dart';
+import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/core/utils.dart';
 import 'package:meditime/widgets/pill_icon.dart';
@@ -15,11 +16,13 @@ import 'package:meditime/widgets/pill_icon.dart';
 class TreatmentSummaryCard extends StatelessWidget {
   final TreatmentFormData formData;
   final Map<String, String> summaryInfo;
+  final DoseStatus? status;
 
   const TreatmentSummaryCard({
     super.key,
     required this.formData,
     required this.summaryInfo,
+    this.status,
   });
 
   @override
@@ -54,6 +57,9 @@ class TreatmentSummaryCard extends StatelessWidget {
     );
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accentColor = _getAccentColor(status);
+    final lightAccentColor = _getLightAccentColor(status, isDark);
+    final notesBgColor = _getNotesBgColor(status, isDark);
 
     return Container(
       width: double.infinity,
@@ -79,17 +85,14 @@ class TreatmentSummaryCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color:
-                      isDark
-                          ? const Color(0xFF1E293B)
-                          : const Color(0xFFDEEEFD),
+                  color: lightAccentColor,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 alignment: Alignment.center,
                 child: MedicationPresentationIcon(
                   presentation: formData.presentacion,
                   size: 22,
-                  color: const Color(0xFF0C53E8),
+                  color: accentColor,
                 ),
               ),
               const SizedBox(width: 14),
@@ -159,25 +162,22 @@ class TreatmentSummaryCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color:
-                            isDark
-                                ? const Color(0xFF1E293B)
-                                : const Color(0xFFE0F0FD),
+                        color: lightAccentColor,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             Icons.picture_as_pdf_rounded,
                             size: 14,
-                            color: Color(0xFF0C53E8),
+                            color: accentColor,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
                             'PDF',
                             style: TextStyle(
-                              color: Color(0xFF0C53E8),
+                              color: accentColor,
                               fontSize: 11.5,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 0.5,
@@ -205,7 +205,7 @@ class TreatmentSummaryCard extends StatelessWidget {
                     title: l10n?.treatmentSummarySchedules ?? 'Horarios',
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: _generateScheduleTimes(context),
+                      children: _generateScheduleTimes(context, accentColor),
                     ),
                   ),
                 ),
@@ -249,10 +249,10 @@ class TreatmentSummaryCard extends StatelessWidget {
                               formData.intervaloDosis,
                             ) ??
                             'Cada ${formData.intervaloDosis} horas',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF0C53E8),
+                          color: accentColor,
                         ),
                       ),
                     ],
@@ -412,21 +412,33 @@ class TreatmentSummaryCard extends StatelessWidget {
           // Notas contenidas dentro de la tarjeta
           if (formData.notas.trim().isNotEmpty) ...[
             _buildDivider(),
-            _buildNotesSection(context, l10n),
+            _buildNotesSection(
+              context,
+              l10n,
+              accentColor,
+              lightAccentColor,
+              notesBgColor,
+            ),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildNotesSection(BuildContext context, AppLocalizations? l10n) {
+  Widget _buildNotesSection(
+    BuildContext context,
+    AppLocalizations? l10n,
+    Color accentColor,
+    Color lightAccentColor,
+    Color notesBgColor,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF4F8FE),
+        color: notesBgColor,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -438,17 +450,14 @@ class TreatmentSummaryCard extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color:
-                      isDark
-                          ? const Color(0xFF334155)
-                          : const Color(0xFFDEEEFD),
+                  color: isDark ? const Color(0xFF334155) : lightAccentColor,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
-                child: const Icon(
+                child: Icon(
                   Icons.description_rounded,
                   size: 18,
-                  color: Color(0xFF0C53E8),
+                  color: accentColor,
                 ),
               ),
               const SizedBox(width: 10),
@@ -467,12 +476,12 @@ class TreatmentSummaryCard extends StatelessWidget {
           Text.rich(
             TextSpan(
               children: [
-                const TextSpan(
+                TextSpan(
                   text: '• ',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0C53E8),
+                    color: accentColor,
                   ),
                 ),
                 TextSpan(
@@ -531,7 +540,57 @@ class TreatmentSummaryCard extends StatelessWidget {
     }
   }
 
-  List<Widget> _generateScheduleTimes(BuildContext context) {
+  Color _getAccentColor(DoseStatus? status) {
+    switch (status) {
+      case DoseStatus.tomada:
+        return const Color(0xFF10B981);
+      case DoseStatus.omitida:
+        return const Color(0xFFEF4444);
+      case DoseStatus.notificada:
+        return const Color(0xFFF59E0B);
+      case DoseStatus.aplazada:
+        return const Color(0xFFF97316);
+      case DoseStatus.pendiente:
+      case null:
+        return const Color(0xFF0C53E8);
+    }
+  }
+
+  Color _getLightAccentColor(DoseStatus? status, bool isDark) {
+    if (isDark) return const Color(0xFF1E293B);
+    switch (status) {
+      case DoseStatus.tomada:
+        return const Color(0xFFDCFCE7);
+      case DoseStatus.omitida:
+        return const Color(0xFFFEE2E2);
+      case DoseStatus.notificada:
+        return const Color(0xFFFEF3C7);
+      case DoseStatus.aplazada:
+        return const Color(0xFFFFEDD5);
+      case DoseStatus.pendiente:
+      case null:
+        return const Color(0xFFDEEEFD);
+    }
+  }
+
+  Color _getNotesBgColor(DoseStatus? status, bool isDark) {
+    if (isDark) return const Color(0xFF1E293B);
+    switch (status) {
+      case DoseStatus.tomada:
+        return const Color(0xFFF0FDF4);
+      case DoseStatus.omitida:
+        return const Color(0xFFFEF2F2);
+      case DoseStatus.notificada:
+        return const Color(0xFFFFFBEB);
+      case DoseStatus.aplazada:
+        return const Color(0xFFFFF7ED);
+      case DoseStatus.pendiente:
+      case null:
+        return const Color(0xFFF4F8FE);
+    }
+  }
+
+  List<Widget> _generateScheduleTimes(BuildContext context, Color accentColor) {
     final schedule = formData.generateDailySchedule();
     final l10n = AppLocalizations.of(context);
 
@@ -551,12 +610,12 @@ class TreatmentSummaryCard extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   '• ',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF0C53E8),
+                    color: accentColor,
                   ),
                 ),
                 Text(
