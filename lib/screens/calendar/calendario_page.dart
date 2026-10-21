@@ -1704,8 +1704,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                         borderRadius: BorderRadius.circular(20),
                         child: Padding(
                           padding: const EdgeInsets.only(
-                            left: 12,
-                            right: 10,
+                            left: 16,
+                            right: 14,
                             top: 22,
                             bottom: 22,
                           ),
@@ -1725,7 +1725,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                       Text(
                                         timeStr,
                                         style: TextStyle(
-                                          fontSize: 17,
+                                          fontSize: 20,
                                           fontWeight: FontWeight.bold,
                                           color: AppTheme.primaryColor,
                                         ),
@@ -1823,8 +1823,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                     behavior: HitTestBehavior.opaque,
                                     child: Padding(
                                       padding: const EdgeInsets.only(
-                                        left: 4.0,
-                                        right: 2.0,
+                                        left: 6.0,
+                                        right: 4.0,
                                       ),
                                       child: Icon(
                                         Icons.more_vert,
