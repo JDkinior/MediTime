@@ -115,80 +115,111 @@ void main() {
       expect(changedFormat, CalendarFormat.week);
     });
 
-    testWidgets('dragging down gradually from week: expands only to twoWeeks, does not jump to month in one drag', (tester) async {
-      int changeCount = 0;
+    testWidgets('moderate drag down expands from week to twoWeeks (quincenal)', (tester) async {
       CalendarFormat? lastFormat;
 
       await tester.pumpWidget(
         buildTestWidget(
           calendarFormat: CalendarFormat.week,
-          onFormatChanged: (f) {
-            changeCount++;
-            lastFormat = f;
-          },
+          onFormatChanged: (f) => lastFormat = f,
         ),
       );
 
-      // Long drag down (100 pixels) should only advance one level (to twoWeeks), preventing jumping ahead to month
-      await tester.drag(find.byType(CalendarExpandHandle), const Offset(0, 100));
-      await tester.pumpAndSettle();
-
-      expect(lastFormat, CalendarFormat.twoWeeks);
-      expect(changeCount, 1);
-    });
-
-    testWidgets('dragging down gradually: twoWeeks -> month (mensual)', (tester) async {
-      CalendarFormat? changedFormat;
-
-      await tester.pumpWidget(
-        buildTestWidget(
-          calendarFormat: CalendarFormat.twoWeeks,
-          onFormatChanged: (f) => changedFormat = f,
-        ),
-      );
-
+      // Moderate drag down (50 pixels) reaches twoWeeks
       await tester.drag(find.byType(CalendarExpandHandle), const Offset(0, 50));
       await tester.pumpAndSettle();
 
-      expect(changedFormat, CalendarFormat.month);
+      expect(lastFormat, CalendarFormat.twoWeeks);
     });
 
-    testWidgets('dragging up gradually from month: collapses only to twoWeeks, does not jump to week in one drag', (tester) async {
-      int changeCount = 0;
+    testWidgets('continuous long drag down expands from week all the way to month', (tester) async {
+      final List<CalendarFormat> formatTransitions = [];
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          calendarFormat: CalendarFormat.week,
+          onFormatChanged: (f) => formatTransitions.add(f),
+        ),
+      );
+
+      // Continuous long drag down (100 pixels) without lifting finger
+      await tester.drag(find.byType(CalendarExpandHandle), const Offset(0, 100));
+      await tester.pumpAndSettle();
+
+      // Should have transitioned continuously through twoWeeks and reached month
+      expect(formatTransitions, contains(CalendarFormat.twoWeeks));
+      expect(formatTransitions.last, CalendarFormat.month);
+    });
+
+    testWidgets('moderate drag up collapses from month to twoWeeks (quincenal)', (tester) async {
       CalendarFormat? lastFormat;
 
       await tester.pumpWidget(
         buildTestWidget(
           calendarFormat: CalendarFormat.month,
-          onFormatChanged: (f) {
-            changeCount++;
-            lastFormat = f;
-          },
+          onFormatChanged: (f) => lastFormat = f,
         ),
       );
 
-      // Long drag up (100 pixels) should only collapse one level (to twoWeeks), preventing leaping ahead to week
-      await tester.drag(find.byType(CalendarExpandHandle), const Offset(0, -100));
-      await tester.pumpAndSettle();
-
-      expect(lastFormat, CalendarFormat.twoWeeks);
-      expect(changeCount, 1);
-    });
-
-    testWidgets('dragging up gradually: twoWeeks -> week (semanal)', (tester) async {
-      CalendarFormat? changedFormat;
-
-      await tester.pumpWidget(
-        buildTestWidget(
-          calendarFormat: CalendarFormat.twoWeeks,
-          onFormatChanged: (f) => changedFormat = f,
-        ),
-      );
-
+      // Moderate drag up (-50 pixels) reaches twoWeeks
       await tester.drag(find.byType(CalendarExpandHandle), const Offset(0, -50));
       await tester.pumpAndSettle();
 
-      expect(changedFormat, CalendarFormat.week);
+      expect(lastFormat, CalendarFormat.twoWeeks);
+    });
+
+    testWidgets('continuous long drag up collapses from month all the way to week', (tester) async {
+      final List<CalendarFormat> formatTransitions = [];
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          calendarFormat: CalendarFormat.month,
+          onFormatChanged: (f) => formatTransitions.add(f),
+        ),
+      );
+
+      // Continuous long drag up (-100 pixels) without lifting finger
+      await tester.drag(find.byType(CalendarExpandHandle), const Offset(0, -100));
+      await tester.pumpAndSettle();
+
+      // Should have transitioned continuously through twoWeeks and reached week
+      expect(formatTransitions, contains(CalendarFormat.twoWeeks));
+      expect(formatTransitions.last, CalendarFormat.week);
+    });
+
+    testWidgets('continuous drag down and reverse up tracks smoothly', (tester) async {
+      final List<CalendarFormat> formatTransitions = [];
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          calendarFormat: CalendarFormat.week,
+          onFormatChanged: (f) => formatTransitions.add(f),
+        ),
+      );
+
+      final center = tester.getCenter(find.byType(CalendarExpandHandle));
+      final gesture = await tester.startGesture(center);
+      await tester.pump();
+
+      // Break slop and move down into month (total dy = 82px)
+      await gesture.moveBy(const Offset(0, 25));
+      await gesture.moveBy(const Offset(0, 75));
+      await tester.pump();
+      expect(formatTransitions, contains(CalendarFormat.twoWeeks));
+      expect(formatTransitions.last, CalendarFormat.month);
+
+      // Now reverse without lifting finger, back up into twoWeeks zone (dy drops to ~45px)
+      await gesture.moveBy(const Offset(0, -35));
+      await tester.pump();
+      expect(formatTransitions.last, CalendarFormat.twoWeeks);
+
+      // Continue moving up into week zone (dy drops to ~10px)
+      await gesture.moveBy(const Offset(0, -35));
+      await tester.pump();
+      expect(formatTransitions.last, CalendarFormat.week);
+
+      await gesture.up();
+      await tester.pumpAndSettle();
     });
 
     testWidgets('flick down/up triggers single step according to velocity', (tester) async {
@@ -202,7 +233,7 @@ void main() {
       );
 
       // Rapid flick down
-      await tester.fling(find.byType(CalendarExpandHandle), const Offset(0, 50), 1000);
+      await tester.fling(find.byType(CalendarExpandHandle), const Offset(0, 60), 1000);
       await tester.pumpAndSettle();
 
       expect(changedFormat, CalendarFormat.twoWeeks);
@@ -215,7 +246,7 @@ void main() {
         ),
       );
 
-      await tester.fling(find.byType(CalendarExpandHandle), const Offset(0, -50), 1000);
+      await tester.fling(find.byType(CalendarExpandHandle), const Offset(0, -60), 1000);
       await tester.pumpAndSettle();
 
       expect(changedFormat, CalendarFormat.twoWeeks);

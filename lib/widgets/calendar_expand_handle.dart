@@ -6,8 +6,8 @@ import 'package:meditime/theme/app_theme.dart';
 
 /// Barra indicadora táctil y visual colocada en la base del contenedor blanco
 /// del calendario para mostrar y permitir expandir (semanal -> quincenal -> mensual)
-/// o contraer (mensual -> quincenal -> semanal) de forma gradual y suave,
-/// siguiendo el dedo y avanzando un nivel controlado por deslizamiento.
+/// o contraer (mensual -> quincenal -> semanal) de forma continua y suave
+/// acompañando el recorrido físico del dedo en un solo arrastre.
 class CalendarExpandHandle extends StatefulWidget {
   final CalendarFormat calendarFormat;
   final ValueChanged<CalendarFormat> onFormatChanged;
@@ -29,12 +29,80 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
     CalendarFormat.month,
   ];
 
-  static const double _dragThreshold = 25.0;
-
-  double _dragAccumulator = 0.0;
+  late CalendarFormat _dragStartFormat;
+  late CalendarFormat _currentFormatDuringDrag;
+  double _totalDragY = 0.0;
   double _visualOffset = 0.0;
-  int? _lastTriggeredDirection; // 1 = down, -1 = up, null = none
   bool _isDragging = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentFormatDuringDrag = widget.calendarFormat;
+    _dragStartFormat = widget.calendarFormat;
+  }
+
+  @override
+  void didUpdateWidget(covariant CalendarExpandHandle oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_isDragging) {
+      _currentFormatDuringDrag = widget.calendarFormat;
+      _dragStartFormat = widget.calendarFormat;
+    }
+  }
+
+  /// Determina el formato objetivo paso a paso en base al desplazamiento total [dy]
+  /// desde el inicio del arrastre y el formato actualmente alcanzado.
+  /// Garantiza que nunca se salten formatos intermedios (progreso continuo adyacente).
+  CalendarFormat _computeTargetFormat({
+    required CalendarFormat startFormat,
+    required CalendarFormat currentFormat,
+    required double dy,
+  }) {
+    switch (startFormat) {
+      case CalendarFormat.week:
+        if (currentFormat == CalendarFormat.month) {
+          if (dy < 56.0) return CalendarFormat.twoWeeks;
+          return CalendarFormat.month;
+        } else if (currentFormat == CalendarFormat.twoWeeks) {
+          if (dy >= 72.0) return CalendarFormat.month;
+          if (dy < 20.0) return CalendarFormat.week;
+          return CalendarFormat.twoWeeks;
+        } else {
+          // currentFormat == CalendarFormat.week
+          if (dy >= 36.0) return CalendarFormat.twoWeeks;
+          return CalendarFormat.week;
+        }
+
+      case CalendarFormat.twoWeeks:
+        if (currentFormat == CalendarFormat.month) {
+          if (dy < 20.0) return CalendarFormat.twoWeeks;
+          return CalendarFormat.month;
+        } else if (currentFormat == CalendarFormat.week) {
+          if (dy > -20.0) return CalendarFormat.twoWeeks;
+          return CalendarFormat.week;
+        } else {
+          // currentFormat == CalendarFormat.twoWeeks
+          if (dy >= 36.0) return CalendarFormat.month;
+          if (dy <= -36.0) return CalendarFormat.week;
+          return CalendarFormat.twoWeeks;
+        }
+
+      case CalendarFormat.month:
+        if (currentFormat == CalendarFormat.week) {
+          if (dy > -56.0) return CalendarFormat.twoWeeks;
+          return CalendarFormat.week;
+        } else if (currentFormat == CalendarFormat.twoWeeks) {
+          if (dy <= -72.0) return CalendarFormat.week;
+          if (dy > -20.0) return CalendarFormat.month;
+          return CalendarFormat.twoWeeks;
+        } else {
+          // currentFormat == CalendarFormat.month
+          if (dy <= -36.0) return CalendarFormat.twoWeeks;
+          return CalendarFormat.month;
+        }
+    }
+  }
 
   void _stepExpand() {
     final currentIndex = _formatOrder.indexOf(widget.calendarFormat).clamp(0, _formatOrder.length - 1);
@@ -54,9 +122,10 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
     if (mounted) {
       setState(() {
         _isDragging = false;
-        _dragAccumulator = 0.0;
+        _totalDragY = 0.0;
         _visualOffset = 0.0;
-        _lastTriggeredDirection = null;
+        _dragStartFormat = widget.calendarFormat;
+        _currentFormatDuringDrag = widget.calendarFormat;
       });
     }
   }
@@ -100,9 +169,10 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
           onVerticalDragDown: (_) {
             setState(() {
               _isDragging = true;
-              _dragAccumulator = 0.0;
+              _totalDragY = 0.0;
               _visualOffset = 0.0;
-              _lastTriggeredDirection = null;
+              _dragStartFormat = widget.calendarFormat;
+              _currentFormatDuringDrag = widget.calendarFormat;
             });
           },
           onVerticalDragStart: (_) {
@@ -111,23 +181,19 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
             });
           },
           onVerticalDragUpdate: (details) {
-            _dragAccumulator += details.delta.dy;
-            _visualOffset = (_dragAccumulator * 0.35).clamp(-8.0, 8.0);
+            _totalDragY += details.delta.dy;
+            _visualOffset = (_totalDragY * 0.2).clamp(-8.0, 8.0);
 
-            if (_dragAccumulator >= _dragThreshold) {
-              // Solo disparar si no se ha disparado ya en dirección hacia abajo en este gesto
-              if (_lastTriggeredDirection != 1) {
-                _lastTriggeredDirection = 1;
-                _stepExpand();
-                _dragAccumulator = 0.0;
-              }
-            } else if (_dragAccumulator <= -_dragThreshold) {
-              // Solo disparar si no se ha disparado ya en dirección hacia arriba en este gesto
-              if (_lastTriggeredDirection != -1) {
-                _lastTriggeredDirection = -1;
-                _stepCollapse();
-                _dragAccumulator = 0.0;
-              }
+            // Resuelve transiciones secuenciales hacia el formato objetivo según dy
+            while (true) {
+              final nextFormat = _computeTargetFormat(
+                startFormat: _dragStartFormat,
+                currentFormat: _currentFormatDuringDrag,
+                dy: _totalDragY,
+              );
+              if (nextFormat == _currentFormatDuringDrag) break;
+              _currentFormatDuringDrag = nextFormat;
+              widget.onFormatChanged(nextFormat);
             }
 
             if (mounted) {
@@ -136,10 +202,11 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
           },
           onVerticalDragEnd: (details) {
             final velocity = details.primaryVelocity ?? 0.0;
-            if (_lastTriggeredDirection == null) {
-              if (velocity > 180 || _dragAccumulator >= 12.0) {
+            // Si el arrastre no cambió de formato por distancia, pero hubo un flick veloz
+            if (_currentFormatDuringDrag == _dragStartFormat) {
+              if (velocity > 150 || _totalDragY >= 20.0) {
                 _stepExpand();
-              } else if (velocity < -180 || _dragAccumulator <= -12.0) {
+              } else if (velocity < -150 || _totalDragY <= -20.0) {
                 _stepCollapse();
               }
             }
