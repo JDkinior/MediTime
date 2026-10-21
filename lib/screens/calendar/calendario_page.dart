@@ -1776,7 +1776,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            fontSize: 15,
+                                            fontSize: 17,
                                             fontWeight: FontWeight.bold,
                                             color: AppTheme.primaryTextColor,
                                           ),
