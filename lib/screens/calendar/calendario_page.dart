@@ -25,6 +25,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:meditime/core/utils.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/widgets/modern_content_fade.dart';
+import 'package:meditime/widgets/calendar_expand_handle.dart';
 
 class CalendarioPage extends StatefulWidget {
   final GlobalKey? calendarKey;
@@ -1003,7 +1004,20 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                     ? Border.all(color: AppTheme.borderColor)
                     : null,
               ),
-              child: _buildCalendar(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildCalendar(),
+                  CalendarExpandHandle(
+                    calendarFormat: _calendarFormat,
+                    onFormatChanged: (format) {
+                      if (_calendarFormat != format) {
+                        setState(() => _calendarFormat = format);
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -1114,6 +1128,13 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
       focusedDay: _focusedDay,
       selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
       calendarFormat: _calendarFormat,
+      availableCalendarFormats: const {
+        CalendarFormat.month: 'Month',
+        CalendarFormat.twoWeeks: '2 weeks',
+        CalendarFormat.week: 'Week',
+      },
+      formatAnimationDuration: const Duration(milliseconds: 280),
+      formatAnimationCurve: Curves.easeInOutCubic,
       eventLoader: (day) => _getGroupedDosesForDay(day).values.expand((d) => d).toList(),
       onDaySelected: (selectedDay, focusedDay) {
         if (!isSameDay(_selectedDay, selectedDay)) {
