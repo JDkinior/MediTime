@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meditime/core/utils.dart';
+import 'package:meditime/models/tratamiento.dart';
+import 'package:meditime/theme/app_theme.dart';
 
 void main() {
   group('AppUtils.formatDoseTime', () {
@@ -53,6 +55,48 @@ void main() {
         AppUtils.formatDoseTimeOfDay(const TimeOfDay(hour: 12, minute: 0)),
         '12:00 p.m.',
       );
+    });
+  });
+
+  group('AppUtils.getDoseStatusColor', () {
+    test('returns successColor for tomada', () {
+      expect(
+        AppUtils.getDoseStatusColor(DoseStatus.tomada),
+        AppTheme.successColor,
+      );
+    });
+
+    test('returns errorColor for omitida', () {
+      expect(
+        AppUtils.getDoseStatusColor(DoseStatus.omitida),
+        AppTheme.errorColor,
+      );
+    });
+
+    test('returns orange for aplazada', () {
+      expect(AppUtils.getDoseStatusColor(DoseStatus.aplazada), Colors.orange);
+    });
+
+    test('returns amber/yellow for notificada', () {
+      final color = AppUtils.getDoseStatusColor(DoseStatus.notificada);
+      expect(color, isA<Color>());
+      expect(color, isNot(AppTheme.primaryColor));
+    });
+
+    test('returns primaryColor for future pendiente', () {
+      expect(
+        AppUtils.getDoseStatusColor(DoseStatus.pendiente, isPast: false),
+        AppTheme.primaryColor,
+      );
+    });
+
+    test('returns amber/yellow for past pendiente', () {
+      final color = AppUtils.getDoseStatusColor(
+        DoseStatus.pendiente,
+        isPast: true,
+      );
+      expect(color, isA<Color>());
+      expect(color, isNot(AppTheme.primaryColor));
     });
   });
 }

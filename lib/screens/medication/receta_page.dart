@@ -1677,7 +1677,10 @@ class _RecetaPageState extends State<RecetaPage>
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color: AppTheme.primaryColor,
+                                          color: AppUtils.getDoseStatusColor(
+                                            status,
+                                            isPast: isPast,
+                                          ),
                                         ),
                                       ),
                                       const SizedBox(height: 6),
@@ -1735,7 +1738,9 @@ class _RecetaPageState extends State<RecetaPage>
                                         Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            PillIcon(
+                                            MedicationPresentationIcon(
+                                              presentation:
+                                                  tratamiento.presentacion,
                                               size: 13,
                                               color:
                                                   AppTheme.secondaryTextColor,

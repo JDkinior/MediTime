@@ -1,6 +1,7 @@
 // lib/core/utils.dart
 import 'package:flutter/material.dart';
 import 'package:meditime/core/constants.dart';
+import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/services/tratamiento_service.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
@@ -54,6 +55,34 @@ class AppUtils {
     final minuteStr = time.minute.toString().padLeft(2, '0');
     final period = time.hour < 12 ? 'a.m.' : 'p.m.';
     return '$hourStr:$minuteStr $period';
+  }
+
+  /// Returns the indicator color for a dose time based on its status.
+  ///
+  /// - tomada: green (AppTheme.successColor)
+  /// - omitida: red (AppTheme.errorColor)
+  /// - notificada / pendiente pasada: yellow/amber (Color(0xFFD97706) in light mode, Color(0xFFFFC107) in dark mode)
+  /// - aplazada: orange (Colors.orange)
+  /// - pendiente futura: AppTheme.primaryColor
+  static Color getDoseStatusColor(DoseStatus status, {bool isPast = false}) {
+    switch (status) {
+      case DoseStatus.tomada:
+        return AppTheme.successColor;
+      case DoseStatus.omitida:
+        return AppTheme.errorColor;
+      case DoseStatus.aplazada:
+        return Colors.orange;
+      case DoseStatus.notificada:
+        return AppTheme.currentIsDark
+            ? const Color(0xFFFFC107)
+            : const Color(0xFFD97706);
+      case DoseStatus.pendiente:
+        return isPast
+            ? (AppTheme.currentIsDark
+                ? const Color(0xFFFFC107)
+                : const Color(0xFFD97706))
+            : AppTheme.primaryColor;
+    }
   }
 
   /// Formats a Duration to a human-readable string

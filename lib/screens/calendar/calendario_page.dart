@@ -1732,7 +1732,11 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                                 style: TextStyle(
                                                   fontSize: 18,
                                                   fontWeight: FontWeight.bold,
-                                                  color: AppTheme.primaryColor,
+                                                  color:
+                                                      AppUtils.getDoseStatusColor(
+                                                        status,
+                                                        isPast: isPast,
+                                                      ),
                                                 ),
                                               ),
                                               const SizedBox(height: 6),
@@ -1797,7 +1801,10 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                                   mainAxisSize:
                                                       MainAxisSize.min,
                                                   children: [
-                                                    PillIcon(
+                                                    MedicationPresentationIcon(
+                                                      presentation:
+                                                          tratamiento
+                                                              .presentacion,
                                                       size: 13,
                                                       color:
                                                           AppTheme
