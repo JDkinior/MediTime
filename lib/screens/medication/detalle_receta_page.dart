@@ -295,11 +295,11 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildSelectedDoseDisplay(selectedDoseTime, l10n),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
                   _buildNextDoseInfo(_nextUpcomingDose, selectedDoseTime, l10n),
-                  const SizedBox(height: 32),
-                  const Divider(),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 14),
+                  const Divider(height: 1),
+                  const SizedBox(height: 14),
                   TreatmentSummaryCard(
                     formData: formData,
                     summaryInfo: _getSummaryInfo(formData, context),
@@ -861,7 +861,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     BuildContext context,
   ) {
     final localeStr = Localizations.localeOf(context).toString();
-    final DateFormat formatter = DateFormat.yMMMMd(localeStr);
+    final DateFormat formatter = DateFormat.yMMMd(localeStr);
     final fechaFin = widget.tratamiento.fechaFinTratamiento;
 
     return {
