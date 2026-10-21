@@ -61,7 +61,7 @@ class AppUtils {
   ///
   /// - tomada: green (AppTheme.successColor)
   /// - omitida: red (AppTheme.errorColor)
-  /// - notificada / pendiente pasada: yellow/amber (Color(0xFFD97706) in light mode, Color(0xFFFFC107) in dark mode)
+  /// - notificada / pendiente pasada: yellow (Colors.amber)
   /// - aplazada: orange (Colors.orange)
   /// - pendiente futura: AppTheme.primaryColor
   static Color getDoseStatusColor(DoseStatus status, {bool isPast = false}) {
@@ -73,15 +73,9 @@ class AppUtils {
       case DoseStatus.aplazada:
         return Colors.orange;
       case DoseStatus.notificada:
-        return AppTheme.currentIsDark
-            ? const Color(0xFFFFC107)
-            : const Color(0xFFD97706);
+        return Colors.amber;
       case DoseStatus.pendiente:
-        return isPast
-            ? (AppTheme.currentIsDark
-                ? const Color(0xFFFFC107)
-                : const Color(0xFFD97706))
-            : AppTheme.primaryColor;
+        return isPast ? Colors.amber : AppTheme.primaryColor;
     }
   }
 

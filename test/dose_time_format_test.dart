@@ -79,8 +79,7 @@ void main() {
 
     test('returns amber/yellow for notificada', () {
       final color = AppUtils.getDoseStatusColor(DoseStatus.notificada);
-      expect(color, isA<Color>());
-      expect(color, isNot(AppTheme.primaryColor));
+      expect(color, Colors.amber);
     });
 
     test('returns primaryColor for future pendiente', () {
@@ -95,8 +94,7 @@ void main() {
         DoseStatus.pendiente,
         isPast: true,
       );
-      expect(color, isA<Color>());
-      expect(color, isNot(AppTheme.primaryColor));
+      expect(color, Colors.amber);
     });
   });
 }
