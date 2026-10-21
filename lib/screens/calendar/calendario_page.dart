@@ -220,7 +220,6 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
   Animation<double>? _snapAnimation;
   double? _interactiveHeight;
   double _dragStartHeight = _kHeightWeek;
-  double _calendarDragY = 0.0;
   bool _isDraggingCalendar = false;
   CalendarFormat? _targetFormat;
 
@@ -352,7 +351,6 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
 
   void _handleDragStart() {
     _snapController.stop();
-    _calendarDragY = 0.0;
     setState(() {
       _isDraggingCalendar = true;
       _dragStartHeight = _interactiveHeight ?? _getHeightForFormat(_calendarFormat);
@@ -369,7 +367,6 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
   }
 
   void _handleDragEnd(double velocity) {
-    _calendarDragY = 0.0;
     final minH = _kHeightWeek;
     final midH = _kHeightTwoWeeks;
     final maxH = _getMonthHeight(_focusedDay);
@@ -414,7 +411,6 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
   }
 
   void _handleDragCancel() {
-    _calendarDragY = 0.0;
     final currentH = _interactiveHeight ?? _getHeightForFormat(_calendarFormat);
     final targetH = _getHeightForFormat(_calendarFormat);
     _animateToHeightAndFormat(currentH, targetH, _calendarFormat);
