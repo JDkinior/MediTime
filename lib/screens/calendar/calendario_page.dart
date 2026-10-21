@@ -246,12 +246,20 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
     super.dispose();
   }
 
-  double _getMonthHeight(DateTime focusedDay) {
+  int _getMonthRowCount(DateTime focusedDay) {
     final first = DateTime(focusedDay.year, focusedDay.month, 1);
+    final daysBefore = first.weekday % 7; // Sunday = 7 -> 0, Monday = 1 -> 1
+    final firstToDisplay = first.subtract(Duration(days: daysBefore));
+
     final last = DateTime(focusedDay.year, focusedDay.month + 1, 0);
-    final firstWeekday = first.weekday; // 1 = Monday, 7 = Sunday
-    final totalDays = (firstWeekday - 1) + last.day;
-    final rowCount = (totalDays / 7).ceil();
+    final daysAfter = (7 - ((last.weekday % 7) + 1)) % 7;
+    final lastToDisplay = last.add(Duration(days: daysAfter));
+
+    return (lastToDisplay.difference(firstToDisplay).inDays + 1) ~/ 7;
+  }
+
+  double _getMonthHeight(DateTime focusedDay) {
+    final rowCount = _getMonthRowCount(focusedDay);
     return 80.0 + rowCount * 52.0;
   }
 
@@ -266,13 +274,44 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
     }
   }
 
+  void _syncFocusedDayForFormat(CalendarFormat target) {
+    if (target != CalendarFormat.month && _selectedDay != null) {
+      if (_selectedDay!.year == _focusedDay.year && _selectedDay!.month == _focusedDay.month) {
+        _focusedDay = _selectedDay!;
+      }
+    }
+  }
+
+  DateTime _firstDayOfWeek(DateTime day) {
+    final daysBefore = day.weekday % 7; // Sunday = 7 -> 0, Monday = 1 -> 1
+    return DateTime.utc(day.year, day.month, day.day).subtract(Duration(days: daysBefore));
+  }
+
+  bool _isDayOnCurrentPage(DateTime day) {
+    final firstDay = DateTime.utc(2022, 1, 1);
+    final cleanDay = DateTime.utc(day.year, day.month, day.day);
+    switch (_calendarFormat) {
+      case CalendarFormat.month:
+        return day.year == _focusedDay.year && day.month == _focusedDay.month;
+      case CalendarFormat.twoWeeks:
+        final firstWeekDay = _firstDayOfWeek(firstDay);
+        final pageDay = cleanDay.difference(firstWeekDay).inDays ~/ 14;
+        final pageFocused = _focusedDay.difference(firstWeekDay).inDays ~/ 14;
+        return pageDay == pageFocused;
+      case CalendarFormat.week:
+        final firstWeekDay = _firstDayOfWeek(firstDay);
+        final pageDay = cleanDay.difference(firstWeekDay).inDays ~/ 7;
+        final pageFocused = _focusedDay.difference(firstWeekDay).inDays ~/ 7;
+        return pageDay == pageFocused;
+    }
+  }
+
   void _updateCalendarFormat(CalendarFormat format) {
     if (_calendarFormat != format) {
-      setState(() => _calendarFormat = format);
-      final formatStr = format == CalendarFormat.week
-          ? 'weekly'
-          : (format == CalendarFormat.twoWeeks ? 'biweekly' : 'monthly');
-      Provider.of<PreferenceNotifier?>(context, listen: false)?.setCalendarFormat(formatStr);
+      _snapController.stop();
+      final currentH = _interactiveHeight ?? _getHeightForFormat(_calendarFormat);
+      final targetH = _getHeightForFormat(format);
+      _animateToHeightAndFormat(currentH, targetH, format);
     }
   }
 
@@ -364,6 +403,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
   }
 
   void _animateToHeightAndFormat(double startH, double endH, CalendarFormat target) {
+    _syncFocusedDayForFormat(target);
     _targetFormat = target;
     _snapAnimation = Tween<double>(begin: startH, end: endH).animate(
       CurvedAnimation(parent: _snapController, curve: Curves.easeOutCubic),
@@ -389,6 +429,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
         } else if (formatStr == 'monthly') {
           _calendarFormat = CalendarFormat.month;
         }
+        _syncFocusedDayForFormat(_calendarFormat);
       });
     }
   }
@@ -1172,18 +1213,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onVerticalDragStart: (_) => _handleDragStart(),
-                    onVerticalDragUpdate: (details) {
-                      _calendarDragY += details.delta.dy;
-                      _handleDragUpdate(_calendarDragY);
-                    },
-                    onVerticalDragEnd: (details) {
-                      _handleDragEnd(details.primaryVelocity ?? 0.0);
-                    },
-                    onVerticalDragCancel: _handleDragCancel,
-                    child: ClipRect(
+                  if (_isDraggingCalendar || _snapController.isAnimating)
+                    ClipRect(
                       child: SizedBox(
                         height: _interactiveHeight ?? _getHeightForFormat(_calendarFormat),
                         child: OverflowBox(
@@ -1193,8 +1224,9 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
                           child: _buildCalendar(),
                         ),
                       ),
-                    ),
-                  ),
+                    )
+                  else
+                    _buildCalendar(),
                   CalendarExpandHandle(
                     calendarFormat: _calendarFormat,
                     onFormatChanged: _updateCalendarFormat,
@@ -1324,14 +1356,18 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
         CalendarFormat.week: 'Week',
       },
       availableGestures: AvailableGestures.horizontalSwipe,
+      pageAnimationEnabled: false,
       formatAnimationDuration: Duration.zero,
       formatAnimationCurve: Curves.easeInOutCubic,
       eventLoader: (day) => _getGroupedDosesForDay(day).values.expand((d) => d).toList(),
       onDaySelected: (selectedDay, focusedDay) {
         if (!isSameDay(_selectedDay, selectedDay)) {
+          final onCurrentPage = _isDayOnCurrentPage(selectedDay);
           setState(() {
             _selectedDay = selectedDay;
-            _focusedDay = focusedDay;
+            if (!onCurrentPage) {
+              _focusedDay = selectedDay;
+            }
           });
           _populateCacheForMonth(selectedDay);
         }
@@ -1341,7 +1377,14 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
       },
       onPageChanged: (focusedDay) {
         setState(() {
-          _focusedDay = focusedDay;
+          if (_calendarFormat == CalendarFormat.month &&
+              _selectedDay != null &&
+              _selectedDay!.year == focusedDay.year &&
+              _selectedDay!.month == focusedDay.month) {
+            _focusedDay = _selectedDay!;
+          } else {
+            _focusedDay = focusedDay;
+          }
         });
         _populateCacheForMonth(focusedDay);
       },
