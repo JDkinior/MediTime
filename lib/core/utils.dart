@@ -35,25 +35,24 @@ class AppUtils {
     return TimeOfDay(hour: hour, minute: minute);
   }
 
-  /// Formats a DateTime into a standardized 12-hour dose time string (e.g. '05:47 AM').
+  /// Formats a DateTime into a standardized 12-hour dose time string (e.g. '05:47 a.m.').
   ///
-  /// Guarantees a consistent modern mobile standard ('hh:mm AM' / 'hh:mm PM') across all
-  /// locales, preventing localized differences like lowercase letters, dots, and extra spaces
-  /// (such as Spanish '05:47 a. m.').
+  /// Guarantees a consistent standard ('hh:mm a.m.' / 'hh:mm p.m.') across all
+  /// locales, preventing localized differences like extra spaces (e.g. 'a. m.').
   static String formatDoseTime(DateTime time) {
     final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
     final hourStr = hour.toString().padLeft(2, '0');
     final minuteStr = time.minute.toString().padLeft(2, '0');
-    final period = time.hour < 12 ? 'AM' : 'PM';
+    final period = time.hour < 12 ? 'a.m.' : 'p.m.';
     return '$hourStr:$minuteStr $period';
   }
 
-  /// Formats a TimeOfDay into a standardized 12-hour dose time string (e.g. '05:47 AM').
+  /// Formats a TimeOfDay into a standardized 12-hour dose time string (e.g. '05:47 a.m.').
   static String formatDoseTimeOfDay(TimeOfDay time) {
     final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
     final hourStr = hour.toString().padLeft(2, '0');
     final minuteStr = time.minute.toString().padLeft(2, '0');
-    final period = time.hour < 12 ? 'AM' : 'PM';
+    final period = time.hour < 12 ? 'a.m.' : 'p.m.';
     return '$hourStr:$minuteStr $period';
   }
 
