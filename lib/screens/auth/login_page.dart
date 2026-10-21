@@ -359,14 +359,14 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       boxShadow: isDark
                           ? [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.5),
+                                color: Colors.black.withValues(alpha: 0.5),
                                 blurRadius: 20,
                                 offset: const Offset(0, -4),
                               ),
                             ]
                           : [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
+                                color: Colors.black.withValues(alpha: 0.08),
                                 blurRadius: 15,
                                 offset: const Offset(0, -4),
                               ),

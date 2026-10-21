@@ -449,7 +449,7 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.12),
+                      color: AppTheme.primaryColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(Icons.link_rounded, color: AppTheme.primaryColor, size: 22),
@@ -528,7 +528,7 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.12),
+                      color: AppTheme.primaryColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(
@@ -707,7 +707,7 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.12),
+                      color: AppTheme.primaryColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(
@@ -796,7 +796,7 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.12),
+                      color: AppTheme.primaryColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(Icons.palette_rounded, color: AppTheme.primaryColor, size: 22),
@@ -832,7 +832,7 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
                         boxShadow: [
                           if (isSelected)
                             BoxShadow(
-                              color: color.withOpacity(0.4),
+                              color: color.withValues(alpha: 0.4),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),

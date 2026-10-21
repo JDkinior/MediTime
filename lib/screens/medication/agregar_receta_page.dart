@@ -132,7 +132,8 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
             ],
           ),
         );
-        if (shouldExit == true && mounted) {
+        if (shouldExit == true) {
+          if (!context.mounted) return;
           Navigator.of(context).pop();
         }
       } else {
@@ -151,6 +152,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
       if (userId == null) return true;
 
       final treatmentRepo = context.read<TreatmentRepository>();
+      final geminiService = context.read<GeminiService>();
       final result = await treatmentRepo.getTreatments(userId);
       if (!result.isSuccess || result.data == null || result.data!.isEmpty) return true;
 
@@ -158,7 +160,6 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
       final activeTreatments = result.data!
           .where((t) => t.isActivo || !t.isFinalizado)
           .toList();
-      final geminiService = context.read<GeminiService>();
 
       final checkResult = await geminiService.checkDrugInteractions(
         newDrugName: newDrugName,
@@ -705,9 +706,9 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
                 margin: const EdgeInsets.only(bottom: 20),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.12),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+                  border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,

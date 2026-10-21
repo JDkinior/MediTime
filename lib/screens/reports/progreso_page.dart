@@ -968,10 +968,10 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.08),
+                      color: AppTheme.primaryColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: AppTheme.primaryColor.withOpacity(0.2),
+                        color: AppTheme.primaryColor.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Row(
@@ -1251,7 +1251,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
             : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -1294,7 +1294,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: AppTheme.primaryColor.withOpacity(0.2),
+                            color: AppTheme.primaryColor.withValues(alpha: 0.2),
                             blurRadius: 6,
                             offset: const Offset(0, 3),
                           ),
@@ -1538,7 +1538,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
                                             borderRadius: BorderRadius.circular(3),
                                             child: LinearProgressIndicator(
                                               value: (pct != null && pProg > 0) ? (pct / 100).clamp(0.0, 1.0) : 0.0,
-                                              backgroundColor: profileColor.withOpacity(0.15),
+                                              backgroundColor: profileColor.withValues(alpha: 0.15),
                                               valueColor: AlwaysStoppedAnimation<Color>(profileColor),
                                             ),
                                           ),

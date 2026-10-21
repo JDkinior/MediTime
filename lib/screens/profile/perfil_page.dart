@@ -387,7 +387,7 @@ class _PerfilPageState extends State<PerfilPage> {
                     surface: Theme.of(context).cardColor,
                     onSurface: AppTheme.primaryTextColor,
                   ),
-            dialogBackgroundColor: Theme.of(context).cardColor,
+            dialogTheme: DialogThemeData(backgroundColor: Theme.of(context).cardColor),
           ),
           child: child!,
         );
@@ -434,7 +434,7 @@ class _PerfilPageState extends State<PerfilPage> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppTheme.errorColor.withOpacity(0.1),
+                          color: AppTheme.errorColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -471,7 +471,7 @@ class _PerfilPageState extends State<PerfilPage> {
                       : null,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
+                      color: Colors.black.withValues(alpha: 0.02),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -521,7 +521,7 @@ class _PerfilPageState extends State<PerfilPage> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primaryColor.withOpacity(0.08),
+                                  color: AppTheme.primaryColor.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Row(
@@ -685,7 +685,7 @@ class _PerfilPageState extends State<PerfilPage> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.08),
+              color: AppTheme.primaryColor.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: AppTheme.primaryColor, size: 18),
@@ -883,7 +883,7 @@ class _PerfilPageState extends State<PerfilPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withOpacity(0.08),
+                color: AppTheme.primaryColor.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: AppTheme.primaryColor, size: 20),
@@ -919,7 +919,7 @@ class _PerfilPageState extends State<PerfilPage> {
                       contentPadding: EdgeInsets.zero,
                       hintText: hintText,
                       hintStyle: TextStyle(
-                        color: AppTheme.secondaryTextColor.withOpacity(0.5),
+                        color: AppTheme.secondaryTextColor.withValues(alpha: 0.5),
                         fontSize: 14,
                       ),
                       border: InputBorder.none,
@@ -944,10 +944,10 @@ class _PerfilPageState extends State<PerfilPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withOpacity(0.06),
+        color: AppTheme.primaryColor.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(20),
         border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-            ? Border.all(color: AppTheme.primaryColor.withOpacity(0.15))
+            ? Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.15))
             : null,
       ),
       child: Row(
@@ -955,7 +955,7 @@ class _PerfilPageState extends State<PerfilPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.1),
+              color: AppTheme.primaryColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(

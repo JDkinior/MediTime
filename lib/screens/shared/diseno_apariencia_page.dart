@@ -180,7 +180,7 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
                           value: preferenceNotifier.enableScrollFade,
                           onChanged: (val) async {
                             await preferenceNotifier.setEnableScrollFade(val);
-                            if (!mounted) return;
+                            if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(val
@@ -191,7 +191,7 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
                               ),
                             );
                           },
-                          activeColor: AppTheme.primaryColor,
+                          activeThumbColor: AppTheme.primaryColor,
                         ),
                       ],
                     ),
@@ -218,7 +218,7 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
             : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -269,7 +269,7 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
           decoration: BoxDecoration(
             color: isSelected
-                ? AppTheme.primaryColor.withOpacity(0.04)
+                ? AppTheme.primaryColor.withValues(alpha: 0.04)
                 : Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
@@ -278,7 +278,7 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -395,7 +395,7 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
                 shape: BoxShape.circle,
                 color: isToday
                     ? AppTheme.primaryColor
-                    : (isSelected ? AppTheme.primaryColor.withOpacity(0.3) : Colors.grey.shade500),
+                    : (isSelected ? AppTheme.primaryColor.withValues(alpha: 0.3) : Colors.grey.shade500),
               ),
             );
           }),
@@ -417,7 +417,7 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
       width: 80,
       height: 16,
       decoration: BoxDecoration(
-        color: isSelected ? AppTheme.primaryColor.withOpacity(0.1) : Colors.grey.shade700.withOpacity(0.2),
+        color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.1) : Colors.grey.shade700.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -446,7 +446,7 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
           width: 55,
           height: 16,
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primaryColor.withOpacity(0.1) : Colors.grey.shade700.withOpacity(0.2),
+            color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.1) : Colors.grey.shade700.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(

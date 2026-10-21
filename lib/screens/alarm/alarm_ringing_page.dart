@@ -356,10 +356,10 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withOpacity(0.2),
+                          color: AppTheme.primaryColor.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: AppTheme.primaryColor.withOpacity(0.4),
+                            color: AppTheme.primaryColor.withValues(alpha: 0.4),
                           ),
                         ),
                         child: Row(
@@ -425,7 +425,7 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
                             formattedDate.substring(1),
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.65),
+                          color: Colors.white.withValues(alpha: 0.65),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -447,7 +447,7 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
                             height: 170 * _pulseAnimation.value,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: AppTheme.primaryColor.withOpacity(
+                              color: AppTheme.primaryColor.withValues(alpha: 
                                 (1.0 - _glowAnimation.value) * 0.15,
                               ),
                             ),
@@ -458,7 +458,7 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
                             height: 140 * _pulseAnimation.value,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: AppTheme.primaryColor.withOpacity(
+                              color: AppTheme.primaryColor.withValues(alpha: 
                                 (1.0 - _glowAnimation.value) * 0.28,
                               ),
                             ),
@@ -479,7 +479,7 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF2563EB).withOpacity(
+                                  color: const Color(0xFF2563EB).withValues(alpha: 
                                     _glowAnimation.value,
                                   ),
                                   blurRadius: 30,
@@ -510,14 +510,14 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
                       vertical: 18,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.07),
+                      color: Colors.white.withValues(alpha: 0.07),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.12),
+                        color: Colors.white.withValues(alpha: 0.12),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -542,7 +542,7 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF2563EB).withOpacity(0.2),
+                            color: const Color(0xFF2563EB).withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -562,7 +562,7 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.06),
+                              color: Colors.white.withValues(alpha: 0.06),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -639,7 +639,7 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
                           backgroundColor: const Color(0xFF10B981),
                           foregroundColor: Colors.white,
                           elevation: 6,
-                          shadowColor: const Color(0xFF10B981).withOpacity(0.5),
+                          shadowColor: const Color(0xFF10B981).withValues(alpha: 0.5),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(18),
                           ),
@@ -674,14 +674,14 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
                               style: OutlinedButton.styleFrom(
                                 side: BorderSide(
                                   color:
-                                      const Color(0xFFFBBF24).withOpacity(0.4),
+                                      const Color(0xFFFBBF24).withValues(alpha: 0.4),
                                   width: 1.2,
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 backgroundColor:
-                                    const Color(0xFFFBBF24).withOpacity(0.08),
+                                    const Color(0xFFFBBF24).withValues(alpha: 0.08),
                               ),
                             ),
                           ),
@@ -709,14 +709,14 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
                               style: OutlinedButton.styleFrom(
                                 side: BorderSide(
                                   color:
-                                      const Color(0xFFF87171).withOpacity(0.4),
+                                      const Color(0xFFF87171).withValues(alpha: 0.4),
                                   width: 1.2,
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 backgroundColor:
-                                    const Color(0xFFF87171).withOpacity(0.08),
+                                    const Color(0xFFF87171).withValues(alpha: 0.08),
                               ),
                             ),
                           ),

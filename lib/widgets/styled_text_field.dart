@@ -59,7 +59,7 @@ class StyledTextField extends StatelessWidget {
           ),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.6)),
+            hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withValues(alpha: 0.6)),
             errorText: errorText,
             fillColor: inputBg,
             filled: true,

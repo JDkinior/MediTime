@@ -138,7 +138,7 @@ class IdiomaOpcionesPage extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -152,8 +152,8 @@ class IdiomaOpcionesPage extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AppTheme.primaryColor.withOpacity(0.12)
-                      : Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                      ? AppTheme.primaryColor.withValues(alpha: 0.12)
+                      : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
                   shape: BoxShape.circle,
                 ),
                 child: leadingWidget,
