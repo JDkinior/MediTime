@@ -483,9 +483,10 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
         Text(
           DateFormat('EEEE, d MMMM', localeStr).format(doseTime),
           style: TextStyle(
-            fontSize: 17,
+            fontSize: 16,
             color: AppTheme.secondaryTextColor,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w300,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 12),
