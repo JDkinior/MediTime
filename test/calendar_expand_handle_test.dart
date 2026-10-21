@@ -23,6 +23,12 @@ void main() {
     bool highContrast = false,
     Brightness brightness = Brightness.light,
     Locale locale = const Locale('es'),
+    bool? isDragging,
+    VoidCallback? onDragStart,
+    ValueChanged<double>? onDragUpdate,
+    ValueChanged<double>? onDragEnd,
+    VoidCallback? onDragCancel,
+    VoidCallback? onTap,
   }) {
     final prefNotifier = PreferenceNotifier(PreferenceService());
     if (highContrast) {
@@ -42,6 +48,12 @@ void main() {
             child: CalendarExpandHandle(
               calendarFormat: calendarFormat,
               onFormatChanged: onFormatChanged,
+              isDragging: isDragging,
+              onDragStart: onDragStart,
+              onDragUpdate: onDragUpdate,
+              onDragEnd: onDragEnd,
+              onDragCancel: onDragCancel,
+              onTap: onTap,
             ),
           ),
         ),
@@ -317,6 +329,72 @@ void main() {
       barContainer = tester.widget<AnimatedContainer>(find.byKey(const Key('calendar_expand_handle_bar')));
       decoration = barContainer.decoration as BoxDecoration;
       expect(decoration.color, const Color(0xFF666666));
+    });
+
+
+    testWidgets('interactive drag callbacks stream continuous displacement and velocity', (tester) async {
+      bool dragStarted = false;
+      final List<double> dragUpdates = [];
+      double? endVelocity;
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          calendarFormat: CalendarFormat.week,
+          onFormatChanged: (_) {},
+          onDragStart: () => dragStarted = true,
+          onDragUpdate: (dy) => dragUpdates.add(dy),
+          onDragEnd: (v) => endVelocity = v,
+        ),
+      );
+
+      final center = tester.getCenter(find.byType(CalendarExpandHandle));
+      final gesture = await tester.startGesture(center);
+      await tester.pump();
+
+      // Break drag slop so onVerticalDragStart fires
+      await gesture.moveBy(const Offset(0, 25));
+      await tester.pump();
+      expect(dragStarted, isTrue);
+
+      await gesture.moveBy(const Offset(0, 30));
+      await tester.pump();
+
+      expect(dragUpdates.isNotEmpty, isTrue);
+      expect(dragUpdates.last, greaterThanOrEqualTo(30.0));
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(endVelocity, isNotNull);
+    });
+
+    testWidgets('custom onTap callback is invoked on handle tap', (tester) async {
+      bool tapCalled = false;
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          calendarFormat: CalendarFormat.week,
+          onFormatChanged: (_) {},
+          onTap: () => tapCalled = true,
+        ),
+      );
+
+      await tester.tap(find.byType(CalendarExpandHandle));
+      await tester.pumpAndSettle();
+      expect(tapCalled, isTrue);
+    });
+
+    testWidgets('isDragging parameter externally drives widening feedback', (tester) async {
+      await tester.pumpWidget(
+        buildTestWidget(
+          calendarFormat: CalendarFormat.week,
+          onFormatChanged: (_) {},
+          isDragging: true,
+        ),
+      );
+
+      final barFinder = find.byKey(const Key('calendar_expand_handle_bar'));
+      final container = tester.widget<AnimatedContainer>(barFinder);
+      expect(container.constraints?.maxWidth ?? 48.0, 48.0);
     });
   });
 }
