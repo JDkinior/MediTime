@@ -474,7 +474,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               Text(
                 timePeriod,
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 38,
                   fontWeight: FontWeight.bold,
                   color: statusColor,
                 ),
