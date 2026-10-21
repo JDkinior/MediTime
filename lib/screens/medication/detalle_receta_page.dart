@@ -385,11 +385,11 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       case DoseStatus.omitida:
         return AppTheme.errorColor;
       case DoseStatus.notificada:
-        return const Color(0xFFF59E0B);
+        return Colors.amber;
       case DoseStatus.aplazada:
         return Colors.orange;
       case DoseStatus.pendiente:
-        return isPast ? const Color(0xFFF59E0B) : AppTheme.primaryColor;
+        return isPast ? Colors.amber : AppTheme.primaryColor;
     }
   }
 
@@ -533,7 +533,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               child: _buildPillActionButton(
                 icon: Icons.access_alarm_rounded,
                 label: l10n?.actionSnooze ?? 'Aplazar',
-                color: const Color(0xFFF59E0B),
+                color: const Color(0xFFF97316),
                 onTap:
                     _isProcessing
                         ? null
