@@ -549,7 +549,7 @@ class TreatmentSummaryCard extends StatelessWidget {
       case DoseStatus.notificada:
         return Colors.amber;
       case DoseStatus.aplazada:
-        return const Color(0xFFF97316);
+        return Colors.orange;
       case DoseStatus.pendiente:
       case null:
         return const Color(0xFF0C53E8);

@@ -568,7 +568,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               child: _buildPillActionButton(
                 icon: Icons.access_alarm_rounded,
                 label: l10n?.actionSnooze ?? 'Aplazar',
-                color: const Color(0xFFF97316),
+                color: Colors.orange,
                 onTap:
                     _isProcessing
                         ? null
