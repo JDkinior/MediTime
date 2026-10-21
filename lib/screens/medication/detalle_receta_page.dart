@@ -297,9 +297,12 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
                   _buildSelectedDoseDisplay(selectedDoseTime, l10n),
                   const SizedBox(height: 24),
                   _buildNextDoseInfo(_nextUpcomingDose, selectedDoseTime, l10n),
-                  const SizedBox(height: 14),
-                  const Divider(height: 1),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 22),
+                  Divider(
+                    height: 1,
+                    color: AppTheme.borderColor.withValues(alpha: 0.5),
+                  ),
+                  const SizedBox(height: 22),
                   TreatmentSummaryCard(
                     formData: formData,
                     summaryInfo: _getSummaryInfo(formData, context),
