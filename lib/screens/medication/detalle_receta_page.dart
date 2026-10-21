@@ -247,7 +247,39 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     return Scaffold(
       extendBody: isNotificada,
       appBar: ModernAppBar(
-        child: AppBar(title: Text(widget.tratamiento.nombreMedicamento)),
+        child: AppBar(
+          centerTitle: true,
+          title: Text(
+            AppUtils.capitalize(widget.tratamiento.nombreMedicamento),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          ),
+          leading: Center(
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: Icon(
+                  Icons.chevron_left_rounded,
+                  size: 26,
+                  color: AppTheme.primaryTextColor,
+                ),
+                onPressed: () => Navigator.of(context).maybePop(),
+              ),
+            ),
+          ),
+        ),
       ),
       body: Stack(
         children: [
@@ -349,11 +381,11 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       case DoseStatus.omitida:
         return AppTheme.errorColor;
       case DoseStatus.notificada:
-        return const Color(0xFFFFB703);
+        return const Color(0xFFF59E0B);
       case DoseStatus.aplazada:
         return Colors.orange;
       case DoseStatus.pendiente:
-        return isPast ? const Color(0xFFFFB703) : AppTheme.primaryColor;
+        return isPast ? const Color(0xFFF59E0B) : AppTheme.primaryColor;
     }
   }
 
@@ -385,11 +417,11 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       case DoseStatus.omitida:
         return Icons.cancel_outlined;
       case DoseStatus.notificada:
-        return Icons.notifications_none;
+        return Icons.notifications;
       case DoseStatus.aplazada:
         return Icons.schedule;
       case DoseStatus.pendiente:
-        return isPast ? Icons.notifications_none : Icons.alarm;
+        return isPast ? Icons.notifications : Icons.alarm;
     }
   }
 
@@ -401,28 +433,60 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     final statusIcon = _getDoseStatusIcon(status, isPast);
     final localeStr = Localizations.localeOf(context).toString();
 
+    final timeFormatted = AppUtils.formatDoseTime(doseTime);
+    final timeParts = timeFormatted.split(' ');
+    final timeDigits = timeParts[0];
+    final timePeriod = timeParts.length > 1 ? timeParts[1] : '';
+
+    final doseLabel = l10n?.doseDetailDoseTime ?? 'Dose time';
+
     return Column(
       children: [
         Text(
-          l10n?.doseDetailDoseTime ?? 'Hora de esta toma',
+          doseLabel.toUpperCase(),
           style: TextStyle(
-            fontSize: 18,
-            color: AppTheme.secondaryTextColor,
-            fontWeight: FontWeight.w500,
+            fontSize: 13,
+            color: AppTheme.secondaryTextColor.withValues(alpha: 0.8),
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.2,
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          AppUtils.formatDoseTime(doseTime),
-          style: TextStyle(
-            fontSize: 52,
-            fontWeight: FontWeight.bold,
-            color: statusColor,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              timeDigits,
+              style: TextStyle(
+                fontSize: 54,
+                fontWeight: FontWeight.bold,
+                color: statusColor,
+                letterSpacing: -0.5,
+              ),
+            ),
+            if (timePeriod.isNotEmpty) ...[
+              const SizedBox(width: 6),
+              Text(
+                timePeriod,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: statusColor,
+                ),
+              ),
+            ],
+          ],
         ),
+        const SizedBox(height: 4),
         Text(
           DateFormat('EEEE, d MMMM', localeStr).format(doseTime),
-          style: TextStyle(fontSize: 18, color: AppTheme.secondaryTextColor),
+          style: TextStyle(
+            fontSize: 17,
+            color: AppTheme.secondaryTextColor,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         const SizedBox(height: 12),
         Container(
@@ -430,7 +494,6 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
           decoration: BoxDecoration(
             color: statusColor.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: statusColor.withValues(alpha: 0.3)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
