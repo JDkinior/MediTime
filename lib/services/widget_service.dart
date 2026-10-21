@@ -1,7 +1,7 @@
 // lib/services/widget_service.dart
 import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
-import 'package:intl/intl.dart';
+import 'package:meditime/core/utils.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:meditime/firebase_options.dart';
 import 'package:meditime/models/tratamiento.dart';
@@ -90,7 +90,6 @@ Future<void> homeWidgetBackgroundCallback(Uri? uri) async {
   }
 }
 
-
 /// Servicio encargado de la comunicación entre MediTime y los Widgets nativos de Android.
 class WidgetService {
   static const String androidDoseWidget = 'MediTimeDoseWidgetProvider';
@@ -99,7 +98,9 @@ class WidgetService {
   /// Registra los callbacks de interactividad en segundo plano con HomeWidget.
   static Future<void> initialize() async {
     try {
-      await HomeWidget.registerInteractivityCallback(homeWidgetBackgroundCallback);
+      await HomeWidget.registerInteractivityCallback(
+        homeWidgetBackgroundCallback,
+      );
     } catch (e) {
       debugPrint('Error al registrar callback de HomeWidget: $e');
     }
@@ -111,7 +112,8 @@ class WidgetService {
     List<Tratamiento>? tratamientos,
   }) async {
     try {
-      final activeUserId = userId ?? await PreferenceService().getCurrentUserId();
+      final activeUserId =
+          userId ?? await PreferenceService().getCurrentUserId();
       if (activeUserId == null || activeUserId.isEmpty) return;
 
       List<Tratamiento> list = tratamientos ?? [];
@@ -146,18 +148,21 @@ class WidgetService {
 
         while (current.isBefore(t.fechaFinTratamiento) ||
             current.isAtSameMomentAs(t.fechaFinTratamiento)) {
-          final isToday = current.year == today.year &&
+          final isToday =
+              current.year == today.year &&
               current.month == today.month &&
               current.day == today.day;
 
           if (isToday) {
             totalHoy++;
-            final status = t.doseStatus[current.toIso8601String()] ?? DoseStatus.pendiente;
+            final status =
+                t.doseStatus[current.toIso8601String()] ?? DoseStatus.pendiente;
             if (status == DoseStatus.tomada) {
               tomadasHoy++;
             } else if (status != DoseStatus.omitida) {
               // Dosis pendiente, notificada o aplazada
-              if (proximaFechaDosis == null || current.isBefore(proximaFechaDosis)) {
+              if (proximaFechaDosis == null ||
+                  current.isBefore(proximaFechaDosis)) {
                 proximaFechaDosis = current;
                 proximaTratamiento = t;
               }
@@ -168,8 +173,7 @@ class WidgetService {
       }
 
       if (proximaTratamiento != null && proximaFechaDosis != null) {
-        final timeFormat = DateFormat('hh:mm a');
-        final formattedTime = timeFormat.format(proximaFechaDosis);
+        final formattedTime = AppUtils.formatDoseTime(proximaFechaDosis);
 
         await HomeWidget.saveWidgetData<String>(
           'next_dose_med_name',
@@ -196,10 +200,7 @@ class WidgetService {
           'next_dose_med_name',
           'No hay dosis pendientes',
         );
-        await HomeWidget.saveWidgetData<String>(
-          'next_dose_time',
-          '--:--',
-        );
+        await HomeWidget.saveWidgetData<String>('next_dose_time', '--:--');
         await HomeWidget.saveWidgetData<String>(
           'next_dose_detail',
           '¡Todas tus dosis de hoy están al día!',
@@ -225,13 +226,12 @@ class WidgetService {
   static Future<void> handleWidgetLaunch(BuildContext context) async {
     try {
       final uri = await HomeWidget.initiallyLaunchedFromHomeWidget();
-      if (uri != null && (uri.host == 'midi_chat' || uri.path.contains('midi_chat'))) {
+      if (uri != null &&
+          (uri.host == 'midi_chat' || uri.path.contains('midi_chat'))) {
         if (context.mounted) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const ChatBotScreen(),
-            ),
-          );
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const ChatBotScreen()));
         }
       }
     } catch (e) {

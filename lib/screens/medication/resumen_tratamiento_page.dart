@@ -1,6 +1,7 @@
 // lib/screens/medication/resumen_tratamiento_page.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:meditime/core/utils.dart';
 import 'package:meditime/models/tratamiento.dart'; // <-- CAMBIO: Importar modelo
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
@@ -141,7 +142,10 @@ class ResumenTratamientoPage extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.8),
+            fontSize: 14,
+          ),
         ),
         Text(
           date,
@@ -259,7 +263,6 @@ class ResumenTratamientoPage extends StatelessWidget {
 
   Widget _buildSkippedDosesList(List<DateTime> skipped) {
     final DateFormat formatter = DateFormat('EEEE, d MMM', 'es_ES');
-    final timeFormatter = DateFormat('hh:mm a', 'es_ES');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,7 +319,7 @@ class ResumenTratamientoPage extends StatelessWidget {
                   ),
                   title: Text(formatter.format(dt)),
                   trailing: Text(
-                    timeFormatter.format(dt),
+                    AppUtils.formatDoseTime(dt),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,

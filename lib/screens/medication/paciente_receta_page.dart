@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:meditime/core/utils.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/tratamiento_service.dart';
@@ -28,27 +29,30 @@ class PacienteRecetaPage extends StatelessWidget {
 
     return Scaffold(
       appBar: ModernAppBar(
-        child: AppBar(
-          title: Text('Recetas de $patientEmail'),
-        ),
+        child: AppBar(title: Text('Recetas de $patientEmail')),
       ),
       body: StreamBuilder<List<Tratamiento>>(
         stream: firestoreService.getMedicamentosStream(patientUid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const EstadoVista(state: ViewState.loading, child: SizedBox.shrink());
+            return const EstadoVista(
+              state: ViewState.loading,
+              child: SizedBox.shrink(),
+            );
           }
           if (snapshot.hasError) {
             return const EstadoVista(
               state: ViewState.error,
-              errorMessage: 'Ocurrió un error al cargar las recetas del paciente.',
+              errorMessage:
+                  'Ocurrió un error al cargar las recetas del paciente.',
               child: SizedBox.shrink(),
             );
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const EstadoVista(
               state: ViewState.empty,
-              emptyMessage: 'El paciente aún no tiene medicamentos registrados.',
+              emptyMessage:
+                  'El paciente aún no tiene medicamentos registrados.',
               child: SizedBox.shrink(),
             );
           }
@@ -62,9 +66,13 @@ class PacienteRecetaPage extends StatelessWidget {
             final List<DateTime> recordedTimes = [];
             tratamiento.doseStatus.forEach((dateString, status) {
               final doseTime = DateTime.tryParse(dateString);
-              if (doseTime != null && doseTime.isAfter(now) && doseTime.isBefore(endOfHorizon)) {
+              if (doseTime != null &&
+                  doseTime.isAfter(now) &&
+                  doseTime.isBefore(endOfHorizon)) {
                 recordedTimes.add(doseTime);
-                if (status == DoseStatus.pendiente || status == DoseStatus.aplazada || status == DoseStatus.notificada) {
+                if (status == DoseStatus.pendiente ||
+                    status == DoseStatus.aplazada ||
+                    status == DoseStatus.notificada) {
                   dosisPendientes.add({
                     'tratamiento': tratamiento,
                     'doseTime': doseTime,
@@ -73,15 +81,22 @@ class PacienteRecetaPage extends StatelessWidget {
               }
             });
 
-            final dosisCalculadas = TratamientoService.generarDosisPendientes(tratamiento);
+            final dosisCalculadas = TratamientoService.generarDosisPendientes(
+              tratamiento,
+            );
             for (var doseTime in dosisCalculadas) {
-              final isAlreadyAdded = dosisPendientes.any((d) =>
-                  d['tratamiento'] == tratamiento &&
-                  (d['doseTime'] as DateTime).isAtSameMomentAs(doseTime));
+              final isAlreadyAdded = dosisPendientes.any(
+                (d) =>
+                    d['tratamiento'] == tratamiento &&
+                    (d['doseTime'] as DateTime).isAtSameMomentAs(doseTime),
+              );
               if (!isAlreadyAdded) {
                 final key = doseTime.toIso8601String();
-                final status = tratamiento.doseStatus[key] ?? DoseStatus.pendiente;
-                if (status == DoseStatus.pendiente || status == DoseStatus.aplazada || status == DoseStatus.notificada) {
+                final status =
+                    tratamiento.doseStatus[key] ?? DoseStatus.pendiente;
+                if (status == DoseStatus.pendiente ||
+                    status == DoseStatus.aplazada ||
+                    status == DoseStatus.notificada) {
                   dosisPendientes.add({
                     'tratamiento': tratamiento,
                     'doseTime': doseTime,
@@ -91,7 +106,11 @@ class PacienteRecetaPage extends StatelessWidget {
             }
           }
 
-          dosisPendientes.sort((a, b) => (a['doseTime'] as DateTime).compareTo(b['doseTime'] as DateTime));
+          dosisPendientes.sort(
+            (a, b) => (a['doseTime'] as DateTime).compareTo(
+              b['doseTime'] as DateTime,
+            ),
+          );
 
           if (dosisPendientes.isEmpty) {
             return const EstadoVista(
@@ -109,21 +128,31 @@ class PacienteRecetaPage extends StatelessWidget {
                 final doseData = dosisPendientes[index];
                 final Tratamiento tratamiento = doseData['tratamiento'];
                 final DateTime horaDosis = doseData['doseTime'];
-                final horaFormateada = DateFormat('hh:mm a, d MMM', 'es_ES').format(horaDosis);
+                final horaFormateada =
+                    '${AppUtils.formatDoseTime(horaDosis)}, ${DateFormat('d MMM', 'es_ES').format(horaDosis)}';
 
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: ContainerTransformCard<void>(
                     borderRadius: BorderRadius.circular(12),
-                    openBuilder: (context, _) => DetalleRecetaPage(
-                      tratamiento: tratamiento,
-                      horaDosis: horaDosis,
-                    ),
+                    openBuilder:
+                        (context, _) => DetalleRecetaPage(
+                          tratamiento: tratamiento,
+                          horaDosis: horaDosis,
+                        ),
                     closedBuilder: (context, openContainer) {
                       return ListTile(
-                        leading: Icon(Icons.medical_services, color: AppTheme.primaryColor),
+                        leading: Icon(
+                          Icons.medical_services,
+                          color: AppTheme.primaryColor,
+                        ),
                         title: Text(tratamiento.nombreMedicamento),
-                        subtitle: Text('Dosis: ${tratamiento.dosisPorToma} ${tratamiento.presentacion}\nPróxima toma: $horaFormateada'),
+                        subtitle: Text(
+                          'Dosis: ${tratamiento.dosisPorToma} ${tratamiento.presentacion}\nPróxima toma: $horaFormateada',
+                        ),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                         onTap: openContainer,
                       );

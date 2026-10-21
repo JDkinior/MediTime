@@ -14,7 +14,6 @@ import 'package:meditime/screens/shared/localizador_farmacias_page.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'package:meditime/enums/view_state.dart';
-import 'package:intl/intl.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/tratamiento_service.dart';
 import 'package:meditime/widgets/tutorial_tooltip.dart';
@@ -550,7 +549,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${tratamiento.nombreMedicamento} • ${DateFormat('hh:mm a').format(doseTime)}',
+                          '${tratamiento.nombreMedicamento} • ${AppUtils.formatDoseTime(doseTime)}',
                           style: TextStyle(
                             fontSize: 14,
                             color: AppTheme.secondaryTextColor,
@@ -1074,7 +1073,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${tratamiento.nombreMedicamento} • ${DateFormat('hh:mm a').format(doseTime)}',
+                            '${tratamiento.nombreMedicamento} • ${AppUtils.formatDoseTime(doseTime)}',
                             style: TextStyle(
                               fontSize: 13,
                               color: AppTheme.secondaryTextColor,
@@ -1125,7 +1124,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                             ),
                           ),
                           subtitle: Text(
-                            'Cambiar la hora programada para esta toma (${DateFormat('hh:mm a').format(doseTime)})',
+                            'Cambiar la hora programada para esta toma (${AppUtils.formatDoseTime(doseTime)})',
                             style: TextStyle(
                               fontSize: 11,
                               color: AppTheme.secondaryTextColor,
@@ -1570,11 +1569,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
     final DateTime doseTime = dose['doseTime'];
     final DoseStatus status = dose['status'];
     final l10n = AppLocalizations.of(context);
-    final langCode = Localizations.localeOf(context).languageCode;
-    final timeStr = DateFormat(
-      'hh:mm a',
-      langCode == 'en' ? 'en_US' : 'es_ES',
-    ).format(doseTime);
+    final timeStr = AppUtils.formatDoseTime(doseTime);
 
     // Determinar estilo visual según el estado
     Color nodeColor = Colors.grey.shade300;
@@ -1735,7 +1730,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                               Text(
                                                 timeStr,
                                                 style: TextStyle(
-                                                  fontSize: 20,
+                                                  fontSize: 18,
                                                   fontWeight: FontWeight.bold,
                                                   color: AppTheme.primaryColor,
                                                 ),

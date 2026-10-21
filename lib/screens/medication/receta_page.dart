@@ -373,7 +373,7 @@ class _RecetaPageState extends State<RecetaPage>
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${tratamiento.nombreMedicamento} • ${DateFormat('hh:mm a').format(doseTime)}',
+                          '${tratamiento.nombreMedicamento} • ${AppUtils.formatDoseTime(doseTime)}',
                           style: TextStyle(
                             fontSize: 14,
                             color: AppTheme.secondaryTextColor,
@@ -884,7 +884,7 @@ class _RecetaPageState extends State<RecetaPage>
     required FirestoreService firestoreService,
   }) async {
     final l10n = AppLocalizations.of(context);
-    final formattedDoseTime = DateFormat('hh:mm a').format(doseTime);
+    final formattedDoseTime = AppUtils.formatDoseTime(doseTime);
     final option = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1521,10 +1521,7 @@ class _RecetaPageState extends State<RecetaPage>
     final Tratamiento tratamiento = dose['tratamiento'];
     final DateTime doseTime = dose['doseTime'];
     final DoseStatus status = dose['status'];
-    final timeStr = DateFormat(
-      'hh:mm a',
-      Localizations.localeOf(context).toString(),
-    ).format(doseTime);
+    final timeStr = AppUtils.formatDoseTime(doseTime);
 
     final l10n = AppLocalizations.of(context);
     // Determinar estilo visual según el estado
@@ -1678,7 +1675,7 @@ class _RecetaPageState extends State<RecetaPage>
                                       Text(
                                         timeStr,
                                         style: TextStyle(
-                                          fontSize: 20,
+                                          fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                           color: AppTheme.primaryColor,
                                         ),
