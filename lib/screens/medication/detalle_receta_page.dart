@@ -650,69 +650,186 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     AppLocalizations? l10n,
   ) {
     if (nextDose == null) {
-      return _buildInfoCard(
-        icon: Icons.check_circle,
+      return _buildStatusBannerCard(
+        icon: Icons.check_circle_rounded,
         color: AppTheme.successColor,
-        title: l10n?.doseDetailTreatmentFinished ?? 'Tratamiento Finalizado',
+        title:
+            (l10n?.doseDetailTreatmentFinished ?? 'Tratamiento Finalizado')
+                .toUpperCase(),
         subtitle:
             l10n?.doseDetailNoMoreDoses ?? 'No hay más dosis programadas.',
       );
     }
 
     if (nextDose.isAtSameMomentAs(selectedDose)) {
-      return _buildInfoCard(
-        icon: Icons.notifications_active,
+      return _buildStatusBannerCard(
+        icon: Icons.notifications_active_rounded,
         color: AppTheme.primaryColor,
-        title: l10n?.doseDetailNextDosePrompt ?? 'Esta es la próxima dosis',
+        title:
+            (l10n?.doseDetailNextDosePrompt ?? 'Esta es la próxima dosis')
+                .toUpperCase(),
         subtitle: _getTiempoRestante(nextDose, l10n),
       );
     }
 
+    return _buildNextAlarmCard(nextDose: nextDose, l10n: l10n);
+  }
+
+  Widget _buildNextAlarmCard({
+    required DateTime nextDose,
+    required AppLocalizations? l10n,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final localeStr = Localizations.localeOf(context).toString();
-    return _buildInfoCard(
-      icon: Icons.update,
-      color: Colors.orange.shade700,
-      title: l10n?.doseDetailNextAlarm ?? 'Próxima Alarma:',
-      subtitle:
-          '${DateFormat('hh:mm a, d MMM', localeStr).format(nextDose)}\n${_getTiempoRestante(nextDose, l10n)}',
+    final title =
+        (l10n?.doseDetailNextAlarm ?? 'Próxima Alarma')
+            .replaceAll(':', '')
+            .trim()
+            .toUpperCase();
+    final timeStr = DateFormat('hh:mm a, d MMM', localeStr).format(nextDose);
+    final remainingStr = _getTiempoRestante(nextDose, l10n);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF261D16) : const Color(0xFFFCF4ED),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color:
+              isDark
+                  ? Colors.white10
+                  : const Color(0xFFFE8A23).withValues(alpha: 0.12),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Clock Badge with dual circle
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFE8A23).withValues(alpha: 0.16),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFE8A23),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: CustomPaint(
+                    size: const Size(16, 16),
+                    painter: _ClockHandsPainter(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          // Content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFFE8A23),
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  timeStr,
+                  style: TextStyle(
+                    fontSize: 17.5,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryTextColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  remainingStr,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: Color(0xFF6D7A90),
+            size: 24,
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildInfoCard({
+  Widget _buildStatusBannerCard({
     required IconData icon,
     required Color color,
     required String title,
     required String subtitle,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(15),
+        color: color.withValues(alpha: isDark ? 0.15 : 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
       ),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 40),
-          const SizedBox(width: 16),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.16),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                child: Icon(icon, color: Colors.white, size: 16),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
                     color: color,
+                    letterSpacing: 1.2,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                     color: AppTheme.primaryTextColor,
-                    height: 1.4,
                   ),
                 ),
               ],
@@ -779,4 +896,25 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       'Finaliza el': formatter.format(fechaFin),
     };
   }
+}
+
+class _ClockHandsPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint =
+        Paint()
+          ..color = Colors.white
+          ..strokeWidth = 2.0
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    // 12 o'clock hand (vertical straight up)
+    canvas.drawLine(center, center + const Offset(0, -5.5), paint);
+    // 4:30 hand (diagonal down-right)
+    canvas.drawLine(center, center + const Offset(4.2, 4.2), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
