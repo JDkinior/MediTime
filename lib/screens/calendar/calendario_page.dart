@@ -1699,212 +1699,244 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                   ) ??
                                   'Cada ${tratamiento.intervaloDosis.inHours} horas');
 
-                      return InkWell(
-                        onTap: openContainer,
-                        borderRadius: BorderRadius.circular(20),
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                            left: 16,
-                            right: 14,
-                            top: 22,
-                            bottom: 22,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  // Left Column: Time & Frequency
-                                  Column(
+                      return IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Main Card Content (Opens Detail Screen)
+                            Expanded(
+                              child: InkWell(
+                                onTap: openContainer,
+                                borderRadius: const BorderRadius.horizontal(
+                                  left: Radius.circular(20),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 16,
+                                    right: 4,
+                                    top: 22,
+                                    bottom: 22,
+                                  ),
+                                  child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text(
-                                        timeStr,
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppTheme.primaryColor,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
                                       Row(
-                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
                                         children: [
-                                          Icon(
-                                            Icons.access_time_rounded,
-                                            size: 13,
-                                            color: AppTheme.secondaryTextColor,
+                                          // Left Column: Time & Frequency
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                timeStr,
+                                                style: TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppTheme.primaryColor,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.access_time_rounded,
+                                                    size: 13,
+                                                    color:
+                                                        AppTheme
+                                                            .secondaryTextColor,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    localizedFreq,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color:
+                                                          AppTheme
+                                                              .secondaryTextColor,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
                                           ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            localizedFreq,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color:
-                                                  AppTheme.secondaryTextColor,
+
+                                          // Subtle Vertical Divider
+                                          Container(
+                                            height: 42,
+                                            width: 1,
+                                            margin: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                            ),
+                                            color: AppTheme.secondaryTextColor
+                                                .withValues(alpha: 0.18),
+                                          ),
+
+                                          // Right Column: Medication Name & Presentation
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  tratamiento.nombreMedicamento,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: 17,
+                                                    fontWeight: FontWeight.bold,
+                                                    color:
+                                                        AppTheme
+                                                            .primaryTextColor,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 6),
+                                                Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    PillIcon(
+                                                      size: 13,
+                                                      color:
+                                                          AppTheme
+                                                              .secondaryTextColor,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Expanded(
+                                                      child: Text(
+                                                        dosePresentationText,
+                                                        maxLines: 1,
+                                                        overflow:
+                                                            TextOverflow
+                                                                .ellipsis,
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          color:
+                                                              AppTheme
+                                                                  .secondaryTextColor,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ],
                                       ),
-                                    ],
-                                  ),
 
-                                  // Subtle Vertical Divider
-                                  Container(
-                                    height: 42,
-                                    width: 1,
-                                    margin: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                    ),
-                                    color: AppTheme.secondaryTextColor
-                                        .withValues(alpha: 0.18),
-                                  ),
-
-                                  // Right Column: Medication Name & Presentation
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          tratamiento.nombreMedicamento,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 17,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppTheme.primaryTextColor,
+                                      // Caregiver Profile Tag
+                                      if (profile != null) ...[
+                                        const SizedBox(height: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
                                           ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            PillIcon(
-                                              size: 13,
-                                              color:
-                                                  AppTheme.secondaryTextColor,
+                                          decoration: BoxDecoration(
+                                            color: Color(
+                                              int.parse(
+                                                profile.colorHex.replaceFirst(
+                                                  '#',
+                                                  'FF',
+                                                ),
+                                                radix: 16,
+                                              ),
+                                            ).withValues(alpha: 0.05),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
                                             ),
-                                            const SizedBox(width: 4),
-                                            Expanded(
-                                              child: Text(
-                                                dosePresentationText,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color:
-                                                      AppTheme
-                                                          .secondaryTextColor,
+                                            border: Border.all(
+                                              color: Color(
+                                                int.parse(
+                                                  profile.colorHex.replaceFirst(
+                                                    '#',
+                                                    'FF',
+                                                  ),
+                                                  radix: 16,
+                                                ),
+                                              ).withValues(alpha: 0.2),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.person,
+                                                size: 12,
+                                                color: Color(
+                                                  int.parse(
+                                                    profile.colorHex
+                                                        .replaceFirst(
+                                                          '#',
+                                                          'FF',
+                                                        ),
+                                                    radix: 16,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                profile.name,
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(
+                                                    int.parse(
+                                                      profile.colorHex
+                                                          .replaceFirst(
+                                                            '#',
+                                                            'FF',
+                                                          ),
+                                                      radix: 16,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ],
-                                    ),
-                                  ),
-
-                                  // Three-dot Options Menu
-                                  GestureDetector(
-                                    onTap:
-                                        () => _showDoseOptionsDialog(
-                                          context,
-                                          tratamiento,
-                                          profile,
-                                          doseTime,
-                                          status,
-                                        ),
-                                    behavior: HitTestBehavior.opaque,
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                        left: 6.0,
-                                        right: 4.0,
-                                      ),
-                                      child: Icon(
-                                        Icons.more_vert,
-                                        color: AppTheme.secondaryTextColor,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              // Caregiver Profile Tag
-                              if (profile != null) ...[
-                                const SizedBox(height: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Color(
-                                      int.parse(
-                                        profile.colorHex.replaceFirst(
-                                          '#',
-                                          'FF',
-                                        ),
-                                        radix: 16,
-                                      ),
-                                    ).withValues(alpha: 0.05),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(
-                                      color: Color(
-                                        int.parse(
-                                          profile.colorHex.replaceFirst(
-                                            '#',
-                                            'FF',
-                                          ),
-                                          radix: 16,
-                                        ),
-                                      ).withValues(alpha: 0.2),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.person,
-                                        size: 12,
-                                        color: Color(
-                                          int.parse(
-                                            profile.colorHex.replaceFirst(
-                                              '#',
-                                              'FF',
-                                            ),
-                                            radix: 16,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        profile.name,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(
-                                            int.parse(
-                                              profile.colorHex.replaceFirst(
-                                                '#',
-                                                'FF',
-                                              ),
-                                              radix: 16,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
                                     ],
                                   ),
                                 ),
-                              ],
-                            ],
-                          ),
+                              ),
+                            ),
+
+                            // Entire Right Strip (Opens Dose Options Dialog)
+                            InkWell(
+                              onTap:
+                                  () => _showDoseOptionsDialog(
+                                    context,
+                                    tratamiento,
+                                    profile,
+                                    doseTime,
+                                    status,
+                                  ),
+                              borderRadius: const BorderRadius.horizontal(
+                                right: Radius.circular(20),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 6.0,
+                                  right: 14.0,
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    Icons.more_vert,
+                                    color: AppTheme.secondaryTextColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     },

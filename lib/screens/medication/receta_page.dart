@@ -1648,129 +1648,152 @@ class _RecetaPageState extends State<RecetaPage>
                               ) ??
                               'Cada ${tratamiento.intervaloDosis.inHours} horas');
 
-                  return InkWell(
-                    onTap: openContainer,
-                    borderRadius: BorderRadius.circular(20),
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        left: 16,
-                        right: 14,
-                        top: 22,
-                        bottom: 22,
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Left Column: Time & Frequency
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                timeStr,
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryColor,
-                                ),
+                  return IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Main Card Content (Opens Detail Screen)
+                        Expanded(
+                          child: InkWell(
+                            onTap: openContainer,
+                            borderRadius: const BorderRadius.horizontal(
+                              left: Radius.circular(20),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                left: 16,
+                                right: 4,
+                                top: 22,
+                                bottom: 22,
                               ),
-                              const SizedBox(height: 6),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Icon(
-                                    Icons.access_time_rounded,
-                                    size: 13,
-                                    color: AppTheme.secondaryTextColor,
+                                  // Left Column: Time & Frequency
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        timeStr,
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.primaryColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.access_time_rounded,
+                                            size: 13,
+                                            color: AppTheme.secondaryTextColor,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            localizedFreq,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color:
+                                                  AppTheme.secondaryTextColor,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    localizedFreq,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppTheme.secondaryTextColor,
+
+                                  // Subtle Vertical Divider
+                                  Container(
+                                    height: 42,
+                                    width: 1,
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                    ),
+                                    color: AppTheme.secondaryTextColor
+                                        .withValues(alpha: 0.18),
+                                  ),
+
+                                  // Right Column: Medication Name & Presentation
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          tratamiento.nombreMedicamento,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.primaryTextColor,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            PillIcon(
+                                              size: 13,
+                                              color:
+                                                  AppTheme.secondaryTextColor,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                dosePresentationText,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color:
+                                                      AppTheme
+                                                          .secondaryTextColor,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-
-                          // Subtle Vertical Divider
-                          Container(
-                            height: 42,
-                            width: 1,
-                            margin: const EdgeInsets.symmetric(horizontal: 10),
-                            color: AppTheme.secondaryTextColor.withValues(
-                              alpha: 0.18,
                             ),
                           ),
+                        ),
 
-                          // Right Column: Medication Name & Presentation
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  tratamiento.nombreMedicamento,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.primaryTextColor,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    PillIcon(
-                                      size: 13,
-                                      color: AppTheme.secondaryTextColor,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        dosePresentationText,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: AppTheme.secondaryTextColor,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Three-dot Options Menu
-                          GestureDetector(
-                            onTap:
-                                () => _showDoseOptionsDialog(
-                                  context,
-                                  tratamiento,
-                                  doseTime,
-                                  status,
-                                ),
-                            behavior: HitTestBehavior.opaque,
-                            child: Padding(
-                              padding: const EdgeInsets.only(
-                                left: 6.0,
-                                right: 4.0,
+                        // Entire Right Strip (Opens Dose Options Dialog)
+                        InkWell(
+                          onTap:
+                              () => _showDoseOptionsDialog(
+                                context,
+                                tratamiento,
+                                doseTime,
+                                status,
                               ),
+                          borderRadius: const BorderRadius.horizontal(
+                            right: Radius.circular(20),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                              left: 6.0,
+                              right: 14.0,
+                            ),
+                            child: Center(
                               child: Icon(
                                 Icons.more_vert,
                                 color: AppTheme.secondaryTextColor,
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   );
                 },
