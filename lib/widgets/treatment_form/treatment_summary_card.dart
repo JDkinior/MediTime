@@ -8,6 +8,7 @@ import 'package:printing/printing.dart';
 import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/core/utils.dart';
+import 'package:meditime/widgets/pill_icon.dart';
 
 /// Widget para mostrar el resumen del tratamiento
 class TreatmentSummaryCard extends StatelessWidget {
@@ -51,6 +52,31 @@ class TreatmentSummaryCard extends StatelessWidget {
       formData.presentacion,
     );
 
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildMainCard(
+          context,
+          l10n,
+          localizedPresentation,
+          getLocalizedDuration,
+        ),
+        if (formData.notas.trim().isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _buildNotesCard(context, l10n),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildMainCard(
+    BuildContext context,
+    AppLocalizations? l10n,
+    String localizedPresentation,
+    String Function() getLocalizedDuration,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -71,6 +97,24 @@ class TreatmentSummaryCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color:
+                      isDark
+                          ? const Color(0xFF1E293B)
+                          : const Color(0xFFDEEEFD),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                alignment: Alignment.center,
+                child: MedicationPresentationIcon(
+                  presentation: formData.presentacion,
+                  size: 22,
+                  color: const Color(0xFF0C53E8),
+                ),
+              ),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,11 +129,11 @@ class TreatmentSummaryCard extends StatelessWidget {
                         letterSpacing: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
                       formData.nombreMedicamento,
                       style: TextStyle(
-                        fontSize: 26,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.primaryTextColor,
                       ),
@@ -104,7 +148,7 @@ class TreatmentSummaryCard extends StatelessWidget {
                                 ? 'Apresentação'
                                 : 'Presentación'}: ',
                         style: const TextStyle(
-                          fontSize: 15,
+                          fontSize: 14,
                           color: Color(0xFF8E9BAE),
                           fontWeight: FontWeight.w400,
                         ),
@@ -129,34 +173,39 @@ class TreatmentSummaryCard extends StatelessWidget {
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     onTap: () => _generatePDF(context),
                     child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
-                        borderRadius: BorderRadius.circular(12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
                       ),
-                      alignment: Alignment.center,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 5,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0C53E8),
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: const Text(
-                          'PDF',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
+                      decoration: BoxDecoration(
+                        color:
+                            isDark
+                                ? const Color(0xFF1E293B)
+                                : const Color(0xFFE0F0FD),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.picture_as_pdf_rounded,
+                            size: 14,
+                            color: Color(0xFF0C53E8),
                           ),
-                        ),
+                          SizedBox(width: 4),
+                          Text(
+                            'PDF',
+                            style: TextStyle(
+                              color: Color(0xFF0C53E8),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -167,149 +216,162 @@ class TreatmentSummaryCard extends StatelessWidget {
 
           _buildDivider(),
 
-          // Sección Horarios y Duración
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Horarios
-              Expanded(
-                child: _buildSection(
-                  title: l10n?.treatmentSummarySchedules ?? 'Horarios',
+          // Sección Horarios y Duración con divisor vertical
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Horarios
+                Expanded(
+                  child: _buildSection(
+                    title: l10n?.treatmentSummarySchedules ?? 'Horarios',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: _generateScheduleTimes(context),
+                    ),
+                  ),
+                ),
+
+                Container(
+                  width: 1,
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  color: AppTheme.borderColor.withValues(alpha: 0.5),
+                ),
+
+                // Duración y Frecuencia
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: _generateScheduleTimes(context),
-                  ),
-                ),
-              ),
-
-              // Duración y Frecuencia
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSection(
-                      title: l10n?.treatmentSummaryDuration ?? 'Duración',
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            getLocalizedDuration(),
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.primaryTextColor,
-                            ),
-                          ),
-                          if (!formData.esIndefinido) ...[
-                            const SizedBox(height: 2),
+                    children: [
+                      _buildSection(
+                        title: l10n?.treatmentSummaryDuration ?? 'Duración',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              l10n?.treatmentSummaryDaysInParentheses(
-                                    formData.duracionEnDias,
-                                  ) ??
-                                  '(${formData.duracionEnDias} días)',
-                              style: const TextStyle(
-                                fontSize: 13.5,
-                                color: Color(0xFF8E9BAE),
+                              getLocalizedDuration(),
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryTextColor,
                               ),
                             ),
+                            if (!formData.esIndefinido) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                l10n?.treatmentSummaryDaysInParentheses(
+                                      formData.duracionEnDias,
+                                    ) ??
+                                    '(${formData.duracionEnDias} días)',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF8E9BAE),
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      (l10n?.treatmentSummaryFrequency ?? 'Frecuencia')
-                          .toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        color: Color(0xFF8E9BAE),
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.2,
+                      const SizedBox(height: 14),
+                      Text(
+                        (l10n?.treatmentSummaryFrequency ?? 'Frecuencia')
+                            .toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: Color(0xFF8E9BAE),
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.2,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      l10n?.treatmentSummaryEveryHours(
-                            formData.intervaloDosis,
-                          ) ??
-                          'Cada ${formData.intervaloDosis} horas',
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0C53E8),
+                      const SizedBox(height: 6),
+                      Text(
+                        l10n?.treatmentSummaryEveryHours(
+                              formData.intervaloDosis,
+                            ) ??
+                            'Cada ${formData.intervaloDosis} horas',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0C53E8),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
 
-          const SizedBox(height: 16),
+          _buildDivider(),
 
-          // Información adicional
-          Row(
-            children: [
-              Expanded(
-                child: Text.rich(
-                  TextSpan(
+          // Información adicional con iconos y divisor vertical
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Row(
                     children: [
-                      const TextSpan(
-                        text: '• ',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0C53E8),
-                        ),
+                      const Icon(
+                        Icons.vaccines_rounded,
+                        size: 18,
+                        color: Color(0xFF8E9BAE),
                       ),
-                      TextSpan(
-                        text:
-                            formData.esIndefinido
-                                ? (l10n?.treatmentSummaryAutoGenerated ??
-                                    'Dosis generadas automáticamente')
-                                : (l10n?.treatmentSummaryTotalDoses(
-                                          summaryInfo['totalDoses'] ??
-                                              formData.totalDoses.toString(),
-                                        ) ??
-                                        'Total ${summaryInfo['totalDoses']} dosis')
-                                    .replaceFirst(RegExp(r'^[•\s]+'), ''),
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          color: AppTheme.secondaryTextColor,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          formData.esIndefinido
+                              ? (l10n?.treatmentSummaryAutoGenerated ??
+                                  'Dosis generadas automáticamente')
+                              : (l10n?.treatmentSummaryTotalDoses(
+                                        summaryInfo['totalDoses'] ??
+                                            formData.totalDoses.toString(),
+                                      ) ??
+                                      'Total ${summaryInfo['totalDoses']} dosis')
+                                  .replaceFirst(RegExp(r'^[•\s]+'), ''),
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            color: AppTheme.secondaryTextColor,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              Expanded(
-                child: Text.rich(
-                  TextSpan(
+                Container(
+                  width: 1,
+                  height: 16,
+                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                  color: AppTheme.borderColor.withValues(alpha: 0.5),
+                ),
+                Expanded(
+                  child: Row(
                     children: [
-                      const TextSpan(
-                        text: '• ',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0C53E8),
-                        ),
+                      const Icon(
+                        Icons.calendar_today_rounded,
+                        size: 16,
+                        color: Color(0xFF8E9BAE),
                       ),
-                      TextSpan(
-                        text: (l10n?.treatmentSummaryUntil(
-                                  summaryInfo['endDate'] ?? '',
-                                ) ??
-                                'Hasta ${summaryInfo['endDate']}')
-                            .replaceFirst(RegExp(r'^[•\s]+'), ''),
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          color: AppTheme.secondaryTextColor,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          (l10n?.treatmentSummaryUntil(
+                                    summaryInfo['endDate'] ?? '',
+                                  ) ??
+                                  'Hasta ${summaryInfo['endDate']}')
+                              .replaceFirst(RegExp(r'^[•\s]+'), ''),
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            color: AppTheme.secondaryTextColor,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
 
           if (formData.cantidadTotalCaja > 0 ||
@@ -317,124 +379,153 @@ class TreatmentSummaryCard extends StatelessWidget {
             _buildDivider(),
             _buildSection(
               title: l10n?.treatmentSummaryStockTitle ?? 'Inventario y Stock',
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n?.treatmentSummaryStockAvailable(
-                                formData.cantidadActual,
-                                formData.cantidadTotalCaja,
-                              ) ??
-                              'Disponible: ${formData.cantidadActual} de ${formData.cantidadTotalCaja}',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.primaryTextColor,
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n?.treatmentSummaryStockAvailable(
+                                  formData.cantidadActual,
+                                  formData.cantidadTotalCaja,
+                                ) ??
+                                'Disponible: ${formData.cantidadActual} de ${formData.cantidadTotalCaja}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.primaryTextColor,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          l10n?.treatmentSummaryDosePerIntake(
-                                formData.dosisPorToma,
-                              ) ??
-                              'Dosis por toma: ${formData.dosisPorToma}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppTheme.secondaryTextColor,
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n?.treatmentSummaryDosePerIntake(
+                                  formData.dosisPorToma,
+                                ) ??
+                                'Dosis por toma: ${formData.dosisPorToma}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.secondaryTextColor,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n?.treatmentSummaryRemainingIntakes(
-                                (formData.dosisPorToma > 0)
-                                    ? (formData.cantidadActual /
-                                            formData.dosisPorToma)
-                                        .floor()
-                                    : 0,
-                              ) ??
-                              'Tomas restantes: ${(formData.dosisPorToma > 0) ? (formData.cantidadActual / formData.dosisPorToma).floor() : 0}',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color:
-                                (formData.cantidadActual < 5)
-                                    ? AppTheme.errorColor
-                                    : Colors.green,
-                          ),
-                        ),
-                      ],
+                    Container(
+                      width: 1,
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      color: AppTheme.borderColor.withValues(alpha: 0.5),
                     ),
-                  ),
-                ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n?.treatmentSummaryRemainingIntakes(
+                                  (formData.dosisPorToma > 0)
+                                      ? (formData.cantidadActual /
+                                              formData.dosisPorToma)
+                                          .floor()
+                                      : 0,
+                                ) ??
+                                'Tomas restantes: ${(formData.dosisPorToma > 0) ? (formData.cantidadActual / formData.dosisPorToma).floor() : 0}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color:
+                                  (formData.cantidadActual < 5)
+                                      ? AppTheme.errorColor
+                                      : Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
 
-          // Notas (solo si hay)
-          if (formData.notas.isNotEmpty) ...[
-            _buildDivider(),
-            _buildSection(
-              title: l10n?.treatmentSummaryNotes ?? 'Notas',
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    const TextSpan(
-                      text: '• ',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0C53E8),
-                      ),
-                    ),
-                    TextSpan(
-                      text: formData.notas.replaceFirst(RegExp(r'^[•\s]+'), ''),
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: AppTheme.primaryTextColor,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
+  Widget _buildNotesCard(BuildContext context, AppLocalizations? l10n) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF4F8FE),
+        borderRadius: BorderRadius.circular(16),
+        border:
+            (context.watch<PreferenceNotifier>().showCardBorder ||
+                    context.watch<PreferenceNotifier>().highContrast)
+                ? Border.all(color: AppTheme.borderColor)
+                : null,
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color:
+                      isDark
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFDEEEFD),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.description_rounded,
+                  size: 20,
+                  color: Color(0xFF0C53E8),
                 ),
               ),
-            ),
-          ] else ...[
-            _buildDivider(),
-            _buildSection(
-              title: l10n?.treatmentSummaryNotes ?? 'Notas',
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    const TextSpan(
-                      text: '• ',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0C53E8),
-                      ),
-                    ),
-                    TextSpan(
-                      text: (l10n?.treatmentSummaryNoNotes ?? 'Ninguna')
-                          .replaceFirst(RegExp(r'^[•\s]+'), ''),
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: AppTheme.secondaryTextColor,
-                      ),
-                    ),
-                  ],
+              const SizedBox(width: 12),
+              Text(
+                (l10n?.treatmentSummaryNotes ?? 'Notas').toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: Color(0xFF8E9BAE),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text.rich(
+            TextSpan(
+              children: [
+                const TextSpan(
+                  text: '• ',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0C53E8),
+                  ),
+                ),
+                TextSpan(
+                  text: formData.notas.replaceFirst(RegExp(r'^[•\s]+'), ''),
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    color: AppTheme.primaryTextColor,
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ],
       ),
     );
