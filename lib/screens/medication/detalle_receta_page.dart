@@ -689,89 +689,82 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     final timeStr = DateFormat('hh:mm a, d MMM', localeStr).format(nextDose);
     final remainingStr = _getTiempoRestante(nextDose, l10n);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF261D16) : const Color(0xFFFCF4ED),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color:
-              isDark
-                  ? Colors.white10
-                  : const Color(0xFFFE8A23).withValues(alpha: 0.12),
-        ),
-      ),
-      child: Row(
-        children: [
-          // Clock Badge with dual circle
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFE8A23).withValues(alpha: 0.16),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFE8A23),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: CustomPaint(
-                    size: const Size(16, 16),
-                    painter: _ClockHandsPainter(),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder:
+                  (_) => DetalleRecetaPage(
+                    tratamiento: widget.tratamiento,
+                    horaDosis: nextDose,
+                    profile: widget.profile,
                   ),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF261D16) : const Color(0xFFFCF4ED),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              // Clock Icon without circle
+              const Icon(
+                Icons.access_time_rounded,
+                color: Color(0xFFFE8A23),
+                size: 32,
+              ),
+              const SizedBox(width: 14),
+              // Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFFE8A23),
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      timeStr,
+                      style: TextStyle(
+                        fontSize: 17.5,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryTextColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      remainingStr,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFF6D7A90),
+                size: 24,
+              ),
+            ],
           ),
-          const SizedBox(width: 14),
-          // Content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFFFE8A23),
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  timeStr,
-                  style: TextStyle(
-                    fontSize: 17.5,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryTextColor,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  remainingStr,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w400,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: Color(0xFF6D7A90),
-            size: 24,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -788,26 +781,10 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       decoration: BoxDecoration(
         color: color.withValues(alpha: isDark ? 0.15 : 0.08),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.15)),
       ),
       child: Row(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.16),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                child: Icon(icon, color: Colors.white, size: 16),
-              ),
-            ),
-          ),
+          Icon(icon, color: color, size: 32),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -896,25 +873,4 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       'Finaliza el': formatter.format(fechaFin),
     };
   }
-}
-
-class _ClockHandsPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint =
-        Paint()
-          ..color = Colors.white
-          ..strokeWidth = 2.0
-          ..strokeCap = StrokeCap.round
-          ..style = PaintingStyle.stroke;
-
-    final center = Offset(size.width / 2, size.height / 2);
-    // 12 o'clock hand (vertical straight up)
-    canvas.drawLine(center, center + const Offset(0, -5.5), paint);
-    // 4:30 hand (diagonal down-right)
-    canvas.drawLine(center, center + const Offset(4.2, 4.2), paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
