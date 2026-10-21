@@ -25,6 +25,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:meditime/core/utils.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/widgets/modern_content_fade.dart';
+import 'package:meditime/widgets/calendar_expand_handle.dart';
 import 'package:meditime/widgets/pill_icon.dart';
 
 class CalendarioPage extends StatefulWidget {
@@ -207,11 +208,22 @@ class _CalendarioContenido extends StatefulWidget {
   State<_CalendarioContenido> createState() => _CalendarioContenidoState();
 }
 
-class _CalendarioContenidoState extends State<_CalendarioContenido> {
+class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleTickerProviderStateMixin {
+  static const double _kHeightWeek = 132.0;
+  static const double _kHeightTwoWeeks = 184.0;
+
   CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Animation<double>? _secondaryAnimation;
+
+  late AnimationController _snapController;
+  Animation<double>? _snapAnimation;
+  double? _interactiveHeight;
+  double _dragStartHeight = _kHeightWeek;
+  double _calendarDragY = 0.0;
+  bool _isDraggingCalendar = false;
+  CalendarFormat? _targetFormat;
 
   final Map<DateTime, Map<String, List<Map<String, dynamic>>>> _dayCache = {};
   final Set<DateTime> _populatedMonths = {};
@@ -222,6 +234,28 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
     _selectedDay = _focusedDay;
     _populateCacheForMonth(_focusedDay);
     _loadCalendarFormatSetting();
+
+    _snapController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+    );
+    _snapController.addListener(() {
+      setState(() {
+        _interactiveHeight = _snapAnimation?.value;
+      });
+    });
+    _snapController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() {
+          _isDraggingCalendar = false;
+          _interactiveHeight = null;
+          if (_targetFormat != null) {
+            _calendarFormat = _targetFormat!;
+            _targetFormat = null;
+          }
+        });
+      }
+    });
   }
 
   @override
@@ -243,8 +277,140 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
 
   @override
   void dispose() {
+    _snapController.dispose();
     _secondaryAnimation?.removeStatusListener(_onAnimationStatusChanged);
     super.dispose();
+  }
+
+  double _getMonthHeight(DateTime focusedDay) {
+    final first = DateTime(focusedDay.year, focusedDay.month, 1);
+    final last = DateTime(focusedDay.year, focusedDay.month + 1, 0);
+    final firstWeekday = first.weekday; // 1 = Monday, 7 = Sunday
+    final totalDays = (firstWeekday - 1) + last.day;
+    final rowCount = (totalDays / 7).ceil();
+    return 80.0 + rowCount * 52.0;
+  }
+
+  double _getHeightForFormat(CalendarFormat format) {
+    switch (format) {
+      case CalendarFormat.week:
+        return _kHeightWeek;
+      case CalendarFormat.twoWeeks:
+        return _kHeightTwoWeeks;
+      case CalendarFormat.month:
+        return _getMonthHeight(_focusedDay);
+    }
+  }
+
+  void _updateCalendarFormat(CalendarFormat format) {
+    if (_calendarFormat != format) {
+      setState(() => _calendarFormat = format);
+      final formatStr = format == CalendarFormat.week
+          ? 'weekly'
+          : (format == CalendarFormat.twoWeeks ? 'biweekly' : 'monthly');
+      Provider.of<PreferenceNotifier?>(context, listen: false)?.setCalendarFormat(formatStr);
+    }
+  }
+
+  void _handleDragStart() {
+    _snapController.stop();
+    _calendarDragY = 0.0;
+    setState(() {
+      _isDraggingCalendar = true;
+      _dragStartHeight = _interactiveHeight ?? _getHeightForFormat(_calendarFormat);
+      _interactiveHeight = _dragStartHeight;
+    });
+  }
+
+  void _handleDragUpdate(double totalDy) {
+    final minH = _kHeightWeek;
+    final maxH = _getMonthHeight(_focusedDay);
+    setState(() {
+      _interactiveHeight = (_dragStartHeight + totalDy).clamp(minH, maxH);
+    });
+  }
+
+  void _handleDragEnd(double velocity) {
+    _calendarDragY = 0.0;
+    final minH = _kHeightWeek;
+    final midH = _kHeightTwoWeeks;
+    final maxH = _getMonthHeight(_focusedDay);
+    final currentH = _interactiveHeight ?? _getHeightForFormat(_calendarFormat);
+
+    final threshold1 = (minH + midH) / 2; // 158.0
+    final threshold2 = (midH + maxH) / 2; // e.g. 262.0
+
+    CalendarFormat target;
+    double targetH;
+
+    if (velocity > 320.0) {
+      if (currentH < midH) {
+        target = CalendarFormat.twoWeeks;
+        targetH = midH;
+      } else {
+        target = CalendarFormat.month;
+        targetH = maxH;
+      }
+    } else if (velocity < -320.0) {
+      if (currentH > midH) {
+        target = CalendarFormat.twoWeeks;
+        targetH = midH;
+      } else {
+        target = CalendarFormat.week;
+        targetH = minH;
+      }
+    } else {
+      if (currentH < threshold1) {
+        target = CalendarFormat.week;
+        targetH = minH;
+      } else if (currentH < threshold2) {
+        target = CalendarFormat.twoWeeks;
+        targetH = midH;
+      } else {
+        target = CalendarFormat.month;
+        targetH = maxH;
+      }
+    }
+
+    _animateToHeightAndFormat(currentH, targetH, target);
+  }
+
+  void _handleDragCancel() {
+    _calendarDragY = 0.0;
+    final currentH = _interactiveHeight ?? _getHeightForFormat(_calendarFormat);
+    final targetH = _getHeightForFormat(_calendarFormat);
+    _animateToHeightAndFormat(currentH, targetH, _calendarFormat);
+  }
+
+  void _handleTap() {
+    _snapController.stop();
+    final currentH = _getHeightForFormat(_calendarFormat);
+    final CalendarFormat target;
+    final double targetH;
+
+    if (_calendarFormat == CalendarFormat.month) {
+      target = CalendarFormat.week;
+      targetH = _kHeightWeek;
+    } else {
+      target = CalendarFormat.month;
+      targetH = _getMonthHeight(_focusedDay);
+    }
+
+    _animateToHeightAndFormat(currentH, targetH, target);
+  }
+
+  void _animateToHeightAndFormat(double startH, double endH, CalendarFormat target) {
+    _targetFormat = target;
+    _snapAnimation = Tween<double>(begin: startH, end: endH).animate(
+      CurvedAnimation(parent: _snapController, curve: Curves.easeOutCubic),
+    );
+    _snapController.reset();
+    _snapController.forward();
+
+    final formatStr = target == CalendarFormat.week
+        ? 'weekly'
+        : (target == CalendarFormat.twoWeeks ? 'biweekly' : 'monthly');
+    Provider.of<PreferenceNotifier?>(context, listen: false)?.setCalendarFormat(formatStr);
   }
 
   Future<void> _loadCalendarFormatSetting() async {
@@ -1277,7 +1443,44 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                         ? Border.all(color: AppTheme.borderColor)
                         : null,
               ),
-              child: _buildCalendar(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onVerticalDragStart: (_) => _handleDragStart(),
+                    onVerticalDragUpdate: (details) {
+                      _calendarDragY += details.delta.dy;
+                      _handleDragUpdate(_calendarDragY);
+                    },
+                    onVerticalDragEnd: (details) {
+                      _handleDragEnd(details.primaryVelocity ?? 0.0);
+                    },
+                    onVerticalDragCancel: _handleDragCancel,
+                    child: ClipRect(
+                      child: SizedBox(
+                        height: _interactiveHeight ?? _getHeightForFormat(_calendarFormat),
+                        child: OverflowBox(
+                          alignment: Alignment.topCenter,
+                          minHeight: 0,
+                          maxHeight: _getMonthHeight(_focusedDay),
+                          child: _buildCalendar(),
+                        ),
+                      ),
+                    ),
+                  ),
+                  CalendarExpandHandle(
+                    calendarFormat: _calendarFormat,
+                    onFormatChanged: _updateCalendarFormat,
+                    isDragging: _isDraggingCalendar,
+                    onDragStart: _handleDragStart,
+                    onDragUpdate: (totalDy) => _handleDragUpdate(totalDy),
+                    onDragEnd: (velocity) => _handleDragEnd(velocity),
+                    onDragCancel: _handleDragCancel,
+                    onTap: _handleTap,
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -1407,6 +1610,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
   }
 
   Widget _buildCalendar() {
+    final isInteractive = _isDraggingCalendar || _snapController.isAnimating;
     final langCode = Localizations.localeOf(context).languageCode;
     final calendar = TableCalendar<Map<String, dynamic>>(
       locale: langCode == 'en' ? 'en_US' : 'es_ES',
@@ -1414,7 +1618,15 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
       lastDay: DateTime.utc(2030, 12, 31),
       focusedDay: _focusedDay,
       selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-      calendarFormat: _calendarFormat,
+      calendarFormat: isInteractive ? CalendarFormat.month : _calendarFormat,
+      availableCalendarFormats: const {
+        CalendarFormat.month: 'Month',
+        CalendarFormat.twoWeeks: '2 weeks',
+        CalendarFormat.week: 'Week',
+      },
+      availableGestures: AvailableGestures.horizontalSwipe,
+      formatAnimationDuration: Duration.zero,
+      formatAnimationCurve: Curves.easeInOutCubic,
       eventLoader:
           (day) => _getGroupedDosesForDay(day).values.expand((d) => d).toList(),
       onDaySelected: (selectedDay, focusedDay) {
@@ -1427,9 +1639,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
         }
       },
       onFormatChanged: (format) {
-        if (_calendarFormat != format) {
-          setState(() => _calendarFormat = format);
-        }
+        _updateCalendarFormat(format);
       },
       onPageChanged: (focusedDay) {
         setState(() {
