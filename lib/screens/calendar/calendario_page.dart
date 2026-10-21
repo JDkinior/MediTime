@@ -1705,7 +1705,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                         child: Padding(
                           padding: const EdgeInsets.only(
                             left: 24,
-                            right: 14,
+                            right: 20,
                             top: 22,
                             bottom: 22,
                           ),
@@ -1822,7 +1822,10 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                         ),
                                     behavior: HitTestBehavior.opaque,
                                     child: Padding(
-                                      padding: const EdgeInsets.only(left: 6.0),
+                                      padding: const EdgeInsets.only(
+                                        left: 8.0,
+                                        right: 6.0,
+                                      ),
                                       child: Icon(
                                         Icons.more_vert,
                                         color: AppTheme.secondaryTextColor,
