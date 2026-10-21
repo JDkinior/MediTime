@@ -6,7 +6,8 @@ import 'package:meditime/theme/app_theme.dart';
 
 /// Barra indicadora táctil y visual colocada en la base del contenedor blanco
 /// del calendario para mostrar y permitir expandir (semanal -> quincenal -> mensual)
-/// o contraer (mensual -> quincenal -> semanal) de forma gradual y suave.
+/// o contraer (mensual -> quincenal -> semanal) de forma gradual y suave,
+/// siguiendo el dedo y avanzando un nivel controlado por deslizamiento.
 class CalendarExpandHandle extends StatefulWidget {
   final CalendarFormat calendarFormat;
   final ValueChanged<CalendarFormat> onFormatChanged;
@@ -28,10 +29,11 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
     CalendarFormat.month,
   ];
 
-  static const double _dragStepThreshold = 22.0;
+  static const double _dragThreshold = 25.0;
 
   double _dragAccumulator = 0.0;
-  bool _stepTriggeredDuringDrag = false;
+  double _visualOffset = 0.0;
+  int? _lastTriggeredDirection; // 1 = down, -1 = up, null = none
   bool _isDragging = false;
 
   void _stepExpand() {
@@ -53,7 +55,8 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
       setState(() {
         _isDragging = false;
         _dragAccumulator = 0.0;
-        _stepTriggeredDuringDrag = false;
+        _visualOffset = 0.0;
+        _lastTriggeredDirection = null;
       });
     }
   }
@@ -98,7 +101,8 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
             setState(() {
               _isDragging = true;
               _dragAccumulator = 0.0;
-              _stepTriggeredDuringDrag = false;
+              _visualOffset = 0.0;
+              _lastTriggeredDirection = null;
             });
           },
           onVerticalDragStart: (_) {
@@ -108,32 +112,34 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
           },
           onVerticalDragUpdate: (details) {
             _dragAccumulator += details.delta.dy;
-            final currentIndex = _formatOrder.indexOf(widget.calendarFormat).clamp(0, _formatOrder.length - 1);
+            _visualOffset = (_dragAccumulator * 0.35).clamp(-8.0, 8.0);
 
-            if (_dragAccumulator >= _dragStepThreshold) {
-              if (currentIndex < _formatOrder.length - 1) {
-                _stepTriggeredDuringDrag = true;
+            if (_dragAccumulator >= _dragThreshold) {
+              // Solo disparar si no se ha disparado ya en dirección hacia abajo en este gesto
+              if (_lastTriggeredDirection != 1) {
+                _lastTriggeredDirection = 1;
                 _stepExpand();
                 _dragAccumulator = 0.0;
-              } else {
-                _dragAccumulator = _dragStepThreshold;
               }
-            } else if (_dragAccumulator <= -_dragStepThreshold) {
-              if (currentIndex > 0) {
-                _stepTriggeredDuringDrag = true;
+            } else if (_dragAccumulator <= -_dragThreshold) {
+              // Solo disparar si no se ha disparado ya en dirección hacia arriba en este gesto
+              if (_lastTriggeredDirection != -1) {
+                _lastTriggeredDirection = -1;
                 _stepCollapse();
                 _dragAccumulator = 0.0;
-              } else {
-                _dragAccumulator = -_dragStepThreshold;
               }
+            }
+
+            if (mounted) {
+              setState(() {});
             }
           },
           onVerticalDragEnd: (details) {
             final velocity = details.primaryVelocity ?? 0.0;
-            if (!_stepTriggeredDuringDrag) {
-              if (velocity > 150 || _dragAccumulator >= 10.0) {
+            if (_lastTriggeredDirection == null) {
+              if (velocity > 180 || _dragAccumulator >= 12.0) {
                 _stepExpand();
-              } else if (velocity < -150 || _dragAccumulator <= -10.0) {
+              } else if (velocity < -180 || _dragAccumulator <= -12.0) {
                 _stepCollapse();
               }
             }
@@ -144,15 +150,18 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
             width: double.infinity,
             padding: const EdgeInsets.only(top: 4.0, bottom: 9.0),
             alignment: Alignment.center,
-            child: AnimatedContainer(
-              key: const Key('calendar_expand_handle_bar'),
-              duration: const Duration(milliseconds: 150),
-              curve: Curves.easeOutCubic,
-              width: _isDragging ? 48 : 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: handleColor,
-                borderRadius: BorderRadius.circular(2),
+            child: Transform.translate(
+              offset: Offset(0, _visualOffset),
+              child: AnimatedContainer(
+                key: const Key('calendar_expand_handle_bar'),
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeOutCubic,
+                width: _isDragging ? 48 : 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: handleColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
           ),
