@@ -1666,7 +1666,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
               ],
             ),
           ),
-          const SizedBox(width: 18),
+          const SizedBox(width: 14),
 
           // Dose Card (Right)
           Expanded(
@@ -1704,8 +1704,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                         borderRadius: BorderRadius.circular(20),
                         child: Padding(
                           padding: const EdgeInsets.only(
-                            left: 24,
-                            right: 20,
+                            left: 12,
+                            right: 10,
                             top: 22,
                             bottom: 22,
                           ),
@@ -1758,7 +1758,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                     height: 42,
                                     width: 1,
                                     margin: const EdgeInsets.symmetric(
-                                      horizontal: 16,
+                                      horizontal: 10,
                                     ),
                                     color: AppTheme.secondaryTextColor
                                         .withValues(alpha: 0.18),
@@ -1823,8 +1823,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
                                     behavior: HitTestBehavior.opaque,
                                     child: Padding(
                                       padding: const EdgeInsets.only(
-                                        left: 8.0,
-                                        right: 6.0,
+                                        left: 4.0,
+                                        right: 2.0,
                                       ),
                                       child: Icon(
                                         Icons.more_vert,
