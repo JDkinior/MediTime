@@ -16,7 +16,7 @@
 | Campo Institucional | Detalle Oficial del Proyecto |
 | :--- | :--- |
 | **Título del Proyecto:** | Desarrollo de una Aplicación Móvil para la Gestión de Tratamientos Médicos (MediTime) |
-| **Versión del Software:** | 2.35.0 |
+| **Versión del Software:** | 2.36.0 |
 | **Autores / Ingenieros Desarrolladores:** | **Jorge Eliecer Delgado Cortés**<br>**Johan Alexander Arévalo Contreras** |
 | **Programa Académico:** | Ingeniería de Sistemas y Computación |
 | **Facultad:** | Facultad de Ingeniería |
@@ -67,7 +67,7 @@
 
 ## 1. INTRODUCCIÓN Y RESUMEN TÉCNICO
 
-El presente **Manual Técnico** provee la especificación rigurosa de la ingeniería, arquitectura de software, patrones de diseño, modelo de datos y protocolos de comunicación implementados en **MediTime** (versión **2.35.0**).
+El presente **Manual Técnico** provee la especificación rigurosa de la ingeniería, arquitectura de software, patrones de diseño, modelo de datos y protocolos de comunicación implementados en **MediTime** (versión **2.36.0**).
 
 MediTime es una solución móvil empresarial orientada a la salud digital (*mHealth*), construida sobre el framework **Flutter** y el lenguaje **Dart**, con persistencia en la nube provista por **Google Cloud Firebase** y capacidades cognitivas soportadas en modelos fundacionales de inteligencia artificial ejecutados a baja latencia sobre la infraestructura de **Groq Cloud**.
 
@@ -80,7 +80,7 @@ El propósito de este documento es otorgar al equipo de ingeniería, a los evalu
 | Componente | Especificación Técnica | Justificación Tecnológica |
 | :--- | :--- | :--- |
 | **Nombre del Sistema:** | MediTime | Plataforma integral para la gestión farmacológica. |
-| **Versión Actual:** | 2.35.0 | Versión final estable y auditada para C3 (2026). |
+| **Versión Actual:** | 2.36.0 | Versión final estable y auditada para C3 (2026). |
 | **Framework Base:** | Flutter SDK 3.7.0+ (Canal Stable) | Renderizado reactivo a 60/120 fps con Skia/Impeller. |
 | **Lenguaje de Programación:** | Dart 3.7+ con *Sound Null Safety* | Tipado estricto, análisis estático y sealed classes. |
 | **Plataforma Primaria:** | Android (API Level 26 a 34+) | Cobertura superior al 95% del ecosistema móvil colombiano. |
@@ -278,15 +278,21 @@ A continuación se detalla la responsabilidad técnica de cada uno de los archiv
 - `widgets/profile_avatar.dart`: Widget optimizado para renderizar avatares con soporte de caché local persistente y fallback de iniciales temáticas.
 - `screens/alarm/alarm_ringing_page.dart`: Pantalla completa que se superpone a la pantalla de bloqueo cuando suena una alarma crítica.
 - `screens/auth/`: Vistas de autenticación (`login_page.dart`, `register_page.dart`).
-- `screens/calendar/calendario_page.dart`: Vista de calendario interactivo mensual y lista diaria con sincronización de perfiles.
+- `screens/calendar/calendario_page.dart`: Vista de calendario interactivo con soporte de arrastre continuo multinivel (`CalendarExpandHandle`) para alternar entre formatos semanal, quincenal y mensual con retroalimentación gestual instantánea y sincronización de perfiles.
 - `screens/caregiver/`: Pantallas de administración y alta de perfiles humanos y animales (`manage_caregiver_profiles_page.dart`, `add_edit_caregiver_profile_page.dart`).
-- `screens/chat/chat_bot_screen.dart`: Interfaz conversacional con el asistente Midi, con avatar animado, burbujas de chat asimétricas y soporte para adjuntos de cámara.
+- `screens/chat/chat_bot_screen.dart`: Interfaz conversacional con el asistente Midi modularizada mediante componentes desacoplados (`ChatBubble`, `AdherenceChartCard`, `PrescriptionFormCard`, `AnimatedTypingDots`).
 - `screens/home/home_page.dart`: Dashboard principal con vista de dosis del día, indicador de perfil de mascota/paciente activo (`Icons.pets_rounded`), resumen de progreso y tutorial `showcaseview`.
-- `screens/medication/`: Flujos de creación adaptados para mascotas (`agregar_receta_page.dart`), inspección (`detalle_receta_page.dart`), listado general y resúmenes. En `receta_page.dart` se incluye el carrusel superior de micro-consejos clínicos de IA respaldados en caché local de 12 horas.
-- `screens/reports/`: Vistas de análisis de adherencia (`progreso_page.dart`, `reportes_page.dart`, `adherencia_chart.dart`).
+- `screens/medication/`: Flujos de creación (`agregar_receta_page.dart`), inspección (`detalle_receta_page.dart`), listado general (`receta_page.dart`) y el nuevo editor de medicamentos en pantalla única (`editar_tratamiento_page.dart`) con ajuste dinámico de tomas y frecuencias. Incorpora tarjetas modulares `RecetaSummaryCard`, transiciones fluidas a 120 FPS (`ContainerTransformCard`) y carrusel de consejos clínicos de IA con caché de 12 horas.
+- `screens/reports/`: Vistas de análisis de adherencia (`progreso_page.dart`, `reportes_page.dart`) modularizadas con hojas modales `EvolutionDetailsSheet`, `FullHistorySheet`, `OmissionAnalysisSheet` y gráfica vectorial `MultiSegmentRingPainter`.
 - `screens/onboarding/onboarding_page.dart`: Asistente de bienvenida y calibración inicial en 5 pasos (perfil/foto, propósito con colores temáticos dinámicos: azul para uso personal, morado para modo cuidador y verde para modo animales con garantía de exclusividad mutua, estilo visual y modalidad de alarmas).
-- `screens/shared/`: Pantallas de configuración, accesibilidad, **Modo Animales (`modo_animales_opciones_page.dart`)**, localización de farmacias, datos de privacidad, visor de marco normativo y consentimientos informados (`legal_document_page.dart`) y guía de optimización por fabricante.
-- `widgets/`: Componentes modulares reutilizables: contenedor universal de barras superiores con degradado dinámico (`modern_app_bar.dart`), difuminado suave superior para listas desplazables (`modern_content_fade.dart`), motor de renderizado Markdown enriquecido para tablas y bloques clínicos de IA (`markdown_message_body.dart`), botones estilizados (`primary_button.dart`), campos de texto (`styled_text_field.dart`), menú lateral con sincronización cromática dinámica en todos los iconos de navegación y badge de modo (`drawer_widget.dart`), diálogos de cuidador/mascotas con aislamiento estricto de perfiles (`patient_selector_dialog.dart`) e indicador de avatar parpadeante (`midi_blinking_icon.dart`).
+- `screens/shared/`: Pantallas de configuración, accesibilidad, **Modo Animales (`modo_animales_opciones_page.dart`)**, selector de idiomas nativos (`idioma_opciones_page.dart`), localización de farmacias, datos de privacidad, visor de marco normativo y consentimientos informados (`legal_document_page.dart`) y guía de optimización por fabricante.
+- `widgets/`: Componentes modulares desacoplados:
+  * `container_transform_card.dart`: Transición GPU nativa a 120 FPS sin freeze de layout, con aislamiento de capas `RepaintBoundary` y precalentamiento `Offstage`.
+  * `calendar_expand_handle.dart`: Manejador gestual táctil con snap adaptativo para expansión de calendario.
+  * `pill_icon.dart`: Iconografía dinámica para presentaciones farmacéuticas (pastillas, cápsulas, jarabes, gotas, suspensiones, sobres).
+  * `modern_app_bar.dart` y `modern_content_fade.dart`: Sistema de cabeceras universales con degradados y scroll fade.
+  * `markdown_message_body.dart`: Renderizado de Markdown clínico, tablas y bloques.
+  * `drawer_widget.dart`: Menú lateral unificado con sincronización temática total en modo claro y oscuro.
 
 ### 4.8. Puntos de Entrada del Sistema
 - `main.dart`: Punto de inicio del runtime. Inicializa los bindings de Flutter, Firebase Core, el servicio de notificaciones, configura la inyección de dependencias con `MultiProvider` y define las rutas de navegación.
@@ -546,17 +552,23 @@ El proyecto implementa un estricto conjunto de reglas en `analysis_options.yaml`
 - Verificación estricta de *Sound Null Safety* sin tolerancia a tipos dinámicos no inferidos.
 - Prevención de uso de contextos asíncronos inválidos (`use_build_context_synchronously`).
 
-### 10.2. Ejecución de Pruebas Automatizadas
+### 10.2. Integración Continua (CI/CD) con GitHub Actions
+El proyecto cuenta con un flujo automatizado de Integración Continua configurado en `.github/workflows/flutter_ci.yml` que se dispara ante cada *push* o *pull request* hacia la rama `main`, garantizando:
+1. Verificación estricta de formato de código (`dart format --output=none --set-exit-if-changed`).
+2. Análisis estático riguroso (`flutter analyze`) con cero advertencias y cero errores tolerados.
+3. Ejecución de la suite completa de **194 pruebas automatizadas** (`flutter test`) con cobertura exhaustiva de widgets, lógica de negocio y servicios.
+
+### 10.3. Ejecución de Pruebas Automatizadas en Entorno Local
 Para auditar la integridad del código fuente antes de un despliegue:
 ```bash
-# Ejecución de análisis estático:
+# Ejecución de análisis estático (0 issues):
 flutter analyze
 
-# Ejecución de la suite de pruebas unitarias:
+# Ejecución de la suite completa de 194 pruebas unitarias y de widgets:
 flutter test
 ```
 
-### 10.3. Verificación de Compatibilidad y Resiliencia
+### 10.4. Verificación de Compatibilidad y Resiliencia
 Se han realizado pruebas de estrés en dispositivos físicos (Android 10, 12, 13 y 14) verificando:
 - Activación de alarmas tras reinicio del teléfono sin apertura de la aplicación.
 - Activación de alarmas con el dispositivo en modo ahorro de energía extremo.

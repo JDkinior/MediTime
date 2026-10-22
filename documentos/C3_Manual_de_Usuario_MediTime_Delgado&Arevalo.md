@@ -16,7 +16,7 @@
 | Campo Institucional | Detalle Oficial del Proyecto |
 | :--- | :--- |
 | **Título del Proyecto:** | Desarrollo de una Aplicación Móvil para la Gestión de Tratamientos Médicos (MediTime) |
-| **Versión del Software:** | 2.35.0 |
+| **Versión del Software:** | 2.36.0 |
 | **Autores / Investigadores:** | **Jorge Eliecer Delgado Cortés**<br>**Johan Alexander Arévalo Contreras** |
 | **Programa Académico:** | Ingeniería de Sistemas y Computación |
 | **Facultad:** | Facultad de Ingeniería |
@@ -88,7 +88,7 @@
 
 ## 1. INTRODUCCIÓN Y PROPÓSITO DEL MANUAL
 
-El presente documento constituye el **Manual de Usuario** oficial de la solución tecnológica **MediTime** en su versión **2.35.0**, desarrollada en el marco del Proyecto de Grado del programa de **Ingeniería de Sistemas y Computación** de la **Universidad de Cundinamarca, Seccional Ubaté**.
+El presente documento constituye el **Manual de Usuario** oficial de la solución tecnológica **MediTime** en su versión **2.36.0**, desarrollada en el marco del Proyecto de Grado del programa de **Ingeniería de Sistemas y Computación** de la **Universidad de Cundinamarca, Seccional Ubaté**.
 
 ### 1.1. Propósito
 El objetivo primordial de esta guía es orientar al usuario final (paciente, familiar o cuidador asistencial) en la correcta operación, parametrización y aprovechamiento de todas las funcionalidades ofrecidas por el aplicativo móvil. La plataforma ha sido diseñada con un enfoque centrado en la accesibilidad, la usabilidad y la confiabilidad, garantizando que personas de diversos grupos etarios puedan gestionar sus tratamientos médicos con total autonomía y precisión.
@@ -216,7 +216,7 @@ MediTime incorpora un algoritmo de control de existencias farmacéuticas:
 
 ### 5.5. Consulta, Edición, Suspensión y Eliminación de Recetas
 - **Ver detalle:** Al pulsar sobre cualquier tarjeta en la pantalla principal o lista de medicamentos, se presenta el desglose posológico, el porcentaje de tomas cumplidas y el inventario disponible.
-- **Modificación:** Presione el icono de lápiz para editar horarios, notas médicas o dosis.
+- **Modificación y Edición Integral:** Presione el botón de edición (icono de lápiz en la barra superior de `DetalleRecetaPage`) para acceder a la nueva pantalla de edición en pantalla única (`EditarTratamientoPage`). Desde allí podrá reajustar los horarios programados de cada toma individual, alterar la frecuencia o duración, cambiar la presentación farmacéutica y actualizar notas médicas con reprogramación atómica de alarmas.
 - **Eliminación y Revocación:** Si un tratamiento finaliza anticipadamente o es cancelado por el médico, pulse el botón de papelera. MediTime cancelará de inmediato todas las alarmas programadas en el hardware del sistema a través del método `cancelTreatmentAlarms()`.
 
 ### 5.6. Consejos y Micro-Recomendaciones Clínicas con IA
@@ -262,10 +262,11 @@ En la sección de ajustes, se puede personalizar:
 
 MediTime incorpora un visor de calendario mensual interactivo (`TableCalendar`) que ofrece trazabilidad visual y temporal sobre la ingesta farmacológica.
 
-### 7.1. Vista Mensual y Diaria
-- En la pestaña inferior **"Calendario"**, se expone el mes en curso.
+### 7.1. Vista Mensual, Diaria y Expansión Fluida
+- En la pestaña inferior **"Calendario"**, se expone el calendario interactivo.
+- **Control Gestual de Expansión (`CalendarExpandHandle`):** Mediante la barra de arrastre táctil situada en la base del calendario, el usuario puede alternar de manera continua y fluida entre vista semanal (1 fila), quincenal (2 semanas) y mensual completa (formato expandido), con un ajuste magnético (*snap*) que acompaña con precisión el movimiento del dedo.
 - Los días que cuentan con tomas programadas exhiben indicadores visuales circulares.
-- Al presionar cualquier fecha específica, la parte inferior despliega la lista cronológica de las dosis programadas para ese día con su respectiva hora y estado.
+- Al presionar cualquier fecha específica, la parte inferior despliega la línea de tiempo dividida en dos columnas con iconografía adaptativa (`PillIcon`) según la presentación farmacéutica (comprimidos, jarabes, gotas, sobres, etc.) y botones de acción flotantes para gestionar tomas notificadas.
 
 ### 7.2. Código Cromático de Estados de Dosis
 Para una identificación rápida y universal, los estados de cada toma se distinguen mediante la siguiente convención de colores:

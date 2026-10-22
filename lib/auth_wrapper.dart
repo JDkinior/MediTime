@@ -192,7 +192,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           await prefService.saveTermsAccepted(
             user.uid,
             accepted: true,
-            version: data['termsAcceptedVersion'] as String? ?? '2.35.0',
+            version: data['termsAcceptedVersion'] as String? ?? '2.36.0',
           );
         }
       }

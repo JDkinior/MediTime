@@ -22,7 +22,7 @@ class LegalSection {
 /// - Principios de protección de datos de salud (RGPD/GDPR, normativas de privacidad).
 /// - Deslinde explícito de responsabilidad clínica y farmacológica.
 class LegalContent {
-  static const String version = '2.35.0';
+  static const String version = '2.36.0';
   static const String lastUpdated = '11 de Octubre de 2026';
   static const String legalEntity = 'MediTime App';
   static const String contactEmail = 'privacidad@meditime.app';
