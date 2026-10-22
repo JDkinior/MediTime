@@ -2151,6 +2151,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     final user = authService.currentUser;
 
     return Drawer(
+      backgroundColor: AppTheme.backgroundColor,
       child: Column(
         children: [
           DrawerHeader(
