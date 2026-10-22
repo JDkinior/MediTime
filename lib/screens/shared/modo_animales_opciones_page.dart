@@ -55,7 +55,7 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
                   color: (isAnimalActive ? AppTheme.primaryColor : Colors.black).withValues(alpha: 0.25),
@@ -146,19 +146,14 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
           const SizedBox(height: 24),
 
           if (isAnimalActive) ...[
-            Text(
+            _buildSectionHeader(
               'Modalidad de Cuidado Animal',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.secondaryTextColor,
-              ),
+              'Selecciona si es para mascotas del hogar o clínica veterinaria.',
             ),
-            const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
                 border: (preferenceNotifier.showCardBorder || preferenceNotifier.highContrast)
                     ? Border.all(color: AppTheme.borderColor)
                     : null,
@@ -201,19 +196,14 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
             ),
             const SizedBox(height: 24),
 
-            Text(
+            _buildSectionHeader(
               'Notificaciones y Alertas Veterinarias',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.secondaryTextColor,
-              ),
+              'Configura las alertas de medicamentos y ubicación para animales.',
             ),
-            const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
                 border: (preferenceNotifier.showCardBorder || preferenceNotifier.highContrast)
                     ? Border.all(color: AppTheme.borderColor)
                     : null,
@@ -258,21 +248,16 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
             ),
             const SizedBox(height: 24),
 
-            Text(
+            _buildSectionHeader(
               'Gestión de Pacientes Animales',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.secondaryTextColor,
-              ),
+              'Administra los animales registrados y sus historiales clínicos.',
             ),
-            const SizedBox(height: 12),
             Material(
               color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
               child: Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                   border: (preferenceNotifier.showCardBorder || preferenceNotifier.highContrast)
                       ? Border.all(color: AppTheme.borderColor)
                       : null,
@@ -318,4 +303,31 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
     ),
   );
 }
+
+  Widget _buildSectionHeader(String title, String subtitle) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primaryTextColor,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.secondaryTextColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

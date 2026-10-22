@@ -212,7 +212,7 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
             ? Border.all(color: AppTheme.borderColor)
             : null,
@@ -230,7 +230,7 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
           Text(
             title,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
               color: AppTheme.primaryTextColor,
             ),

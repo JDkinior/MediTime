@@ -233,13 +233,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get languageSystemDesc => 'Seguir as configurações do dispositivo';
 
   @override
-  String get languageSpanish => 'Espanhol';
+  String get languageSpanish => 'Español';
 
   @override
-  String get languageSpanishDesc => 'Espanhol';
+  String get languageSpanishDesc => 'Espanhol (padrão)';
 
   @override
-  String get languageEnglish => 'Inglês';
+  String get languageEnglish => 'English';
 
   @override
   String get languageEnglishDesc => 'Inglês';

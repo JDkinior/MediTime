@@ -347,17 +347,9 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 4, bottom: 8),
-                  child: Text(
-                    'PRIVACIDAD Y SEGURIDAD',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
-                      color: AppTheme.secondaryTextColor,
-                    ),
-                  ),
+                _buildSectionHeader(
+                  title: 'Privacidad y seguridad',
+                  subtitle: 'Protege tus datos y la visibilidad de tus tratamientos.',
                 ),
                 _buildListTileCard(
                   child: SwitchListTile(
@@ -432,17 +424,9 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.only(left: 4, bottom: 8),
-                  child: Text(
-                    'DOCUMENTACIÓN LEGAL Y TRANSPARENCIA',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
-                      color: AppTheme.secondaryTextColor,
-                    ),
-                  ),
+                _buildSectionHeader(
+                  title: 'Documentación legal y transparencia',
+                  subtitle: 'Consulta las políticas vigentes y términos del servicio.',
                 ),
                 _buildListTileCard(
                   child: ListTile(
@@ -479,17 +463,10 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.only(left: 4, bottom: 8),
-                  child: Text(
-                    'GESTIÓN Y ELIMINACIÓN DE DATOS',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
-                      color: AppTheme.errorColor.withValues(alpha: 0.8),
-                    ),
-                  ),
+                _buildSectionHeader(
+                  title: 'Gestión y eliminación de datos',
+                  subtitle: 'Administra o borra permanentemente tu información registrada.',
+                  isDestructive: true,
                 ),
                 _buildListTileCard(
                   child: ListTile(
@@ -568,19 +545,50 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
     );
   }
 
+  Widget _buildSectionHeader({
+    required String title,
+    required String subtitle,
+    bool isDestructive = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, top: 4, bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDestructive ? AppTheme.errorColor : AppTheme.primaryTextColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.secondaryTextColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildListTileCard({required Widget child}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
             ? Border.all(color: AppTheme.borderColor)
             : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
+            blurRadius: 8,
             offset: const Offset(0, 4),
           ),
         ],

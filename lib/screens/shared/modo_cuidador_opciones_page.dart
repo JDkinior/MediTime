@@ -43,7 +43,7 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
                   color: (isActive ? AppTheme.primaryColor : Colors.black).withValues(alpha: 0.2),
@@ -129,19 +129,14 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
           const SizedBox(height: 24),
 
           if (isActive) ...[
-            Text(
+            _buildSectionHeader(
               'Perfil de Cuidador',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.secondaryTextColor,
-              ),
+              'Elige el tipo de entorno de cuidado y acompañamiento.',
             ),
-            const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
                 border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
                     ? Border.all(color: AppTheme.borderColor)
                     : null,
@@ -172,19 +167,14 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            Text(
+            _buildSectionHeader(
               'Notificaciones de Pacientes',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.secondaryTextColor,
-              ),
+              'Configura las alertas y datos incluidos en los avisos de dosis.',
             ),
-            const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
                 border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
                     ? Border.all(color: AppTheme.borderColor)
                     : null,
@@ -219,19 +209,14 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            Text(
+            _buildSectionHeader(
               'Gestión de Pacientes',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.secondaryTextColor,
-              ),
+              'Administra las personas a tu cargo y sus tratamientos.',
             ),
-            const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
                 border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
                     ? Border.all(color: AppTheme.borderColor)
                     : null,
@@ -262,5 +247,32 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
       ),
     ),
   );
+  }
+
+  Widget _buildSectionHeader(String title, String subtitle) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primaryTextColor,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.secondaryTextColor,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

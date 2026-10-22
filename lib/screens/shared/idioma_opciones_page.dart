@@ -9,6 +9,18 @@ import 'package:meditime/l10n/generated/app_localizations.dart';
 class IdiomaOpcionesPage extends StatelessWidget {
   const IdiomaOpcionesPage({super.key});
 
+  Widget _buildLanguageBadge(String code, bool isSelected) {
+    return Text(
+      code.toUpperCase(),
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 0.5,
+        color: isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -33,59 +45,63 @@ class IdiomaOpcionesPage extends StatelessWidget {
           : ModernContentFade(
               child: ListView(
                 padding: const EdgeInsets.all(16),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 4, bottom: 16),
-                  child: Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.secondaryTextColor,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 16),
+                    child: Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.secondaryTextColor,
+                      ),
                     ),
                   ),
-                ),
-                _buildLanguageCard(
-                  context: context,
-                  id: 'system',
-                  title: l10n?.languageSystem ?? 'Automático (Sistema)',
-                  description: l10n?.languageSystemDesc ?? 'Seguir la configuración del dispositivo',
-                  leadingWidget: const Icon(Icons.brightness_auto_rounded, color: Colors.blueAccent, size: 26),
-                  isSelected: currentCode == 'system',
-                  onTap: () => _changeLanguage(context, 'system'),
-                ),
-                const SizedBox(height: 12),
-                _buildLanguageCard(
-                  context: context,
-                  id: 'es',
-                  title: l10n?.languageSpanish ?? 'Español',
-                  description: l10n?.languageSpanishDesc ?? 'Español (predeterminado)',
-                  leadingWidget: const Text('🇪🇸', style: TextStyle(fontSize: 24)),
-                  isSelected: currentCode == 'es',
-                  onTap: () => _changeLanguage(context, 'es'),
-                ),
-                const SizedBox(height: 12),
-                _buildLanguageCard(
-                  context: context,
-                  id: 'en',
-                  title: l10n?.languageEnglish ?? 'English',
-                  description: l10n?.languageEnglishDesc ?? 'Inglés',
-                  leadingWidget: const Text('🇺🇸', style: TextStyle(fontSize: 24)),
-                  isSelected: currentCode == 'en',
-                  onTap: () => _changeLanguage(context, 'en'),
-                ),
-                const SizedBox(height: 12),
-                _buildLanguageCard(
-                  context: context,
-                  id: 'pt',
-                  title: l10n?.languagePortuguese ?? 'Português',
-                  description: l10n?.languagePortugueseDesc ?? 'Português',
-                  leadingWidget: const Text('🇧🇷', style: TextStyle(fontSize: 24)),
-                  isSelected: currentCode == 'pt',
-                  onTap: () => _changeLanguage(context, 'pt'),
-                ),
-              ],
+                  _buildLanguageCard(
+                    context: context,
+                    id: 'system',
+                    title: l10n?.languageSystem ?? 'Automático (Sistema)',
+                    description: l10n?.languageSystemDesc ?? 'Seguir la configuración del dispositivo',
+                    leadingWidget: Icon(
+                      Icons.brightness_auto_rounded,
+                      color: currentCode == 'system' ? AppTheme.primaryColor : Colors.blueAccent,
+                      size: 26,
+                    ),
+                    isSelected: currentCode == 'system',
+                    onTap: () => _changeLanguage(context, 'system'),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildLanguageCard(
+                    context: context,
+                    id: 'es',
+                    title: l10n?.languageSpanish ?? 'Español',
+                    description: l10n?.languageSpanishDesc ?? 'Español (predeterminado)',
+                    leadingWidget: _buildLanguageBadge('es', currentCode == 'es'),
+                    isSelected: currentCode == 'es',
+                    onTap: () => _changeLanguage(context, 'es'),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildLanguageCard(
+                    context: context,
+                    id: 'en',
+                    title: l10n?.languageEnglish ?? 'English',
+                    description: l10n?.languageEnglishDesc ?? 'Inglés',
+                    leadingWidget: _buildLanguageBadge('en', currentCode == 'en'),
+                    isSelected: currentCode == 'en',
+                    onTap: () => _changeLanguage(context, 'en'),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildLanguageCard(
+                    context: context,
+                    id: 'pt',
+                    title: l10n?.languagePortuguese ?? 'Português',
+                    description: l10n?.languagePortugueseDesc ?? 'Português',
+                    leadingWidget: _buildLanguageBadge('pt', currentCode == 'pt'),
+                    isSelected: currentCode == 'pt',
+                    onTap: () => _changeLanguage(context, 'pt'),
+                  ),
+                ],
+              ),
             ),
-          ),
     );
   }
 
@@ -121,88 +137,93 @@ class IdiomaOpcionesPage extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected
-                  ? AppTheme.primaryColor
-                  : (showBorder ? AppTheme.borderColor : Colors.transparent),
-              width: isSelected ? 2 : 1,
+      child: Semantics(
+        button: true,
+        selected: isSelected,
+        label: '$title, $description',
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected
+                    ? AppTheme.primaryColor
+                    : (showBorder ? AppTheme.borderColor : Colors.transparent),
+                width: isSelected ? 2 : 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppTheme.primaryColor.withValues(alpha: 0.12)
-                      : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-                  shape: BoxShape.circle,
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppTheme.primaryColor.withValues(alpha: 0.12)
+                        : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                    shape: BoxShape.circle,
+                  ),
+                  child: leadingWidget,
                 ),
-                child: leadingWidget,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: isSelected ? AppTheme.primaryColor : AppTheme.primaryTextColor,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? AppTheme.primaryColor : AppTheme.primaryTextColor,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      description,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.secondaryTextColor,
+                      const SizedBox(height: 2),
+                      Text(
+                        description,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.secondaryTextColor,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isSelected ? AppTheme.primaryColor : Colors.transparent,
-                  border: Border.all(
-                    color: isSelected ? AppTheme.primaryColor : Colors.grey.shade400,
-                    width: 2,
+                    ],
                   ),
                 ),
-                child: isSelected
-                    ? const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 16,
-                      )
-                    : null,
-              ),
-            ],
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                    border: Border.all(
+                      color: isSelected ? AppTheme.primaryColor : Colors.grey.shade400,
+                      width: 2,
+                    ),
+                  ),
+                  child: isSelected
+                      ? const Icon(
+                          Icons.check,
+                          color: Colors.white,
+                          size: 16,
+                        )
+                      : null,
+                ),
+              ],
+            ),
           ),
         ),
       ),
