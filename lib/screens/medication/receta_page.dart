@@ -21,6 +21,7 @@ import 'package:meditime/notifiers/caregiver_notifier.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'agregar_receta_page.dart';
 import 'detalle_receta_page.dart';
+import 'editar_tratamiento_page.dart';
 import 'package:meditime/widgets/container_transform_card.dart';
 import 'package:meditime/widgets/estado_vista.dart';
 import 'package:meditime/enums/view_state.dart';
@@ -1114,7 +1115,11 @@ class _RecetaPageState extends State<RecetaPage>
       if (!context.mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => AgregarRecetaPage(tratamientoToEdit: tratamiento),
+          builder:
+              (_) => EditarTratamientoPage(
+                tratamiento: tratamiento,
+                profile: activeProfile,
+              ),
         ),
       );
     }
