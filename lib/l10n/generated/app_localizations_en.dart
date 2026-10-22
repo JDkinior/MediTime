@@ -242,7 +242,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageEnglishDesc => 'English';
 
   @override
-  String get languagePortuguese => 'Portuguese';
+  String get languagePortuguese => 'Português';
 
   @override
   String get languagePortugueseDesc => 'Portuguese';
