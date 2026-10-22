@@ -19,7 +19,7 @@ import 'package:meditime/services/tratamiento_service.dart';
 import 'package:meditime/widgets/tutorial_tooltip.dart';
 import 'package:meditime/screens/medication/detalle_receta_page.dart';
 import 'package:meditime/widgets/container_transform_card.dart';
-import 'package:meditime/screens/medication/agregar_receta_page.dart';
+import 'package:meditime/screens/medication/editar_tratamiento_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:meditime/core/utils.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
@@ -1237,7 +1237,11 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> {
       if (!context.mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => AgregarRecetaPage(tratamientoToEdit: tratamiento),
+          builder:
+              (_) => EditarTratamientoPage(
+                tratamiento: tratamiento,
+                profile: profile,
+              ),
         ),
       );
     }

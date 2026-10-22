@@ -16,7 +16,7 @@ import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/widgets/modern_content_fade.dart';
-import 'package:meditime/screens/medication/agregar_receta_page.dart';
+import 'package:meditime/screens/medication/editar_tratamiento_page.dart';
 
 // CAMBIO: Convertimos a StatefulWidget para manejar el temporizador de la cuenta regresiva
 class DetalleRecetaPage extends StatefulWidget {
@@ -1178,7 +1178,11 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       if (!mounted) return;
       final result = await navigator.push<bool>(
         MaterialPageRoute(
-          builder: (_) => AgregarRecetaPage(tratamientoToEdit: _tratamiento),
+          builder:
+              (_) => EditarTratamientoPage(
+                tratamiento: _tratamiento,
+                profile: widget.profile,
+              ),
         ),
       );
       if (result == true) {

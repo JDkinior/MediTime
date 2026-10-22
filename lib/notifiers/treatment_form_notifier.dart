@@ -36,7 +36,8 @@ class TreatmentFormNotifier extends ChangeNotifier {
 
   List<String> get presentaciones {
     final list = List<String>.from(_presentacionesBase);
-    if (_formData.presentacion.isNotEmpty && !list.contains(_formData.presentacion)) {
+    if (_formData.presentacion.isNotEmpty &&
+        !list.contains(_formData.presentacion)) {
       list.add(_formData.presentacion);
     }
     return list;
@@ -49,11 +50,20 @@ class TreatmentFormNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Establece directamente los datos del formulario
+  void setFormData(TreatmentFormData data) {
+    _formData = data;
+    _clearError();
+    notifyListeners();
+  }
+
   /// Actualiza un tratamiento existente
   Future<bool> updateExistingTreatment({
     required Tratamiento originalTratamiento,
+    TreatmentFormData? formData,
     CaregiverProfile? profile,
   }) async {
+    final effectiveFormData = formData ?? _formData;
     final user = _authService.currentUser;
     if (user == null) {
       _setError('Error: Usuario no encontrado.');
@@ -61,7 +71,9 @@ class TreatmentFormNotifier extends ChangeNotifier {
     }
 
     // Validar datos
-    final validationError = _treatmentService.validateFormData(_formData);
+    final validationError = _treatmentService.validateFormData(
+      effectiveFormData,
+    );
     if (validationError != null) {
       _setError(validationError);
       return false;
@@ -73,7 +85,7 @@ class TreatmentFormNotifier extends ChangeNotifier {
         userId: user.uid,
         profile: profile,
         docId: originalTratamiento.id,
-        formData: _formData,
+        formData: effectiveFormData,
         originalTratamiento: originalTratamiento,
       );
 
