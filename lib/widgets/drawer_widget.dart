@@ -51,15 +51,9 @@ class CustomDrawer extends StatelessWidget {
     final isCaregiverActive = caregiver.isCaregiverModeActive;
     final isAnimalActive = preferences.isAnimalMode;
 
-    final headerBgColor = isDark
-        ? const Color(0xFF1E293B)
-        : (isAnimalActive
-            ? const Color(0xFFF9FAF5)
-            : (isCaregiverActive
-                ? const Color(0xFFFAF8F5)
-                : const Color(0xFFF0F6FE)));
-    final sectionHeaderColor = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
-    final dividerColor = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
+    final headerBgColor = AppTheme.backgroundColor;
+    final sectionHeaderColor = AppTheme.secondaryTextColor;
+    final dividerColor = AppTheme.borderColor;
 
     final themeIconColor = isDark
         ? (isAnimalActive
@@ -82,7 +76,7 @@ class CustomDrawer extends StatelessWidget {
                 : const Color(0xFFEFF6FF)));
 
     return Drawer(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+      backgroundColor: AppTheme.backgroundColor,
       child: Column(
         children: [
           // HEADER
@@ -97,7 +91,7 @@ class CustomDrawer extends StatelessWidget {
               color: headerBgColor,
               border: Border(
                 bottom: BorderSide(
-                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  color: AppTheme.borderColor,
                   width: 1,
                 ),
               ),
@@ -122,7 +116,7 @@ class CustomDrawer extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color: AppTheme.primaryTextColor,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -131,7 +125,7 @@ class CustomDrawer extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                          color: AppTheme.secondaryTextColor,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -425,7 +419,7 @@ class CustomDrawer extends StatelessWidget {
                         'MediTime v$version',
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                          color: AppTheme.secondaryTextColor,
                         ),
                       );
                     },
@@ -479,8 +473,8 @@ class _DrawerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final defaultTitleColor = isDark ? const Color(0xFFF1F5F9) : const Color(0xFF1E293B);
-    final subtitleColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final defaultTitleColor = AppTheme.primaryTextColor;
+    final subtitleColor = AppTheme.secondaryTextColor;
 
     return InkWell(
       onTap: onTap,

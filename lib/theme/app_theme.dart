@@ -307,6 +307,10 @@ class AppTheme {
       brightness: Brightness.light,
     ),
     scaffoldBackgroundColor: backgroundColor,
+    drawerTheme: DrawerThemeData(
+      backgroundColor: backgroundColor,
+      surfaceTintColor: Colors.transparent,
+    ),
     dialogTheme: DialogThemeData(
       backgroundColor: cardColor,
       surfaceTintColor: Colors.transparent,
@@ -346,6 +350,10 @@ class AppTheme {
       brightness: Brightness.dark,
     ),
     scaffoldBackgroundColor: backgroundColor,
+    drawerTheme: DrawerThemeData(
+      backgroundColor: backgroundColor,
+      surfaceTintColor: Colors.transparent,
+    ),
     dialogTheme: DialogThemeData(
       backgroundColor: cardColor,
       surfaceTintColor: Colors.transparent,

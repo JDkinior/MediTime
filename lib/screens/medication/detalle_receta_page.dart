@@ -900,16 +900,16 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     BuildContext context,
   ) {
     final localeStr = Localizations.localeOf(context).toString();
-    final DateFormat formatter = DateFormat.yMMMd(localeStr);
     final fechaFin = _tratamiento.fechaFinTratamiento;
+    final formattedEndDate = AppUtils.formatTwoDigitDate(fechaFin, localeStr);
 
     return {
       'durationText': formData.duracionText,
       'totalDoses': formData.totalDoses.toString(),
-      'endDate': formatter.format(fechaFin),
+      'endDate': formattedEndDate,
       'Frecuencia': 'Cada ${_tratamiento.intervaloDosis.inHours} horas',
       'Duración': '${_tratamiento.duracion} días',
-      'Finaliza el': formatter.format(fechaFin),
+      'Finaliza el': formattedEndDate,
     };
   }
 
