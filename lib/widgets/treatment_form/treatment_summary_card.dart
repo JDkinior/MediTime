@@ -280,9 +280,9 @@ class TreatmentSummaryCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           (l10n?.treatmentSummaryUntil(
-                                    summaryInfo['endDate'] ?? '',
+                                    _formatEndDateDisplay(context, summaryInfo['endDate']),
                                   ) ??
-                                  'Hasta ${summaryInfo['endDate']}')
+                                  'Hasta ${_formatEndDateDisplay(context, summaryInfo['endDate'])}')
                               .replaceFirst(RegExp(r'^[•\s]+'), ''),
                           style: TextStyle(
                             fontSize: 13,
@@ -527,6 +527,22 @@ class TreatmentSummaryCard extends StatelessWidget {
         const SizedBox(height: 16),
       ],
     );
+  }
+
+  String _formatEndDateDisplay(BuildContext context, String? rawDate) {
+    if (rawDate == null || rawDate.isEmpty) return '';
+    if (rawDate.toLowerCase().contains('sin') || rawDate.toLowerCase().contains('indefinid')) {
+      return rawDate;
+    }
+    if (RegExp(r'^\d{2}/\d{2}/\d{2}$').hasMatch(rawDate)) {
+      return rawDate;
+    }
+    final parsed = DateTime.tryParse(rawDate);
+    if (parsed != null) {
+      final localeStr = Localizations.localeOf(context).toString();
+      return AppUtils.formatTwoDigitDate(parsed, localeStr);
+    }
+    return rawDate;
   }
 
   String _formatScheduleTime(BuildContext context, TimeOfDay time) {

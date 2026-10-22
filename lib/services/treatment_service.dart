@@ -1,3 +1,4 @@
+import 'package:meditime/core/utils.dart';
 // lib/services/treatment_service.dart
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -229,7 +230,7 @@ class TreatmentService {
   }
 
   /// Calcula información de resumen del tratamiento
-  Map<String, String> calculateSummaryInfo(TreatmentFormData formData) {
+  Map<String, String> calculateSummaryInfo(TreatmentFormData formData, [String? localeCode]) {
     return {
       'dosesPerDay': formData.dosisPerDay.toString(),
       'totalDoses':
@@ -238,12 +239,12 @@ class TreatmentService {
       'endDate':
           formData.esIndefinido
               ? 'Sin fecha límite'
-              : _formatDate(formData.calculateEndDate(DateTime.now())),
+              : _formatDate(formData.calculateEndDate(DateTime.now()), localeCode),
     };
   }
 
-  /// Formatea una fecha para mostrar
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+  /// Formatea una fecha para mostrar con 2 dígitos por día, mes y año según el idioma
+  String _formatDate(DateTime date, [String? localeCode]) {
+    return AppUtils.formatTwoDigitDate(date, localeCode);
   }
 }

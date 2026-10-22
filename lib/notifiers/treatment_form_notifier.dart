@@ -226,8 +226,8 @@ class TreatmentFormNotifier extends ChangeNotifier {
   }
 
   /// Obtiene información de resumen
-  Map<String, String> getSummaryInfo() {
-    return _treatmentService.calculateSummaryInfo(_formData);
+  Map<String, String> getSummaryInfo([String? localeCode]) {
+    return _treatmentService.calculateSummaryInfo(_formData, localeCode);
   }
 
   /// Reinicia el formulario

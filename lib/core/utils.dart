@@ -149,8 +149,21 @@ class AppUtils {
     }
   }
 
+  /// Formats a DateTime using 2 numeric digits for day, month and year
+  /// according to the specified language/locale (e.g., 'MM/dd/yy' for English, 'dd/MM/yy' for Spanish/Portuguese).
+  static String formatTwoDigitDate(DateTime date, [String? localeCode]) {
+    final dd = date.day.toString().padLeft(2, '0');
+    final mm = date.month.toString().padLeft(2, '0');
+    final yy = (date.year % 100).toString().padLeft(2, '0');
+    final lang = (localeCode ?? 'es').toLowerCase();
+    if (lang.startsWith('en') && !lang.startsWith('en_gb')) {
+      return '$mm/$dd/$yy';
+    }
+    return '$dd/$mm/$yy';
+  }
+
   /// Formats a DateTime to a user-friendly date string
-  static String formatDate(DateTime date) {
+  static String formatDate(DateTime date, [String? localeCode]) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final dateToCheck = DateTime(date.year, date.month, date.day);
@@ -162,7 +175,7 @@ class AppUtils {
     } else if (dateToCheck == today.add(const Duration(days: 1))) {
       return 'Mañana';
     } else {
-      return '${date.day}/${date.month}/${date.year}';
+      return formatTwoDigitDate(date, localeCode);
     }
   }
 

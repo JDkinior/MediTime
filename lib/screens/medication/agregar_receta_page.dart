@@ -993,7 +993,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
 
                 TreatmentSummaryCard(
                   formData: notifier.formData,
-                  summaryInfo: notifier.getSummaryInfo(),
+                  summaryInfo: notifier.getSummaryInfo(Localizations.localeOf(context).toString()),
                 ),
 
                 const SizedBox(height: 12),
