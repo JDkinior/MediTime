@@ -420,6 +420,7 @@ class _PerfilPageState extends State<PerfilPage> {
         backgroundColor: AppTheme.backgroundColor,
         appBar: ModernAppBar(
           child: AppBar(
+            centerTitle: true,
             title: Text(AppLocalizations.of(context)?.profileTitle ?? 'Perfil'),
             elevation: 0,
             backgroundColor: Colors.transparent,

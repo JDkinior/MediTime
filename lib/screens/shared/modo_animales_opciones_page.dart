@@ -8,6 +8,7 @@ import 'package:meditime/screens/caregiver/manage_caregiver_profiles_page.dart';
 import 'package:meditime/core/subscription_guard.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/widgets/modern_content_fade.dart';
+import 'package:meditime/widgets/settings/settings_widgets.dart';
 
 class ModoAnimalesOpcionesPage extends StatefulWidget {
   const ModoAnimalesOpcionesPage({super.key});
@@ -17,6 +18,68 @@ class ModoAnimalesOpcionesPage extends StatefulWidget {
 }
 
 class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
+  static const Color _animalAccent = Color(0xFF389E6A);
+
+  Future<void> _toggleAnimalMode(
+    BuildContext context,
+    PreferenceNotifier preferenceNotifier,
+    CaregiverNotifier caregiverNotifier,
+    bool val,
+    String animalModeType,
+  ) async {
+    if (val) {
+      final canProceed = await SubscriptionGuard.canActivateAnimalMode(context);
+      if (!canProceed || !context.mounted) return;
+
+      final hadCaregiverMode = caregiverNotifier.isCaregiverModeActive;
+      if (hadCaregiverMode) {
+        await caregiverNotifier.setCaregiverModeActive(false);
+      }
+
+      // manageAlarms: false porque caregiverNotifier.onAnimalModeToggled(true)
+      // gestiona la desactivación/activación usando la caché de perfiles.
+      await preferenceNotifier.setAnimalMode(true, manageAlarms: false);
+      await caregiverNotifier.setModeType(CaregiverModeType.veterinario);
+      caregiverNotifier.ensureActiveProfileForMode(
+        isAnimalMode: true,
+        animalModeType: animalModeType,
+      );
+      await caregiverNotifier.onAnimalModeToggled(true);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                hadCaregiverMode
+                    ? 'Modo Animales activado (Modo Cuidador desactivado).'
+                    : 'Modo Animales activado.',
+              ),
+              backgroundColor: _animalAccent,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+      }
+    } else {
+      await preferenceNotifier.setAnimalMode(false, manageAlarms: false);
+      await caregiverNotifier.setModeType(CaregiverModeType.familiar);
+      caregiverNotifier.clearActiveProfile();
+      await caregiverNotifier.onAnimalModeToggled(false);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Modo Animales desactivado.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final preferenceNotifier = context.watch<PreferenceNotifier>();
@@ -24,17 +87,16 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
     final isAnimalActive = preferenceNotifier.isAnimalMode;
     final animalModeType = preferenceNotifier.animalModeType;
 
-    // Filter animal profiles if any, or all managed profiles when in animal mode
-    final animalProfiles = caregiverNotifier.managedProfiles.where((p) => p.isAnimal).toList();
-    final displayedCount = animalProfiles.isNotEmpty
-        ? animalProfiles.length
-        : caregiverNotifier.managedProfiles.length;
+    // Contar estrictamente perfiles de animales para no mezclar con pacientes humanos
+    final animalProfilesCount =
+        caregiverNotifier.managedProfiles.where((p) => p.isAnimal).length;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: ModernAppBar(
         child: AppBar(
           title: const Text('Modo Animales (Veterinaria)'),
+          centerTitle: true,
           elevation: 0,
           backgroundColor: Colors.transparent,
           foregroundColor: AppTheme.primaryTextColor,
@@ -42,292 +104,227 @@ class _ModoAnimalesOpcionesPageState extends State<ModoAnimalesOpcionesPage> {
       ),
       body: ModernContentFade(
         child: ListView(
-          padding: const EdgeInsets.all(16),
-        children: [
-          // Banner de estado con cambio a verde
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isAnimalActive
-                    ? [AppTheme.primaryColor, const Color(0xFF58BA8B)]
-                    : [Colors.grey.shade700, Colors.grey.shade900],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          children: [
+            SettingsSwitchTileCard(
+              title: 'Activar Modo Animales (Veterinaria)',
+              description:
+                  'Adapta la interfaz, recordatorios y fichas para mascotas del hogar o pacientes veterinarios.',
+              icon: Icons.pets_rounded,
+              activeColor: _animalAccent,
+              value: isAnimalActive,
+              onChanged: (val) => _toggleAnimalMode(
+                context,
+                preferenceNotifier,
+                caregiverNotifier,
+                val,
+                animalModeType,
               ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: (isAnimalActive ? AppTheme.primaryColor : Colors.black).withValues(alpha: 0.25),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
             ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    isAnimalActive ? Icons.pets_rounded : Icons.pets_outlined,
-                    color: Colors.white,
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isAnimalActive ? 'Modo Animales Activo' : 'Modo Animales Desactivado',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        isAnimalActive
-                            ? 'Interfaz y colores verdes adaptados para el cuidado de mascotas y atención veterinaria.'
-                            : 'Activa esta opción para adaptar la aplicación a la atención de mascotas o clínicas veterinarias.',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Switch(
-                  value: isAnimalActive,
-                  activeThumbColor: Colors.white,
-                  activeTrackColor: Colors.white.withValues(alpha: 0.4),
-                  onChanged: (val) async {
-                    if (val) {
-                      final canProceed = await SubscriptionGuard.canActivateAnimalMode(context);
-                      if (!canProceed || !context.mounted) return;
 
-                      // Exclusividad mutua: desactivar Modo Cuidador
-                      if (caregiverNotifier.isCaregiverModeActive) {
-                        await caregiverNotifier.setCaregiverModeActive(false);
-                      }
-                      await preferenceNotifier.setAnimalMode(true);
-                      await caregiverNotifier.setModeType(CaregiverModeType.veterinario);
-                      caregiverNotifier.ensureActiveProfileForMode(
-                        isAnimalMode: true,
-                        animalModeType: animalModeType,
-                      );
-                      await caregiverNotifier.onAnimalModeToggled(true);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Modo Animales activado (Modo Cuidador desactivado).'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      }
-                    } else {
-                      await preferenceNotifier.setAnimalMode(false);
-                      await caregiverNotifier.setModeType(CaregiverModeType.familiar);
-                      caregiverNotifier.clearActiveProfile();
-                      await caregiverNotifier.onAnimalModeToggled(false);
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          if (isAnimalActive) ...[
-            _buildSectionHeader(
-              'Modalidad de Cuidado Animal',
-              'Selecciona si es para mascotas del hogar o clínica veterinaria.',
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: (preferenceNotifier.showCardBorder || preferenceNotifier.highContrast)
-                    ? Border.all(color: AppTheme.borderColor)
-                    : null,
+            if (!isAnimalActive)
+              _buildInactiveFeatureOverview(
+                context,
+                preferenceNotifier,
+                caregiverNotifier,
+                animalModeType,
               ),
-              child: RadioGroup<String>(
-                groupValue: animalModeType,
-                onChanged: (val) {
-                  if (val != null) {
-                    preferenceNotifier.setAnimalModeType(val);
-                  }
+
+            if (isAnimalActive) ...[
+              const SettingsSectionHeader(
+                title: 'Modalidad de Cuidado Animal',
+                topPadding: 0,
+              ),
+              SettingsRadioOptionCard(
+                title: 'Mascota Individual / Hogar',
+                subtitle:
+                    'Para tutores de mascotas en tratamiento doméstico (ficha simplificada con especie, raza y peso).',
+                icon: Icons.home_rounded,
+                color: _animalAccent,
+                isSelected: animalModeType == 'individual',
+                onTap: () async {
+                  await preferenceNotifier.setAnimalModeType('individual');
+                  caregiverNotifier.ensureActiveProfileForMode(
+                    isAnimalMode: true,
+                    animalModeType: 'individual',
+                  );
                 },
-                child: Column(
-                  children: [
-                    RadioListTile<String>(
-                      title: const Text(
-                        'Mascota Individual / Hogar',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: const Text(
-                        'Para tutores de una sola mascota o animal en tratamiento doméstico en casa.',
-                      ),
-                      secondary: Icon(Icons.pets_rounded, color: AppTheme.primaryColor),
-                      value: 'individual',
-                    ),
-                    const Divider(height: 1),
-                    RadioListTile<String>(
-                      title: const Text(
-                        'Clínica Veterinaria / Multi-Animales',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: const Text(
-                        'Para veterinarias, consultorios o refugios con múltiples animales, boxes/jaulas y fichas clínicas.',
-                      ),
-                      secondary: Icon(Icons.local_hospital_rounded, color: AppTheme.primaryColor),
-                      value: 'veterinaria',
-                    ),
-                  ],
-                ),
               ),
-            ),
-            const SizedBox(height: 24),
+              SettingsRadioOptionCard(
+                title: 'Clínica Veterinaria / Multi-Animales',
+                subtitle:
+                    'Para veterinarias, hospitalización o refugios con múltiples animales, jaulas/boxes y microchip.',
+                icon: Icons.local_hospital_rounded,
+                color: _animalAccent,
+                isSelected: animalModeType == 'veterinaria',
+                onTap: () async {
+                  await preferenceNotifier.setAnimalModeType('veterinaria');
+                  caregiverNotifier.ensureActiveProfileForMode(
+                    isAnimalMode: true,
+                    animalModeType: 'veterinaria',
+                  );
+                },
+              ),
 
-            _buildSectionHeader(
-              'Notificaciones y Alertas Veterinarias',
-              'Configura las alertas de medicamentos y ubicación para animales.',
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: (preferenceNotifier.showCardBorder || preferenceNotifier.highContrast)
-                    ? Border.all(color: AppTheme.borderColor)
-                    : null,
+              const SettingsSectionHeader(
+                title: 'Notificaciones y Alertas Veterinarias',
+                topPadding: 12,
               ),
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    title: const Text(
-                      'Alertas de Medicamentos de Animales',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: const Text(
-                      'Recibir alarmas y recordatorios programados para las tomas de tus mascotas.',
-                    ),
-                    secondary: Icon(Icons.notifications_active_rounded, color: AppTheme.primaryColor),
-                    value: caregiverNotifier.notifyPatientDoses,
-                    activeThumbColor: AppTheme.primaryColor,
-                    onChanged: (val) {
-                      caregiverNotifier.setNotifyPatientDoses(val);
-                    },
-                  ),
-                  const Divider(height: 1),
-                  SwitchListTile(
-                    title: const Text(
-                      'Incluir Jaula, Box o Especie',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: const Text(
-                      'Muestra la jaula, box, canil o especie del animal en la notificación.',
-                    ),
-                    secondary: Icon(Icons.meeting_room_rounded, color: AppTheme.primaryColor),
-                    value: caregiverNotifier.includeLocationInNotifications,
-                    activeThumbColor: AppTheme.primaryColor,
-                    onChanged: caregiverNotifier.notifyPatientDoses
-                        ? (val) {
-                            caregiverNotifier.setIncludeLocationInNotifications(val);
-                          }
-                        : null,
-                  ),
-                ],
+              SettingsSwitchTileCard(
+                title: 'Alertas de medicamentos de animales',
+                description:
+                    'Recibir alarmas y recordatorios programados para las tomas de tus mascotas o pacientes veterinarios.',
+                value: caregiverNotifier.notifyPatientDoses,
+                icon: Icons.notifications_active_rounded,
+                activeColor: _animalAccent,
+                onChanged: (val) => caregiverNotifier.setNotifyPatientDoses(val),
               ),
-            ),
-            const SizedBox(height: 24),
+              SettingsSwitchTileCard(
+                title: 'Incluir jaula, box o especie en la alerta',
+                description:
+                    'Muestra la ubicación (jaula, canil, box) o la especie del animal directamente en la notificación.',
+                value: caregiverNotifier.includeLocationInNotifications,
+                enabled: caregiverNotifier.notifyPatientDoses,
+                icon: Icons.meeting_room_rounded,
+                activeColor: _animalAccent,
+                onChanged: (val) => caregiverNotifier.setIncludeLocationInNotifications(val),
+              ),
 
-            _buildSectionHeader(
-              'Gestión de Pacientes Animales',
-              'Administra los animales registrados y sus historiales clínicos.',
-            ),
-            Material(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: (preferenceNotifier.showCardBorder || preferenceNotifier.highContrast)
-                      ? Border.all(color: AppTheme.borderColor)
-                      : null,
-                ),
-                child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.pets_rounded, color: AppTheme.primaryColor),
-                ),
-                title: Text(
-                  animalModeType == 'individual'
-                      ? 'Ficha de la Mascota'
-                      : 'Gestionar Mascotas y Pacientes',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  animalModeType == 'individual'
-                      ? (displayedCount > 0
-                          ? '1 mascota configurada'
-                          : 'Configura el perfil de tu mascota')
-                      : '$displayedCount animales registrados',
-                ),
-                trailing: const Icon(Icons.chevron_right_rounded),
+              const SettingsSectionHeader(
+                title: 'Fichas de Mascotas y Pacientes',
+                topPadding: 12,
+              ),
+              SettingsActionTileCard(
+                title: animalModeType == 'individual'
+                    ? 'Ficha de tu Mascota'
+                    : 'Gestionar Mascotas y Pacientes',
+                subtitle: animalModeType == 'individual'
+                    ? (animalProfilesCount > 0
+                        ? '$animalProfilesCount mascota(s) configurada(s) en tu cuenta.'
+                        : 'Crea la ficha de tu mascota para registrar sus medicamentos.')
+                    : (animalProfilesCount == 1
+                        ? '1 animal registrado en tu directorio veterinario.'
+                        : '$animalProfilesCount animales registrados en tu directorio veterinario.'),
+                icon: Icons.pets_rounded,
+                iconColor: _animalAccent,
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const ManageCaregiverProfilesPage(isAnimalMode: true),
+                      builder: (context) =>
+                          const ManageCaregiverProfilesPage(isAnimalMode: true),
                     ),
                   );
                 },
               ),
-            ),
-          ),
+            ],
           ],
-        ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-  Widget _buildSectionHeader(String title, String subtitle) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 10),
+  Widget _buildInactiveFeatureOverview(
+    BuildContext context,
+    PreferenceNotifier preferenceNotifier,
+    CaregiverNotifier caregiverNotifier,
+    String animalModeType,
+  ) {
+    return SettingsCardWrapper(
+      title: '¿Qué incluye el Modo Animales?',
+      subtitle: 'Pensado tanto para tutores de mascotas en casa como para clínicas veterinarias.',
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.primaryTextColor,
-            ),
+          _buildFeatureBullet(
+            icon: Icons.pets_rounded,
+            title: 'Fichas adaptadas por especie, raza y peso',
+            subtitle: 'Registra perros, gatos, aves, exóticos y lleva el control exacto de sus dosis por peso.',
           ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppTheme.secondaryTextColor,
+          const SizedBox(height: 12),
+          _buildFeatureBullet(
+            icon: Icons.palette_outlined,
+            title: 'Tema visual verde veterinario',
+            subtitle: 'La interfaz se transforma con iconografía y acentos verdes para distinguirla al instante.',
+          ),
+          const SizedBox(height: 12),
+          _buildFeatureBullet(
+            icon: Icons.local_hospital_outlined,
+            title: 'Modo Hogar o Clínica Veterinaria',
+            subtitle: 'Elige entre una vista simple para tu mascota o gestión multi-animal con jaulas y boxes.',
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _toggleAnimalMode(
+                context,
+                preferenceNotifier,
+                caregiverNotifier,
+                true,
+                animalModeType,
+              ),
+              icon: const Icon(Icons.pets_rounded, size: 20),
+              label: const Text(
+                'Activar Modo Animales',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _animalAccent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFeatureBullet({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _animalAccent.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: _animalAccent, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryTextColor,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.secondaryTextColor,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

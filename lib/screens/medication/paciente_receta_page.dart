@@ -29,7 +29,10 @@ class PacienteRecetaPage extends StatelessWidget {
 
     return Scaffold(
       appBar: ModernAppBar(
-        child: AppBar(title: Text('Recetas de $patientEmail')),
+        child: AppBar(
+          title: Text('Recetas de $patientEmail'),
+          centerTitle: true,
+        ),
       ),
       body: StreamBuilder<List<Tratamiento>>(
         stream: firestoreService.getMedicamentosStream(patientUid),

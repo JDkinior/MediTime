@@ -27,7 +27,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('Renders Hero Live Preview and Estilo B section header in AccesibilidadPage', (tester) async {
+  testWidgets('Renders Senior preset button and accessibility options in AccesibilidadPage', (tester) async {
     tester.view.physicalSize = const Size(800, 1400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -38,16 +38,9 @@ void main() {
 
     // Verify Page Header
     expect(find.text('Accesibilidad'), findsOneWidget);
-    expect(find.text('Modo Adulto Mayor'), findsOneWidget);
 
-    // Verify Hero Live Preview card exists at the top
-    expect(find.text('VISTA PREVIA EN VIVO'), findsOneWidget);
-    expect(find.text('Paracetamol 500 mg'), findsOneWidget);
-    expect(find.text('Tomar dosis'), findsOneWidget);
-
-    // Verify Estilo B section header
-    expect(find.text('Ajustes de visualización y botones'), findsOneWidget);
-    expect(find.text('Personaliza tamaños, contrastes y simplicidad según tus necesidades.'), findsOneWidget);
+    // Verify Senior Preset Button
+    expect(find.text('Activar todas las ayudas (Modo Adulto Mayor)'), findsOneWidget);
 
     // Verify all 5 clean switch options are present
     expect(find.text('Alto Contraste'), findsOneWidget);
@@ -98,15 +91,34 @@ void main() {
     expect(notifier.simplifiedInterface, true);
   });
 
-  testWidgets('Hero Live Preview button is interactively clickable', (tester) async {
+  testWidgets('Senior preset button activates and restores all accessibility aids', (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
     final notifier = PreferenceNotifier(PreferenceService());
     await tester.pumpWidget(createTestWidget(notifier: notifier));
     await tester.pumpAndSettle();
 
-    expect(find.text('Tomar dosis'), findsOneWidget);
-    await tester.tap(find.text('Tomar dosis'));
+    expect(find.text('Activar todas las ayudas (Modo Adulto Mayor)'), findsOneWidget);
+    await tester.tap(find.text('Activar todas las ayudas (Modo Adulto Mayor)'));
     await tester.pumpAndSettle();
 
-    expect(find.text('¡Dosis tomada!'), findsOneWidget);
+    expect(notifier.highContrast, true);
+    expect(notifier.largeText, true);
+    expect(notifier.largeButtons, true);
+    expect(notifier.showCardBorder, true);
+    expect(notifier.simplifiedInterface, true);
+    expect(find.text('Restaurar vista estándar'), findsOneWidget);
+
+    await tester.tap(find.text('Restaurar vista estándar'));
+    await tester.pumpAndSettle();
+
+    expect(notifier.highContrast, false);
+    expect(notifier.largeText, false);
+    expect(notifier.largeButtons, false);
+    expect(notifier.showCardBorder, false);
+    expect(notifier.simplifiedInterface, false);
+    expect(find.text('Activar todas las ayudas (Modo Adulto Mayor)'), findsOneWidget);
   });
 }

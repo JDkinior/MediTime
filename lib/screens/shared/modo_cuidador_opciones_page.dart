@@ -8,21 +8,77 @@ import 'package:meditime/screens/caregiver/manage_caregiver_profiles_page.dart';
 import 'package:meditime/core/subscription_guard.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/widgets/modern_content_fade.dart';
+import 'package:meditime/widgets/settings/settings_widgets.dart';
 
 class ModoCuidadorOpcionesPage extends StatelessWidget {
   const ModoCuidadorOpcionesPage({super.key});
+
+  static const Color _caregiverAccent = Color(0xFF8B62D4);
+
+  Future<void> _toggleCaregiverMode(
+    BuildContext context,
+    PreferenceNotifier preferenceNotifier,
+    CaregiverNotifier caregiverNotifier,
+    bool val,
+  ) async {
+    if (val) {
+      final canProceed = await SubscriptionGuard.canActivateCaregiverMode(context);
+      if (!canProceed || !context.mounted) return;
+
+      final hadAnimalMode = preferenceNotifier.isAnimalMode;
+      if (hadAnimalMode) {
+        await preferenceNotifier.setAnimalMode(false);
+      }
+      if (caregiverNotifier.modeType == CaregiverModeType.veterinario) {
+        await caregiverNotifier.setModeType(CaregiverModeType.familiar);
+      }
+      await caregiverNotifier.setCaregiverModeActive(true);
+      caregiverNotifier.ensureActiveProfileForMode(isAnimalMode: false);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                hadAnimalMode
+                    ? 'Modo Cuidador activado (Modo Animales desactivado).'
+                    : 'Modo Cuidador activado.',
+              ),
+              backgroundColor: _caregiverAccent,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+      }
+    } else {
+      await caregiverNotifier.setCaregiverModeActive(false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Modo Cuidador desactivado.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final preferenceNotifier = context.watch<PreferenceNotifier>();
     final caregiverNotifier = context.watch<CaregiverNotifier>();
     final isActive = caregiverNotifier.isCaregiverModeActive;
+    final humanPatientsCount =
+        caregiverNotifier.managedProfiles.where((p) => !p.isAnimal).length;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: ModernAppBar(
         child: AppBar(
           title: const Text('Modo Cuidador'),
+          centerTitle: true,
           elevation: 0,
           backgroundColor: Colors.transparent,
           foregroundColor: AppTheme.primaryTextColor,
@@ -30,249 +86,206 @@ class ModoCuidadorOpcionesPage extends StatelessWidget {
       ),
       body: ModernContentFade(
         child: ListView(
-          padding: const EdgeInsets.all(16),
-        children: [
-          // Banner de estado
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isActive
-                    ? [AppTheme.primaryColor.withValues(alpha: 0.85), AppTheme.primaryColor]
-                    : [Colors.grey.shade700, Colors.grey.shade900],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          children: [
+            SettingsSwitchTileCard(
+              title: 'Activar Modo Cuidador',
+              description:
+                  'Habilita la gestión multi-perfil y recordatorios consolidados para familiares o pacientes.',
+              icon: Icons.health_and_safety_rounded,
+              activeColor: _caregiverAccent,
+              value: isActive,
+              onChanged: (val) => _toggleCaregiverMode(
+                context,
+                preferenceNotifier,
+                caregiverNotifier,
+                val,
               ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: (isActive ? AppTheme.primaryColor : Colors.black).withValues(alpha: 0.2),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
             ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    isActive ? Icons.health_and_safety_rounded : Icons.shield_outlined,
-                    color: Colors.white,
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isActive ? 'Modo Cuidador Activo' : 'Modo Cuidador Desactivado',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        isActive
-                            ? 'Gestiona pacientes, salas y recordatorios consolidados.'
-                            : 'Activa esta opción si cuidas a familiares o en entorno clínico.',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Switch(
-                  value: isActive,
-                  activeThumbColor: Colors.white,
-                  activeTrackColor: Colors.white.withValues(alpha: 0.4),
-                  onChanged: (val) async {
-                    if (val) {
-                      final canProceed = await SubscriptionGuard.canActivateCaregiverMode(context);
-                      if (!canProceed || !context.mounted) return;
 
-                      // Exclusividad mutua: desactivar Modo Animales
-                      if (preferenceNotifier.isAnimalMode) {
-                        await preferenceNotifier.setAnimalMode(false);
-                      }
-                      if (caregiverNotifier.modeType == CaregiverModeType.veterinario) {
-                        await caregiverNotifier.setModeType(CaregiverModeType.familiar);
-                      }
-                      await caregiverNotifier.setCaregiverModeActive(true);
-                      caregiverNotifier.ensureActiveProfileForMode(isAnimalMode: false);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Modo Cuidador activado (Modo Animales desactivado).'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      }
-                    } else {
-                      await caregiverNotifier.setCaregiverModeActive(false);
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
+            if (!isActive)
+              _buildInactiveFeatureOverview(
+                context,
+                preferenceNotifier,
+                caregiverNotifier,
+              ),
 
-          if (isActive) ...[
-            _buildSectionHeader(
-              'Perfil de Cuidador',
-              'Elige el tipo de entorno de cuidado y acompañamiento.',
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-                    ? Border.all(color: AppTheme.borderColor)
-                    : null,
+            if (isActive) ...[
+              const SettingsSectionHeader(
+                title: 'Modalidad de Cuidado',
+                topPadding: 0,
               ),
-              child: RadioGroup<CaregiverModeType>(
-                groupValue: caregiverNotifier.modeType,
-                onChanged: (val) {
-                  if (val != null) caregiverNotifier.setModeType(val);
-                },
-                child: Column(
-                  children: [
-                    RadioListTile<CaregiverModeType>(
-                      title: const Text('Cuidador Familiar', style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: const Text('Gestión de familiares directos, recordatorios y perfiles personalizados.'),
-                      secondary: Icon(Icons.family_restroom_rounded, color: AppTheme.primaryColor),
-                      value: CaregiverModeType.familiar,
-                    ),
-                    const Divider(height: 1),
-                    RadioListTile<CaregiverModeType>(
-                      title: const Text('Cuidador Clínico / Hospitalario', style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: const Text('Incluye pisos, números de habitación/cama y tipo de sangre.'),
-                      secondary: Icon(Icons.local_hospital_rounded, color: AppTheme.primaryColor),
-                      value: CaregiverModeType.clinico,
-                    ),
-                  ],
-                ),
+              SettingsRadioOptionCard(
+                title: 'Cuidador Familiar',
+                subtitle:
+                    'Ideal para organizar las tomas de padres, hijos, abuelos u otros familiares en casa.',
+                icon: Icons.family_restroom_rounded,
+                color: _caregiverAccent,
+                isSelected: caregiverNotifier.modeType == CaregiverModeType.familiar,
+                onTap: () => caregiverNotifier.setModeType(CaregiverModeType.familiar),
               ),
-            ),
-            const SizedBox(height: 24),
+              SettingsRadioOptionCard(
+                title: 'Cuidador Clínico / Hospitalario',
+                subtitle:
+                    'Habilita campos clínicos adicionales como piso, número de habitación/cama y grupo sanguíneo.',
+                icon: Icons.local_hospital_rounded,
+                color: _caregiverAccent,
+                isSelected: caregiverNotifier.modeType == CaregiverModeType.clinico,
+                onTap: () => caregiverNotifier.setModeType(CaregiverModeType.clinico),
+              ),
 
-            _buildSectionHeader(
-              'Notificaciones de Pacientes',
-              'Configura las alertas y datos incluidos en los avisos de dosis.',
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-                    ? Border.all(color: AppTheme.borderColor)
-                    : null,
+              const SettingsSectionHeader(
+                title: 'Alertas y Notificaciones de Pacientes',
+                topPadding: 12,
               ),
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    title: const Text('Notificaciones de Pacientes', style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: const Text('Recibir alertas programadas para las tomas de medicamentos de tus pacientes.'),
-                    secondary: Icon(Icons.notifications_active_rounded, color: AppTheme.primaryColor),
-                    value: caregiverNotifier.notifyPatientDoses,
-                    activeThumbColor: AppTheme.primaryColor,
-                    onChanged: (val) {
-                      caregiverNotifier.setNotifyPatientDoses(val);
-                    },
-                  ),
-                  const Divider(height: 1),
-                  SwitchListTile(
-                    title: const Text('Incluir Ubicación y Habitación', style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: const Text('Muestra el número de habitación, cama o piso en la notificación.'),
-                    secondary: Icon(Icons.location_on_rounded, color: AppTheme.primaryColor),
-                    value: caregiverNotifier.includeLocationInNotifications,
-                    activeThumbColor: AppTheme.primaryColor,
-                    onChanged: caregiverNotifier.notifyPatientDoses
-                        ? (val) {
-                            caregiverNotifier.setIncludeLocationInNotifications(val);
-                          }
-                        : null,
-                  ),
-                ],
+              SettingsSwitchTileCard(
+                title: 'Recibir alertas de tomas de pacientes',
+                description:
+                    'Activa las alarmas y notificaciones programadas para los tratamientos de todos tus pacientes gestionados.',
+                value: caregiverNotifier.notifyPatientDoses,
+                icon: Icons.notifications_active_rounded,
+                activeColor: _caregiverAccent,
+                onChanged: (val) => caregiverNotifier.setNotifyPatientDoses(val),
               ),
-            ),
-            const SizedBox(height: 24),
+              SettingsSwitchTileCard(
+                title: 'Mostrar habitación y ubicación en avisos',
+                description:
+                    'Incluye el número de habitación, cama o piso del paciente directamente en el texto de la alerta.',
+                value: caregiverNotifier.includeLocationInNotifications,
+                enabled: caregiverNotifier.notifyPatientDoses,
+                icon: Icons.location_on_rounded,
+                activeColor: _caregiverAccent,
+                onChanged: (val) => caregiverNotifier.setIncludeLocationInNotifications(val),
+              ),
 
-            _buildSectionHeader(
-              'Gestión de Pacientes',
-              'Administra las personas a tu cargo y sus tratamientos.',
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-                    ? Border.all(color: AppTheme.borderColor)
-                    : null,
+              const SettingsSectionHeader(
+                title: 'Directorio de Pacientes',
+                topPadding: 12,
               ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.people_alt_rounded, color: AppTheme.primaryColor),
-                ),
-                title: const Text('Gestionar Pacientes', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text('${caregiverNotifier.managedProfiles.length} pacientes registrados'),
-                trailing: const Icon(Icons.chevron_right_rounded),
+              SettingsActionTileCard(
+                title: 'Gestionar Pacientes',
+                subtitle: humanPatientsCount == 1
+                    ? '1 paciente registrado en tu directorio.'
+                    : '$humanPatientsCount pacientes registrados en tu directorio.',
+                icon: Icons.people_alt_rounded,
+                iconColor: _caregiverAccent,
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const ManageCaregiverProfilesPage()),
+                    MaterialPageRoute(
+                      builder: (context) => const ManageCaregiverProfilesPage(
+                        isAnimalMode: false,
+                      ),
+                    ),
                   );
                 },
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
-    ),
-  );
+    );
   }
 
-  Widget _buildSectionHeader(String title, String subtitle) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 10),
+  Widget _buildInactiveFeatureOverview(
+    BuildContext context,
+    PreferenceNotifier preferenceNotifier,
+    CaregiverNotifier caregiverNotifier,
+  ) {
+    return SettingsCardWrapper(
+      title: '¿Qué incluye el Modo Cuidador?',
+      subtitle: 'Diseñado para familiares y profesionales de enfermería o geriatría.',
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.primaryTextColor,
-            ),
+          _buildFeatureBullet(
+            icon: Icons.switch_account_rounded,
+            title: 'Selector rápido de paciente en Inicio',
+            subtitle: 'Cambia entre los tratamientos de cada familiar o paciente con un solo toque.',
           ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppTheme.secondaryTextColor,
+          const SizedBox(height: 12),
+          _buildFeatureBullet(
+            icon: Icons.notifications_active_rounded,
+            title: 'Alarmas identificadas por paciente',
+            subtitle: 'Cada recordatorio indica claramente a quién corresponde la dosis y su habitación.',
+          ),
+          const SizedBox(height: 12),
+          _buildFeatureBullet(
+            icon: Icons.qr_code_scanner_rounded,
+            title: 'Perfiles locales o vinculados por invitación',
+            subtitle: 'Crea fichas en tu teléfono o sincroniza en tiempo real con la cuenta del paciente.',
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _toggleCaregiverMode(
+                context,
+                preferenceNotifier,
+                caregiverNotifier,
+                true,
+              ),
+              icon: const Icon(Icons.health_and_safety_rounded, size: 20),
+              label: const Text(
+                'Activar Modo Cuidador',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _caregiverAccent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFeatureBullet({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _caregiverAccent.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: _caregiverAccent, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryTextColor,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.secondaryTextColor,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

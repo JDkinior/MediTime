@@ -282,7 +282,7 @@ class AppTheme {
   static AppBarTheme get appBarTheme => AppBarTheme(
     backgroundColor: backgroundColor,
     elevation: 0,
-    centerTitle: false,
+    centerTitle: true,
     titleTextStyle: const TextStyle(
       fontSize: 20,
       fontWeight: FontWeight.bold,

@@ -11,6 +11,7 @@ import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/storage_service.dart';
 import 'package:meditime/services/profile_cache_service.dart';
+import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/primary_button.dart';
 import 'package:meditime/widgets/styled_text_field.dart';
@@ -82,11 +83,13 @@ class _FadeSlideCardState extends State<FadeSlideCard> with SingleTickerProvider
 class OnboardingPage extends StatefulWidget {
   final User user;
   final VoidCallback onCompleted;
+  final bool isReconfiguring;
 
   const OnboardingPage({
     super.key,
     required this.user,
     required this.onCompleted,
+    this.isReconfiguring = false,
   });
 
   @override
@@ -103,6 +106,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   // Step 1: Perfil
   late final TextEditingController _nameController;
   File? _profileImage;
+  bool _hasPickedNewImage = false;
   String? _photoUrl;
   final ImagePicker _picker = ImagePicker();
 
@@ -121,8 +125,61 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   void initState() {
     super.initState();
+    _acceptedTerms = widget.isReconfiguring;
     _nameController = TextEditingController(text: widget.user.displayName ?? '');
     _photoUrl = widget.user.photoURL;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadExistingConfiguration();
+    });
+  }
+
+  void _loadExistingConfiguration() {
+    final profileNotifier = context.read<ProfileNotifier>();
+    final prefNotifier = context.read<PreferenceNotifier>();
+    final caregiverNotifier = context.read<CaregiverNotifier>();
+
+    final currentName = profileNotifier.userName;
+    if (currentName != null && currentName.trim().isNotEmpty) {
+      _nameController.text = currentName;
+    }
+
+    final currentUrl = profileNotifier.profileImageUrl;
+    if (currentUrl != null && currentUrl.isNotEmpty) {
+      _photoUrl = currentUrl;
+    }
+
+    final localPath = profileNotifier.localImagePath;
+    if (localPath != null && localPath.isNotEmpty) {
+      final f = File(localPath);
+      if (f.existsSync()) {
+        _profileImage = f;
+      }
+    }
+
+    if (widget.isReconfiguring) {
+      setState(() {
+        _acceptedTerms = true;
+        if (prefNotifier.isAnimalMode) {
+          _selectedPurpose = 'animales';
+        } else if (caregiverNotifier.isCaregiverModeActive) {
+          _selectedPurpose = 'cuidador';
+        } else {
+          _selectedPurpose = 'personal';
+        }
+
+        if (prefNotifier.simplifiedInterface) {
+          _selectedInterfaceStyle = 'simplified';
+        } else {
+          _selectedInterfaceStyle = prefNotifier.interfaceStyle;
+        }
+
+        _selectedReminderMode = prefNotifier.reminderMode;
+      });
+    } else {
+      setState(() {});
+    }
   }
 
   @override
@@ -153,6 +210,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       if (picked != null) {
         setState(() {
           _profileImage = File(picked.path);
+          _hasPickedNewImage = true;
         });
       }
     } catch (e) {
@@ -216,11 +274,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
       final storageService = context.read<StorageService>();
       final firestoreService = context.read<FirestoreService>();
       final profileNotifier = context.read<ProfileNotifier>();
+      final previousReminderMode = context.read<PreferenceNotifier>().reminderMode;
 
-      // 1. Subir imagen si se tomó una foto local
+      // 1. Subir imagen si se tomó una foto nueva
       String? finalImageUrl = _photoUrl;
-      String? localCachedPath;
-      if (_profileImage != null) {
+      String? localCachedPath = _profileImage?.path;
+      if (_hasPickedNewImage && _profileImage != null) {
         try {
           final cached = await ProfileCacheService().saveLocalImage(userId, _profileImage!);
           if (cached != null) {
@@ -291,8 +350,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
           interfaceStyle: styleToSave,
           simplifiedInterface: isSimplified,
           largeText: isSimplified,
+          largeButtons: isSimplified,
           highContrast: isSimplified,
         );
+      }
+
+      // Si cambió el modo de recordatorio y ya tenía medicamentos activos, reprogramar alarmas
+      if (previousReminderMode != _selectedReminderMode && userId.isNotEmpty) {
+        await NotificationService.reactivateAlarmsForUser(userId);
       }
 
       // 6. Marcar onboarding y términos como completados en almacenamiento local
@@ -325,7 +390,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return PopScope(
-      canPop: false,
+      canPop: widget.isReconfiguring && !_isSaving,
       child: Scaffold(
         backgroundColor: AppTheme.backgroundColor,
         body: SafeArea(
@@ -393,12 +458,20 @@ class _OnboardingPageState extends State<OnboardingPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Botón atrás (visible desde el paso 1)
+          // Botón atrás (visible desde el paso 1, o en paso 0 cuando se reconfigura desde Opciones)
           if (_currentPage > 0)
             IconButton(
               icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
               color: AppTheme.primaryTextColor,
+              tooltip: 'Paso anterior',
               onPressed: _isSaving ? null : _previousPage,
+            )
+          else if (widget.isReconfiguring)
+            IconButton(
+              icon: const Icon(Icons.close_rounded, size: 22),
+              color: AppTheme.primaryTextColor,
+              tooltip: 'Cerrar asistente',
+              onPressed: _isSaving ? null : () => Navigator.of(context).maybePop(),
             )
           else
             const SizedBox(width: 40),
@@ -481,7 +554,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
           FadeSlideCard(
             delayMs: 60,
             child: Text(
-              '¡Te damos la bienvenida a MediTime!',
+              widget.isReconfiguring
+                  ? 'Asistente de Personalización'
+                  : '¡Te damos la bienvenida a MediTime!',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 24,
@@ -495,7 +570,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
           FadeSlideCard(
             delayMs: 120,
             child: Text(
-              'Tu asistente inteligente para no olvidar ninguna toma de medicamentos y cuidar de los tuyos.',
+              widget.isReconfiguring
+                  ? 'Revisa o ajusta paso a paso tu perfil, propósito de uso, estilo visual y modo de recordatorios.'
+                  : 'Tu asistente inteligente para no olvidar ninguna toma de medicamentos y cuidar de los tuyos.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -1362,7 +1439,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: isLastStep
           ? PrimaryButton(
-              text: 'Comenzar a usar MediTime',
+              text: widget.isReconfiguring
+                  ? 'Guardar cambios'
+                  : 'Comenzar a usar MediTime',
               isLoading: _isSaving,
               onPressed: _completeOnboarding,
             )

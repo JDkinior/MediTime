@@ -17,6 +17,7 @@ class InfoPage extends StatelessWidget {
     return Scaffold(
       appBar: ModernAppBar(
         child: AppBar(
+          centerTitle: true,
           title: Text(title),
         ),
       ),

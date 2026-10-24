@@ -264,12 +264,15 @@ class PreferenceNotifier extends ChangeNotifier {
     required bool simplifiedInterface,
     required bool largeText,
     required bool highContrast,
+    bool? largeButtons,
   }) async {
+    final effectiveLargeButtons = largeButtons ?? simplifiedInterface;
     _reminderMode = reminderMode;
     _notificationModeActive = reminderMode == DoseReminderMode.active;
     _interfaceStyle = interfaceStyle;
     _simplifiedInterface = simplifiedInterface;
     _largeText = largeText;
+    _largeButtons = effectiveLargeButtons;
     _highContrast = highContrast;
     notifyListeners();
 
@@ -277,10 +280,11 @@ class PreferenceNotifier extends ChangeNotifier {
     await _preferenceService.saveInterfaceStyle(interfaceStyle);
     await _preferenceService.saveSimplifiedInterface(simplifiedInterface);
     await _preferenceService.saveLargeText(largeText);
+    await _preferenceService.saveLargeButtons(effectiveLargeButtons);
     await _preferenceService.saveHighContrast(highContrast);
   }
 
-  Future<void> setAnimalMode(bool value) async {
+  Future<void> setAnimalMode(bool value, {bool manageAlarms = true}) async {
     if (_isAnimalMode == value) return;
     _isAnimalMode = value;
     final userId = await _preferenceService.getCurrentUserId() ?? '';
@@ -289,7 +293,7 @@ class PreferenceNotifier extends ChangeNotifier {
       // Exclusividad mutua: desactiva modo cuidador en persistencia
       await _preferenceService.saveCaregiverModeActive(false);
       await _preferenceService.saveAnimalModeActive(true);
-      if (userId.isNotEmpty) {
+      if (manageAlarms && userId.isNotEmpty) {
         await NotificationService.deactivateCaregiverAlarms(userId: userId);
         final notifyPatientDoses = await _preferenceService.getCaregiverNotifyPatientDoses();
         if (notifyPatientDoses) {
@@ -298,7 +302,7 @@ class PreferenceNotifier extends ChangeNotifier {
       }
     } else {
       await _preferenceService.saveAnimalModeActive(false);
-      if (userId.isNotEmpty) {
+      if (manageAlarms && userId.isNotEmpty) {
         await NotificationService.deactivateAnimalAlarms(userId: userId);
       }
     }

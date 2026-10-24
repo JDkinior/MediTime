@@ -13,6 +13,7 @@ class InstruccionesPage extends StatelessWidget {
     return Scaffold(
       appBar: ModernAppBar(
         child: AppBar(
+          centerTitle: true,
           title: const Text('¿Cómo usar la aplicación?'),
         ),
       ),
