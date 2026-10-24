@@ -14,6 +14,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:meditime/alarm_callback_handler.dart' show alarmCallbackLogic;
 import 'package:meditime/services/firestore_service.dart';
+import 'package:meditime/services/tratamiento_service.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:meditime/services/preference_service.dart';
@@ -23,6 +24,7 @@ import 'package:meditime/firebase_options.dart';
 import 'package:meditime/core/navigator_key.dart';
 import 'package:meditime/screens/medication/detalle_receta_page.dart';
 import 'package:meditime/screens/alarm/alarm_ringing_page.dart';
+
 @pragma('vm:entry-point')
 Future<void> handleNotificationActionBackground(
   NotificationResponse notificationResponse,
@@ -133,6 +135,56 @@ class NotificationService {
 
   static bool _permissionsHaveBeenRequested = false;
 
+  /// Calcula un ID de notificación determinista basado en el documento y la dosis,
+  /// permitiendo cancelar la notificación específica desde cualquier pantalla o widget.
+  static int getNotificationIdForDose(String docId, [DateTime? doseTime]) {
+    final baseHash = docId.hashCode.abs() % 400000;
+    if (doseTime == null) return baseHash + 10000;
+    final cleanMinute = DateTime(
+      doseTime.year,
+      doseTime.month,
+      doseTime.day,
+      doseTime.hour,
+      doseTime.minute,
+    );
+    final timeHash = (cleanMinute.millisecondsSinceEpoch ~/ 60000).abs() % 400000;
+    return ((baseHash ^ timeHash) % 800000) + 10000;
+  }
+
+  /// Calcula un ID de alarma dedicado para recordatorios aplazados (snooze)
+  /// de modo que NUNCA sobrescriba ni cancele la alarma principal de la serie ([prescriptionAlarmId]).
+  static int getSnoozeAlarmId(int prescriptionAlarmId) {
+    return (prescriptionAlarmId.abs() % 89999999) + 100000000;
+  }
+
+  /// Calcula un ID de alarma de snooze determinista a partir del [docId].
+  static int getSnoozeAlarmIdForDoc(String docId) {
+    return (docId.hashCode.abs() % 89999999) + 200000000;
+  }
+
+  /// Cancela cualquier alarma o notificación de aplazamiento (snooze) activa para un tratamiento.
+  static Future<void> cancelSnoozeForTreatment({
+    int? prescriptionAlarmId,
+    String? docId,
+    DateTime? doseTime,
+  }) async {
+    try {
+      if (prescriptionAlarmId != null && prescriptionAlarmId != 0) {
+        await AndroidAlarmManager.cancel(getSnoozeAlarmId(prescriptionAlarmId));
+      }
+      if (docId != null && docId.isNotEmpty) {
+        await AndroidAlarmManager.cancel(getSnoozeAlarmIdForDoc(docId));
+        if (doseTime != null) {
+          await _notificationsPlugin.cancel(getNotificationIdForDose(docId, doseTime));
+          await _notificationsPlugin.cancel(doseTime.hashCode.abs());
+        }
+        await _notificationsPlugin.cancel(getNotificationIdForDose(docId));
+      }
+    } catch (e) {
+      debugPrint("Aviso al cancelar snooze del tratamiento: $e");
+    }
+  }
+
   /// Inicializa los componentes principales del servicio de notificaciones.
   ///
   /// Configura la zona horaria, los ajustes de inicialización para Android/iOS
@@ -189,7 +241,6 @@ class NotificationService {
           requestAlertPermission: false,
           requestBadgePermission: false,
           requestSoundPermission: false,
-          // NUEVO: Configuraciones adicionales para iOS
           defaultPresentAlert: true,
           defaultPresentBadge: true,
           defaultPresentSound: true,
@@ -212,8 +263,8 @@ class NotificationService {
 
     await _notificationsPlugin.initialize(
       initializationSettings,
-  onDidReceiveNotificationResponse: handleNotificationActionBackground,
-  onDidReceiveBackgroundNotificationResponse: handleNotificationActionBackground,
+      onDidReceiveNotificationResponse: handleNotificationActionBackground,
+      onDidReceiveBackgroundNotificationResponse: handleNotificationActionBackground,
     );
     
     debugPrint('CRÍTICO: Callbacks de notificación registrados correctamente');
@@ -311,7 +362,6 @@ class NotificationService {
       autoCancel: false,
       ongoing: false,
       ticker: 'Hora de tomar medicamento',
-      // NUEVO: Configuraciones adicionales para fondo
       showWhen: true,
       when: DateTime.now().millisecondsSinceEpoch,
       usesChronometer: false,
@@ -336,7 +386,6 @@ class NotificationService {
       presentBadge: true,
       presentSound: true,
       interruptionLevel: InterruptionLevel.critical,
-      // NUEVO: Configuraciones adicionales para iOS
       categoryIdentifier: 'MEDITIME_ALARM',
       threadIdentifier: 'meditime_thread',
     );
@@ -598,19 +647,19 @@ class NotificationService {
         'TOMAR_ACTION',
         'Tomar',
         showsUserInterface: false,
-        cancelNotification: true, // CRÍTICO: Cancelar notificación inmediatamente para detener sonido
+        cancelNotification: true,
       ),
       AndroidNotificationAction(
         'OMITIR_ACTION',
         'Omitir',
         showsUserInterface: false,
-        cancelNotification: true, // CRÍTICO: Cancelar notificación inmediatamente para detener sonido
+        cancelNotification: true,
       ),
       AndroidNotificationAction(
         'APLAZAR_ACTION',
         snoozeLabel,
         showsUserInterface: false,
-        cancelNotification: true, // CRÍTICO: Cancelar notificación inmediatamente para detener sonido
+        cancelNotification: true,
       ),
     ];
 
@@ -673,7 +722,7 @@ class NotificationService {
       usesChronometer: false,
       channelShowBadge: true,
       onlyAlertOnce: false,
-      timeoutAfter: 300000, // 5 minutos: auto-cancelar notificación si no hay interacción (sincronizado con AlarmSoundService.maxAlarmDuration)
+      timeoutAfter: 300000, // 5 minutos: auto-cancelar notificación si no hay interacción
       styleInformation: BigTextStyleInformation(
         body,
         contentTitle: title,
@@ -687,7 +736,7 @@ class NotificationService {
       ledOnMs: 1000,
       ledOffMs: 500,
       vibrationPattern: Int64List.fromList([0, 1000, 500, 1000, 500, 1000]),
-      additionalFlags: Int32List.fromList([4]), // 4 = FLAG_INSISTENT: repite el tono de ALARMA seleccionado
+      additionalFlags: Int32List.fromList([4]), // 4 = FLAG_INSISTENT
     );
 
     const DarwinNotificationDetails iOSDetails = DarwinNotificationDetails(
@@ -728,9 +777,7 @@ class NotificationService {
     debugPrint('🔔 CREANDO NOTIFICACIÓN ACTIVA');
     debugPrint('🔔 ID: $id');
     debugPrint('🔔 PAYLOAD: $payload');
-    debugPrint('Creando notificación activa con botones');
-    // Leemos la preferencia para obtener la duración del aplazamiento
-    int snoozeMinutes = 15; // Default fallback
+    int snoozeMinutes = 15;
     try {
       snoozeMinutes = await PreferenceService().getSnoozeDuration();
     } catch (e) {
@@ -739,25 +786,24 @@ class NotificationService {
 
     final String snoozeLabel = 'Aplazar $snoozeMinutes min';
 
-    // Definimos las acciones con el texto dinámico
-  final List<AndroidNotificationAction> actions = <AndroidNotificationAction>[
+    final List<AndroidNotificationAction> actions = <AndroidNotificationAction>[
       AndroidNotificationAction(
         'TOMAR_ACTION',
         'Tomar',
-    showsUserInterface: false, // Procesar en segundo plano sin abrir la app
-        cancelNotification: true, // CRÍTICO: Cancelar inmediatamente para evitar sonido persistente
+        showsUserInterface: false,
+        cancelNotification: true,
       ),
       AndroidNotificationAction(
         'OMITIR_ACTION',
         'Omitir',
-    showsUserInterface: false, // Procesar en segundo plano sin abrir la app
-        cancelNotification: true, // CRÍTICO: Cancelar inmediatamente para evitar sonido persistente
+        showsUserInterface: false,
+        cancelNotification: true,
       ),
       AndroidNotificationAction(
         'APLAZAR_ACTION',
         snoozeLabel,
-    showsUserInterface: false, // Procesar en segundo plano sin abrir la app
-        cancelNotification: true, // CRÍTICO: Cancelar inmediatamente para evitar sonido persistente
+        showsUserInterface: false,
+        cancelNotification: true,
       ),
     ];
 
@@ -766,7 +812,6 @@ class NotificationService {
       hideOnLockScreen = await PreferenceService().getHideMedicineNameOnLockScreen();
     } catch (_) {}
 
-    // CONFIGURACIÓN CRÍTICA: Máxima prioridad para notificaciones activas
     final AndroidNotificationDetails
     androidDetails = AndroidNotificationDetails(
       'meditime_active_dosis_channel',
@@ -782,9 +827,8 @@ class NotificationService {
       category: AndroidNotificationCategory.alarm,
       visibility: hideOnLockScreen ? NotificationVisibility.private : NotificationVisibility.public,
       autoCancel: false,
-      ongoing: true, // CRÍTICO: Mantener visible hasta que el usuario actúe
+      ongoing: true,
       ticker: 'Acción requerida: Hora de tomar medicamento',
-      // NUEVO: Configuraciones adicionales para máxima visibilidad
       showWhen: true,
       when: DateTime.now().millisecondsSinceEpoch,
       usesChronometer: false,
@@ -803,7 +847,6 @@ class NotificationService {
       ledColor: const Color.fromARGB(255, 255, 0, 0),
       ledOnMs: 1000,
       ledOffMs: 500,
-      // CRÍTICO: Configurar vibración personalizada
       vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]),
     );
 
@@ -817,57 +860,141 @@ class NotificationService {
       notificationDetails,
       payload: payload,
     );
-    debugPrint('🔔 NOTIFICACIÓN ACTIVA CREADA EXITOSAMENTE');
-    debugPrint('🔔 ACCIONES DISPONIBLES: TOMAR_ACTION, OMITIR_ACTION, APLAZAR_ACTION');
     debugPrint("Notificación ACTIVA mostrada - ID: $id, Título: $title");
   }
 
   /// Reprograma la siguiente dosis pendiente de un tratamiento.
   ///
   /// Cancela cualquier alarma anterior para esta serie y busca la próxima
-  /// dosis con estado 'pendiente' para programar una nueva alarma.
+  /// dosis con estado 'pendiente' o 'aplazada' manteniendo las dosis siguientes
+  /// estrictamente ancladas a la rejilla canónica.
   static Future<void> rescheduleNextPendingDose(
     Tratamiento tratamiento,
     String userId, [
     CaregiverProfile? profile,
+    DateTime? referenceTime,
   ]) async {
-    // Cancelamos cualquier alarma que pudiera estar programada para esta serie
     await AndroidAlarmManager.cancel(tratamiento.prescriptionAlarmId);
 
-    // Buscamos la próxima dosis que esté pendiente
-    final proximaDosis = await _findNextPendingDose(tratamiento: tratamiento);
+    final target = await _findNextScheduledTarget(
+      tratamiento: tratamiento,
+      userId: userId,
+      referenceTime: referenceTime,
+    );
 
-    if (proximaDosis != null) {
+    if (target != null) {
       debugPrint(
-        "REPROGRAMANDO: Próxima dosis para '${tratamiento.nombreMedicamento}' será a las $proximaDosis",
+        "REPROGRAMANDO: Próxima dosis para '${tratamiento.nombreMedicamento}' será a las ${target.fireTime} (canónica: ${target.canonicalDoseTime})",
       );
-      await _rescheduleAlarm(proximaDosis, tratamiento, userId, profile);
+      await _rescheduleAlarm(
+        target.fireTime,
+        tratamiento,
+        userId,
+        profile,
+        target.canonicalDoseTime,
+      );
     } else {
       debugPrint(
         "REPROGRAMANDO: No hay más dosis pendientes para '${tratamiento.nombreMedicamento}'.",
       );
+      if (tratamiento.isFinalizado) {
+        await PreferenceService().removeTreatmentScheduleCache(userId, tratamiento.id);
+      }
     }
   }
 
   /// Aplaza una notificación por un número determinado de minutos.
   ///
-  /// Cancela la notificación actual y programa una nueva notificación `zonedSchedule`
-  /// para el futuro.
+  /// Utiliza un ID de alarma dedicado (`getSnoozeAlarmIdForDoc`) con `AndroidAlarmManager`
+  /// (y `zonedSchedule` como respaldo), de manera que NUNCA modifica ni desplaza
+  /// la alarma principal de la serie del tratamiento.
   static Future<void> snoozeNotification(
     int? notificationId,
     String payload,
     DateTime originalDoseTime,
     int snoozeMinutes,
   ) async {
-    if (notificationId == null) return;
+    final effectiveId = notificationId ?? originalDoseTime.hashCode.abs();
 
-    await _notificationsPlugin.cancel(notificationId);
+    await _notificationsPlugin.cancel(effectiveId);
     await stopAlarmSound();
 
-    final snoozeTime = tz.TZDateTime.now(
+    final int safeMinutes = snoozeMinutes > 0 ? snoozeMinutes : 10;
+    final DateTime snoozeDateTime = DateTime.now().add(Duration(minutes: safeMinutes));
+    final snoozeTzTime = tz.TZDateTime.now(
       tz.local,
-    ).add(Duration(minutes: snoozeMinutes));
+    ).add(Duration(minutes: safeMinutes));
 
+    // Intentar programar primero mediante AndroidAlarmManager con ID dedicado de snooze
+    // para garantizar despertar del dispositivo en Doze Mode sin alterar la serie principal.
+    bool scheduledViaAlarmManager = false;
+    final parts = payload.split('|');
+    if (parts.length >= 4) {
+      final userId = parts[1];
+      final docId = parts[2];
+      try {
+        final prefs = PreferenceService();
+        final cachedParams = await prefs.getTreatmentScheduleCache(userId, docId);
+        final String nombreMed = parts.length >= 5 && parts[4].isNotEmpty
+            ? parts[4]
+            : (cachedParams?['nombreMedicamento'] as String? ?? 'Medicamento');
+        final int dosisPorToma = parts.length >= 6
+            ? (int.tryParse(parts[5]) ?? 1)
+            : (cachedParams?['dosisPorToma'] as int? ?? 1);
+        final String presentacion = parts.length >= 7 && parts[6].isNotEmpty
+            ? parts[6]
+            : (cachedParams?['presentacion'] as String? ?? 'dosis');
+        final String? pacienteNombre = parts.length >= 8 && parts[7].isNotEmpty
+            ? parts[7]
+            : (cachedParams?['pacienteNombre'] as String?);
+        final String? habitacion = parts.length >= 9 && parts[8].isNotEmpty
+            ? parts[8]
+            : (cachedParams?['habitacion'] as String?);
+        final String? profileId = payload.startsWith('alarm_mode')
+            ? (parts.length >= 11 && parts[10].isNotEmpty ? parts[10] : null)
+            : (parts.length >= 5 && parts[4].isNotEmpty ? parts[4] : null);
+
+        final snoozeParams = <String, dynamic>{
+          if (cachedParams != null) ...cachedParams,
+          'currentNotificationId': effectiveId,
+          'userId': userId,
+          'docId': docId,
+          'doseTime': originalDoseTime.toIso8601String(),
+          'canonicalDoseTime': (cachedParams?['canonicalDoseTime'] as String?) ??
+              originalDoseTime.toIso8601String(),
+          'nombreMedicamento': nombreMed,
+          'presentacion': presentacion,
+          'dosisPorToma': dosisPorToma,
+          'pacienteNombre': pacienteNombre,
+          'habitacion': habitacion,
+          'profileId': profileId ?? cachedParams?['profileId'],
+          'isSnooze': true,
+        };
+
+        scheduledViaAlarmManager = await AndroidAlarmManager.oneShotAt(
+          snoozeDateTime,
+          getSnoozeAlarmIdForDoc(docId),
+          alarmCallbackLogic,
+          exact: true,
+          wakeup: true,
+          alarmClock: true,
+          rescheduleOnReboot: true,
+          allowWhileIdle: true,
+          params: snoozeParams,
+        );
+      } catch (e) {
+        debugPrint("Aviso programando snooze vía AndroidAlarmManager: $e");
+      }
+    }
+
+    if (scheduledViaAlarmManager) {
+      debugPrint(
+        "Snooze programado con exactitud vía AndroidAlarmManager para $snoozeDateTime (dosis original: $originalDoseTime).",
+      );
+      return;
+    }
+
+    // Fallback a zonedSchedule (por ejemplo en iOS o entorno de prueba sin AlarmManager)
     final bool isAlarmMode = payload.startsWith('alarm_mode');
     bool hideOnLockScreen = false;
     String soundType = 'system_alarm';
@@ -921,7 +1048,7 @@ class NotificationService {
       autoCancel: false,
       ongoing: isAlarmMode,
       timeoutAfter: isAlarmMode ? 300000 : null,
-      additionalFlags: isAlarmMode ? Int32List.fromList([4]) : null, // FLAG_INSISTENT si es alarma
+      additionalFlags: isAlarmMode ? Int32List.fromList([4]) : null,
       enableVibration: true,
       styleInformation: BigTextStyleInformation(
         'Es hora de tomar tu dosis de las ${DateFormat('hh:mm a').format(originalDoseTime)}',
@@ -945,7 +1072,7 @@ class NotificationService {
         ),
         AndroidNotificationAction(
           'APLAZAR_ACTION',
-          'Aplazar $snoozeMinutes min',
+          'Aplazar $safeMinutes min',
           showsUserInterface: false,
           cancelNotification: true,
         ),
@@ -953,16 +1080,16 @@ class NotificationService {
     );
 
     await _notificationsPlugin.zonedSchedule(
-      notificationId,
+      effectiveId,
       isAlarmMode ? '¡ALARMA APLAZADA!' : 'Recordatorio Aplazado',
       'Es hora de tomar tu dosis de las ${DateFormat('hh:mm a').format(originalDoseTime)}',
-      snoozeTime,
+      snoozeTzTime,
       NotificationDetails(android: androidDetails),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: payload,
     );
     debugPrint(
-      "Notificación $notificationId aplazada por $snoozeMinutes minutos (Modo: ${isAlarmMode ? 'Alarma' : 'Activo'}).",
+      "Notificación $effectiveId aplazada por $safeMinutes minutos (Modo: ${isAlarmMode ? 'Alarma' : 'Activo'}).",
     );
   }
 
@@ -1006,8 +1133,6 @@ class NotificationService {
     final androidImplementation =
         _notificationsPlugin
             .resolvePlatformSpecificImplementation<
-              /// Verifica si la aplicación tiene permisos para mostrar notificaciones.
-              ///
               AndroidFlutterLocalNotificationsPlugin
             >();
 
@@ -1034,7 +1159,7 @@ class NotificationService {
     return false;
   }
 
-  /// Programa la primera alarma para un tratamiento recién creado.
+  /// Programa la primera alarma para un tratamiento recién creado o actualizado.
   ///
   /// Esta alarma, al ejecutarse, llamará a `alarmCallbackLogic`, que se encargará de reprogramar la siguiente.
   static Future<void> scheduleNewTreatment({
@@ -1047,8 +1172,21 @@ class NotificationService {
     required String userId,
     required String docId,
     CaregiverProfile? profile,
+    DateTime? canonicalDoseTime,
+    DateTime? fechaInicioTratamiento,
+    TimeOfDay? horaPrimeraDosis,
+    int? dosisPorToma,
   }) async {
-    if (!primeraDosisDateTime.isAfter(fechaFinTratamiento)) {
+    final effectiveCanonical = canonicalDoseTime ??
+        DateTime(
+          primeraDosisDateTime.year,
+          primeraDosisDateTime.month,
+          primeraDosisDateTime.day,
+          horaPrimeraDosis?.hour ?? primeraDosisDateTime.hour,
+          horaPrimeraDosis?.minute ?? primeraDosisDateTime.minute,
+        );
+
+    if (!effectiveCanonical.isAfter(fechaFinTratamiento)) {
       final pref = PreferenceService();
       if (profile != null) {
         if (profile.isAnimal) {
@@ -1071,28 +1209,33 @@ class NotificationService {
       }
 
       debugPrint(
-        "SCHEDULE: Programando primera alarma para $nombreMedicamento a las $primeraDosisDateTime con ID de Serie: $prescriptionAlarmManagerId",
+        "SCHEDULE: Programando primera alarma para $nombreMedicamento a las $primeraDosisDateTime (canónica: $effectiveCanonical) con ID de Serie: $prescriptionAlarmManagerId",
       );
 
-      // CAMBIO CRÍTICO: Incluir todos los datos necesarios para funcionamiento offline
       final Map<String, dynamic> completeParams = _buildAlarmParams(
         nombreMedicamento: nombreMedicamento,
         presentacion: presentacion,
         intervaloHoras: intervaloEnHoras,
         fechaFinTratamiento: fechaFinTratamiento,
+        fechaInicioTratamiento: fechaInicioTratamiento ?? effectiveCanonical,
+        horaPrimeraDosis: horaPrimeraDosis ??
+            TimeOfDay(hour: effectiveCanonical.hour, minute: effectiveCanonical.minute),
         prescriptionAlarmId: prescriptionAlarmManagerId,
         userId: userId,
         docId: docId,
-        doseTime: primeraDosisDateTime,
+        doseTime: effectiveCanonical,
+        canonicalDoseTime: effectiveCanonical,
         profileId: profile?.id,
         pacienteNombre: profile?.name,
         habitacion: profile?.roomNumber,
         categoria: profile?.category,
-        dosisPorToma: 1, // Default or fetch from formData if needed, but 1 is safe default here if not passed
+        dosisPorToma: dosisPorToma ?? 1,
         isExternalUser: profile?.isExternalUser,
         linkedUid: profile?.linkedUid,
         isAnimal: profile?.isAnimal ?? false,
       );
+
+      await pref.saveTreatmentScheduleCache(completeParams);
 
       await AndroidAlarmManager.oneShotAt(
         primeraDosisDateTime,
@@ -1108,14 +1251,19 @@ class NotificationService {
     }
   }
 
-  /// Cancela una serie de alarmas completa. Útil al eliminar un tratamiento.
-  ///
-  /// Utiliza el `prescriptionAlarmId` que es único para cada cadena de alarmas de un tratamiento.
-  static Future<void> cancelTreatmentAlarms(int prescriptionAlarmId) async {
+  /// Cancela una serie de alarmas completa y cualquier snooze asociado. Útil al eliminar un tratamiento.
+  static Future<void> cancelTreatmentAlarms(
+    int prescriptionAlarmId, {
+    String? docId,
+  }) async {
     debugPrint(
       "CANCEL: Cancelando serie de alarmas completa con ID: $prescriptionAlarmId",
     );
     await AndroidAlarmManager.cancel(prescriptionAlarmId);
+    await cancelSnoozeForTreatment(
+      prescriptionAlarmId: prescriptionAlarmId,
+      docId: docId,
+    );
   }
 
   /// Desactiva y cancela todas las alarmas de tratamientos de pacientes de Modo Cuidador.
@@ -1135,7 +1283,7 @@ class NotificationService {
           final treatments = await fs.getMedicamentos(userId, profile);
           for (final t in treatments) {
             if (t.prescriptionAlarmId != 0) {
-              await cancelTreatmentAlarms(t.prescriptionAlarmId);
+              await cancelTreatmentAlarms(t.prescriptionAlarmId, docId: t.id);
               await prefs.removeCaregiverAlarmId(t.prescriptionAlarmId);
             }
           }
@@ -1219,7 +1367,7 @@ class NotificationService {
           final treatments = await fs.getMedicamentos(userId, profile);
           for (final t in treatments) {
             if (t.prescriptionAlarmId != 0) {
-              await cancelTreatmentAlarms(t.prescriptionAlarmId);
+              await cancelTreatmentAlarms(t.prescriptionAlarmId, docId: t.id);
               await prefs.removeAnimalAlarmId(t.prescriptionAlarmId);
             }
           }
@@ -1290,7 +1438,7 @@ class NotificationService {
   static Future<void> revokeTreatmentLocally(String userId, String docId) async {
     try {
       await PreferenceService().addRevokedTreatment(userId, docId);
-      // Además, cancelar cualquier notificación activa para minimizar ruido inmediato
+      await cancelSnoozeForTreatment(docId: docId);
       await cancelAllActiveAndroidNotifications();
     } catch (e) {
       debugPrint("Error revocando tratamiento localmente: $e");
@@ -1303,23 +1451,7 @@ class NotificationService {
     required DocumentReference docRef,
     required String userId,
   }) async {
-    debugPrint(
-      "OMIT: Cancelando alarma existente con ID de Serie: ${tratamiento.prescriptionAlarmId}",
-    );
-    await AndroidAlarmManager.cancel(tratamiento.prescriptionAlarmId);
-
-    final DateTime? proximaDosisReal = await _findNextPendingDose(
-      tratamiento: tratamiento,
-    );
-
-    if (proximaDosisReal != null) {
-      debugPrint(
-        "OMIT: Reprogramando la alarma para las $proximaDosisReal con ID de Serie: ${tratamiento.prescriptionAlarmId}",
-      );
-      await _rescheduleAlarm(proximaDosisReal, tratamiento, userId);
-    } else {
-      debugPrint("OMIT: No hay más dosis futuras que programar.");
-    }
+    await rescheduleNextPendingDose(tratamiento, userId);
   }
 
   /// Revierte la omisión de una dosis y reprograma la alarma correspondiente.
@@ -1328,70 +1460,69 @@ class NotificationService {
     required DocumentReference docRef,
     required String userId,
   }) async {
-    debugPrint(
-      "UNDO: Cancelando cualquier alarma existente con ID de Serie: ${tratamiento.prescriptionAlarmId} para reevaluar.",
-    );
     await AndroidAlarmManager.cancel(tratamiento.prescriptionAlarmId);
 
-    final freshSnapshot = await docRef.get();
-    // Creamos un nuevo objeto Tratamiento con los datos más recientes de Firestore
-    final freshTratamiento = Tratamiento.fromFirestore(
-      freshSnapshot as DocumentSnapshot<Map<String, dynamic>>,
-    );
-
-    final DateTime? proximaDosisReal = await _findNextPendingDose(
-      tratamiento: freshTratamiento,
-    );
-
-    if (proximaDosisReal != null) {
-      debugPrint(
-        "UNDO: La próxima alarma real es a las $proximaDosisReal. Reprogramando con ID de Serie: ${tratamiento.prescriptionAlarmId}",
+    DocumentSnapshot freshSnapshot;
+    try {
+      freshSnapshot = await docRef.get().timeout(const Duration(seconds: 2));
+    } catch (_) {
+      freshSnapshot = await docRef.get(const GetOptions(source: Source.cache));
+    }
+    if (freshSnapshot.exists) {
+      final freshTratamiento = Tratamiento.fromFirestore(
+        freshSnapshot as DocumentSnapshot<Map<String, dynamic>>,
       );
-      await _rescheduleAlarm(proximaDosisReal, freshTratamiento, userId);
-    } else {
-      debugPrint("UNDO: No hay más dosis futuras que programar.");
+      await rescheduleNextPendingDose(freshTratamiento, userId);
     }
   }
 
   /// Reactiva todas las alarmas pendientes para un usuario y sus perfiles de cuidador.
   ///
   /// Este método es crucial y se llama al iniciar la aplicación (`AuthWrapper`)
-  /// para asegurar que las alarmas persistan después de que el sistema operativo cierre la app.
+  /// para asegurar que las alarmas persistan después de que el sistema operativo cierre la app,
+  /// el teléfono haya estado apagado o sin conexión a internet.
   static Future<void> reactivateAlarmsForUser(String userId) async {
     debugPrint(
       "--- Iniciando reactivación de alarmas para el usuario $userId ---",
     );
     final firestoreService = FirestoreService();
+    final prefs = PreferenceService();
+
     try {
-      // 1. Reactivar tratamientos personales del usuario
+      // 0. Sincronizar primero cualquier acción tomada/omitida/aplazada offline
       try {
-        final List<Tratamiento> todosLosTratamientos = await firestoreService
-            .getMedicamentosStream(userId)
-            .first
-            .timeout(const Duration(seconds: 4));
+        await firestoreService.syncPendingOfflineActions(userId);
+      } catch (e) {
+        debugPrint("Aviso sincronizando acciones offline previas: $e");
+      }
+
+      int reactivatedCount = 0;
+
+      // 1. Reactivar tratamientos personales del usuario (usando getMedicamentos con fallback a caché)
+      try {
+        final List<Tratamiento> todosLosTratamientos =
+            await firestoreService.getMedicamentos(userId);
 
         for (var tratamiento in todosLosTratamientos) {
           await _reactivateSingleTreatment(tratamiento, userId, null);
+          reactivatedCount++;
         }
       } catch (e) {
         debugPrint("Aviso al reactivar tratamientos personales: $e");
       }
 
-      // 2. Reactivar tratamientos de perfiles asignados en Modo Cuidador
+      // 2. Reactivar tratamientos de perfiles asignados en Modo Cuidador / Animales
       try {
-        final profiles = await firestoreService
-            .getCaregiverProfiles(userId)
-            .timeout(const Duration(seconds: 3));
+        final profiles = await firestoreService.getCaregiverProfiles(userId);
 
         for (var profile in profiles) {
           try {
-            final profileTreatments = await firestoreService
-                .getMedicamentosStream(userId, profile)
-                .first
-                .timeout(const Duration(seconds: 3));
+            final profileTreatments =
+                await firestoreService.getMedicamentos(userId, profile);
 
             for (var tratamiento in profileTreatments) {
               await _reactivateSingleTreatment(tratamiento, userId, profile);
+              reactivatedCount++;
             }
           } catch (pe) {
             debugPrint("Aviso al reactivar tratamientos del perfil ${profile.name}: $pe");
@@ -1399,6 +1530,64 @@ class NotificationService {
         }
       } catch (ce) {
         debugPrint("Aviso al cargar perfiles de cuidador para reactivación: $ce");
+      }
+
+      // 3. Respaldo 100% offline desde PreferenceService si la caché de Firestore estaba vacía
+      if (reactivatedCount == 0) {
+        final cachedSchedules =
+            await prefs.getAllTreatmentScheduleCachesForUser(userId);
+        for (final params in cachedSchedules) {
+          final docId = params['docId'] as String?;
+          final alarmId = params['prescriptionAlarmId'] as int?;
+          final fechaFinStr = params['fechaFinTratamientoString'] as String?;
+          final doseTimeStr = params['doseTime'] as String?;
+          if (docId == null ||
+              alarmId == null ||
+              alarmId == 0 ||
+              fechaFinStr == null ||
+              doseTimeStr == null) {
+            continue;
+          }
+          if (await prefs.isTreatmentRevoked(userId, docId)) continue;
+
+          final fechaFin = DateTime.tryParse(fechaFinStr);
+          final doseTime = DateTime.tryParse(doseTimeStr);
+          if (fechaFin == null || doseTime == null) continue;
+
+          final localRaw = await prefs.getLocalDoseStatuses(userId, docId);
+          final localStatuses = localRaw.map(
+            (k, v) => MapEntry(k, DoseStatus.fromString(v)),
+          );
+
+          final nextDose = TratamientoService.computeNextCanonicalDoseOffline(
+            doseTime: doseTime,
+            canonicalDoseTime: params['canonicalDoseTime'] != null
+                ? DateTime.tryParse(params['canonicalDoseTime'] as String)
+                : null,
+            fechaInicioTratamiento: params['fechaInicioTratamientoString'] != null
+                ? DateTime.tryParse(params['fechaInicioTratamientoString'] as String)
+                : null,
+            horaPrimeraDosisHour: params['horaPrimeraDosisHour'] as int?,
+            horaPrimeraDosisMinute: params['horaPrimeraDosisMinute'] as int?,
+            intervaloHoras: (params['intervaloHoras'] as int?) ?? 8,
+            fechaFinTratamiento: fechaFin,
+            referenceNow: DateTime.now(),
+            localDoseStatuses: localStatuses,
+          );
+
+          if (nextDose != null) {
+            await scheduleOfflineAlarm(
+              scheduleTime: nextDose,
+              alarmId: alarmId,
+              params: {
+                ...params,
+                'doseTime': nextDose.toIso8601String(),
+                'canonicalDoseTime': nextDose.toIso8601String(),
+                'currentNotificationId': getNotificationIdForDose(docId, nextDose),
+              },
+            );
+          }
+        }
       }
     } catch (e) {
       debugPrint("Error durante la reactivación de alarmas: $e");
@@ -1413,16 +1602,22 @@ class NotificationService {
   ]) async {
     if (tratamiento.prescriptionAlarmId == 0) return;
 
-    // Encontrar la próxima dosis que esté realmente pendiente
-    final DateTime? proximaDosis = await _findNextPendingDose(
+    final target = await _findNextScheduledTarget(
       tratamiento: tratamiento,
+      userId: userId,
     );
 
-    if (proximaDosis != null) {
+    if (target != null) {
       debugPrint(
-        "Reactivando alarma para '${tratamiento.nombreMedicamento}'. Próxima dosis: $proximaDosis (ID: ${tratamiento.prescriptionAlarmId})",
+        "Reactivando alarma para '${tratamiento.nombreMedicamento}'. Próxima dosis: ${target.fireTime} (ID: ${tratamiento.prescriptionAlarmId})",
       );
-      await _rescheduleAlarm(proximaDosis, tratamiento, userId, profile);
+      await _rescheduleAlarm(
+        target.fireTime,
+        tratamiento,
+        userId,
+        profile,
+        target.canonicalDoseTime,
+      );
     } else {
       debugPrint(
         "No hay dosis pendientes que reactivar para '${tratamiento.nombreMedicamento}'.",
@@ -1433,13 +1628,14 @@ class NotificationService {
   /// Programa una alarma que puede funcionar sin conexión a internet.
   ///
   /// Esto es posible porque todos los datos necesarios para la siguiente alarma
-  /// se pasan a través del mapa de `params`.
+  /// se pasan a través del mapa de `params` y se respaldan en [PreferenceService].
   static Future<void> scheduleOfflineAlarm({
     required DateTime scheduleTime,
     required int alarmId,
     required Map<String, dynamic> params,
   }) async {
     try {
+      await PreferenceService().saveTreatmentScheduleCache(params);
       await AndroidAlarmManager.oneShotAt(
         scheduleTime,
         alarmId,
@@ -1471,6 +1667,9 @@ class NotificationService {
     required String userId,
     required String docId,
     required DateTime doseTime,
+    DateTime? canonicalDoseTime,
+    DateTime? fechaInicioTratamiento,
+    TimeOfDay? horaPrimeraDosis,
     String? profileId,
     String? pacienteNombre,
     String? habitacion,
@@ -1479,19 +1678,26 @@ class NotificationService {
     bool? isExternalUser,
     String? linkedUid,
     bool? isAnimal,
+    bool? isSnooze,
   }) {
+    final effectiveCanonical = canonicalDoseTime ?? doseTime;
     return {
       // IDs y configuración básica
-      'currentNotificationId': Random().nextInt(100000),
+      'currentNotificationId': getNotificationIdForDose(docId, effectiveCanonical),
       'prescriptionAlarmId': prescriptionAlarmId,
       'userId': userId,
       'docId': docId,
       'doseTime': doseTime.toIso8601String(),
+      'canonicalDoseTime': effectiveCanonical.toIso8601String(),
 
-      // Datos del medicamento (CRÍTICO: para funcionamiento offline)
+      // Datos del medicamento y anclas de rejilla (CRÍTICO: para funcionamiento offline sin desfase)
       'nombreMedicamento': nombreMedicamento.replaceAll('|', '-'),
       'presentacion': presentacion.replaceAll('|', '-'),
       'intervaloHoras': intervaloHoras > 0 ? intervaloHoras : 8,
+      'fechaInicioTratamientoString':
+          (fechaInicioTratamiento ?? effectiveCanonical).toIso8601String(),
+      'horaPrimeraDosisHour': horaPrimeraDosis?.hour ?? effectiveCanonical.hour,
+      'horaPrimeraDosisMinute': horaPrimeraDosis?.minute ?? effectiveCanonical.minute,
       'fechaFinTratamientoString': fechaFinTratamiento.toIso8601String(),
 
       // Datos del paciente/cuidador
@@ -1503,10 +1709,11 @@ class NotificationService {
       'isExternalUser': isExternalUser,
       'linkedUid': linkedUid,
       'isAnimal': isAnimal ?? false,
+      'isSnooze': isSnooze ?? false,
 
       // Metadatos adicionales
       'scheduledAt': DateTime.now().toIso8601String(),
-      'version': '2.0', // Para tracking de versiones del payload
+      'version': '3.0',
     };
   }
 
@@ -1516,9 +1723,10 @@ class NotificationService {
     Tratamiento tratamiento,
     String userId, [
     CaregiverProfile? profile,
+    DateTime? canonicalDoseTime,
   ]) async {
+    final pref = PreferenceService();
     if (profile != null) {
-      final pref = PreferenceService();
       if (profile.isAnimal) {
         final isAnimalActive = await pref.getAnimalModeActive();
         final notifyPatientDoses = await pref.getCaregiverNotifyPatientDoses();
@@ -1544,6 +1752,36 @@ class NotificationService {
 
     final int rawHours = tratamiento.intervaloDosis.inHours;
     final int safeHours = rawHours > 0 ? rawHours : 8;
+    final DateTime effectiveCanonical = canonicalDoseTime ??
+        TratamientoService.snapToCanonicalGrid(
+          dateTime: scheduleTime,
+          anchor: tratamiento.canonicalFirstDoseDateTime,
+          intervaloHoras: safeHours,
+        );
+
+    final params = _buildAlarmParams(
+      nombreMedicamento: tratamiento.nombreMedicamento,
+      presentacion: tratamiento.presentacion,
+      intervaloHoras: safeHours,
+      fechaInicioTratamiento: tratamiento.canonicalFirstDoseDateTime,
+      horaPrimeraDosis: tratamiento.horaPrimeraDosis,
+      fechaFinTratamiento: tratamiento.fechaFinTratamiento,
+      prescriptionAlarmId: tratamiento.prescriptionAlarmId,
+      userId: userId,
+      docId: tratamiento.id,
+      doseTime: scheduleTime,
+      canonicalDoseTime: effectiveCanonical,
+      profileId: profile?.id ?? tratamiento.profileId,
+      pacienteNombre: profile?.name,
+      habitacion: profile?.roomNumber,
+      categoria: profile?.category,
+      dosisPorToma: tratamiento.dosisPorToma,
+      isExternalUser: profile?.isExternalUser,
+      linkedUid: profile?.linkedUid,
+      isAnimal: profile?.isAnimal ?? false,
+    );
+
+    await pref.saveTreatmentScheduleCache(params);
 
     await AndroidAlarmManager.oneShotAt(
       scheduleTime,
@@ -1554,91 +1792,52 @@ class NotificationService {
       alarmClock: true,
       rescheduleOnReboot: true,
       allowWhileIdle: true,
-      params: _buildAlarmParams(
-        nombreMedicamento: tratamiento.nombreMedicamento,
-        presentacion: tratamiento.presentacion,
-        intervaloHoras: safeHours,
-        fechaFinTratamiento: tratamiento.fechaFinTratamiento,
-        prescriptionAlarmId: tratamiento.prescriptionAlarmId,
-        userId: userId,
-        docId: tratamiento.id,
-        doseTime: scheduleTime,
-        profileId: profile?.id,
-        pacienteNombre: profile?.name,
-        habitacion: profile?.roomNumber,
-        categoria: profile?.category,
-        dosisPorToma: tratamiento.dosisPorToma,
-        isExternalUser: profile?.isExternalUser,
-        linkedUid: profile?.linkedUid,
-        isAnimal: profile?.isAnimal ?? false,
-      ),
+      params: params,
     );
-    debugPrint("Alarma reprogramada para: $scheduleTime con datos completos (${profile?.name ?? 'Personal'})");
+    debugPrint("Alarma reprogramada para: $scheduleTime (canónica: $effectiveCanonical) (${profile?.name ?? 'Personal'})");
+  }
+
+  /// Busca el objetivo completo de la próxima dosis (hora de disparo y hora canónica),
+  /// fusionando los datos de Firestore con cualquier estado local offline.
+  static Future<ScheduledDoseTarget?> _findNextScheduledTarget({
+    required Tratamiento tratamiento,
+    String? userId,
+    DateTime? referenceTime,
+  }) async {
+    Map<String, DoseStatus>? localDoseStatuses;
+    if (userId != null && userId.isNotEmpty) {
+      try {
+        final rawLocal = await PreferenceService().getLocalDoseStatuses(
+          userId,
+          tratamiento.id,
+        );
+        if (rawLocal.isNotEmpty) {
+          localDoseStatuses = rawLocal.map(
+            (k, v) => MapEntry(k, DoseStatus.fromString(v)),
+          );
+        }
+      } catch (_) {}
+    }
+
+    return TratamientoService.findNextScheduledDose(
+      tratamiento: tratamiento,
+      referenceTime: referenceTime,
+      localDoseStatuses: localDoseStatuses,
+    );
   }
 
   /// Busca la próxima dosis futura que deba programarse como alarma.
-  ///
-  /// Es 100% compatible tanto con tratamientos tradicionales como con tratamientos de carga lazy
-  /// (donde `doseStatus` no contiene las dosis futuras precalculadas en Firestore).
   static Future<DateTime?> _findNextPendingDose({
     required Tratamiento tratamiento,
+    String? userId,
+    DateTime? referenceTime,
   }) async {
-    final now = DateTime.now();
-
-    // 1. Verificar si existe alguna dosis futura explícitamente pendiente o aplazada en el mapa doseStatus
-    DateTime? earliestExplicitPending;
-    final sortedDoseKeys = tratamiento.doseStatus.keys.toList()..sort();
-    for (final key in sortedDoseKeys) {
-      final doseTime = DateTime.tryParse(key);
-      if (doseTime != null && doseTime.isAfter(now)) {
-        final status = tratamiento.doseStatus[key];
-        if (status == DoseStatus.pendiente || status == DoseStatus.aplazada) {
-          earliestExplicitPending = doseTime;
-          break;
-        }
-      }
-    }
-
-    // 2. Generar iterativamente la serie de dosis según el intervalo y fecha de inicio.
-    // Esto garantiza encontrar la próxima dosis real en tratamientos lazy.
-    final interval = tratamiento.intervaloDosis.inMinutes > 0
-        ? tratamiento.intervaloDosis
-        : const Duration(hours: 8);
-
-    DateTime currentDose = tratamiento.fechaInicioTratamiento;
-
-    while (!currentDose.isAfter(tratamiento.fechaFinTratamiento)) {
-      if (currentDose.isAfter(now)) {
-        // Verificar si esta dosis fue omitida en skippedDoses
-        final isSkipped = tratamiento.skippedDoses.any(
-          (d) => d.difference(currentDose).inMinutes.abs() <= 15,
-        );
-
-        // Verificar si tiene un estado registrado en doseStatus
-        DoseStatus? recordedStatus;
-        for (final entry in tratamiento.doseStatus.entries) {
-          final dt = DateTime.tryParse(entry.key);
-          if (dt != null && dt.difference(currentDose).inMinutes.abs() <= 15) {
-            recordedStatus = entry.value;
-            break;
-          }
-        }
-
-        // Si no fue tomada ni omitida, es una dosis pendiente
-        if (!isSkipped &&
-            recordedStatus != DoseStatus.tomada &&
-            recordedStatus != DoseStatus.omitida) {
-          if (earliestExplicitPending != null &&
-              earliestExplicitPending.isBefore(currentDose)) {
-            return earliestExplicitPending;
-          }
-          return currentDose;
-        }
-      }
-      currentDose = currentDose.add(interval);
-    }
-
-    return earliestExplicitPending;
+    final target = await _findNextScheduledTarget(
+      tratamiento: tratamiento,
+      userId: userId,
+      referenceTime: referenceTime,
+    );
+    return target?.fireTime;
   }
 
   /// Marca la próxima dosis futura como 'omitida' y reprograma la siguiente.
@@ -1646,11 +1845,11 @@ class NotificationService {
   static Future<bool> skipNextDoseAndReschedule({
     required Tratamiento tratamiento,
     required DocumentReference docRef,
-    required String userId, // Añadimos userId
+    required String userId,
   }) async {
-    // 1. Buscamos la próxima dosis PENDIENTE
     final DateTime? proximaDosis = await _findNextPendingDose(
       tratamiento: tratamiento,
+      userId: userId,
     );
 
     if (proximaDosis == null) {
@@ -1660,7 +1859,6 @@ class NotificationService {
 
     debugPrint("SKIP: Omitiendo la dosis de las $proximaDosis.");
 
-    // 2. Actualizamos Firestore a OMITIDA
     await FirestoreService().updateDoseStatus(
       userId,
       tratamiento.id,
@@ -1668,33 +1866,19 @@ class NotificationService {
       DoseStatus.omitida,
     );
 
-    // 3. Cancelamos la serie de alarmas actual
     await AndroidAlarmManager.cancel(tratamiento.prescriptionAlarmId);
-    debugPrint(
-      "SKIP: Alarma existente con ID de Serie ${tratamiento.prescriptionAlarmId} cancelada.",
-    );
 
-    // 4. Obtenemos los datos más recientes y creamos un nuevo objeto Tratamiento actualizado
-    final freshSnapshot = await docRef.get();
-    final freshTratamiento = Tratamiento.fromFirestore(
-      freshSnapshot as DocumentSnapshot<Map<String, dynamic>>,
-    );
-
-    // 5. Buscamos la siguiente dosis PENDIENTE después de la que acabamos de omitir
-    final DateTime? siguienteDosisValida = await _findNextPendingDose(
-      tratamiento: freshTratamiento,
-    );
-
-    if (siguienteDosisValida != null) {
-      // 6. Si existe una siguiente dosis, la reprogramamos
-      debugPrint(
-        "SKIP: Reprogramando la alarma para las $siguienteDosisValida con ID de Serie: ${freshTratamiento.prescriptionAlarmId}",
+    DocumentSnapshot freshSnapshot;
+    try {
+      freshSnapshot = await docRef.get().timeout(const Duration(seconds: 2));
+    } catch (_) {
+      freshSnapshot = await docRef.get(const GetOptions(source: Source.cache));
+    }
+    if (freshSnapshot.exists) {
+      final freshTratamiento = Tratamiento.fromFirestore(
+        freshSnapshot as DocumentSnapshot<Map<String, dynamic>>,
       );
-      await _rescheduleAlarm(siguienteDosisValida, freshTratamiento, userId);
-    } else {
-      debugPrint(
-        "SKIP: No hay más dosis futuras que programar después de la omisión.",
-      );
+      await rescheduleNextPendingDose(freshTratamiento, userId);
     }
 
     return true;
@@ -1711,13 +1895,10 @@ class NotificationService {
     debugPrint('=== FALLBACK: Manejando acción $actionId sin Firebase ===');
 
     try {
-      // Cancelar la notificación actual
       if (notificationId != null) {
         await cancelFlutterLocalNotificationById(notificationId);
-        debugPrint('Notificación $notificationId cancelada en modo fallback');
       }
 
-      // Mostrar notificación de confirmación
       final String confirmationMessage;
       switch (actionId) {
         case 'TOMAR_ACTION':
@@ -1738,8 +1919,6 @@ class NotificationService {
         title: 'Acción registrada',
         body: '$confirmationMessage. Se sincronizará cuando tengas conexión.',
       );
-
-      debugPrint('=== FALLBACK: Acción procesada correctamente ===');
     } catch (e) {
       debugPrint('ERROR en fallback: $e');
     }
@@ -1748,18 +1927,14 @@ class NotificationService {
   /// Asegura que Firebase esté inicializado antes de intentar usarlo.
   static Future<bool> ensureFirebaseInitialized() async {
     try {
-      // Verificar si Firebase ya está inicializado
       if (Firebase.apps.isNotEmpty) {
-        debugPrint('Firebase ya está inicializado');
         return true;
       }
 
-      // Intentar inicializar Firebase
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 3));
 
-      debugPrint('Firebase inicializado correctamente');
       return true;
     } catch (e) {
       debugPrint('ERROR inicializando Firebase: $e');
@@ -1769,23 +1944,16 @@ class NotificationService {
 
   /// Muestra una notificación de prueba para fines de depuración.
   static Future<void> showTestNotification() async {
-    debugPrint('=== CREANDO NOTIFICACIÓN DE PRUEBA ===');
-    
     await showActiveNotification(
       id: 99999,
       title: 'PRUEBA: Notificación de Prueba',
       body: 'Presiona un botón para probar el callback',
       payload: 'active_notification|test_user|test_doc|${DateTime.now().toIso8601String()}',
     );
-    
-    debugPrint('Notificación de prueba creada con ID: 99999');
   }
 
   /// Muestra una notificación de prueba para diagnosticar el funcionamiento de los callbacks.
   static Future<void> checkNotificationCallbacks() async {
-    debugPrint('🔍 VERIFICANDO CALLBACKS DE NOTIFICACIÓN');
-    
-    // Crear una notificación simple para probar
     await _notificationsPlugin.show(
       88888,
       'Test Callback',
@@ -1807,16 +1975,11 @@ class NotificationService {
       ),
       payload: 'active_notification|test|test|${DateTime.now().toIso8601String()}',
     );
-    
-    debugPrint('🔍 Notificación de prueba creada - ID: 88888');
   }
 
   /// Verifica si hay notificaciones activas al abrir la app.
   static Future<void> handlePendingNotificationActions() async {
-    debugPrint('🔄 Verificando acciones de notificación pendientes...');
-    
     try {
-      // Obtener notificaciones activas
       final List<ActiveNotification>? activeNotifications = 
           await _notificationsPlugin
               .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
@@ -1824,11 +1987,6 @@ class NotificationService {
       
       if (activeNotifications != null && activeNotifications.isNotEmpty) {
         debugPrint('📱 Encontradas ${activeNotifications.length} notificaciones activas');
-        for (var notification in activeNotifications) {
-          debugPrint('📱 Notificación activa ID: ${notification.id}, Título: ${notification.title}');
-        }
-      } else {
-        debugPrint('📱 No hay notificaciones activas');
       }
     } catch (e) {
       debugPrint('ERROR verificando notificaciones activas: $e');
@@ -1836,6 +1994,7 @@ class NotificationService {
   }
 
   /// Procesa de forma asíncrona la acción realizada por el usuario en una notificación.
+  /// Garantiza persistencia inmediata en disco y reprogramación exacta tanto online como 100% offline.
   static Future<void> processNotificationActionAsync({
     required String payload,
     required String actionId,
@@ -1849,7 +2008,6 @@ class NotificationService {
         return;
       }
       
-      // Parsear payload
       final parts = payload.split('|');
       if (parts.length < 4) {
         debugPrint('🔥 PAYLOAD MALFORMADO - SALIENDO');
@@ -1863,9 +2021,10 @@ class NotificationService {
           ? (parts.length >= 11 && parts[10].isNotEmpty ? parts[10] : null)
           : (parts.length >= 5 && parts[4].isNotEmpty ? parts[4] : null);
       
+      final prefs = PreferenceService();
+
       // Guard: validar usuario actual y tratamiento no revocado
       try {
-        final prefs = PreferenceService();
         final currentUserId = await prefs.getCurrentUserId();
         final revoked = await prefs.isTreatmentRevoked(userId, docId);
         if (currentUserId == null || currentUserId != userId || revoked) {
@@ -1879,22 +2038,66 @@ class NotificationService {
         debugPrint('🔥 ERROR EN GUARD: $e');
       }
 
-      debugPrint('🔥 PROCESANDO ACCIÓN: $actionId para usuario: $userId');
-      
-      // Inicializar Firebase de forma segura
+      DoseStatus newStatus;
+      switch (actionId) {
+        case 'TOMAR_ACTION':
+          newStatus = DoseStatus.tomada;
+          break;
+        case 'OMITIR_ACTION':
+          newStatus = DoseStatus.omitida;
+          break;
+        case 'APLAZAR_ACTION':
+          newStatus = DoseStatus.aplazada;
+          break;
+        default:
+          debugPrint('🔥 ACCIÓN NO RECONOCIDA: $actionId');
+          return;
+      }
+
+      // Siempre detener sonido de alarma inmediatamente
+      await stopAlarmSound();
+
+      // Si se tomó u omitió, cancelar cualquier snooze pendiente de este tratamiento
+      if (actionId == 'TOMAR_ACTION' || actionId == 'OMITIR_ACTION') {
+        await cancelSnoozeForTreatment(docId: docId, doseTime: doseTime);
+      }
+
+      // CRÍTICO: Persistir el estado localmente de inmediato (< 5ms, sin depender de internet ni Firebase)
+      await prefs.saveLocalDoseStatus(
+        userId: userId,
+        docId: docId,
+        doseTime: doseTime,
+        status: newStatus.value,
+        profileId: profileId,
+        queueForSync: true,
+      );
+
+      // Si la acción es APLAZAR, programar el snooze local de inmediato
+      if (actionId == 'APLAZAR_ACTION') {
+        try {
+          final snoozeMinutes = await prefs.getSnoozeDuration();
+          await snoozeNotification(
+            notificationId,
+            payload,
+            doseTime,
+            snoozeMinutes,
+          );
+          debugPrint('🔥 NOTIFICACIÓN APLAZADA POR $snoozeMinutes MINUTOS');
+        } catch (e) {
+          debugPrint('🔥 ERROR APLAZANDO LOCALMENTE: $e');
+        }
+      }
+
+      // Intentar sincronizar con Firebase y reprogramar siguiente dosis canónica
       bool firebaseReady = false;
       try {
         WidgetsFlutterBinding.ensureInitialized();
         firebaseReady = await ensureFirebaseInitialized();
-        debugPrint('🔥 FIREBASE LISTO: $firebaseReady');
       } catch (e) {
         debugPrint('🔥 ERROR INICIALIZANDO FIREBASE: $e');
       }
-      
-      // Siempre detener sonido de alarma inmediatamente
-      await stopAlarmSound();
 
-      // Procesar la acción si Firebase está listo
+      bool rescheduledWithFirestore = false;
       if (firebaseReady) {
         try {
           final firestoreService = FirestoreService();
@@ -1905,97 +2108,72 @@ class NotificationService {
           );
           final profile = resolved?.profile;
 
-          DoseStatus newStatus;
-          
-          switch (actionId) {
-            case 'TOMAR_ACTION':
-              newStatus = DoseStatus.tomada;
-              break;
-            case 'OMITIR_ACTION':
-              newStatus = DoseStatus.omitida;
-              break;
-            case 'APLAZAR_ACTION':
-              newStatus = DoseStatus.aplazada;
-              break;
-            default:
-              debugPrint('🔥 ACCIÓN NO RECONOCIDA: $actionId');
-              return;
-          }
-          
           await firestoreService.updateDoseStatus(userId, docId, doseTime, newStatus, profile);
-          debugPrint('🔥 ESTADO ACTUALIZADO EN FIRESTORE: ${newStatus.toString().split('.').last}');
+          debugPrint('🔥 ESTADO ACTUALIZADO EN FIRESTORE: ${newStatus.value}');
           
-          // Reprogramar siguiente dosis al tomar u omitir
           if (actionId == 'TOMAR_ACTION' || actionId == 'OMITIR_ACTION') {
+            final docRef = resolved?.docRef ?? firestoreService.getMedicamentoDocRef(userId, docId, profile);
+            DocumentSnapshot docSnap;
             try {
-              final docRef = resolved?.docRef ?? firestoreService.getMedicamentoDocRef(userId, docId, profile);
-              DocumentSnapshot docSnap;
-              try {
-                docSnap = await docRef.get().timeout(const Duration(seconds: 3));
-              } catch (_) {
-                // Si la red falla o demora, leer inmediatamente de la persistencia/caché local de Firestore
-                docSnap = await docRef.get(const GetOptions(source: Source.cache));
-              }
-              if (docSnap.exists) {
-                final tratamiento = Tratamiento.fromFirestore(docSnap as DocumentSnapshot<Map<String, dynamic>>);
-                await rescheduleNextPendingDose(tratamiento, userId, profile);
-              }
-            } catch (e) {
-              debugPrint('🔥 ERROR REPROGRAMANDO SIGUIENTE DOSIS CON FIREBASE: $e');
+              docSnap = await docRef.get().timeout(const Duration(seconds: 2));
+            } catch (_) {
+              docSnap = await docRef.get(const GetOptions(source: Source.cache));
+            }
+            if (docSnap.exists) {
+              final tratamiento = Tratamiento.fromFirestore(docSnap as DocumentSnapshot<Map<String, dynamic>>);
+              await rescheduleNextPendingDose(tratamiento, userId, profile);
+              rescheduledWithFirestore = true;
             }
           }
-
-          // Manejar aplazamiento
-          if (actionId == 'APLAZAR_ACTION') {
-            try {
-              final preferenceService = PreferenceService();
-              final snoozeMinutes = await preferenceService.getSnoozeDuration();
-              await snoozeNotification(
-                notificationId,
-                payload,
-                doseTime,
-                snoozeMinutes,
-              );
-              debugPrint('🔥 NOTIFICACIÓN APLAZADA POR $snoozeMinutes MINUTOS');
-            } catch (e) {
-              debugPrint('🔥 ERROR APLAZANDO: $e');
-            }
-          }
-          
         } catch (e) {
           debugPrint('🔥 ERROR PROCESANDO CON FIREBASE: $e');
-          // Si falló Firebase pero era aplazar, aseguramos el aplazamiento local
-          if (actionId == 'APLAZAR_ACTION') {
-            final preferenceService = PreferenceService();
-            final snoozeMinutes = await preferenceService.getSnoozeDuration();
-            await snoozeNotification(
-              notificationId,
-              payload,
-              doseTime,
-              snoozeMinutes,
-            );
-          }
         }
-      } else {
-        debugPrint('🔥 FIREBASE NO DISPONIBLE - USANDO FALLBACK');
-        if (actionId == 'APLAZAR_ACTION') {
-          final preferenceService = PreferenceService();
-          final snoozeMinutes = await preferenceService.getSnoozeDuration();
-          await snoozeNotification(
-            notificationId,
-            payload,
-            doseTime,
-            snoozeMinutes,
-          );
-        } else {
-          // Mostrar notificación de confirmación sin Firebase
-          await showSimpleNotification(
-            id: (notificationId ?? 0) + 1000,
-            title: 'Acción registrada',
-            body: actionId == 'TOMAR_ACTION'
-                ? 'Dosis registrada como tomada. Se sincronizará al tener conexión.'
-                : 'Dosis registrada como omitida. Se sincronizará al tener conexión.',
-          );
+      }
+
+      // Fallback 100% offline para asegurar que la siguiente dosis canónica quede programada
+      if ((actionId == 'TOMAR_ACTION' || actionId == 'OMITIR_ACTION') &&
+          !rescheduledWithFirestore) {
+        try {
+          final cachedParams = await prefs.getTreatmentScheduleCache(userId, docId);
+          if (cachedParams != null) {
+            final alarmId = cachedParams['prescriptionAlarmId'] as int?;
+            final fechaFinStr = cachedParams['fechaFinTratamientoString'] as String?;
+            if (alarmId != null && alarmId != 0 && fechaFinStr != null) {
+              final rawLocal = await prefs.getLocalDoseStatuses(userId, docId);
+              final localStatuses = rawLocal.map(
+                (k, v) => MapEntry(k, DoseStatus.fromString(v)),
+              );
+              final nextDose = TratamientoService.computeNextCanonicalDoseOffline(
+                doseTime: doseTime,
+                canonicalDoseTime: cachedParams['canonicalDoseTime'] != null
+                    ? DateTime.tryParse(cachedParams['canonicalDoseTime'] as String)
+                    : null,
+                fechaInicioTratamiento: cachedParams['fechaInicioTratamientoString'] != null
+                    ? DateTime.tryParse(cachedParams['fechaInicioTratamientoString'] as String)
+                    : null,
+                horaPrimeraDosisHour: cachedParams['horaPrimeraDosisHour'] as int?,
+                horaPrimeraDosisMinute: cachedParams['horaPrimeraDosisMinute'] as int?,
+                intervaloHoras: (cachedParams['intervaloHoras'] as int?) ?? 8,
+                fechaFinTratamiento: DateTime.parse(fechaFinStr),
+                referenceNow: DateTime.now(),
+                localDoseStatuses: localStatuses,
+              );
+              if (nextDose != null) {
+                await scheduleOfflineAlarm(
+                  scheduleTime: nextDose,
+                  alarmId: alarmId,
+                  params: {
+                    ...cachedParams,
+                    'doseTime': nextDose.toIso8601String(),
+                    'canonicalDoseTime': nextDose.toIso8601String(),
+                    'currentNotificationId': getNotificationIdForDose(docId, nextDose),
+                  },
+                );
+              }
+            }
+          }
+        } catch (offlineErr) {
+          debugPrint('🔥 ERROR EN REPROGRAMACIÓN OFFLINE POST-ACCIÓN: $offlineErr');
         }
       }
       
@@ -2013,16 +2191,9 @@ class NotificationService {
       
       if (launchDetails != null && launchDetails.didNotificationLaunchApp) {
         debugPrint('🚀 APP ABIERTA POR NOTIFICACIÓN');
-        debugPrint('🚀 Payload: ${launchDetails.notificationResponse?.payload}');
-        debugPrint('🚀 Acción: ${launchDetails.notificationResponse?.actionId}');
-        
-        // Si hay una respuesta de notificación, procesarla
         if (launchDetails.notificationResponse != null) {
-          debugPrint('🚀 PROCESANDO ACCIÓN DE LANZAMIENTO');
           await handleNotificationActionBackground(launchDetails.notificationResponse!);
         }
-      } else {
-        debugPrint('🚀 App NO abierta por notificación');
       }
     } catch (e) {
       debugPrint('ERROR verificando lanzamiento por notificación: $e');
@@ -2070,13 +2241,19 @@ class NotificationService {
 
   static void _navigateToDetail(String userId, String docId, String? dateTimeStr, [String? profileId]) async {
     try {
-      final resolved = await FirestoreService().resolveMedicamentoWithProfile(
+      final firestoreService = FirestoreService();
+      final resolved = await firestoreService.resolveMedicamentoWithProfile(
         userId,
         docId,
         profileId: profileId,
       );
-      final docRef = resolved?.docRef ?? FirestoreService().getMedicamentoDocRef(userId, docId);
-      final doc = await docRef.get();
+      final docRef = resolved?.docRef ?? firestoreService.getMedicamentoDocRef(userId, docId);
+      DocumentSnapshot doc;
+      try {
+        doc = await docRef.get().timeout(const Duration(seconds: 2));
+      } catch (_) {
+        doc = await docRef.get(const GetOptions(source: Source.cache));
+      }
       if (doc.exists) {
         final tratamiento = Tratamiento.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
         final date = dateTimeStr != null ? DateTime.tryParse(dateTimeStr) ?? DateTime.now() : DateTime.now();

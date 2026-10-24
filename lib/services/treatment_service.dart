@@ -21,12 +21,12 @@ class TreatmentService {
     CaregiverProfile? profile,
     required TreatmentFormData formData,
   }) async {
-    // Generar ID único para las alarmas
-    final int prescriptionAlarmManagerId = Random().nextInt(2147483647);
+    // Generar ID único positivo en rango seguro (< 90,000,000) para permitir IDs derivados de snooze
+    final int prescriptionAlarmManagerId = Random().nextInt(89999999) + 100000;
 
-    // Calcular fechas
+    // Calcular fechas manteniendo el ancla canónica exacta (segundos y milisegundos en 0)
     final now = DateTime.now();
-    DateTime primeraDosisDateTime = DateTime(
+    DateTime primeraDosisCanonical = DateTime(
       now.year,
       now.month,
       now.day,
@@ -37,19 +37,24 @@ class TreatmentService {
     final int intervaloHoras = formData.intervaloDosis > 0 ? formData.intervaloDosis : 8;
 
     // Si la hora seleccionada coincide con el minuto actual o fue hace menos de 5 minutos:
-    // Programar para HOY de inmediato (en 5 segundos) para no aplazar al día siguiente.
-    final difference = now.difference(primeraDosisDateTime);
+    // Disparamos la primera alarma en 5 segundos, pero CONSERVAMOS primeraDosisCanonical
+    // exactamente en la hora/minuto seleccionada para que las tomas siguientes NO se corran.
+    DateTime primeraAlarmaFireTime;
+    final difference = now.difference(primeraDosisCanonical);
     if (difference.inSeconds >= 0 && difference.inMinutes < 5) {
-      primeraDosisDateTime = now.add(const Duration(seconds: 5));
-    } else if (primeraDosisDateTime.isBefore(now)) {
+      primeraAlarmaFireTime = now.add(const Duration(seconds: 5));
+    } else if (primeraDosisCanonical.isBefore(now)) {
       // Si la hora base ya pasó hoy por más de 5 minutos, avanzar las dosis del ciclo de hoy
-      // según el intervalo (ej. 8:00 AM + 8h = 4:00 PM hoy)
-      while (primeraDosisDateTime.isBefore(now)) {
-        primeraDosisDateTime = primeraDosisDateTime.add(Duration(hours: intervaloHoras));
+      // según el intervalo (ej. 8:00 AM + 8h = 4:00 PM hoy), siempre sobre la rejilla exacta.
+      while (primeraDosisCanonical.isBefore(now)) {
+        primeraDosisCanonical = primeraDosisCanonical.add(Duration(hours: intervaloHoras));
       }
+      primeraAlarmaFireTime = primeraDosisCanonical;
+    } else {
+      primeraAlarmaFireTime = primeraDosisCanonical;
     }
 
-    final DateTime fechaInicioTratamiento = primeraDosisDateTime;
+    final DateTime fechaInicioTratamiento = primeraDosisCanonical;
     final DateTime fechaFinTratamiento = formData.calculateEndDate(
       fechaInicioTratamiento,
     );
@@ -69,7 +74,7 @@ class TreatmentService {
       cantidadTotalCaja: cantidadTotalCaja,
       dosisPorToma: formData.dosisPorToma,
       horaPrimeraDosis: formData.horaPrimeraDosis,
-      intervaloDosis: Duration(hours: formData.intervaloDosis),
+      intervaloDosis: Duration(hours: intervaloHoras),
       prescriptionAlarmId: prescriptionAlarmManagerId,
       fechaInicioTratamiento: fechaInicioTratamiento,
       fechaFinTratamiento: fechaFinTratamiento,
@@ -79,7 +84,9 @@ class TreatmentService {
     // Programar notificaciones
     await _scheduleNotifications(
       formData: formData,
-      primeraDosisDateTime: primeraDosisDateTime,
+      primeraDosisDateTime: primeraAlarmaFireTime,
+      canonicalDoseTime: primeraDosisCanonical,
+      fechaInicioTratamiento: fechaInicioTratamiento,
       fechaFinTratamiento: fechaFinTratamiento,
       prescriptionAlarmManagerId: prescriptionAlarmManagerId,
       userId: userId,
@@ -99,10 +106,17 @@ class TreatmentService {
     required Tratamiento originalTratamiento,
   }) async {
     final now = DateTime.now();
-    final DateTime fechaInicioTratamiento = originalTratamiento.fechaInicioTratamiento;
+    // Alinear la fecha de inicio con la nueva horaPrimeraDosis sin perder el día de inicio original
+    final DateTime fechaInicioTratamiento = DateTime(
+      originalTratamiento.fechaInicioTratamiento.year,
+      originalTratamiento.fechaInicioTratamiento.month,
+      originalTratamiento.fechaInicioTratamiento.day,
+      formData.horaPrimeraDosis.hour,
+      formData.horaPrimeraDosis.minute,
+    );
     final DateTime fechaFinTratamiento = formData.calculateEndDate(fechaInicioTratamiento);
 
-    DateTime proximaAlarma = DateTime(
+    DateTime proximaDosisCanonical = DateTime(
       now.year,
       now.month,
       now.day,
@@ -111,13 +125,15 @@ class TreatmentService {
     );
 
     final int intervaloHoras = formData.intervaloDosis > 0 ? formData.intervaloDosis : 8;
-    final difference = now.difference(proximaAlarma);
+    DateTime proximaAlarmaFireTime;
+    final difference = now.difference(proximaDosisCanonical);
     if (difference.inSeconds >= 0 && difference.inMinutes < 5) {
-      proximaAlarma = now.add(const Duration(seconds: 5));
+      proximaAlarmaFireTime = now.add(const Duration(seconds: 5));
     } else {
-      while (proximaAlarma.isBefore(now)) {
-        proximaAlarma = proximaAlarma.add(Duration(hours: intervaloHoras));
+      while (proximaDosisCanonical.isBefore(now)) {
+        proximaDosisCanonical = proximaDosisCanonical.add(Duration(hours: intervaloHoras));
       }
+      proximaAlarmaFireTime = proximaDosisCanonical;
     }
 
     final int cantidadTotalCaja = formData.cantidadTotalCaja > 0
@@ -135,7 +151,7 @@ class TreatmentService {
       cantidadTotalCaja: cantidadTotalCaja,
       dosisPorToma: formData.dosisPorToma,
       horaPrimeraDosis: formData.horaPrimeraDosis,
-      intervaloDosis: Duration(hours: formData.intervaloDosis),
+      intervaloDosis: Duration(hours: intervaloHoras),
       fechaInicioTratamiento: fechaInicioTratamiento,
       fechaFinTratamiento: fechaFinTratamiento,
       notas: formData.notas,
@@ -143,14 +159,19 @@ class TreatmentService {
 
     // Cancelar alarmas anteriores y reprogramar
     try {
-      await NotificationService.cancelTreatmentAlarms(originalTratamiento.prescriptionAlarmId);
+      await NotificationService.cancelTreatmentAlarms(
+        originalTratamiento.prescriptionAlarmId,
+        docId: docId,
+      );
     } catch (e) {
       debugPrint('Error al cancelar alarmas previas del tratamiento: $e');
     }
 
     await _scheduleNotifications(
       formData: formData,
-      primeraDosisDateTime: proximaAlarma,
+      primeraDosisDateTime: proximaAlarmaFireTime,
+      canonicalDoseTime: proximaDosisCanonical,
+      fechaInicioTratamiento: fechaInicioTratamiento,
       fechaFinTratamiento: fechaFinTratamiento,
       prescriptionAlarmManagerId: originalTratamiento.prescriptionAlarmId,
       userId: userId,
@@ -163,16 +184,18 @@ class TreatmentService {
   Future<void> _scheduleNotifications({
     required TreatmentFormData formData,
     required DateTime primeraDosisDateTime,
+    required DateTime canonicalDoseTime,
+    required DateTime fechaInicioTratamiento,
     required DateTime fechaFinTratamiento,
     required int prescriptionAlarmManagerId,
     required String userId,
     required String docId,
     CaregiverProfile? profile,
   }) async {
-    if (primeraDosisDateTime.isBefore(fechaFinTratamiento)) {
+    if (!canonicalDoseTime.isAfter(fechaFinTratamiento)) {
       debugPrint(
         "Programando PRIMERA alarma para ${formData.nombreMedicamento} "
-        "a las $primeraDosisDateTime con ID: $prescriptionAlarmManagerId",
+        "a las $primeraDosisDateTime (canónica: $canonicalDoseTime) con ID: $prescriptionAlarmManagerId",
       );
 
       // Verificar permisos antes de programar
@@ -187,6 +210,10 @@ class TreatmentService {
         presentacion: formData.presentacion,
         intervaloEnHoras: formData.intervaloDosis,
         primeraDosisDateTime: primeraDosisDateTime,
+        canonicalDoseTime: canonicalDoseTime,
+        fechaInicioTratamiento: fechaInicioTratamiento,
+        horaPrimeraDosis: formData.horaPrimeraDosis,
+        dosisPorToma: formData.dosisPorToma,
         fechaFinTratamiento: fechaFinTratamiento,
         prescriptionAlarmManagerId: prescriptionAlarmManagerId,
         userId: userId,

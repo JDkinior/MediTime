@@ -8,6 +8,7 @@ import 'package:meditime/models/caregiver_profile.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/preference_service.dart';
+import 'package:meditime/services/tratamiento_service.dart';
 import 'package:meditime/firebase_options.dart';
 
 /// Punto de entrada para la ejecución de alarmas en segundo plano.
@@ -19,10 +20,10 @@ import 'package:meditime/firebase_options.dart';
 /// [id] es el ID único de la alarma de `android_alarm_manager_plus`.
 /// [params] es un mapa que contiene toda la información necesaria para procesar
 /// la alarma, incluyendo los datos del tratamiento y del usuario. Esto es crucial
-/// para permitir el funcionamiento 100% offline.
+/// para permitir el funcionamiento 100% offline y mantener la rejilla de dosis exacta.
 @pragma('vm:entry-point')
 void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
-  debugPrint("🚨 INICIO alarmCallbackLogic (Offline-First) - ID: $id");
+  debugPrint("🚨 INICIO alarmCallbackLogic (Offline-First / Zero-Drift) - ID: $id");
   debugPrint("Parámetros recibidos: ${params.keys.toList()}");
 
   try {
@@ -46,17 +47,25 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       return;
     }
 
-    final doseTime = DateTime.parse(doseTimeString);
-    final notificationId = (params['currentNotificationId'] as int?) ?? Random().nextInt(100000);
+    final DateTime rawDoseTime = DateTime.parse(doseTimeString);
+    final String? canonicalDoseTimeStr = params['canonicalDoseTime'] as String?;
+    final DateTime rawCanonicalTime = canonicalDoseTimeStr != null
+        ? (DateTime.tryParse(canonicalDoseTimeStr) ?? rawDoseTime)
+        : rawDoseTime;
+    final bool isSnooze = params['isSnooze'] as bool? ?? false;
 
     // Datos del tratamiento incluidos en el payload
     final nombreMedicamento = params['nombreMedicamento'] ?? 'Medicamento';
-    final intervaloHoras = params['intervaloHoras'] ?? 8;
+    final int rawInterval = (params['intervaloHoras'] as int?) ?? 8;
+    final int intervaloHoras = rawInterval > 0 ? rawInterval : 8;
     final pacienteNombre = params['pacienteNombre'] as String?;
     final habitacion = params['habitacion'] as String?;
     final categoria = params['categoria'] as String?;
     final dosisPorToma = params['dosisPorToma'] ?? 1;
     final presentacion = params['presentacion'] as String? ?? 'dosis';
+    final String? fechaFinStr = params['fechaFinTratamientoString'] as String?;
+    final DateTime? fechaFinTratamiento =
+        fechaFinStr != null ? DateTime.tryParse(fechaFinStr) : null;
 
     // 3. Leer modo de recordatorio (automático, activo o alarma)
     DoseReminderMode reminderMode = DoseReminderMode.automatic;
@@ -78,10 +87,10 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
           "Guard: Bloqueando notificación. currentUserId=$currentUserId, payloadUserId=$userId, revoked=$isRevoked",
         );
         if (seriesId != 0) {
-          await NotificationService.cancelTreatmentAlarms(seriesId);
+          await NotificationService.cancelTreatmentAlarms(seriesId, docId: docId);
           debugPrint("Guard: Serie de alarmas cancelada para ID: $seriesId");
         }
-        return; // No mostrar ni reprogramar nada si el tratamiento fue revocado o cambió de usuario
+        return;
       }
 
       // 4.1 Validación de Modo Cuidador / Modo Animales
@@ -120,7 +129,7 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
         if (shouldBlock) {
           debugPrint("Guard: Bloqueando alarma de perfil ($profileId, isAnimal=$isAnimal): $reason");
           if (seriesId != 0) {
-            await NotificationService.cancelTreatmentAlarms(seriesId);
+            await NotificationService.cancelTreatmentAlarms(seriesId, docId: docId);
             debugPrint("Guard: Serie de alarmas cancelada para ID: $seriesId ($reason)");
           }
           return;
@@ -129,6 +138,81 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
     } catch (e) {
       debugPrint("ERROR en guard de usuario/revocado/modo: $e");
     }
+
+    // 4.2 Manejo de teléfono apagado durante varios ciclos:
+    // Si la alarma se dispara con horas de retraso (>= 1 intervalo completo) porque el
+    // teléfono estuvo apagado, avanzamos sobre la rejilla canónica hasta la última toma vencida
+    // del ciclo actual y verificamos que el tratamiento no haya finalizado hace días.
+    final now = DateTime.now();
+    DateTime effectiveCanonicalTime = DateTime(
+      rawCanonicalTime.year,
+      rawCanonicalTime.month,
+      rawCanonicalTime.day,
+      rawCanonicalTime.hour,
+      rawCanonicalTime.minute,
+    );
+    DateTime effectiveDoseTime = rawDoseTime;
+
+    if (!isSnooze &&
+        now.difference(effectiveCanonicalTime).inMinutes >= intervaloHoras * 60) {
+      while (effectiveCanonicalTime
+              .add(Duration(hours: intervaloHoras))
+              .isBefore(now) &&
+          (fechaFinTratamiento == null ||
+              !effectiveCanonicalTime
+                  .add(Duration(hours: intervaloHoras))
+                  .isAfter(fechaFinTratamiento))) {
+        effectiveCanonicalTime = effectiveCanonicalTime.add(
+          Duration(hours: intervaloHoras),
+        );
+      }
+      effectiveDoseTime = effectiveCanonicalTime;
+
+      // Si incluso la última dosis del tratamiento quedó atrás por más de un intervalo completo,
+      // el tratamiento ya concluyó mientras el dispositivo estaba apagado.
+      if (fechaFinTratamiento != null &&
+          now.isAfter(fechaFinTratamiento) &&
+          now.difference(effectiveCanonicalTime).inMinutes >= intervaloHoras * 60) {
+        debugPrint("Tratamiento ya finalizado mientras el dispositivo estuvo apagado. No se dispara alarma obsoleta.");
+        return;
+      }
+    }
+
+    final Map<String, dynamic> effectiveParams = {
+      ...params,
+      'doseTime': effectiveDoseTime.toIso8601String(),
+      'canonicalDoseTime': effectiveCanonicalTime.toIso8601String(),
+    };
+
+    // 4.3 Verificar en el registro local si esta dosis ya fue tomada u omitida por adelantado
+    final int toleranceMinutes = ((intervaloHoras * 60) ~/ 2).clamp(15, 180);
+    try {
+      final localStatuses = await preferenceService.getLocalDoseStatuses(userId, docId);
+      bool alreadyCompleted = false;
+      for (final entry in localStatuses.entries) {
+        final dt = DateTime.tryParse(entry.key);
+        if (dt != null &&
+            (dt.difference(effectiveDoseTime).inMinutes.abs() <= toleranceMinutes ||
+                dt.difference(effectiveCanonicalTime).inMinutes.abs() <= toleranceMinutes) &&
+            (entry.value == 'tomada' || entry.value == 'omitida')) {
+          alreadyCompleted = true;
+          break;
+        }
+      }
+
+      if (alreadyCompleted) {
+        debugPrint("Guard: La dosis de las $effectiveDoseTime ya fue registrada como tomada/omitida. Se omite notificación y se asegura la siguiente.");
+        if (!isSnooze) {
+          await _reprogramarSiguienteDosisOffline(effectiveParams, preferenceService);
+        }
+        return;
+      }
+    } catch (e) {
+      debugPrint("Aviso verificando estado local previo en alarmCallbackLogic: $e");
+    }
+
+    final int notificationId = (params['currentNotificationId'] as int?) ??
+        NotificationService.getNotificationIdForDose(docId, effectiveCanonicalTime);
 
     // Perfil de paciente/cuidador si aplica
     CaregiverProfile? dummyProfile;
@@ -178,16 +262,8 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       debugPrint("🚨 Modo Alarma disparándose de inmediato para: $nombreMedicamento");
 
       final alarmPayload =
-          'alarm_mode|$userId|$docId|${doseTime.toIso8601String()}|$cleanMedName|$dosisPorToma|$cleanPres|$cleanPacName|$cleanHab|$notificationId|${profileId ?? ""}';
+          'alarm_mode|$userId|$docId|${effectiveDoseTime.toIso8601String()}|$cleanMedName|$dosisPorToma|$cleanPres|$cleanPacName|$cleanHab|$notificationId|${profileId ?? ""}';
 
-      // NOTA: NotificationService.showAlarmModeNotification usa FLAG_INSISTENT y
-      // audioAttributesUsage: AudioAttributesUsage.alarm en el canal de alarma.
-      // El sistema operativo Android se encarga de reproducir el tono de alarma
-      // y la vibración en bucle nativamente, y los detiene al instante cuando
-      // la notificación se descarta o se presiona un botón de acción.
-      // NO iniciar reproductores secundarios en este isolate para evitar sonidos fantasma.
-
-      // Mostrar notificación de alta prioridad en pantalla completa
       await NotificationService.showAlarmModeNotification(
         id: notificationId,
         title: notificationTitle,
@@ -201,7 +277,7 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
         id: notificationId,
         title: notificationTitle,
         body: notificationBody,
-        payload: 'active_notification|$userId|$docId|${doseTime.toIso8601String()}|${profileId ?? ""}',
+        payload: 'active_notification|$userId|$docId|${effectiveDoseTime.toIso8601String()}|${profileId ?? ""}',
       );
     } else {
       debugPrint("✅ Modo Automático detectado para: $nombreMedicamento");
@@ -215,6 +291,22 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       );
     }
 
+    final statusToUpdate = reminderMode == DoseReminderMode.automatic
+        ? DoseStatus.tomada
+        : DoseStatus.notificada;
+
+    // 5.1 Guardar estado inmediatamente en almacenamiento local (<5ms, 100% offline)
+    await preferenceService.saveLocalDoseStatus(
+      userId: userId,
+      docId: docId,
+      doseTime: effectiveDoseTime,
+      status: statusToUpdate.value,
+      profileId: profileId,
+      queueForSync: true,
+      preventOverwriteCompleted: statusToUpdate == DoseStatus.notificada,
+      toleranceMinutes: toleranceMinutes,
+    );
+
     // 6. SINCRONIZACIÓN ASÍNCRONA CON FIREBASE (NO BLOQUEANTE, CON TIMEOUT CORTO)
     bool syncSuccess = false;
     try {
@@ -225,15 +317,12 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       }
 
       final firestoreService = FirestoreService();
-      final statusToUpdate = reminderMode == DoseReminderMode.automatic
-          ? DoseStatus.tomada
-          : DoseStatus.notificada;
 
       await firestoreService
           .updateDoseStatus(
             userId,
             docId,
-            doseTime,
+            effectiveDoseTime,
             statusToUpdate,
             dummyProfile,
           )
@@ -241,27 +330,33 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
 
       debugPrint("Estado sincronizado en Firestore: $statusToUpdate");
 
-      // CRÍTICO: Reprogramar la siguiente dosis con datos de Firestore en TODOS los modos
-      // Esto asegura que si el usuario no interactúa con la notificación o la descarta,
-      // la serie de alarmas continúe viva para las dosis siguientes.
-      await _reprogramarSiguienteDosis(params, userId, firestoreService, dummyProfile);
+      if (!isSnooze) {
+        await _reprogramarSiguienteDosis(
+          effectiveParams,
+          userId,
+          firestoreService,
+          dummyProfile,
+          effectiveCanonicalTime,
+          preferenceService,
+        );
+      }
       syncSuccess = true;
     } catch (syncError) {
       debugPrint("Sincronización en segundo plano omitida o en cola offline (sin conexión): $syncError");
     }
 
     // 7. SI NO HUBO SINCRONIZACIÓN EXITOSA CON FIREBASE, REPROGRAMAR OFFLINE INMEDIATAMENTE
-    // Aplica a TODOS los modos para garantizar que el tratamiento nunca pierda continuidad.
-    if (!syncSuccess) {
-      debugPrint("Reprogramando siguiente dosis en modo offline para asegurar continuidad...");
-      await _reprogramarSiguienteDosisOffline(params);
+    // Aplica a TODOS los modos para garantizar que el tratamiento nunca pierda continuidad ni exactitud.
+    if (!syncSuccess && !isSnooze) {
+      debugPrint("Reprogramando siguiente dosis en modo offline sobre la rejilla canónica...");
+      await _reprogramarSiguienteDosisOffline(effectiveParams, preferenceService);
     }
 
     debugPrint("FIN alarmCallbackLogic - ID: $id - SUCCESS");
   } catch (e) {
     debugPrint("ERROR CRÍTICO en alarmCallbackLogic: $e");
 
-    // FALLBACK DE EMERGENCIA: Mostrar notificación básica
+    // FALLBACK DE EMERGENCIA: Mostrar notificación básica y asegurar siguiente alarma
     try {
       final notificationId = (params['currentNotificationId'] as int?) ?? Random().nextInt(100000);
       final nombreMedicamento = (params['nombreMedicamento'] as String?) ?? 'Medicamento';
@@ -271,90 +366,135 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
         title: 'Hora de tomar: $nombreMedicamento',
         body: 'Confirma tu dosis en la aplicación.',
       );
-      debugPrint("Notificación de emergencia mostrada");
+      await _reprogramarSiguienteDosisOffline(params, PreferenceService());
+      debugPrint("Notificación de emergencia mostrada y siguiente alarma asegurada");
     } catch (emergencyError) {
       debugPrint("ERROR CRÍTICO mostrando notificación de emergencia: $emergencyError");
     }
   }
 }
 
-/// Reprograma la siguiente dosis utilizando datos frescos de Firebase.
-///
-/// Este es el método preferido cuando hay conexión a internet. Lee el tratamiento
-/// directamente de Firestore para asegurarse de que tiene el estado más actualizado
-/// antes de encontrar y programar la siguiente dosis pendiente.
-// NUEVA FUNCIÓN: Reprogramar siguiente dosis con acceso a Firebase
-Future<void> _reprogramarSiguienteDosis(Map<String, dynamic> params, String userId, FirestoreService firestoreService, CaregiverProfile? dummyProfile) async {
+/// Reprograma la siguiente dosis utilizando datos de Firestore (o su caché local),
+/// garantizando que el cálculo parta estrictamente después de la ranura canónica actual.
+Future<void> _reprogramarSiguienteDosis(
+  Map<String, dynamic> params,
+  String userId,
+  FirestoreService firestoreService,
+  CaregiverProfile? dummyProfile,
+  DateTime currentCanonicalTime,
+  PreferenceService preferenceService,
+) async {
   try {
     final docId = params['docId'] as String?;
     if (docId == null) {
-      debugPrint("ERROR: docId es null en _reprogramarSiguienteDosis");
+      await _reprogramarSiguienteDosisOffline(params, preferenceService);
       return;
     }
-    
-    final doc = await firestoreService.getMedicamentoDocRef(userId, docId, dummyProfile).get()
-        .timeout(Duration(seconds: 5));
-    
+
+    final docRef = firestoreService.getMedicamentoDocRef(userId, docId, dummyProfile);
+    DocumentSnapshot doc;
+    try {
+      doc = await docRef.get().timeout(const Duration(seconds: 2));
+    } catch (_) {
+      doc = await docRef.get(const GetOptions(source: Source.cache));
+    }
+
     if (doc.exists) {
       final tratamiento = Tratamiento.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
-      await NotificationService.rescheduleNextPendingDose(tratamiento, userId, dummyProfile);
-      debugPrint("Siguiente dosis reprogramada con datos de Firebase");
+      final now = DateTime.now();
+      // Garantizar que si Android disparó la alarma unos milisegundos antes de currentCanonicalTime,
+      // la búsqueda de la siguiente dosis sea estrictamente posterior a currentCanonicalTime.
+      final referenceTime = now.isAfter(currentCanonicalTime) ? now : currentCanonicalTime;
+      await NotificationService.rescheduleNextPendingDose(
+        tratamiento,
+        userId,
+        dummyProfile,
+        referenceTime,
+      );
+      debugPrint("Siguiente dosis reprogramada con datos de Firestore/caché");
+    } else {
+      await _reprogramarSiguienteDosisOffline(params, preferenceService);
     }
   } catch (e) {
     debugPrint("ERROR reprogramando con Firebase: $e");
-    // Fallback a reprogramación offline
-    await _reprogramarSiguienteDosisOffline(params);
+    await _reprogramarSiguienteDosisOffline(params, preferenceService);
   }
 }
 
-/// Reprograma la siguiente dosis utilizando únicamente los datos pasados en [params].
-///
-/// Este es el método de fallback que se utiliza cuando no hay conexión a Firebase.
-/// Calcula la hora de la siguiente dosis basándose en el intervalo y la hora de la dosis actual,
-/// y la programa si aún está dentro del rango de fechas del tratamiento.
-// NUEVA FUNCIÓN: Reprogramar siguiente dosis sin Firebase (offline)
-Future<void> _reprogramarSiguienteDosisOffline(Map<String, dynamic> params) async {
+/// Reprograma la siguiente dosis utilizando únicamente los datos pasados en [params] y el registro local,
+/// manteniendo las tomas futuras estrictamente ancladas a la rejilla canónica (`horaPrimeraDosis + k * intervalo`).
+Future<void> _reprogramarSiguienteDosisOffline(
+  Map<String, dynamic> params,
+  PreferenceService preferenceService,
+) async {
   try {
     final doseTimeString = params['doseTime'] as String?;
     if (doseTimeString == null) {
       debugPrint("ERROR: doseTime es null en _reprogramarSiguienteDosisOffline");
       return;
     }
-    
+
     final doseTime = DateTime.parse(doseTimeString);
+    final canonicalDoseTimeStr = params['canonicalDoseTime'] as String?;
+    final canonicalDoseTime =
+        canonicalDoseTimeStr != null ? DateTime.tryParse(canonicalDoseTimeStr) : null;
+    final fechaInicioStr = params['fechaInicioTratamientoString'] as String?;
+    final fechaInicio =
+        fechaInicioStr != null ? DateTime.tryParse(fechaInicioStr) : null;
+    final int? horaHour = params['horaPrimeraDosisHour'] as int?;
+    final int? horaMinute = params['horaPrimeraDosisMinute'] as int?;
     final rawInterval = (params['intervaloHoras'] as int?) ?? 8;
     final intervaloHoras = rawInterval > 0 ? rawInterval : 8;
     final fechaFinTratamientoString = params['fechaFinTratamientoString'] as String?;
     final prescriptionAlarmId = (params['prescriptionAlarmId'] as int?) ?? 0;
-    
+    final userId = params['userId'] as String?;
+    final docId = params['docId'] as String?;
+
     if (fechaFinTratamientoString == null || prescriptionAlarmId == 0) {
       debugPrint("Datos insuficientes para reprogramación offline - fechaFin: $fechaFinTratamientoString, alarmId: $prescriptionAlarmId");
       return;
     }
 
     final fechaFinTratamiento = DateTime.parse(fechaFinTratamientoString);
-    DateTime siguienteDosis = doseTime.add(Duration(hours: intervaloHoras));
-    final now = DateTime.now();
 
-    // CRÍTICO: Si la siguiente dosis calculada ya pasó (ej. dispositivo apagado),
-    // adelantamos el cálculo hasta encontrar la próxima dosis en el futuro.
-    // Esto evita un bucle infinito de alarmas disparándose inmediatamente.
-    while (siguienteDosis.isBefore(now) && !siguienteDosis.isAfter(fechaFinTratamiento)) {
-      siguienteDosis = siguienteDosis.add(Duration(hours: intervaloHoras));
+    Map<String, DoseStatus>? localStatuses;
+    if (userId != null && docId != null) {
+      final rawLocal = await preferenceService.getLocalDoseStatuses(userId, docId);
+      if (rawLocal.isNotEmpty) {
+        localStatuses = rawLocal.map(
+          (k, v) => MapEntry(k, DoseStatus.fromString(v)),
+        );
+      }
     }
 
-    // Solo reprogramar si la dosis futura calculada no pasa la fecha de fin (inclusive)
-    if (!siguienteDosis.isAfter(fechaFinTratamiento)) {
+    final DateTime? siguienteDosis = TratamientoService.computeNextCanonicalDoseOffline(
+      doseTime: doseTime,
+      canonicalDoseTime: canonicalDoseTime,
+      fechaInicioTratamiento: fechaInicio,
+      horaPrimeraDosisHour: horaHour,
+      horaPrimeraDosisMinute: horaMinute,
+      intervaloHoras: intervaloHoras,
+      fechaFinTratamiento: fechaFinTratamiento,
+      referenceNow: DateTime.now(),
+      localDoseStatuses: localStatuses,
+    );
+
+    if (siguienteDosis != null) {
+      final nextNotifId = docId != null
+          ? NotificationService.getNotificationIdForDose(docId, siguienteDosis)
+          : Random().nextInt(100000);
       await NotificationService.scheduleOfflineAlarm(
         scheduleTime: siguienteDosis,
         alarmId: prescriptionAlarmId,
         params: {
           ...params,
           'doseTime': siguienteDosis.toIso8601String(),
-          'currentNotificationId': Random().nextInt(100000),
+          'canonicalDoseTime': siguienteDosis.toIso8601String(),
+          'currentNotificationId': nextNotifId,
+          'isSnooze': false,
         },
       );
-      debugPrint("Siguiente dosis reprogramada offline para: $siguienteDosis");
+      debugPrint("Siguiente dosis reprogramada offline en rejilla exacta para: $siguienteDosis");
     } else {
       debugPrint("Tratamiento completado, no se reprograma más de forma offline");
     }
