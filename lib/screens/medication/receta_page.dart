@@ -1,6 +1,5 @@
 // lib/screens/medication/receta_page.dart
 import 'package:meditime/widgets/medication/receta_summary_card.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
@@ -393,6 +392,10 @@ class _RecetaPageState extends State<RecetaPage>
                 InkWell(
                   onTap: () async {
                     Navigator.of(sheetCtx).pop();
+                    await NotificationService.cancelSnoozeForTreatment(
+                      docId: tratamiento.id,
+                      doseTime: doseTime,
+                    );
                     final inventoryResult = await firestoreService
                         .updateDoseStatus(
                           user.uid,
@@ -401,6 +404,11 @@ class _RecetaPageState extends State<RecetaPage>
                           DoseStatus.tomada,
                           activeProfile,
                         );
+                    await NotificationService.rescheduleNextPendingDose(
+                      tratamiento,
+                      user.uid,
+                      activeProfile,
+                    );
                     if (inventoryResult?.stockBajo == true) {
                       scaffoldMessenger.showSnackBar(
                         SnackBar(
@@ -522,11 +530,20 @@ class _RecetaPageState extends State<RecetaPage>
                         ),
                         onTap: () async {
                           Navigator.of(sheetCtx).pop();
+                          await NotificationService.cancelSnoozeForTreatment(
+                            docId: tratamiento.id,
+                            doseTime: doseTime,
+                          );
                           await firestoreService.updateDoseStatus(
                             user.uid,
                             tratamiento.id,
                             doseTime,
                             DoseStatus.omitida,
+                            activeProfile,
+                          );
+                          await NotificationService.rescheduleNextPendingDose(
+                            tratamiento,
+                            user.uid,
                             activeProfile,
                           );
                           scaffoldMessenger.showSnackBar(
@@ -666,50 +683,24 @@ class _RecetaPageState extends State<RecetaPage>
                             final newDoseTime = doseTime.add(
                               Duration(minutes: minutes),
                             );
-                            final docRef = firestoreService
-                                .getMedicamentoDocRef(
-                                  user.uid,
-                                  tratamiento.id,
-                                  activeProfile,
+                            await NotificationService.cancelSnoozeForTreatment(
+                              docId: tratamiento.id,
+                              doseTime: doseTime,
+                            );
+                            final updatedTratamiento = await firestoreService
+                                .deferOrMoveSingleDose(
+                                  userId: user.uid,
+                                  docId: tratamiento.id,
+                                  oldDoseTime: doseTime,
+                                  newDoseTime: newDoseTime,
+                                  newStatus: DoseStatus.aplazada,
+                                  profile: activeProfile,
                                 );
-                            await FirebaseFirestore.instance.runTransaction((
-                              transaction,
-                            ) async {
-                              final snapshot = await transaction.get(docRef);
-                              if (!snapshot.exists) return;
-                              final t = Tratamiento.fromFirestore(
-                                snapshot
-                                    as DocumentSnapshot<Map<String, dynamic>>,
-                              );
-                              final updatedMap = Map<String, DoseStatus>.from(
-                                t.doseStatus,
-                              );
-                              final oldKey = doseTime.toIso8601String();
-                              updatedMap.remove(oldKey);
-                              updatedMap[newDoseTime.toIso8601String()] =
-                                  DoseStatus.aplazada;
-                              transaction.update(docRef, {
-                                'doseStatus': updatedMap.map(
-                                  (k, v) => MapEntry(k, v.value),
-                                ),
-                              });
-                            });
-
-                            final doc = await docRef.get();
-                            if (doc.exists) {
-                              final updatedTratamiento =
-                                  Tratamiento.fromFirestore(
-                                    doc
-                                        as DocumentSnapshot<
-                                          Map<String, dynamic>
-                                        >,
-                                  );
-                              await NotificationService.rescheduleNextPendingDose(
-                                updatedTratamiento,
-                                user.uid,
-                                activeProfile,
-                              );
-                            }
+                            await NotificationService.rescheduleNextPendingDose(
+                              updatedTratamiento ?? tratamiento,
+                              user.uid,
+                              activeProfile,
+                            );
                             scaffoldMessenger.showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -1072,37 +1063,22 @@ class _RecetaPageState extends State<RecetaPage>
           pickedTime.hour,
           pickedTime.minute,
         );
-        final docRef = firestoreService.getMedicamentoDocRef(
+        await NotificationService.cancelSnoozeForTreatment(
+          docId: tratamiento.id,
+          doseTime: doseTime,
+        );
+        final updatedTratamiento = await firestoreService.deferOrMoveSingleDose(
+          userId: user.uid,
+          docId: tratamiento.id,
+          oldDoseTime: doseTime,
+          newDoseTime: newDoseTime,
+          profile: activeProfile,
+        );
+        await NotificationService.rescheduleNextPendingDose(
+          updatedTratamiento ?? tratamiento,
           user.uid,
-          tratamiento.id,
           activeProfile,
         );
-        await FirebaseFirestore.instance.runTransaction((transaction) async {
-          final snapshot = await transaction.get(docRef);
-          if (!snapshot.exists) return;
-          final t = Tratamiento.fromFirestore(
-            snapshot as DocumentSnapshot<Map<String, dynamic>>,
-          );
-          final updatedMap = Map<String, DoseStatus>.from(t.doseStatus);
-          final oldKey = doseTime.toIso8601String();
-          final statusVal = updatedMap.remove(oldKey) ?? DoseStatus.pendiente;
-          updatedMap[newDoseTime.toIso8601String()] = statusVal;
-          transaction.update(docRef, {
-            'doseStatus': updatedMap.map((k, v) => MapEntry(k, v.value)),
-          });
-        });
-
-        final doc = await docRef.get();
-        if (doc.exists) {
-          final updatedTratamiento = Tratamiento.fromFirestore(
-            doc as DocumentSnapshot<Map<String, dynamic>>,
-          );
-          await NotificationService.rescheduleNextPendingDose(
-            updatedTratamiento,
-            user.uid,
-            activeProfile,
-          );
-        }
         scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text(

@@ -14,6 +14,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/preference_service.dart';
+import 'package:meditime/services/tratamiento_service.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/widgets/modern_content_fade.dart';
 import 'package:meditime/screens/medication/editar_tratamiento_page.dart';
@@ -87,6 +88,12 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       final doseTime = _horaDosis;
       final firestoreService = FirestoreService();
 
+      await NotificationService.stopAlarmSound();
+      await NotificationService.cancelSnoozeForTreatment(
+        docId: docId,
+        doseTime: doseTime,
+      );
+
       final resolved = await firestoreService.resolveMedicamentoWithProfile(
         userId,
         docId,
@@ -113,9 +120,8 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
         final snoozeMinutes = await PreferenceService().getSnoozeDuration();
         final payload =
             'active_notification|$userId|$docId|${doseTime.toIso8601String()}|${effectiveProfile?.id ?? ""}';
-        // Enviar id ficticio para aplazar
         await NotificationService.snoozeNotification(
-          doseTime.hashCode.abs(), // Generar un ID único basado en la hora
+          NotificationService.getNotificationIdForDose(docId, doseTime),
           payload,
           doseTime,
           snoozeMinutes,
@@ -141,17 +147,25 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               docId,
               effectiveProfile,
             );
-        final docSnap = await docRef.get();
-        if (docSnap.exists) {
-          final freshTratamiento = Tratamiento.fromFirestore(
-            docSnap as dynamic,
+        DocumentSnapshot? docSnap;
+        try {
+          docSnap = await docRef.get().timeout(
+            const Duration(milliseconds: 1200),
           );
-          await NotificationService.rescheduleNextPendingDose(
-            freshTratamiento,
-            userId,
-            effectiveProfile,
-          );
+        } catch (_) {
+          try {
+            docSnap = await docRef.get(const GetOptions(source: Source.cache));
+          } catch (_) {}
         }
+        final freshTratamiento =
+            (docSnap != null && docSnap.exists)
+                ? Tratamiento.fromFirestore(docSnap as dynamic)
+                : _tratamiento;
+        await NotificationService.rescheduleNextPendingDose(
+          freshTratamiento,
+          userId,
+          effectiveProfile,
+        );
       }
 
       if (mounted) {
@@ -176,39 +190,11 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
   }
 
   DateTime? _findNextUpcomingDose() {
-    // CAMBIO: Lógica adaptada para usar el objeto Tratamiento
-    final horaInicial = _tratamiento.horaPrimeraDosis;
-    final intervalo = _tratamiento.intervaloDosis.inHours;
-    final fechaFinTratamiento = _tratamiento.fechaFinTratamiento;
-    final List<DateTime> dosisOmitidas = _tratamiento.skippedDoses;
-
-    List<DateTime> dosisPotenciales = [];
-    DateTime dosisActual = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
-      horaInicial.hour,
-      horaInicial.minute,
+    final nextTarget = TratamientoService.findNextScheduledDose(
+      tratamiento: _tratamiento,
+      referenceTime: DateTime.now().subtract(const Duration(minutes: 1)),
     );
-
-    while (dosisActual.isBefore(fechaFinTratamiento)) {
-      if (dosisActual.isAfter(
-        DateTime.now().subtract(const Duration(minutes: 1)),
-      )) {
-        dosisPotenciales.add(dosisActual);
-      }
-      dosisActual = dosisActual.add(Duration(hours: intervalo));
-    }
-
-    for (final dosis in dosisPotenciales) {
-      bool esOmitida = dosisOmitidas.any(
-        (skipped) => skipped.isAtSameMomentAs(dosis),
-      );
-      if (!esOmitida) {
-        return dosis;
-      }
-    }
-    return null;
+    return nextTarget?.fireTime;
   }
 
   // --- PASO 4: ACTUALIZAR LA LÓGICA DEL TIEMPO RESTANTE ---

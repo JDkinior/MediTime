@@ -1,8 +1,13 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meditime/models/tratamiento.dart';
-import 'package:flutter/material.dart';
+import 'package:meditime/services/preference_service.dart';
+import 'package:meditime/services/tratamiento_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('Notification & Alarm Resilience Unit Tests', () {
     test('Payload text sanitization preserves pipe separation structure', () {
       const nombreMedicamento = 'Paracetamol 500mg | con agua';
@@ -39,60 +44,143 @@ void main() {
       expect(parts[10], profileId);
     });
 
-    test('Zero interval is guarded against infinite loops in offline rescheduling', () {
-      const int rawInterval = 0;
-      final int intervaloHoras = rawInterval > 0 ? rawInterval : 8;
-
-      expect(intervaloHoras, 8);
-
-      final now = DateTime(2026, 10, 11, 10, 0);
-      final doseTime = DateTime(2026, 10, 11, 8, 0);
-      final fechaFin = DateTime(2026, 10, 15, 8, 0);
-
-      DateTime siguienteDosis = doseTime.add(Duration(hours: intervaloHoras));
-      int iterations = 0;
-      while (siguienteDosis.isBefore(now) && !siguienteDosis.isAfter(fechaFin)) {
-        siguienteDosis = siguienteDosis.add(Duration(hours: intervaloHoras));
-        iterations++;
-        if (iterations > 100) break;
-      }
-
-      expect(iterations, lessThan(10));
-      expect(siguienteDosis.isAfter(now) || siguienteDosis.isAtSameMomentAs(now), true);
-    });
-
-    test('Boundary test: Final dose at exact same moment as fechaFinTratamiento is included', () {
-      final inicio = DateTime(2026, 10, 11, 8, 0);
-      final fin = DateTime(2026, 10, 11, 16, 0); // Exact 8h later
+    test('canonicalFirstDoseDateTime eliminates creation grace-window drift', () {
+      // Simula un tratamiento cuya primera dosis era 08:00, pero se guardó
+      // con fechaInicioTratamiento corrida a las 08:02:15 por la ventana de gracia
+      final driftedStart = DateTime(2026, 10, 11, 8, 2, 15);
+      final fin = DateTime(2026, 10, 15, 8, 0);
 
       final t = Tratamiento(
-        id: 't1',
-        nombreMedicamento: 'Amoxicilina',
-        presentacion: 'cápsulas',
-        duracion: '1 día',
+        id: 't_drift',
+        nombreMedicamento: 'Ibuprofeno',
+        presentacion: 'tabletas',
+        duracion: '4 días',
         horaPrimeraDosis: const TimeOfDay(hour: 8, minute: 0),
         intervaloDosis: const Duration(hours: 8),
-        prescriptionAlarmId: 101,
-        fechaInicioTratamiento: inicio,
+        prescriptionAlarmId: 202,
+        fechaInicioTratamiento: driftedStart,
         fechaFinTratamiento: fin,
       );
 
-      final now = DateTime(2026, 10, 11, 10, 0);
+      expect(t.canonicalFirstDoseDateTime, DateTime(2026, 10, 11, 8, 0, 0));
 
-      // Verify that loop with !currentDose.isAfter(fin) finds the 16:00 dose
-      DateTime currentDose = t.fechaInicioTratamiento;
-      DateTime? nextPending;
+      final doses = TratamientoService.generarDosisTotales(t);
+      expect(doses[0], DateTime(2026, 10, 11, 8, 0, 0));
+      expect(doses[1], DateTime(2026, 10, 11, 16, 0, 0));
+      expect(doses[2], DateTime(2026, 10, 12, 0, 0, 0));
+    });
 
-      while (!currentDose.isAfter(t.fechaFinTratamiento)) {
-        if (currentDose.isAfter(now)) {
-          nextPending = currentDose;
-          break;
-        }
-        currentDose = currentDose.add(t.intervaloDosis);
-      }
+    test('Deferring or snoozing a single dose never shifts subsequent doses', () {
+      final inicio = DateTime(2026, 10, 11, 8, 0);
+      final fin = DateTime(2026, 10, 13, 8, 0);
 
-      expect(nextPending, isNotNull);
-      expect(nextPending, fin);
+      // La dosis de las 08:00 fue aplazada a las 08:30
+      final t = Tratamiento(
+        id: 't_defer',
+        nombreMedicamento: 'Losartán',
+        presentacion: 'tabletas',
+        duracion: '2 días',
+        horaPrimeraDosis: const TimeOfDay(hour: 8, minute: 0),
+        intervaloDosis: const Duration(hours: 8),
+        prescriptionAlarmId: 303,
+        fechaInicioTratamiento: inicio,
+        fechaFinTratamiento: fin,
+        doseStatus: {
+          DateTime(2026, 10, 11, 8, 30).toIso8601String(): DoseStatus.aplazada,
+        },
+      );
+
+      // A las 08:05, la próxima alarma a sonar debe ser la aplazada (08:30),
+      // pero anclada a su ranura canónica (08:00).
+      final targetAt805 = TratamientoService.findNextScheduledDose(
+        tratamiento: t,
+        referenceTime: DateTime(2026, 10, 11, 8, 5),
+      );
+      expect(targetAt805, isNotNull);
+      expect(targetAt805!.fireTime, DateTime(2026, 10, 11, 8, 30));
+      expect(targetAt805.canonicalDoseTime, DateTime(2026, 10, 11, 8, 0));
+      expect(targetAt805.isDeferredOrEdited, isTrue);
+
+      // Una vez pasa las 08:30, la siguiente dosis DEBE ser exactamente a las 16:00:00 (sin correrse a 16:30)
+      final targetAfter830 = TratamientoService.findNextScheduledDose(
+        tratamiento: t,
+        referenceTime: DateTime(2026, 10, 11, 8, 30),
+      );
+      expect(targetAfter830, isNotNull);
+      expect(targetAfter830!.fireTime, DateTime(2026, 10, 11, 16, 0));
+      expect(targetAfter830.canonicalDoseTime, DateTime(2026, 10, 11, 16, 0));
+    });
+
+    test('Early-taken dose is skipped when scheduling next alarm', () {
+      final inicio = DateTime(2026, 10, 11, 8, 0);
+      final fin = DateTime(2026, 10, 13, 8, 0);
+
+      // El usuario tomó la dosis de las 16:00 de forma anticipada a las 15:45
+      final t = Tratamiento(
+        id: 't_early',
+        nombreMedicamento: 'Metformina',
+        presentacion: 'tabletas',
+        duracion: '2 días',
+        horaPrimeraDosis: const TimeOfDay(hour: 8, minute: 0),
+        intervaloDosis: const Duration(hours: 8),
+        prescriptionAlarmId: 404,
+        fechaInicioTratamiento: inicio,
+        fechaFinTratamiento: fin,
+        doseStatus: {
+          DateTime(2026, 10, 11, 8, 0).toIso8601String(): DoseStatus.tomada,
+          DateTime(2026, 10, 11, 16, 0).toIso8601String(): DoseStatus.tomada,
+        },
+      );
+
+      final nextAt1545 = TratamientoService.findNextScheduledDose(
+        tratamiento: t,
+        referenceTime: DateTime(2026, 10, 11, 15, 45),
+      );
+
+      expect(nextAt1545, isNotNull);
+      expect(nextAt1545!.fireTime, DateTime(2026, 10, 12, 0, 0));
+    });
+
+    test('Offline multi-interval power-off recovery maintains exact canonical grid', () {
+      // Tratamiento cada 8h empezando a las 08:00 del 11 de octubre.
+      // El teléfono estuvo apagado desde las 07:50 hasta las 18:20 (se perdieron 08:00 y 16:00).
+      final nextDose = TratamientoService.computeNextCanonicalDoseOffline(
+        doseTime: DateTime(2026, 10, 11, 8, 15), // incluso si venía de un snooze
+        intervaloHoras: 8,
+        fechaFinTratamiento: DateTime(2026, 10, 15, 8, 0),
+        fechaInicioTratamiento: DateTime(2026, 10, 11, 8, 0),
+        horaPrimeraDosisHour: 8,
+        horaPrimeraDosisMinute: 0,
+        referenceNow: DateTime(2026, 10, 11, 18, 20),
+      );
+
+      // La siguiente dosis debe ser exactamente a las 00:00 del 12 de octubre (nunca 02:20 ni 00:15)
+      expect(nextDose, DateTime(2026, 10, 12, 0, 0, 0));
+    });
+
+    test('Local offline dose ledger prevents overwriting completed doses with notificada', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = PreferenceService();
+      final doseTime = DateTime(2026, 10, 11, 8, 0);
+
+      await prefs.saveLocalDoseStatus(
+        userId: 'u_1',
+        docId: 'med_1',
+        doseTime: doseTime,
+        status: 'tomada',
+      );
+
+      // Si una alarma retrasada intenta marcarla como 'notificada', se ignora
+      await prefs.saveLocalDoseStatus(
+        userId: 'u_1',
+        docId: 'med_1',
+        doseTime: doseTime,
+        status: 'notificada',
+        preventOverwriteCompleted: true,
+      );
+
+      final statuses = await prefs.getLocalDoseStatuses('u_1', 'med_1');
+      expect(statuses[doseTime.toIso8601String()], 'tomada');
     });
   });
 }

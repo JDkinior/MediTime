@@ -56,10 +56,24 @@ class LazyTreatment {
     final dayEnd = dayStart.add(const Duration(days: 1));
     
     final doses = <DateTime>[];
-    DateTime currentDose = baseTreatment.fechaInicioTratamiento;
+    final Duration interval = baseTreatment.intervaloDosis.inHours > 0
+        ? baseTreatment.intervaloDosis
+        : const Duration(hours: 8);
+    DateTime currentDose = baseTreatment.canonicalFirstDoseDateTime;
+
+    if (currentDose.isBefore(dayStart)) {
+      final hoursDiff = dayStart.difference(currentDose).inHours;
+      final jumps = hoursDiff ~/ interval.inHours;
+      if (jumps > 0) {
+        currentDose = currentDose.add(Duration(hours: jumps * interval.inHours));
+      }
+      while (currentDose.isBefore(dayStart)) {
+        currentDose = currentDose.add(interval);
+      }
+    }
     
     // Solo generamos las dosis para este día específico
-    while (currentDose.isBefore(baseTreatment.fechaFinTratamiento)) {
+    while (!currentDose.isAfter(baseTreatment.fechaFinTratamiento)) {
       if (!currentDose.isBefore(dayStart) && currentDose.isBefore(dayEnd)) {
         doses.add(currentDose);
       }
@@ -67,7 +81,7 @@ class LazyTreatment {
       // Si ya pasamos el día, no necesitamos seguir
       if (currentDose.isAfter(dayEnd)) break;
       
-      currentDose = currentDose.add(baseTreatment.intervaloDosis);
+      currentDose = currentDose.add(interval);
     }
     
     return doses;
@@ -89,9 +103,20 @@ class LazyTreatment {
           );
 
     // Generamos dosis solo para el nuevo rango
-    DateTime currentDose = baseTreatment.fechaInicioTratamiento;
+    final Duration interval = baseTreatment.intervaloDosis.inHours > 0
+        ? baseTreatment.intervaloDosis
+        : const Duration(hours: 8);
+    DateTime currentDose = baseTreatment.canonicalFirstDoseDateTime;
+
+    if (currentDose.isBefore(newCacheStart)) {
+      final hoursDiff = newCacheStart.difference(currentDose).inHours;
+      final jumps = hoursDiff ~/ interval.inHours;
+      if (jumps > 0) {
+        currentDose = currentDose.add(Duration(hours: jumps * interval.inHours));
+      }
+    }
     
-    while (currentDose.isBefore(baseTreatment.fechaFinTratamiento) && 
+    while (!currentDose.isAfter(baseTreatment.fechaFinTratamiento) && 
            currentDose.isBefore(newCacheEnd.add(const Duration(days: 1)))) {
       
       if (!currentDose.isBefore(newCacheStart) && !currentDose.isAfter(newCacheEnd)) {
@@ -104,7 +129,7 @@ class LazyTreatment {
         }
       }
       
-      currentDose = currentDose.add(baseTreatment.intervaloDosis);
+      currentDose = currentDose.add(interval);
     }
     
     _cacheStartDate = newCacheStart;

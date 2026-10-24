@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/models/tratamiento.dart';
@@ -174,6 +175,10 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
     await _stopAlarmAndExit(() async {
       if (!widget.isTest && widget.userId.isNotEmpty && widget.docId.isNotEmpty) {
         try {
+          await NotificationService.cancelSnoozeForTreatment(
+            docId: widget.docId,
+            doseTime: widget.doseTime,
+          );
           final firestoreService = FirestoreService();
           final resolved = await firestoreService.resolveMedicamentoWithProfile(
             widget.userId,
@@ -190,17 +195,22 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
             profile,
           );
 
-          // Reprogramar siguiente dosis
+          // Reprogramar siguiente dosis con soporte offline
           final docRef = resolved?.docRef ??
               firestoreService.getMedicamentoDocRef(
                 widget.userId,
                 widget.docId,
                 profile,
               );
-          final docSnap = await docRef.get();
+          DocumentSnapshot docSnap;
+          try {
+            docSnap = await docRef.get().timeout(const Duration(seconds: 2));
+          } catch (_) {
+            docSnap = await docRef.get(const GetOptions(source: Source.cache));
+          }
           if (docSnap.exists) {
             final tratamiento = Tratamiento.fromFirestore(
-              docSnap as dynamic,
+              docSnap as DocumentSnapshot<Map<String, dynamic>>,
             );
             await NotificationService.rescheduleNextPendingDose(
               tratamiento,
@@ -259,6 +269,10 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
     await _stopAlarmAndExit(() async {
       if (!widget.isTest && widget.userId.isNotEmpty && widget.docId.isNotEmpty) {
         try {
+          await NotificationService.cancelSnoozeForTreatment(
+            docId: widget.docId,
+            doseTime: widget.doseTime,
+          );
           final firestoreService = FirestoreService();
           final resolved = await firestoreService.resolveMedicamentoWithProfile(
             widget.userId,
@@ -281,10 +295,15 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
                 widget.docId,
                 profile,
               );
-          final docSnap = await docRef.get();
+          DocumentSnapshot docSnap;
+          try {
+            docSnap = await docRef.get().timeout(const Duration(seconds: 2));
+          } catch (_) {
+            docSnap = await docRef.get(const GetOptions(source: Source.cache));
+          }
           if (docSnap.exists) {
             final tratamiento = Tratamiento.fromFirestore(
-              docSnap as dynamic,
+              docSnap as DocumentSnapshot<Map<String, dynamic>>,
             );
             await NotificationService.rescheduleNextPendingDose(
               tratamiento,

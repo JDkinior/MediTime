@@ -150,6 +150,42 @@ class Tratamiento {
     return !isFinalizado && !fechaInicioTratamiento.isAfter(finDeHoy);
   }
 
+  /// Retorna la fecha y hora de inicio del tratamiento estrictamente alineada
+  /// a la rejilla de [horaPrimeraDosis] + múltiplos de [intervaloDosis],
+  /// con segundos y milisegundos en 0. Evita que retrasos al crear, posponer
+  /// o editar desplacen las tomas futuras ("drift").
+  DateTime get canonicalFirstDoseDateTime {
+    final dayAnchor = DateTime(
+      fechaInicioTratamiento.year,
+      fechaInicioTratamiento.month,
+      fechaInicioTratamiento.day,
+      horaPrimeraDosis.hour,
+      horaPrimeraDosis.minute,
+    );
+    final intervalMinutes = intervaloDosis.inMinutes;
+    if (intervalMinutes <= 0) return dayAnchor;
+
+    final rawClean = DateTime(
+      fechaInicioTratamiento.year,
+      fechaInicioTratamiento.month,
+      fechaInicioTratamiento.day,
+      fechaInicioTratamiento.hour,
+      fechaInicioTratamiento.minute,
+    );
+    final diffMinutes = rawClean.difference(dayAnchor).inMinutes;
+    if (diffMinutes <= 0) return dayAnchor;
+
+    final int k = math.max(0, (diffMinutes / intervalMinutes).round());
+    return dayAnchor.add(Duration(minutes: k * intervalMinutes));
+  }
+
+  /// Tolerancia en minutos para asociar un registro en [doseStatus] o [skippedDoses]
+  /// con su ranura canónica en la rejilla del tratamiento.
+  int get doseMatchToleranceMinutes {
+    final intervalMinutes = intervaloDosis.inMinutes > 0 ? intervaloDosis.inMinutes : 480;
+    return (intervalMinutes ~/ 2).clamp(15, 180);
+  }
+
   /// Indica si el inventario de este tratamiento está siendo gestionado.
   bool get hasInventarioConfigurado => cantidadTotalCaja > 0 || cantidadActual > 0;
 

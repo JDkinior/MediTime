@@ -97,6 +97,11 @@ class PreferenceService {
   static const String _caregiverAlarmIdsKey = 'caregiver_alarm_ids';
   static const String _animalAlarmIdsKey = 'animal_alarm_ids';
 
+  // Offline resilience: Local dose statuses, pending sync actions, and schedule cache
+  static const String _localDoseStatusPrefix = 'local_dose_status_';
+  static const String _pendingOfflineActionsKey = 'pending_offline_dose_actions';
+  static const String _treatmentScheduleCacheKey = 'treatment_schedule_cache_map';
+
   Future<void> saveThemeMode(String themeStr) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_themeModeKey, themeStr);
@@ -347,6 +352,8 @@ class PreferenceService {
     final list = (prefs.getStringList(_revokedTreatmentsKey) ?? <String>[]).toSet();
     list.add(key);
     await prefs.setStringList(_revokedTreatmentsKey, list.toList());
+    await removeTreatmentScheduleCache(userId, docId);
+    await clearLocalDoseStatusesForTreatment(userId, docId);
   }
 
   Future<void> removeRevokedTreatment(String userId, String docId) async {
@@ -775,5 +782,291 @@ class PreferenceService {
   Future<void> clearAnimalAlarmIds() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_animalAlarmIdsKey);
+  }
+
+  // --- Offline Dose Status Ledger & Pending Sync Queue ---
+
+  String _doseLedgerKey(String userId, String docId) =>
+      '$_localDoseStatusPrefix${userId}_$docId';
+
+  /// Guarda inmediatamente en almacenamiento local el estado de una dosis.
+  /// Si [preventOverwriteCompleted] es true y la dosis ya estaba marcada como
+  /// 'tomada' u 'omitida' (dentro de la tolerancia), no se sobrescribe con 'notificada'.
+  Future<bool> saveLocalDoseStatus({
+    required String userId,
+    required String docId,
+    required DateTime doseTime,
+    required String status,
+    String? profileId,
+    bool queueForSync = false,
+    bool preventOverwriteCompleted = false,
+    int toleranceMinutes = 60,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final key = _doseLedgerKey(userId, docId);
+      final rawJson = prefs.getString(key);
+      final Map<String, String> ledger = {};
+      if (rawJson != null && rawJson.isNotEmpty) {
+        final decoded = jsonDecode(rawJson);
+        if (decoded is Map) {
+          decoded.forEach((k, v) {
+            if (k is String && v != null) {
+              ledger[k] = v.toString();
+            }
+          });
+        }
+      }
+
+      String targetIso = doseTime.toIso8601String();
+      for (final existingIso in ledger.keys) {
+        final dt = DateTime.tryParse(existingIso);
+        if (dt != null && dt.difference(doseTime).inMinutes.abs() <= toleranceMinutes) {
+          targetIso = existingIso;
+          break;
+        }
+      }
+
+      final previousStatus = ledger[targetIso];
+      if (preventOverwriteCompleted &&
+          (previousStatus == 'tomada' || previousStatus == 'omitida')) {
+        return false;
+      }
+
+      ledger[targetIso] = status;
+
+      // Podar entradas muy antiguas (> 14 días) para mantener el mapa ligero
+      final cutoff = DateTime.now().subtract(const Duration(days: 14));
+      ledger.removeWhere((iso, _) {
+        final dt = DateTime.tryParse(iso);
+        return dt != null && dt.isBefore(cutoff);
+      });
+
+      await prefs.setString(key, jsonEncode(ledger));
+
+      if (queueForSync) {
+        await enqueueOfflineDoseAction(
+          userId: userId,
+          docId: docId,
+          doseTimeIso: targetIso,
+          status: status,
+          profileId: profileId,
+        );
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Obtiene el mapa de estados de dosis guardados localmente para un tratamiento.
+  Future<Map<String, String>> getLocalDoseStatuses(String userId, String docId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final rawJson = prefs.getString(_doseLedgerKey(userId, docId));
+      if (rawJson == null || rawJson.isEmpty) return {};
+      final decoded = jsonDecode(rawJson);
+      if (decoded is Map) {
+        return decoded.map((k, v) => MapEntry(k.toString(), v.toString()));
+      }
+    } catch (_) {}
+    return {};
+  }
+
+  /// Reemplaza una clave de dosis local (ej. al aplazar o editar una sola toma).
+  Future<void> replaceLocalDoseKey({
+    required String userId,
+    required String docId,
+    required DateTime oldDoseTime,
+    required DateTime newDoseTime,
+    required String status,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final key = _doseLedgerKey(userId, docId);
+      final map = await getLocalDoseStatuses(userId, docId);
+      map.remove(oldDoseTime.toIso8601String());
+      map[newDoseTime.toIso8601String()] = status;
+      await prefs.setString(key, jsonEncode(map));
+    } catch (_) {}
+  }
+
+  Future<void> clearLocalDoseStatusesForTreatment(String userId, String docId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_doseLedgerKey(userId, docId));
+    } catch (_) {}
+  }
+
+  /// Encola una acción de dosis realizada offline para sincronizarla con Firestore.
+  Future<void> enqueueOfflineDoseAction({
+    required String userId,
+    required String docId,
+    required String doseTimeIso,
+    required String status,
+    String? profileId,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final rawList = prefs.getString(_pendingOfflineActionsKey);
+      final List<Map<String, dynamic>> queue = [];
+      if (rawList != null && rawList.isNotEmpty) {
+        final decoded = jsonDecode(rawList);
+        if (decoded is List) {
+          for (final item in decoded) {
+            if (item is Map) {
+              queue.add(Map<String, dynamic>.from(item));
+            }
+          }
+        }
+      }
+
+      // Si ya existe una acción pendiente para la misma dosis, actualizarla
+      final existingIdx = queue.indexWhere(
+        (item) =>
+            item['userId'] == userId &&
+            item['docId'] == docId &&
+            item['doseTimeIso'] == doseTimeIso,
+      );
+
+      final entry = <String, dynamic>{
+        'userId': userId,
+        'docId': docId,
+        'doseTimeIso': doseTimeIso,
+        'status': status,
+        'profileId': profileId,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+
+      if (existingIdx >= 0) {
+        queue[existingIdx] = entry;
+      } else {
+        queue.add(entry);
+      }
+
+      await prefs.setString(_pendingOfflineActionsKey, jsonEncode(queue));
+    } catch (_) {}
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingOfflineDoseActions() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final rawList = prefs.getString(_pendingOfflineActionsKey);
+      if (rawList == null || rawList.isEmpty) return [];
+      final decoded = jsonDecode(rawList);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  Future<void> removePendingOfflineDoseAction({
+    required String userId,
+    required String docId,
+    required String doseTimeIso,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final queue = await getPendingOfflineDoseActions();
+      queue.removeWhere(
+        (item) =>
+            item['userId'] == userId &&
+            item['docId'] == docId &&
+            item['doseTimeIso'] == doseTimeIso,
+      );
+      await prefs.setString(_pendingOfflineActionsKey, jsonEncode(queue));
+    } catch (_) {}
+  }
+
+  // --- Caché Local de Horarios de Tratamientos (Respaldo Offline y Post-Reinicio) ---
+
+  Future<void> saveTreatmentScheduleCache(Map<String, dynamic> params) async {
+    try {
+      final userId = params['userId'] as String?;
+      final docId = params['docId'] as String?;
+      if (userId == null || docId == null) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final rawMap = prefs.getString(_treatmentScheduleCacheKey);
+      final Map<String, dynamic> allSchedules = {};
+      if (rawMap != null && rawMap.isNotEmpty) {
+        final decoded = jsonDecode(rawMap);
+        if (decoded is Map) {
+          allSchedules.addAll(Map<String, dynamic>.from(decoded));
+        }
+      }
+
+      allSchedules['$userId|$docId'] = params;
+      await prefs.setString(_treatmentScheduleCacheKey, jsonEncode(allSchedules));
+    } catch (_) {}
+  }
+
+  Future<Map<String, dynamic>?> getTreatmentScheduleCache(
+    String userId,
+    String docId,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final rawMap = prefs.getString(_treatmentScheduleCacheKey);
+      if (rawMap == null || rawMap.isEmpty) return null;
+      final decoded = jsonDecode(rawMap);
+      if (decoded is Map) {
+        final item = decoded['$userId|$docId'];
+        if (item is Map) {
+          return Map<String, dynamic>.from(item);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllTreatmentScheduleCachesForUser(
+    String userId,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final rawMap = prefs.getString(_treatmentScheduleCacheKey);
+      if (rawMap == null || rawMap.isEmpty) return [];
+      final decoded = jsonDecode(rawMap);
+      if (decoded is Map) {
+        final List<Map<String, dynamic>> result = [];
+        decoded.forEach((key, value) {
+          if (key.toString().startsWith('$userId|') && value is Map) {
+            result.add(Map<String, dynamic>.from(value));
+          }
+        });
+        return result;
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  Future<void> removeTreatmentScheduleCache(String userId, String docId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final rawMap = prefs.getString(_treatmentScheduleCacheKey);
+      if (rawMap == null || rawMap.isEmpty) return;
+      final decoded = jsonDecode(rawMap);
+      if (decoded is Map) {
+        final map = Map<String, dynamic>.from(decoded);
+        if (map.remove('$userId|$docId') != null) {
+          await prefs.setString(_treatmentScheduleCacheKey, jsonEncode(map));
+        }
+      }
+    } catch (_) {}
   }
 }
