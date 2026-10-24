@@ -77,7 +77,8 @@ void main() async {
   // Inicializaciones independientes en paralelo para acelerar el arranque (Splash Screen)
   await Future.wait([
     NotificationService.initializeCore(),
-    AndroidAlarmManager.initialize(),
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
+      AndroidAlarmManager.initialize(),
     WidgetService.initialize(),
     initializeDateFormatting('es_ES', null),
     initializeDateFormatting('en_US', null),

@@ -30,10 +30,8 @@ void main() {
     VoidCallback? onDragCancel,
     VoidCallback? onTap,
   }) {
+    SharedPreferences.setMockInitialValues({'high_contrast_active': highContrast});
     final prefNotifier = PreferenceNotifier(PreferenceService());
-    if (highContrast) {
-      prefNotifier.setHighContrast(true);
-    }
     AppTheme.updateThemeColors(brightness == Brightness.dark, highContrast: highContrast);
 
     return ChangeNotifierProvider<PreferenceNotifier>.value(

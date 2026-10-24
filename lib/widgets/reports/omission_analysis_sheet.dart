@@ -127,7 +127,8 @@ class OmissionAnalysisSheet extends StatelessWidget {
     for (var t in tratamientos) {
       t.doseStatus.forEach((dateString, status) {
         if (status == DoseStatus.omitida) {
-          final doseTime = DateTime.parse(dateString);
+          final doseTime = DateTime.tryParse(dateString);
+          if (doseTime == null) return;
           final hour = doseTime.hour;
           if (hour >= 6 && hour < 12) {
             morningOmissions++;

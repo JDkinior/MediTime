@@ -4,36 +4,41 @@ import 'package:meditime/models/tratamiento.dart';
 /// Modelo optimizado para tratamientos que genera dosis bajo demanda
 class LazyTreatment {
   final Tratamiento baseTreatment;
-  
+
   // Cache para dosis generadas
   final Map<String, DoseStatus> _cachedDoses = {};
-  
+
   // Rango de fechas para el cual hemos generado dosis
   DateTime? _cacheStartDate;
   DateTime? _cacheEndDate;
-  
+
   LazyTreatment(this.baseTreatment);
+
+  Duration get _safeInterval =>
+      baseTreatment.intervaloDosis.inMinutes > 0
+          ? baseTreatment.intervaloDosis
+          : const Duration(hours: 8);
 
   /// Genera dosis para un rango específico de fechas
   Map<String, DoseStatus> getDosesForDateRange(DateTime startDate, DateTime endDate) {
     // Si el rango solicitado está fuera del cache, generamos nuevas dosis
-    if (_cacheStartDate == null || 
-        startDate.isBefore(_cacheStartDate!) || 
+    if (_cacheStartDate == null ||
+        startDate.isBefore(_cacheStartDate!) ||
         endDate.isAfter(_cacheEndDate!)) {
       _generateDosesForRange(startDate, endDate);
     }
-    
+
     // Filtramos solo las dosis del rango solicitado
     final filteredDoses = <String, DoseStatus>{};
     for (final entry in _cachedDoses.entries) {
       final doseDate = DateTime.tryParse(entry.key);
-      if (doseDate != null && 
-          !doseDate.isBefore(startDate) && 
+      if (doseDate != null &&
+          !doseDate.isBefore(startDate) &&
           !doseDate.isAfter(endDate)) {
         filteredDoses[entry.key] = entry.value;
       }
     }
-    
+
     return filteredDoses;
   }
 
@@ -54,84 +59,80 @@ class LazyTreatment {
   List<DateTime> getDosesForDay(DateTime day) {
     final dayStart = DateTime(day.year, day.month, day.day);
     final dayEnd = dayStart.add(const Duration(days: 1));
-    
+    final step = _safeInterval;
+
     final doses = <DateTime>[];
-    final Duration interval = baseTreatment.intervaloDosis.inHours > 0
-        ? baseTreatment.intervaloDosis
-        : const Duration(hours: 8);
     DateTime currentDose = baseTreatment.canonicalFirstDoseDateTime;
 
+    // Fast-forward directo hasta el inicio del día consultado para evitar iterar años pasados
     if (currentDose.isBefore(dayStart)) {
-      final hoursDiff = dayStart.difference(currentDose).inHours;
-      final jumps = hoursDiff ~/ interval.inHours;
-      if (jumps > 0) {
-        currentDose = currentDose.add(Duration(hours: jumps * interval.inHours));
+      final diffMinutes = dayStart.difference(currentDose).inMinutes;
+      final stepsToSkip = diffMinutes ~/ step.inMinutes;
+      if (stepsToSkip > 1) {
+        currentDose = currentDose.add(step * (stepsToSkip - 1));
       }
       while (currentDose.isBefore(dayStart)) {
-        currentDose = currentDose.add(interval);
+        currentDose = currentDose.add(step);
       }
     }
-    
+
     // Solo generamos las dosis para este día específico
     while (!currentDose.isAfter(baseTreatment.fechaFinTratamiento)) {
       if (!currentDose.isBefore(dayStart) && currentDose.isBefore(dayEnd)) {
         doses.add(currentDose);
       }
-      
+
       // Si ya pasamos el día, no necesitamos seguir
       if (currentDose.isAfter(dayEnd)) break;
-      
-      currentDose = currentDose.add(interval);
+
+      currentDose = currentDose.add(step);
     }
-    
+
     return doses;
   }
 
   /// Genera dosis para un rango específico y las almacena en cache
   void _generateDosesForRange(DateTime startDate, DateTime endDate) {
     // Expandimos el cache para incluir el nuevo rango
-    final newCacheStart = _cacheStartDate == null 
-        ? startDate 
+    final newCacheStart = _cacheStartDate == null
+        ? startDate
         : DateTime.fromMillisecondsSinceEpoch(
             [_cacheStartDate!.millisecondsSinceEpoch, startDate.millisecondsSinceEpoch].reduce((a, b) => a < b ? a : b)
           );
-    
-    final newCacheEnd = _cacheEndDate == null 
-        ? endDate 
+
+    final newCacheEnd = _cacheEndDate == null
+        ? endDate
         : DateTime.fromMillisecondsSinceEpoch(
             [_cacheEndDate!.millisecondsSinceEpoch, endDate.millisecondsSinceEpoch].reduce((a, b) => a > b ? a : b)
           );
 
-    // Generamos dosis solo para el nuevo rango
-    final Duration interval = baseTreatment.intervaloDosis.inHours > 0
-        ? baseTreatment.intervaloDosis
-        : const Duration(hours: 8);
+    final step = _safeInterval;
     DateTime currentDose = baseTreatment.canonicalFirstDoseDateTime;
 
     if (currentDose.isBefore(newCacheStart)) {
-      final hoursDiff = newCacheStart.difference(currentDose).inHours;
-      final jumps = hoursDiff ~/ interval.inHours;
-      if (jumps > 0) {
-        currentDose = currentDose.add(Duration(hours: jumps * interval.inHours));
+      final diffMinutes = newCacheStart.difference(currentDose).inMinutes;
+      final stepsToSkip = diffMinutes ~/ step.inMinutes;
+      if (stepsToSkip > 1) {
+        currentDose = currentDose.add(step * (stepsToSkip - 1));
+      }
+      while (currentDose.isBefore(newCacheStart)) {
+        currentDose = currentDose.add(step);
       }
     }
-    
-    while (!currentDose.isAfter(baseTreatment.fechaFinTratamiento) && 
-           currentDose.isBefore(newCacheEnd.add(const Duration(days: 1)))) {
-      
+
+    final limitEnd = newCacheEnd.add(const Duration(days: 1));
+    while (!currentDose.isAfter(baseTreatment.fechaFinTratamiento) &&
+           currentDose.isBefore(limitEnd)) {
       if (!currentDose.isBefore(newCacheStart) && !currentDose.isAfter(newCacheEnd)) {
         final doseKey = currentDose.toIso8601String();
-        
-        // Solo agregamos si no existe en el cache
-        if (!_cachedDoses.containsKey(doseKey)) {
-          // Verificamos si existe en el tratamiento base
-          _cachedDoses[doseKey] = baseTreatment.doseStatus[doseKey] ?? DoseStatus.pendiente;
-        }
+
+        // Sincronizar con el tratamiento base
+        _cachedDoses[doseKey] = baseTreatment.doseStatus[doseKey] ?? DoseStatus.pendiente;
       }
-      
-      currentDose = currentDose.add(interval);
+
+      currentDose = currentDose.add(step);
     }
-    
+
     _cacheStartDate = newCacheStart;
     _cacheEndDate = newCacheEnd;
   }
@@ -163,14 +164,15 @@ class LazyTreatment {
     final now = DateTime.now();
     final treatmentDuration = baseTreatment.fechaFinTratamiento.difference(baseTreatment.fechaInicioTratamiento);
     final daysSinceStart = now.difference(baseTreatment.fechaInicioTratamiento).inDays;
-    
+    final stepHours = _safeInterval.inHours > 0 ? _safeInterval.inHours : 8;
+
     // Estimamos las dosis totales y completadas sin generarlas todas
-    final estimatedTotalDoses = isIndefinite 
+    final estimatedTotalDoses = isIndefinite
         ? -1 // Indefinido
-        : (treatmentDuration.inHours / baseTreatment.intervaloDosis.inHours).ceil();
-    
+        : (treatmentDuration.inHours / stepHours).ceil();
+
     final completedDoses = _cachedDoses.values.where((status) => status == DoseStatus.tomada).length;
-    
+
     return {
       'estimatedTotalDoses': estimatedTotalDoses,
       'completedDoses': completedDoses,

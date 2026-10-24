@@ -1,6 +1,6 @@
 // lib/notifiers/profile_notifier.dart
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/services/profile_cache_service.dart';
 
@@ -87,7 +87,7 @@ class ProfileState {
 
   @override
   String toString() {
-    return 'ProfileState{userName: $userName, profileImageUrl: $profileImageUrl, localImagePath: $localImagePath, status: $status, errorMessage: $errorMessage}';
+    return 'ProfileState{status: $status}';
   }
 }
 
@@ -111,21 +111,38 @@ class ProfileNotifier extends ChangeNotifier {
   /// Carga instantáneamente los datos de perfil desde la memoria local y disco (0ms)
   Future<void> loadFromLocalCache(String userId) async {
     try {
-      final cacheData = await PreferenceService().getUserProfileCache();
+      final prefs = PreferenceService();
+      final savedUserId = await prefs.getCurrentUserId(reload: false);
+      // Si el caché pertenecía a otro usuario (ej. cierre abrupto), limpiarlo para evitar fuga entre sesiones
+      if (savedUserId != null && savedUserId.isNotEmpty && savedUserId != userId) {
+        await prefs.clearUserProfileCache();
+        _updateState(const ProfileState.initial());
+        return;
+      }
+
+      final cacheData = await prefs.getUserProfileCache();
       final cachedName = cacheData['name'];
       final cachedUrl = cacheData['imageUrl'];
       var localPath = cacheData['localImagePath'];
 
-      // Verificar si el archivo local existe en disco
-      if (localPath != null && localPath.isNotEmpty) {
-        final file = File(localPath);
-        if (!await file.exists() || await file.length() == 0) {
+      // Verificar si el archivo local existe en disco y pertenece a este usuario
+      if (!kIsWeb && localPath != null && localPath.isNotEmpty) {
+        if (!localPath.contains(userId)) {
           localPath = null;
+        } else {
+          final file = File(localPath);
+          if (!await file.exists() || await file.length() == 0) {
+            localPath = null;
+          }
         }
+      } else if (kIsWeb) {
+        localPath = null;
       }
 
       // Si no hay ruta en preferencias pero existe el archivo en ProfileCacheService
-      localPath ??= await ProfileCacheService().getLocalImagePath(userId);
+      if (!kIsWeb) {
+        localPath ??= await ProfileCacheService().getLocalImagePath(userId);
+      }
 
       if (cachedName != null || cachedUrl != null || localPath != null) {
         _updateState(ProfileState.loaded(
@@ -137,7 +154,7 @@ class ProfileNotifier extends ChangeNotifier {
 
       // Si tenemos URL pero no archivo local, iniciamos descarga en segundo plano
       final activeUrl = cachedUrl ?? _state.profileImageUrl;
-      if (localPath == null && activeUrl != null && activeUrl.startsWith('http')) {
+      if (!kIsWeb && localPath == null && activeUrl != null && activeUrl.startsWith('http')) {
         _startBackgroundDownload(userId, activeUrl);
       }
     } catch (e) {
@@ -181,7 +198,8 @@ class ProfileNotifier extends ChangeNotifier {
     );
 
     // Si hay URL y userId pero no archivo local, descargar a disco en segundo plano
-    if (userId != null &&
+    if (!kIsWeb &&
+        userId != null &&
         effectiveImageUrl != null &&
         effectiveImageUrl.startsWith('http') &&
         effectiveLocalPath == null) {
@@ -190,6 +208,7 @@ class ProfileNotifier extends ChangeNotifier {
   }
 
   void _startBackgroundDownload(String userId, String url) {
+    if (kIsWeb) return;
     ProfileCacheService().downloadAndCacheImage(userId, url).then((cachedFile) {
       if (cachedFile != null && cachedFile.existsSync()) {
         final updatedState = _state.copyWith(localImagePath: cachedFile.path);
@@ -212,7 +231,7 @@ class ProfileNotifier extends ChangeNotifier {
   void clearProfile({String? userId}) {
     _updateState(const ProfileState.initial());
     PreferenceService().clearUserProfileCache();
-    if (userId != null) {
+    if (!kIsWeb && userId != null) {
       ProfileCacheService().clearCache(userId);
     }
   }

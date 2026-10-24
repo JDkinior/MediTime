@@ -451,15 +451,19 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
     final preferenceService = context.read<PreferenceService>();
     final formatStr = await preferenceService.getCalendarFormat();
     if (mounted) {
-      setState(() {
-        if (formatStr == 'weekly') {
-          _calendarFormat = CalendarFormat.week;
-        } else if (formatStr == 'biweekly') {
-          _calendarFormat = CalendarFormat.twoWeeks;
-        } else if (formatStr == 'monthly') {
-          _calendarFormat = CalendarFormat.month;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            if (formatStr == 'weekly') {
+              _calendarFormat = CalendarFormat.week;
+            } else if (formatStr == 'biweekly') {
+              _calendarFormat = CalendarFormat.twoWeeks;
+            } else if (formatStr == 'monthly') {
+              _calendarFormat = CalendarFormat.month;
+            }
+            _syncFocusedDayForFormat(_calendarFormat);
+          });
         }
-        _syncFocusedDayForFormat(_calendarFormat);
       });
     }
   }

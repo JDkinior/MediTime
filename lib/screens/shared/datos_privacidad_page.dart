@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
-import 'package:meditime/notifiers/caregiver_notifier.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/notification_service.dart';
@@ -27,7 +26,6 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
   Future<void> _clearMedicationHistory() async {
     final authService = context.read<AuthService>();
     final firestoreService = context.read<FirestoreService>();
-    final caregiverNotifier = context.read<CaregiverNotifier>();
     final user = authService.currentUser;
 
     if (user == null) return;
@@ -39,21 +37,22 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
     try {
       // 1. Eliminar medicamentos del perfil principal
       final eliminados = await firestoreService.clearAllMedicamentos(user.uid);
-      for (Tratamiento t in eliminados) {
-        await NotificationService.cancelTreatmentAlarms(t.prescriptionAlarmId);
-      }
 
       // 2. Eliminar medicamentos de perfiles locales gestionados (si existen)
-      for (final profile in caregiverNotifier.managedProfiles) {
-        if (!profile.isExternalUser) {
-          final localEliminados = await firestoreService.clearAllMedicamentos(
+      final profiles = await firestoreService.getCaregiverProfiles(user.uid);
+      for (final p in profiles) {
+        if (!p.isExternalUser) {
+          final profEliminados = await firestoreService.clearAllMedicamentos(
             user.uid,
-            profile,
+            p,
           );
-          for (Tratamiento t in localEliminados) {
-            await NotificationService.cancelTreatmentAlarms(t.prescriptionAlarmId);
-          }
+          eliminados.addAll(profEliminados);
         }
+      }
+
+      for (Tratamiento t in eliminados) {
+        await NotificationService.revokeTreatmentLocally(user.uid, t.id);
+        await NotificationService.cancelTreatmentAlarms(t.prescriptionAlarmId);
       }
 
       // 3. Cancelar cualquier notificación activa remanente en la bandeja del sistema

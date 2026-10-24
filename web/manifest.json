@@ -1,11 +1,11 @@
 {
-    "name": "meditime",
-    "short_name": "meditime",
+    "name": "MediTime",
+    "short_name": "MediTime",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "MediTime - Gestión inteligente y segura de medicamentos, recordatorios y adherencia terapéutica.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

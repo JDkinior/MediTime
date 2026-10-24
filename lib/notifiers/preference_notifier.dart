@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/services/system_settings_service.dart';
 import 'package:meditime/services/notification_service.dart';
+import 'package:meditime/services/widget_service.dart';
 
 class PreferenceNotifier extends ChangeNotifier {
   final PreferenceService _preferenceService;
@@ -96,32 +97,34 @@ class PreferenceNotifier extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    _reminderMode = await _preferenceService.getReminderMode();
-    _notificationModeActive = _reminderMode == DoseReminderMode.active;
-    _snoozeDuration = await _preferenceService.getSnoozeDuration();
-    _calendarFormat = await _preferenceService.getCalendarFormat();
-    _interfaceStyle = await _preferenceService.getInterfaceStyle();
-    _enableScrollFade = await _preferenceService.getEnableScrollFade();
-    _themeMode = await _preferenceService.getThemeMode();
-    _languageCode = await _preferenceService.getLanguageCode();
+    await _preferenceService.reload();
 
-    _highContrast = await _preferenceService.getHighContrast();
-    _largeText = await _preferenceService.getLargeText();
-    _largeButtons = await _preferenceService.getLargeButtons();
-    _simplifiedInterface = await _preferenceService.getSimplifiedInterface();
-    _showCardBorder = await _preferenceService.getShowCardBorder();
-    _hideMedicineNameOnLockScreen = await _preferenceService.getHideMedicineNameOnLockScreen();
-    _secureScreen = await _preferenceService.getSecureScreen();
+    _reminderMode = await _preferenceService.getReminderMode(reload: false);
+    _notificationModeActive = _reminderMode == DoseReminderMode.active;
+    _snoozeDuration = await _preferenceService.getSnoozeDuration(reload: false);
+    _calendarFormat = await _preferenceService.getCalendarFormat(reload: false);
+    _interfaceStyle = await _preferenceService.getInterfaceStyle(reload: false);
+    _enableScrollFade = await _preferenceService.getEnableScrollFade(reload: false);
+    _themeMode = await _preferenceService.getThemeMode(reload: false);
+    _languageCode = await _preferenceService.getLanguageCode(reload: false);
+
+    _highContrast = await _preferenceService.getHighContrast(reload: false);
+    _largeText = await _preferenceService.getLargeText(reload: false);
+    _largeButtons = await _preferenceService.getLargeButtons(reload: false);
+    _simplifiedInterface = await _preferenceService.getSimplifiedInterface(reload: false);
+    _showCardBorder = await _preferenceService.getShowCardBorder(reload: false);
+    _hideMedicineNameOnLockScreen = await _preferenceService.getHideMedicineNameOnLockScreen(reload: false);
+    _secureScreen = await _preferenceService.getSecureScreen(reload: false);
     if (_secureScreen) {
       await SystemSettingsService.setSecureScreen(true);
     }
-    _isAnimalMode = await _preferenceService.getAnimalModeActive();
-    _animalModeType = await _preferenceService.getAnimalModeType();
+    _isAnimalMode = await _preferenceService.getAnimalModeActive(reload: false);
+    _animalModeType = await _preferenceService.getAnimalModeType(reload: false);
 
-    _alarmSoundType = await _preferenceService.getAlarmSoundType();
-    _alarmSoundTitle = await _preferenceService.getAlarmSoundTitle();
-    _alarmSoundUri = await _preferenceService.getAlarmSoundUri();
-    _alarmSoundResource = await _preferenceService.getAlarmSoundResource();
+    _alarmSoundType = await _preferenceService.getAlarmSoundType(reload: false);
+    _alarmSoundTitle = await _preferenceService.getAlarmSoundTitle(reload: false);
+    _alarmSoundUri = await _preferenceService.getAlarmSoundUri(reload: false);
+    _alarmSoundResource = await _preferenceService.getAlarmSoundResource(reload: false);
 
     _isLoading = false;
     notifyListeners();
@@ -248,6 +251,8 @@ class PreferenceNotifier extends ChangeNotifier {
     _hideMedicineNameOnLockScreen = value;
     notifyListeners();
     await _preferenceService.saveHideMedicineNameOnLockScreen(value);
+    // Sincronizar de inmediato los widgets de pantalla de inicio/bloqueo para ocultar o mostrar el nombre
+    await WidgetService.updateWidgetData();
   }
 
   Future<void> setSecureScreen(bool value) async {
@@ -287,7 +292,7 @@ class PreferenceNotifier extends ChangeNotifier {
   Future<void> setAnimalMode(bool value, {bool manageAlarms = true}) async {
     if (_isAnimalMode == value) return;
     _isAnimalMode = value;
-    final userId = await _preferenceService.getCurrentUserId() ?? '';
+    final userId = await _preferenceService.getCurrentUserId(reload: false) ?? '';
 
     if (value) {
       // Exclusividad mutua: desactiva modo cuidador en persistencia
@@ -295,7 +300,7 @@ class PreferenceNotifier extends ChangeNotifier {
       await _preferenceService.saveAnimalModeActive(true);
       if (manageAlarms && userId.isNotEmpty) {
         await NotificationService.deactivateCaregiverAlarms(userId: userId);
-        final notifyPatientDoses = await _preferenceService.getCaregiverNotifyPatientDoses();
+        final notifyPatientDoses = await _preferenceService.getCaregiverNotifyPatientDoses(reload: false);
         if (notifyPatientDoses) {
           await NotificationService.activateAnimalAlarms(userId: userId);
         }

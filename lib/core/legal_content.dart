@@ -19,7 +19,7 @@ class LegalSection {
 ///
 /// Redactado con rigor técnico-jurídico cumpliendo:
 /// - Directivas de Google Play para aplicaciones de salud (Health Apps Policy).
-/// - Principios de protección de datos de salud (RGPD/GDPR, normativas de privacidad).
+/// - Principios de protección de datos de salud (RGPD/GDPR Art. 9 y 17, Ley 1581 de 2012 / Habeas Data, HIPAA).
 /// - Deslinde explícito de responsabilidad clínica y farmacológica.
 class LegalContent {
   static const String version = '2.36.0';
@@ -68,7 +68,8 @@ class LegalContent {
           'El Usuario asume la responsabilidad exclusiva por la exactitud, veracidad y actualización de toda la información '
           'ingresada en la Aplicación, incluyendo pero no limitándose a: nombres comerciales y genéricos de medicamentos, '
           'concentraciones, dosis por toma, intervalos horarios, inventario de pastillas restante y fechas de caducidad.\n\n'
-          'MediTime no verifica químicamente ni valida la compatibilidad entre medicamentos registrados, ni responde por errores '
+          'MediTime ofrece alertas orientativas de posibles interacciones farmacológicas de referencia general, pero no verifica '
+          'químicamente ni garantiza la ausencia total de interacciones entre medicamentos registrados, ni responde por errores '
           'humanos de transcripción o administración de dosis incorrectas por parte del Usuario.',
       icon: Icons.medication_rounded,
     ),
@@ -87,8 +88,8 @@ class LegalContent {
     LegalSection(
       title: '5. Asistente con Inteligencia Artificial (Midi)',
       content:
-          'La Aplicación incluye un asistente conversacional ("Midi") potenciado por modelos de lenguaje de última generación (Google Gemini). '
-          'El Usuario reconoce y acepta que:\n\n'
+          'La Aplicación incluye un asistente conversacional ("Midi") potenciado por modelos de lenguaje de última generación (Google Gemini) '
+          'y reconocimiento de voz (Groq / Whisper). El Usuario reconoce y acepta que:\n\n'
           '• Las respuestas de Midi tienen carácter exclusivamente informativo, pedagógico y de apoyo general basado en bibliografía '
           'pública sobre salud.\n'
           '• Los modelos de IA pueden generar imprecisiones u omisiones involuntarias ("alucinaciones"). NUNCA suspenda, modifique '
@@ -138,8 +139,8 @@ class LegalContent {
       title: '10. Legislación Aplicable y Resolución de Controversias',
       content:
           'Los presentes Términos se rigen por los principios generales de derecho contractual y de protección al consumidor y de datos '
-          'personales. Cualquier desacuerdo se intentará resolver en primera instancia de buena fe mediante contacto directo con nuestro '
-          'equipo de soporte legal.',
+          'personales (incluyendo la Ley 1581 de 2012, Decreto 1377 de 2013 y normativas concordantes de Habeas Data). Cualquier desacuerdo '
+          'se intentará resolver en primera instancia de buena fe mediante contacto directo con nuestro equipo de soporte legal.',
       icon: Icons.balance_rounded,
     ),
   ];
@@ -155,7 +156,8 @@ class LegalContent {
           'En MediTime reconocemos la naturaleza altamente sensible de los datos relativos a la salud personal. Nuestra política '
           'está diseñada bajo los estándares más exigentes de privacidad digital, en estricto cumplimiento con la Política de Aplicaciones '
           'de Salud de Google Play (Health Apps Policy), los principios de minimización y privacidad desde el diseño del RGPD/GDPR '
-          '(Reglamento General de Protección de Datos) y normas análogas de protección de datos en Latinoamérica y el mundo.',
+          '(Reglamento General de Protección de Datos, Art. 9 y Art. 17), la Ley Estatutaria 1581 de 2012 y Decreto 1377 de 2013 (Habeas Data), '
+          'los estándares técnicos de seguridad para información médica protegida (HIPAA Security Rule) y normas análogas en Latinoamérica y el mundo.',
       icon: Icons.shield_rounded,
       isHighlight: true,
     ),
@@ -166,12 +168,12 @@ class LegalContent {
           '• Datos de Salud y Prescripciones: Nombres de medicamentos, presentación, dosis por toma, intervalos horarios, inventario '
           'restante, registros de cumplimiento (tomada, omitida, aplazada), notas clínicas, tipo de sangre y alergias opcionales. '
           'Finalidad: Programación de alarmas locales, cálculo de adherencia al tratamiento y generación de reportes médicos.\n\n'
-          '• Datos de Identidad y Cuenta: Nombre o alias, dirección de correo electrónico y fotografía de perfil (opcional). '
-          'Finalidad: Autenticación segura y sincronización multi-dispositivo.\n\n'
+          '• Datos de Identidad y Cuenta: Nombre o alias, dirección de correo electrónico y fotografía de perfil (opcional, alojada de forma segura '
+          'mediante Cloudinary y caché local cifrada por el sistema). Finalidad: Autenticación segura y sincronización multi-dispositivo.\n\n'
           '• Datos de Pacientes y Mascotas (Terceros): Nombres, parentesco, habitación y categoría asignada. Finalidad: Gestión '
           'organizada en Modo Cuidador y Animales.\n\n'
-          '• Consultas al Asistente Midi: Texto y grabaciones de audio enviadas voluntariamente. Finalidad: Procesamiento '
-          'conversacional puntual para responder dudas de salud.\n\n'
+          '• Consultas al Asistente Midi: Texto, imágenes de recetas y grabaciones de audio enviadas voluntariamente. Finalidad: Procesamiento '
+          'conversacional puntual para responder dudas de salud y transcribir indicaciones.\n\n'
           '• Datos Técnicos del Dispositivo: Marca, modelo, versión de sistema operativo y huso horario (Timezone). Finalidad: Configurar '
           'canales de alarma con volumen y sonido correcto según el hardware.',
       icon: Icons.folder_shared_rounded,
@@ -191,7 +193,9 @@ class LegalContent {
       title: '4. Tratamiento del Asistente IA (Midi) y Notas de Voz',
       content:
           'Cuando el Usuario interactúa con Midi:\n'
-          '• Los mensajes de texto y fragmentos de voz se transmiten mediante canales cifrados hacia los servicios de la API de Google Gemini.\n'
+          '• Los mensajes de texto, imágenes y fragmentos de voz se transmiten mediante canales cifrados (HTTPS/TLS) hacia los subencargados '
+          'tecnológicos de procesamiento de IA: Google Gemini API (generación y análisis multimodal) y Groq Cloud Whisper API (transcripción '
+          'de voz a texto).\n'
           '• Dichos envíos se procesan bajo acuerdos de computación en la nube empresarial sin retención para fines de entrenamiento de modelos.\n'
           '• El almacenamiento local del historial de chat reside exclusivamente en su dispositivo y puede ser eliminado en cualquier '
           'momento con un solo toque desde las opciones de la app.',
@@ -203,7 +207,8 @@ class LegalContent {
           'La Aplicación requiere acceso al GPS únicamente cuando el Usuario pulsa voluntariamente la función "Buscar Farmacias Cercanas".\n\n'
           '• No se realiza rastreo de ubicación en segundo plano.\n'
           '• Las coordenadas geográficas no se almacenan en nuestros servidores ni se vinculan a su perfil médico; se utilizan de forma '
-          'efímera únicamente para centrar el mapa y calcular distancias a establecimientos farmacéuticos públicos.',
+          'efímera únicamente para consultar directorios públicos cartográficos (OpenStreetMap Overpass API y Nominatim) y calcular '
+          'distancias a establecimientos farmacéuticos cercanos.',
       icon: Icons.location_on_rounded,
     ),
     LegalSection(
@@ -211,22 +216,23 @@ class LegalContent {
       content:
           'Implementamos salvaguardas técnicas y organizativas de nivel empresarial:\n\n'
           '• Cifrado en Tránsito: Todas las comunicaciones con servidores se protegen mediante protocolos criptográficos modernos (TLS 1.3 / HTTPS).\n'
-          '• Cifrado en Reposo: Los datos alojados en la nube de Google Cloud / Firebase Firestore cuentan con cifrado AES-256.\n'
+          '• Cifrado en Reposo y Control de Acceso: Los datos alojados en Google Cloud / Firebase Firestore cuentan con cifrado AES-256 y reglas '
+          'de seguridad estrictas basadas en identidad verificada (RBAC) que impiden accesos cruzados no autorizados.\n'
           '• Soporte Offline y Resguardo Local: Las alarmas y datos de emergencia se almacenan localmente en el dispositivo protegido por '
-          'la sandbox de seguridad del sistema operativo Android.\n'
+          'la sandbox de seguridad del sistema operativo Android, sin exponer información médica sensible en registros del sistema (Logcat) en producción.\n'
           '• Protección en Pantalla: La Aplicación ofrece la opción de bloquear capturas de pantalla indebidas (FLAG_SECURE) y ocultar '
-          'los nombres de medicamentos de la vista de bloqueo.',
+          'los nombres de medicamentos de la vista de bloqueo y del widget de pantalla de inicio.',
       icon: Icons.security_rounded,
     ),
     LegalSection(
       title: '7. Derechos del Usuario y Eliminación Total (Derecho al Olvido)',
       content:
-          'El Usuario ejerce el control absoluto sobre su información:\n\n'
+          'El Usuario ejerce el control absoluto sobre su información (Derechos ARCO y Habeas Data):\n\n'
           '• Derecho de Acceso y Portabilidad: Puede consultar, revisar y exportar su historial de recetas y adherencia en formato PDF.\n'
-          '• Derecho de Rectificación: Puede editar cualquier receta, dosis o perfil en cualquier momento.\n'
+          '• Derecho de Rectificación y Revocación: Puede editar cualquier receta, dosis o perfil, o revocar permisos en cualquier momento.\n'
           '• DERECHO DE ELIMINACIÓN DEFINITIVA: Desde la pantalla "Opciones -> Datos y Privacidad -> Eliminar mi cuenta y datos personales", '
-          'el Usuario puede solicitar en cualquier momento la supresión total e irreversible de su cuenta y todos sus registros médicos. '
-          'El borrado en bases de datos y en el dispositivo es completo, definitivo y no requiere trámites adicionales.',
+          'el Usuario puede solicitar en cualquier momento la supresión total e irreversible de su cuenta, perfiles gestionados, cachés locales, '
+          'widgets y todos sus registros médicos. El borrado en bases de datos y en el dispositivo es completo, definitivo y no requiere trámites adicionales.',
       icon: Icons.delete_forever_rounded,
       isHighlight: true,
     ),
@@ -241,7 +247,8 @@ class LegalContent {
       title: '9. Notificación de Cambios en la Política',
       content:
           'Cualquier modificación sustancial a esta Política de Privacidad será notificada oportunamente a través de la Aplicación o de '
-          'un aviso visible en la pantalla principal antes de su entrada en vigencia.',
+          'un aviso visible en la pantalla principal antes de su entrada en vigencia, solicitando la renovación del consentimiento informado '
+          'cuando la normativa aplicable así lo exija.',
       icon: Icons.update_rounded,
     ),
     LegalSection(

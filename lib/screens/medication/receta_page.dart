@@ -1,5 +1,6 @@
 // lib/screens/medication/receta_page.dart
 import 'package:meditime/widgets/medication/receta_summary_card.dart';
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
@@ -151,7 +152,7 @@ class _RecetaPageState extends State<RecetaPage>
         );
       }
     } catch (e) {
-      debugPrint('Error or offline fetching AI tips: $e');
+      if (!kReleaseMode) debugPrint('Error or offline fetching AI tips: $e');
       if (mounted) {
         setState(() {
           _isLoadingAiTips = false;
@@ -836,8 +837,6 @@ class _RecetaPageState extends State<RecetaPage>
                               await NotificationService.cancelTreatmentAlarms(
                                 tratamiento.prescriptionAlarmId,
                               );
-                              await NotificationService.cancelAllActiveAndroidNotifications();
-                              await NotificationService.cancelAllFlutterLocalNotifications();
                               await firestoreService.deleteTratamiento(
                                 user.uid,
                                 tratamiento.id,
@@ -1163,7 +1162,7 @@ class _RecetaPageState extends State<RecetaPage>
             );
           }
           if (snapshot.hasError) {
-            debugPrint("Error loading recetas stream: ${snapshot.error}");
+            if (!kReleaseMode) debugPrint("Error loading recetas stream: ${snapshot.error}");
             return EstadoVista(
               state: ViewState.error,
               errorMessage:
@@ -1205,7 +1204,7 @@ class _RecetaPageState extends State<RecetaPage>
 
           // Calcular estadísticas del día seleccionado
           final tomadasHoy =
-              hoyDosis.where((d) => d['status'] == DoseStatus.tomada).length;
+          hoyDosis.where((d) => d['status'] == DoseStatus.tomada).length;
           final pendientesHoy =
               hoyDosis
                   .where(
@@ -1505,7 +1504,6 @@ class _RecetaPageState extends State<RecetaPage>
     final timeStr = AppUtils.formatDoseTime(doseTime);
 
     final l10n = AppLocalizations.of(context);
-    // Determinar estilo visual según el estado
     Color nodeColor = Colors.grey.shade300;
     Widget nodeWidget = Container(
       width: 10,
@@ -1555,7 +1553,6 @@ class _RecetaPageState extends State<RecetaPage>
         child: const Icon(Icons.notifications, color: Colors.white, size: 14),
       );
     } else {
-      // Futura pendiente
       nodeColor = const Color(0xFFC3C6D7);
       nodeWidget = Container(
         width: 22,
@@ -1832,5 +1829,4 @@ class _RecetaPageState extends State<RecetaPage>
   }
 }
 
-// Typedefs para mantener compatibilidad interna tras modularización
 typedef _RecetaSummaryCard = RecetaSummaryCard;

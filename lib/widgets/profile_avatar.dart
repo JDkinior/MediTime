@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:meditime/theme/app_theme.dart';
 
@@ -41,7 +42,7 @@ class ProfileAvatar extends StatelessWidget {
     );
 
     // 1. Prioridad máxima: Archivo local en disco (0ms de latencia, instantáneo)
-    if (localImagePath != null && localImagePath!.isNotEmpty) {
+    if (!kIsWeb && localImagePath != null && localImagePath!.isNotEmpty) {
       final file = File(localImagePath!);
       if (file.existsSync()) {
         return CircleAvatar(

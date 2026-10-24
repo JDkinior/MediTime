@@ -521,9 +521,9 @@ class PrescriptionFormCardState extends State<PrescriptionFormCard> {
                 onPressed: () {
                   final name = _nameController.text.trim();
                   final pres = _selectedPresentacion;
-                  final interval = int.tryParse(_intervaloController.text) ?? 8;
-                  final dosis = int.tryParse(_dosisController.text) ?? 1;
-                  final duration = int.tryParse(_duracionController.text) ?? 7;
+                  final rawInterval = int.tryParse(_intervaloController.text.trim());
+                  final rawDosis = int.tryParse(_dosisController.text.trim());
+                  final rawDuration = int.tryParse(_duracionController.text.trim());
                   final notas = _notasController.text.trim();
 
                   if (name.isEmpty) {
@@ -536,6 +536,23 @@ class PrescriptionFormCardState extends State<PrescriptionFormCard> {
                     );
                     return;
                   }
+
+                  if ((rawInterval != null && rawInterval <= 0) ||
+                      (rawDosis != null && rawDosis <= 0) ||
+                      (rawDuration != null && rawDuration <= 0)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'La dosis, el intervalo y la duración deben ser mayores a 0.',
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+
+                  final interval = (rawInterval ?? 8).clamp(1, 720);
+                  final dosis = (rawDosis ?? 1).clamp(1, 100);
+                  final duration = (rawDuration ?? 7).clamp(1, 3650);
 
                   widget.onSaved(
                     name,

@@ -12,9 +12,10 @@ class LazyTreatmentService {
   
   LazyTreatmentService(this._firestoreService);
 
-  /// Obtiene un tratamiento lazy, creándolo si no existe
+  /// Obtiene un tratamiento lazy, creándolo o actualizándolo si el tratamiento base cambió
   LazyTreatment getLazyTreatment(Tratamiento treatment) {
-    if (!_lazyTreatments.containsKey(treatment.id)) {
+    final existing = _lazyTreatments[treatment.id];
+    if (existing == null || existing.baseTreatment != treatment) {
       _lazyTreatments[treatment.id] = LazyTreatment(treatment);
     }
     return _lazyTreatments[treatment.id]!;

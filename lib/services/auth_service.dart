@@ -8,6 +8,7 @@ import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/use_cases/sign_out_use_case.dart';
 import 'package:meditime/services/preference_service.dart';
 import 'package:meditime/services/firestore_service.dart';
+import 'package:meditime/services/widget_service.dart';
 
 /// Servicio para gestionar la autenticación de usuarios con Firebase.
 ///
@@ -101,11 +102,16 @@ class AuthService {
       }
 
       // Clear profile and sign out
-      profileNotifier.clearProfile(userId: _auth.currentUser?.uid);
+      profileNotifier.clearProfile(userId: userId);
       await _auth.signOut();
-      // After signing out at Firebase level, ensure we clear any remembered user id in preferences
+      // After signing out at Firebase level, ensure we clear any remembered user id, cache and widget state
       try {
         await PreferenceService().clearCurrentUserId();
+        await PreferenceService().clearUserProfileCache();
+        await WidgetService.clearWidgetData();
+      } catch (_) {}
+      try {
+        FirestoreService().clearMedicamentosCache();
       } catch (_) {}
       
       return const Result.success(null);
@@ -188,9 +194,10 @@ class AuthService {
         debugPrint('Aviso al eliminar datos en Firestore en deleteAccount: $e');
       }
 
-      // 4. Limpiar preferencias locales
+      // 4. Limpiar preferencias locales, caché y widgets nativos (Derecho al Olvido total)
       try {
-        await PreferenceService().clearCurrentUserId();
+        await PreferenceService().clearAllUserData(userId);
+        await WidgetService.clearWidgetData();
       } catch (_) {}
 
       // 5. Limpiar el estado de ProfileNotifier

@@ -1,6 +1,7 @@
 // lib/models/tratamiento.dart
 import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/material.dart';
 import 'package:meditime/core/constants.dart';
 import 'package:meditime/theme/app_theme.dart';
@@ -224,9 +225,11 @@ class Tratamiento {
 
   /// Gets the total number of doses for this treatment
   int get totalDoses {
+    if (intervaloDosis.inHours <= 0) return 0;
     final totalDuration = fechaFinTratamiento.difference(
       fechaInicioTratamiento,
     );
+    if (totalDuration.isNegative) return 0;
     return (totalDuration.inHours / intervaloDosis.inHours).ceil();
   }
 
@@ -320,7 +323,7 @@ class Tratamiento {
   factory Tratamiento.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> doc,
   ) {
-    final data = doc.data()!;
+    final data = doc.data() ?? <String, dynamic>{};
 
     // Inferir o leer profileId
     String? profileId = data['profileId'] as String?;
@@ -336,7 +339,7 @@ class Tratamiento {
     final List<dynamic> skippedDosesRaw =
         data[AppConstants.skippedDosesField] ?? [];
     final List<DateTime> skippedDoses =
-        skippedDosesRaw.map((ts) => (ts as Timestamp).toDate()).toList();
+        skippedDosesRaw.whereType<Timestamp>().map((ts) => ts.toDate()).toList();
 
     // Parse dose status safely
     final Map<String, dynamic> rawDoseStatus =
@@ -363,11 +366,11 @@ class Tratamiento {
 
     // Parse time of day from string
     final timeString =
-        data[AppConstants.horaPrimeraDosisField] ??
+        data[AppConstants.horaPrimeraDosisField]?.toString() ??
         AppConstants.defaultTimeFormat;
     final timeParts = timeString.split(':');
-    final hour = int.tryParse(timeParts[0]) ?? 0;
-    final minute = int.tryParse(timeParts.length > 1 ? timeParts[1] : '0') ?? 0;
+    final hour = (int.tryParse(timeParts[0]) ?? 0).clamp(0, 23);
+    final minute = (int.tryParse(timeParts.length > 1 ? timeParts[1] : '0') ?? 0).clamp(0, 59);
     final timeOfDay = TimeOfDay(hour: hour, minute: minute);
 
     final cantidadActual =
@@ -380,8 +383,9 @@ class Tratamiento {
 
     // Parse interval duration from string
     final intervalString =
-        data[AppConstants.intervaloDosisField] ?? AppConstants.defaultDuration;
-    final intervalHours = int.tryParse(intervalString) ?? 0;
+        data[AppConstants.intervaloDosisField]?.toString() ?? AppConstants.defaultDuration;
+    final parsedIntervalHours = int.tryParse(intervalString) ?? 8;
+    final intervalHours = parsedIntervalHours > 0 ? parsedIntervalHours : 8;
     final intervalDuration = Duration(hours: intervalHours);
 
     return Tratamiento(
@@ -428,7 +432,10 @@ class Tratamiento {
           intervaloDosis == other.intervaloDosis &&
           prescriptionAlarmId == other.prescriptionAlarmId &&
           fechaInicioTratamiento == other.fechaInicioTratamiento &&
-          fechaFinTratamiento == other.fechaFinTratamiento;
+          fechaFinTratamiento == other.fechaFinTratamiento &&
+          notas == other.notas &&
+          listEquals(skippedDoses, other.skippedDoses) &&
+          mapEquals(doseStatus, other.doseStatus);
 
   @override
   int get hashCode =>
@@ -444,7 +451,12 @@ class Tratamiento {
       intervaloDosis.hashCode ^
       prescriptionAlarmId.hashCode ^
       fechaInicioTratamiento.hashCode ^
-      fechaFinTratamiento.hashCode;
+      fechaFinTratamiento.hashCode ^
+      notas.hashCode ^
+      Object.hashAll(skippedDoses) ^
+      Object.hashAllUnordered(
+        doseStatus.entries.map((e) => Object.hash(e.key, e.value)),
+      );
 
   @override
   String toString() {

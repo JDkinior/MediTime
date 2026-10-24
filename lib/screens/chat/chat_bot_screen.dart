@@ -458,7 +458,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
           activeTreatments = txs.where((t) => t.isActivo || !t.isFinalizado).toList();
         }
       } catch (e) {
-        debugPrint('Error al obtener medicamentos para Midi: $e');
+        assert(() { debugPrint('Error al obtener medicamentos para Midi: $e'); return true; }());
       }
     }
 
@@ -1284,6 +1284,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                 treatment.id,
                 doseTime,
                 status,
+                targetProfile,
               );
             }
             updatedCount++;
@@ -1355,6 +1356,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                 treatment.id,
                 doseTime,
                 status,
+                targetProfile,
               );
             }
             updatedCount++;
@@ -1414,6 +1416,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
               treatment.id,
               doseTime,
               status,
+              targetProfile,
             );
 
             String successMsg = '¡Dosis de **${treatment.nombreMedicamento}**$profileLabel marcada como **${status.displayName}** con éxito!';
@@ -1496,7 +1499,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         messagesData,
       );
     } catch (e) {
-      debugPrint("Error saving chat session: $e");
+      assert(() { debugPrint("Error saving chat session: $e"); return true; }());
     }
   }
 
@@ -2301,6 +2304,9 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     final user = authService.currentUser;
     if (user == null) return;
 
+    final canProceed = await SubscriptionGuard.canAddTreatment(context);
+    if (!canProceed || !mounted) return;
+
     final CaregiverProfile? effectiveProfile = targetProfile ??
         _resolveCaregiverProfile(
           name: prescriptionData['targetProfileName']?.toString(),
@@ -2334,7 +2340,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         }
       }
     } catch (e) {
-      debugPrint('Error comprobando interacciones en chat: $e');
+      assert(() { debugPrint('Error comprobando interacciones en chat: $e'); return true; }());
     }
 
     if (!mounted) return;

@@ -51,8 +51,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _performInitialSetup(User user) async {
-    // Evita que se ejecute múltiples veces
-    if (_initialSetupDone) return;
+    // Evita que se ejecute múltiples veces para el mismo usuario
+    if (_initialSetupDone && _setupUserId == user.uid) return;
 
     // Check if widget is still mounted before proceeding
     if (!mounted) return;
@@ -179,22 +179,19 @@ class _AuthWrapperState extends State<AuthWrapper> {
     bool termsAccepted = await prefService.hasAcceptedTerms(user.uid);
 
     if (!completed || !termsAccepted) {
-      final res = await loadUserProfileUseCase.execute(user.uid);
-      if (res.isSuccess) {
-        final data = res.data ?? {};
-        final bool remoteOnboarding = data['onboardingCompleted'] == true;
-        final bool remoteTerms = data['termsAccepted'] == true;
+      final data = result.isSuccess ? (result.data ?? {}) : (await loadUserProfileUseCase.execute(user.uid)).data ?? {};
+      final bool remoteOnboarding = data['onboardingCompleted'] == true;
+      final bool remoteTerms = data['termsAccepted'] == true;
 
-        if (remoteOnboarding && remoteTerms) {
-          completed = true;
-          termsAccepted = true;
-          await prefService.saveOnboardingCompleted(user.uid, true);
-          await prefService.saveTermsAccepted(
-            user.uid,
-            accepted: true,
-            version: data['termsAcceptedVersion'] as String? ?? '2.36.0',
-          );
-        }
+      if (remoteOnboarding && remoteTerms) {
+        completed = true;
+        termsAccepted = true;
+        await prefService.saveOnboardingCompleted(user.uid, true);
+        await prefService.saveTermsAccepted(
+          user.uid,
+          accepted: true,
+          version: data['termsAcceptedVersion'] as String? ?? '2.36.0',
+        );
       }
     }
 
@@ -229,9 +226,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
         // Si el usuario ha iniciado sesión
         if (user != null) {
+          if (_setupUserId != null && _setupUserId != user.uid) {
+            _initialSetupDone = false;
+            _setupFuture = null;
+          }
+
           // Si la configuración inicial ya se completó (escenario normal al navegar entre pantallas),
           // mostramos la página de inmediato sin volver a llamar a _performInitialSetup ni mostrar LoadingScreen.
-          if (_initialSetupDone) {
+          if (_initialSetupDone && _setupUserId == user.uid) {
             if (!_onboardingCompleted) {
               return OnboardingPage(
                 user: user,

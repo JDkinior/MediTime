@@ -1,8 +1,8 @@
 // lib/services/notification_service.dart
-import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/models/caregiver_profile.dart';
@@ -29,6 +29,9 @@ import 'package:meditime/screens/alarm/alarm_ringing_page.dart';
 Future<void> handleNotificationActionBackground(
   NotificationResponse notificationResponse,
 ) async {
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
   debugPrint('🔥🔥🔥 CALLBACK EJECUTÁNDOSE 🔥🔥🔥');
   debugPrint('🔥 ACCIÓN: ${notificationResponse.actionId ?? "NULL"}');
   debugPrint('🔥 ID: ${notificationResponse.id ?? "NULL"}');
@@ -370,8 +373,8 @@ class NotificationService {
       styleInformation: BigTextStyleInformation(
         body,
         contentTitle: title,
-        htmlFormatBigText: true,
-        htmlFormatContentTitle: true,
+        htmlFormatBigText: false,
+        htmlFormatContentTitle: false,
         summaryText: 'MediTime',
       ),
       silent: false,
@@ -601,8 +604,8 @@ class NotificationService {
       try {
         final prefService = PreferenceService();
         final soundType = await prefService.getAlarmSoundType();
-        final soundUri = await prefService.getAlarmSoundUri();
-        final soundResource = await prefService.getAlarmSoundResource();
+        final soundUri = await prefService.getAlarmSoundUri(reload: false);
+        final soundResource = await prefService.getAlarmSoundResource(reload: false);
 
         await ensureAlarmChannel(
           androidImplementation: androidImplementation,
@@ -670,10 +673,10 @@ class NotificationService {
 
     try {
       final pref = PreferenceService();
-      hideOnLockScreen = await pref.getHideMedicineNameOnLockScreen();
-      soundType = await pref.getAlarmSoundType();
-      soundUri = await pref.getAlarmSoundUri();
-      soundResource = await pref.getAlarmSoundResource();
+      hideOnLockScreen = await pref.getHideMedicineNameOnLockScreen(reload: false);
+      soundType = await pref.getAlarmSoundType(reload: false);
+      soundUri = await pref.getAlarmSoundUri(reload: false);
+      soundResource = await pref.getAlarmSoundResource(reload: false);
     } catch (_) {}
 
     final androidImplementation = _notificationsPlugin
@@ -726,8 +729,8 @@ class NotificationService {
       styleInformation: BigTextStyleInformation(
         body,
         contentTitle: title,
-        htmlFormatBigText: true,
-        htmlFormatContentTitle: true,
+        htmlFormatBigText: false,
+        htmlFormatContentTitle: false,
         summaryText: 'MediTime Alarma',
       ),
       silent: false,
@@ -786,30 +789,31 @@ class NotificationService {
 
     final String snoozeLabel = 'Aplazar $snoozeMinutes min';
 
+    // Definimos las acciones con el texto dinámico
     final List<AndroidNotificationAction> actions = <AndroidNotificationAction>[
       AndroidNotificationAction(
         'TOMAR_ACTION',
         'Tomar',
-        showsUserInterface: false,
-        cancelNotification: true,
+        showsUserInterface: false, // Procesar en segundo plano sin abrir la app
+        cancelNotification: true, // CRÍTICO: Cancelar inmediatamente para evitar sonido persistente
       ),
       AndroidNotificationAction(
         'OMITIR_ACTION',
         'Omitir',
-        showsUserInterface: false,
-        cancelNotification: true,
+        showsUserInterface: false, // Procesar en segundo plano sin abrir la app
+        cancelNotification: true, // CRÍTICO: Cancelar inmediatamente para evitar sonido persistente
       ),
       AndroidNotificationAction(
         'APLAZAR_ACTION',
         snoozeLabel,
-        showsUserInterface: false,
-        cancelNotification: true,
+        showsUserInterface: false, // Procesar en segundo plano sin abrir la app
+        cancelNotification: true, // CRÍTICO: Cancelar inmediatamente para evitar sonido persistente
       ),
     ];
 
     bool hideOnLockScreen = false;
     try {
-      hideOnLockScreen = await PreferenceService().getHideMedicineNameOnLockScreen();
+      hideOnLockScreen = await PreferenceService().getHideMedicineNameOnLockScreen(reload: false);
     } catch (_) {}
 
     final AndroidNotificationDetails
@@ -838,8 +842,8 @@ class NotificationService {
       styleInformation: BigTextStyleInformation(
         body,
         contentTitle: title,
-        htmlFormatBigText: true,
-        htmlFormatContentTitle: true,
+        htmlFormatBigText: false,
+        htmlFormatContentTitle: false,
         summaryText: 'MediTime Dosis',
       ),
       silent: false,
@@ -1004,9 +1008,9 @@ class NotificationService {
     try {
       final pref = PreferenceService();
       hideOnLockScreen = await pref.getHideMedicineNameOnLockScreen();
-      soundType = await pref.getAlarmSoundType();
-      soundUri = await pref.getAlarmSoundUri();
-      soundResource = await pref.getAlarmSoundResource();
+      soundType = await pref.getAlarmSoundType(reload: false);
+      soundUri = await pref.getAlarmSoundUri(reload: false);
+      soundResource = await pref.getAlarmSoundResource(reload: false);
     } catch (_) {}
 
     final androidImplementation = _notificationsPlugin
@@ -1053,8 +1057,8 @@ class NotificationService {
       styleInformation: BigTextStyleInformation(
         'Es hora de tomar tu dosis de las ${DateFormat('hh:mm a').format(originalDoseTime)}',
         contentTitle: isAlarmMode ? '¡ALARMA APLAZADA!' : 'Recordatorio Aplazado',
-        htmlFormatBigText: true,
-        htmlFormatContentTitle: true,
+        htmlFormatBigText: false,
+        htmlFormatContentTitle: false,
         summaryText: 'MediTime Aplazado',
       ),
       actions: [
@@ -1191,7 +1195,7 @@ class NotificationService {
       if (profile != null) {
         if (profile.isAnimal) {
           final isAnimalActive = await pref.getAnimalModeActive();
-          final notifyPatientDoses = await pref.getCaregiverNotifyPatientDoses();
+          final notifyPatientDoses = await pref.getCaregiverNotifyPatientDoses(reload: false);
           if (!isAnimalActive || !notifyPatientDoses) {
             debugPrint("SCHEDULE OMITIDO: Alarma de mascota '$nombreMedicamento' no programada porque Modo Animales está desactivado.");
             return;
@@ -1199,7 +1203,7 @@ class NotificationService {
           await pref.addAnimalAlarmId(prescriptionAlarmManagerId);
         } else {
           final isCaregiverActive = await pref.getCaregiverModeActive();
-          final notifyPatientDoses = await pref.getCaregiverNotifyPatientDoses();
+          final notifyPatientDoses = await pref.getCaregiverNotifyPatientDoses(reload: false);
           if (!isCaregiverActive || !notifyPatientDoses) {
             debugPrint("SCHEDULE OMITIDO: Alarma de paciente '$nombreMedicamento' no programada porque Modo Cuidador está desactivado.");
             return;
@@ -1729,7 +1733,7 @@ class NotificationService {
     if (profile != null) {
       if (profile.isAnimal) {
         final isAnimalActive = await pref.getAnimalModeActive();
-        final notifyPatientDoses = await pref.getCaregiverNotifyPatientDoses();
+        final notifyPatientDoses = await pref.getCaregiverNotifyPatientDoses(reload: false);
         if (!isAnimalActive || !notifyPatientDoses) {
           debugPrint("RESCHEDULE OMITIDO: Alarma de mascota '${tratamiento.nombreMedicamento}' cancelada porque Modo Animales está desactivado.");
           await AndroidAlarmManager.cancel(tratamiento.prescriptionAlarmId);
@@ -1739,7 +1743,7 @@ class NotificationService {
         await pref.addAnimalAlarmId(tratamiento.prescriptionAlarmId);
       } else {
         final isCaregiverActive = await pref.getCaregiverModeActive();
-        final notifyPatientDoses = await pref.getCaregiverNotifyPatientDoses();
+        final notifyPatientDoses = await pref.getCaregiverNotifyPatientDoses(reload: false);
         if (!isCaregiverActive || !notifyPatientDoses) {
           debugPrint("RESCHEDULE OMITIDO: Alarma de paciente '${tratamiento.nombreMedicamento}' cancelada porque Modo Cuidador está desactivado.");
           await AndroidAlarmManager.cancel(tratamiento.prescriptionAlarmId);
@@ -2026,7 +2030,7 @@ class NotificationService {
       // Guard: validar usuario actual y tratamiento no revocado
       try {
         final currentUserId = await prefs.getCurrentUserId();
-        final revoked = await prefs.isTreatmentRevoked(userId, docId);
+        final revoked = await prefs.isTreatmentRevoked(userId, docId, reload: false);
         if (currentUserId == null || currentUserId != userId || revoked) {
           debugPrint('🔥 GUARD ACTIVADO - Bloqueando acción. currentUserId=$currentUserId revoked=$revoked');
           if (notificationId != null) {

@@ -21,6 +21,8 @@ import 'package:meditime/screens/subscription/subscription_page.dart';
 import 'package:meditime/widgets/profile_avatar.dart';
 
 class CustomDrawer extends StatelessWidget {
+  static final Future<PackageInfo> _packageInfoFuture = PackageInfo.fromPlatform();
+
   final VoidCallback onLogout;
   final VoidCallback? onStartTutorial;
 
@@ -412,7 +414,7 @@ class CustomDrawer extends StatelessWidget {
                 const SizedBox(height: 16),
                 Center(
                   child: FutureBuilder<PackageInfo>(
-                    future: PackageInfo.fromPlatform(),
+                    future: _packageInfoFuture,
                     builder: (context, snapshot) {
                       final version = snapshot.hasData ? snapshot.data!.version : '2.30.0';
                       return Text(

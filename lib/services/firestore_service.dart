@@ -14,7 +14,8 @@ import 'package:meditime/core/stream_cache.dart';
 /// resiliente para operación 100% offline.
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final StreamCache<String, List<Tratamiento>> _medicamentosCache = StreamCache<String, List<Tratamiento>>();
+  static final StreamCache<String, List<Tratamiento>> _medicamentosCache =
+      StreamCache<String, List<Tratamiento>>();
 
   FirestoreService() {
     _db.settings = const Settings(
@@ -824,7 +825,11 @@ class FirestoreService {
 
   /// Vincula un paciente al cuidador actual usando su correo electrónico
   Future<void> linkPatient(String userId, String patientEmail) async {
-    final query = await _db.collection('users').where('email', isEqualTo: patientEmail).get();
+    final query = await _db
+        .collection('users')
+        .where('email', isEqualTo: patientEmail.trim().toLowerCase())
+        .limit(1)
+        .get();
     if (query.docs.isEmpty) {
       throw Exception('No se encontró ningún usuario con ese correo electrónico.');
     }
@@ -944,6 +949,16 @@ class FirestoreService {
         .get();
 
     for (final profileDoc in profilesQuery.docs) {
+      final data = profileDoc.data();
+      // Si el perfil gestionado era un usuario externo vinculado, desvincularnos primero
+      if (data['isExternalUser'] == true && data['linkedUid'] != null) {
+        try {
+          await _db.collection('users').doc(data['linkedUid'] as String).update({
+            'caregiverUid': null,
+            'caregivers': FieldValue.arrayRemove([userId]),
+          });
+        } catch (_) {}
+      }
       final profileMeds = await profileDoc.reference.collection('userMedicamentos').get();
       if (profileMeds.docs.isNotEmpty) {
         final profileBatch = _db.batch();
@@ -959,6 +974,6 @@ class FirestoreService {
     await _db.collection('users').doc(userId).delete();
 
     // 5. Limpiar caché en memoria
-    _medicamentosCache.clearKey(userId);
+    _medicamentosCache.clearAll();
   }
 }
