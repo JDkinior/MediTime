@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
-
 import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/widgets/modern_content_fade.dart';
+import 'package:meditime/widgets/settings/settings_widgets.dart';
 
 class DisenoAparienciaPage extends StatefulWidget {
   const DisenoAparienciaPage({super.key});
@@ -14,36 +14,40 @@ class DisenoAparienciaPage extends StatefulWidget {
 }
 
 class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
+  void _showFeedback(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: AppTheme.successColor,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+  }
+
+  Future<void> _onThemeModeChanged(String newValue) async {
+    final preferenceNotifier = context.read<PreferenceNotifier>();
+    if (preferenceNotifier.themeMode == newValue) return;
+    await preferenceNotifier.setThemeMode(newValue);
+    _showFeedback('Modo de pantalla actualizado.');
+  }
+
   Future<void> _onCalendarFormatChanged(String? newValue) async {
     if (newValue == null) return;
-    
     final preferenceNotifier = context.read<PreferenceNotifier>();
+    if (preferenceNotifier.calendarFormat == newValue) return;
     await preferenceNotifier.setCalendarFormat(newValue);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Diseño de calendario guardado.'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
-    );
+    _showFeedback('Diseño de calendario guardado.');
   }
 
   Future<void> _onInterfaceStyleChanged(String? newValue) async {
     if (newValue == null) return;
-    
     final preferenceNotifier = context.read<PreferenceNotifier>();
+    if (preferenceNotifier.interfaceStyle == newValue) return;
     await preferenceNotifier.setInterfaceStyle(newValue);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Diseño de interfaz guardado.'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
-    );
+    _showFeedback('Estilo de navegación guardado.');
   }
 
   @override
@@ -55,6 +59,7 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
       appBar: ModernAppBar(
         child: AppBar(
           title: const Text('Diseño y Apariencia'),
+          centerTitle: true,
           elevation: 0,
           backgroundColor: Colors.transparent,
           foregroundColor: AppTheme.primaryTextColor,
@@ -64,65 +69,97 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
           ? const Center(child: CircularProgressIndicator())
           : ModernContentFade(
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                 children: [
-                  _buildOptionCardWrapper(
+                  const SettingsSectionHeader(
+                    title: 'Tema y Navegación',
+                    topPadding: 0,
+                  ),
+
+                  SettingsCardWrapper(
                     title: 'Modo de pantalla',
-                    subtitle: 'Elige cómo se verá la aplicación.',
+                    subtitle: 'Adapta el brillo de la aplicación al día, la noche o tu teléfono.',
                     child: Row(
                       children: [
-                        _buildThemeOptionCard(
-                          id: 'light',
+                        SettingsVisualOptionCard(
                           title: 'Claro',
                           subtitle: 'Modo diurno',
-                          preview: const Icon(Icons.light_mode_rounded, color: Colors.orange, size: 28),
+                          preview: const Icon(
+                            Icons.light_mode_rounded,
+                            color: Colors.orange,
+                            size: 28,
+                          ),
+                          isSelected: preferenceNotifier.themeMode == 'light',
+                          onTap: () => _onThemeModeChanged('light'),
                         ),
                         const SizedBox(width: 10),
-                        _buildThemeOptionCard(
-                          id: 'dark',
+                        SettingsVisualOptionCard(
                           title: 'Oscuro',
                           subtitle: 'Modo nocturno',
-                          preview: const Icon(Icons.dark_mode_rounded, color: Colors.amber, size: 28),
+                          preview: const Icon(
+                            Icons.dark_mode_rounded,
+                            color: Colors.amber,
+                            size: 28,
+                          ),
+                          isSelected: preferenceNotifier.themeMode == 'dark',
+                          onTap: () => _onThemeModeChanged('dark'),
                         ),
                         const SizedBox(width: 10),
-                        _buildThemeOptionCard(
-                          id: 'system',
+                        SettingsVisualOptionCard(
                           title: 'Sistema',
-                          subtitle: 'Auto (sistema)',
-                          preview: const Icon(Icons.settings_brightness_rounded, color: Colors.blue, size: 28),
+                          subtitle: 'Automático',
+                          preview: const Icon(
+                            Icons.settings_brightness_rounded,
+                            color: Colors.blue,
+                            size: 28,
+                          ),
+                          isSelected: preferenceNotifier.themeMode == 'system',
+                          onTap: () => _onThemeModeChanged('system'),
                         ),
                       ],
                     ),
                   ),
 
-                  _buildOptionCardWrapper(
+                  SettingsCardWrapper(
                     title: 'Estilo de navegación',
-                    subtitle: 'Selecciona el estilo de tu barra de navegación.',
+                    subtitle: 'Selecciona el diseño de la barra inferior y cabeceras.',
                     child: Row(
                       children: [
-                        _buildInterfaceOptionCard(
-                          id: 'classic',
+                        SettingsVisualOptionCard(
                           title: 'Clásica',
-                          subtitle: 'Nav bar tradicional',
-                          preview: _buildClassicPreview(isSelected: preferenceNotifier.interfaceStyle == 'classic'),
+                          subtitle: 'Barra tradicional',
+                          preview: _buildClassicPreview(
+                            isSelected: preferenceNotifier.interfaceStyle == 'classic',
+                          ),
+                          isSelected: preferenceNotifier.interfaceStyle == 'classic',
+                          onTap: () => _onInterfaceStyleChanged('classic'),
                         ),
                         const SizedBox(width: 12),
-                        _buildInterfaceOptionCard(
-                          id: 'modern',
+                        SettingsVisualOptionCard(
                           title: 'Moderna',
-                          subtitle: 'Flotante premium',
-                          preview: _buildModernPreview(isSelected: preferenceNotifier.interfaceStyle == 'modern'),
+                          subtitle: 'Cápsula flotante',
+                          preview: _buildModernPreview(
+                            isSelected: preferenceNotifier.interfaceStyle == 'modern',
+                          ),
+                          isSelected: preferenceNotifier.interfaceStyle == 'modern',
+                          onTap: () => _onInterfaceStyleChanged('modern'),
                         ),
                       ],
                     ),
                   ),
 
-                  _buildOptionCardWrapper(
+                  const SettingsSectionHeader(
+                    title: 'Distribución y Efectos',
+                    topPadding: 8,
+                  ),
+
+                  SettingsCardWrapper(
                     title: 'Vista de calendario',
-                    subtitle: 'Elige cómo quieres ver el calendario.',
+                    subtitle: 'Elige cuántos días visualizar simultáneamente en Inicio.',
                     child: Row(
                       children: [
                         _buildCalendarOptionCard(
+                          preferenceNotifier: preferenceNotifier,
                           id: 'weekly',
                           title: 'Semanal',
                           subtitle: '1 fila',
@@ -130,6 +167,7 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
                         ),
                         const SizedBox(width: 10),
                         _buildCalendarOptionCard(
+                          preferenceNotifier: preferenceNotifier,
                           id: 'biweekly',
                           title: 'Quincenal',
                           subtitle: '2 filas',
@@ -137,6 +175,7 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
                         ),
                         const SizedBox(width: 10),
                         _buildCalendarOptionCard(
+                          preferenceNotifier: preferenceNotifier,
                           id: 'monthly',
                           title: 'Mensual',
                           subtitle: 'Completo',
@@ -146,55 +185,22 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
                     ),
                   ),
 
-                  _buildOptionCardWrapper(
-                    title: 'Difuminado de scroll',
-                    subtitle: 'Efecto degradado en extremos de listas al desplazarse.',
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                preferenceNotifier.enableScrollFade ? 'Activado' : 'Desactivado',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: preferenceNotifier.enableScrollFade
-                                      ? AppTheme.primaryColor
-                                      : AppTheme.secondaryTextColor,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Atenúa suavemente los extremos superior e inferior en modo moderno para evitar cortes abruptos al hacer scroll.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppTheme.secondaryTextColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Switch(
-                          value: preferenceNotifier.enableScrollFade,
-                          onChanged: (val) async {
-                            await preferenceNotifier.setEnableScrollFade(val);
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(val
-                                    ? 'Difuminado de scroll activado.'
-                                    : 'Difuminado de scroll desactivado.'),
-                                backgroundColor: Colors.green,
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          },
-                          activeThumbColor: AppTheme.primaryColor,
-                        ),
-                      ],
-                    ),
+                  SettingsSwitchTileCard(
+                    title: 'Difuminado suave al hacer scroll',
+                    description: preferenceNotifier.interfaceStyle == 'modern'
+                        ? 'Atenúa suavemente los extremos superior e inferior de las listas para evitar cortes abruptos.'
+                        : 'Atenúa los extremos al desplazarse (este efecto es visible cuando usas el estilo de navegación Moderna).',
+                    value: preferenceNotifier.enableScrollFade,
+                    icon: Icons.gradient_rounded,
+                    activeColor: AppTheme.primaryColor,
+                    onChanged: (val) async {
+                      await preferenceNotifier.setEnableScrollFade(val);
+                      _showFeedback(
+                        val
+                            ? 'Difuminado de scroll activado.'
+                            : 'Difuminado de scroll desactivado.',
+                      );
+                    },
                   ),
                 ],
               ),
@@ -202,185 +208,15 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
     );
   }
 
-  Widget _buildOptionCardWrapper({
-    required String title,
-    required String subtitle,
-    required Widget child,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-            ? Border.all(color: AppTheme.borderColor)
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.primaryTextColor,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppTheme.secondaryTextColor,
-            ),
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOptionCardLayout({
-    required Widget preview,
-    required String title,
-    required String subtitle,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final cardBorderColor = isSelected
-        ? AppTheme.primaryColor
-        : AppTheme.borderColor;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppTheme.primaryColor.withValues(alpha: 0.04)
-                : Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: cardBorderColor,
-              width: isSelected ? 2 : 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              SizedBox(
-                height: 48,
-                child: Center(child: preview),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: isSelected ? AppTheme.primaryColor : AppTheme.primaryTextColor,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppTheme.secondaryTextColor,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isSelected ? AppTheme.primaryColor : Colors.transparent,
-                  border: Border.all(
-                    color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500,
-                    width: isSelected ? 0 : 2,
-                  ),
-                ),
-                child: isSelected
-                    ? const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 12,
-                      )
-                    : null,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildThemeOptionCard({
-    required String id,
-    required String title,
-    required String subtitle,
-    required Widget preview,
-  }) {
-    final preferenceNotifier = context.watch<PreferenceNotifier>();
-    final isSelected = preferenceNotifier.themeMode == id;
-    return _buildOptionCardLayout(
-      preview: preview,
-      title: title,
-      subtitle: subtitle,
-      isSelected: isSelected,
-      onTap: () => preferenceNotifier.setThemeMode(id),
-    );
-  }
-
-  Widget _buildInterfaceOptionCard({
-    required String id,
-    required String title,
-    required String subtitle,
-    required Widget preview,
-  }) {
-    final preferenceNotifier = context.watch<PreferenceNotifier>();
-    final isSelected = preferenceNotifier.interfaceStyle == id;
-    return _buildOptionCardLayout(
-      preview: preview,
-      title: title,
-      subtitle: subtitle,
-      isSelected: isSelected,
-      onTap: () => _onInterfaceStyleChanged(id),
-    );
-  }
-
   Widget _buildCalendarOptionCard({
+    required PreferenceNotifier preferenceNotifier,
     required String id,
     required String title,
     required String subtitle,
     required int previewRows,
   }) {
-    final preferenceNotifier = context.watch<PreferenceNotifier>();
     final isSelected = preferenceNotifier.calendarFormat == id;
-    
+
     final preview = Column(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: List.generate(previewRows, (r) {
@@ -395,15 +231,17 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
                 shape: BoxShape.circle,
                 color: isToday
                     ? AppTheme.primaryColor
-                    : (isSelected ? AppTheme.primaryColor.withValues(alpha: 0.3) : Colors.grey.shade500),
+                    : (isSelected
+                        ? AppTheme.primaryColor.withValues(alpha: 0.3)
+                        : Colors.grey.shade500),
               ),
             );
           }),
         );
       }),
     );
-    
-    return _buildOptionCardLayout(
+
+    return SettingsVisualOptionCard(
       preview: preview,
       title: title,
       subtitle: subtitle,
@@ -417,7 +255,9 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
       width: 80,
       height: 16,
       decoration: BoxDecoration(
-        color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.1) : Colors.grey.shade700.withValues(alpha: 0.2),
+        color: isSelected
+            ? AppTheme.primaryColor.withValues(alpha: 0.1)
+            : Colors.grey.shade700.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -446,7 +286,9 @@ class _DisenoAparienciaPageState extends State<DisenoAparienciaPage> {
           width: 55,
           height: 16,
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.1) : Colors.grey.shade700.withValues(alpha: 0.2),
+            color: isSelected
+                ? AppTheme.primaryColor.withValues(alpha: 0.1)
+                : Colors.grey.shade700.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(

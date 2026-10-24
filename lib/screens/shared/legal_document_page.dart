@@ -81,6 +81,7 @@ class _LegalDocumentPageState extends State<LegalDocumentPage>
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: ModernAppBar(
         child: AppBar(
+          centerTitle: true,
           title: Text(
             'Marco Legal y Privacidad',
             style: TextStyle(

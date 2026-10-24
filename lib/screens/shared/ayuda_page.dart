@@ -29,6 +29,7 @@ class AyudaPage extends StatelessWidget {
       backgroundColor: AppTheme.backgroundColor,
       appBar: ModernAppBar(
         child: AppBar(
+          centerTitle: true,
           title: Text(
             l10n?.helpSupport ?? 'Ayuda y Soporte',
             style: TextStyle(

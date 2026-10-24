@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
+import 'package:meditime/notifiers/caregiver_notifier.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/models/tratamiento.dart';
+import 'package:meditime/core/legal_content.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/widgets/modern_content_fade.dart';
+import 'package:meditime/widgets/settings/settings_widgets.dart';
 import 'legal_document_page.dart';
 
 class DatosPrivacidadPage extends StatefulWidget {
@@ -24,6 +27,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
   Future<void> _clearMedicationHistory() async {
     final authService = context.read<AuthService>();
     final firestoreService = context.read<FirestoreService>();
+    final caregiverNotifier = context.read<CaregiverNotifier>();
     final user = authService.currentUser;
 
     if (user == null) return;
@@ -33,30 +37,50 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
     });
 
     try {
+      // 1. Eliminar medicamentos del perfil principal
       final eliminados = await firestoreService.clearAllMedicamentos(user.uid);
-
       for (Tratamiento t in eliminados) {
         await NotificationService.cancelTreatmentAlarms(t.prescriptionAlarmId);
       }
 
+      // 2. Eliminar medicamentos de perfiles locales gestionados (si existen)
+      for (final profile in caregiverNotifier.managedProfiles) {
+        if (!profile.isExternalUser) {
+          final localEliminados = await firestoreService.clearAllMedicamentos(
+            user.uid,
+            profile,
+          );
+          for (Tratamiento t in localEliminados) {
+            await NotificationService.cancelTreatmentAlarms(t.prescriptionAlarmId);
+          }
+        }
+      }
+
+      // 3. Cancelar cualquier notificación activa remanente en la bandeja del sistema
+      await NotificationService.cancelAllAlarmNotifications();
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Historial de medicamentos eliminado con éxito.'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: const Text('Historial de medicamentos eliminado con éxito.'),
+              backgroundColor: AppTheme.successColor,
+              duration: const Duration(seconds: 3),
+            ),
+          );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al eliminar historial: $e'),
-            backgroundColor: AppTheme.errorColor,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('Error al eliminar historial: $e'),
+              backgroundColor: AppTheme.errorColor,
+              duration: const Duration(seconds: 3),
+            ),
+          );
       }
     } finally {
       if (mounted) {
@@ -72,15 +96,16 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
+          backgroundColor: Theme.of(context).cardColor,
           title: const Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: AppTheme.errorColor),
               SizedBox(width: 8),
-              Text('¿Eliminar historial?'),
+              Expanded(child: Text('¿Eliminar historial médico?')),
             ],
           ),
           content: const Text(
-            'Esta acción eliminará de forma permanente todos tus medicamentos registrados y sus recordatorios. Esta acción no se puede deshacer.\n\n¿Deseas continuar?',
+            'Esta acción eliminará de forma permanente todos tus medicamentos registrados y sus recordatorios programados. Esta acción no se puede deshacer.\n\n¿Deseas continuar?',
           ),
           actions: [
             TextButton(
@@ -116,23 +141,27 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
       await firestoreService.clearAllChatSessions(user.uid);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Historial de chats con Midi eliminado con éxito.'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: const Text('Historial de chats con Midi eliminado con éxito.'),
+              backgroundColor: AppTheme.successColor,
+              duration: const Duration(seconds: 3),
+            ),
+          );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al eliminar chats: $e'),
-            backgroundColor: AppTheme.errorColor,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('Error al eliminar chats: $e'),
+              backgroundColor: AppTheme.errorColor,
+              duration: const Duration(seconds: 3),
+            ),
+          );
       }
     } finally {
       if (mounted) {
@@ -153,11 +182,11 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
             children: [
               Icon(Icons.warning_amber_rounded, color: AppTheme.errorColor),
               SizedBox(width: 8),
-              Text('¿Eliminar chats con Midi?'),
+              Expanded(child: Text('¿Eliminar chats con Midi?')),
             ],
           ),
           content: const Text(
-            'Esta acción eliminará de forma permanente todo tu historial de conversaciones con el chat bot Midi. Esta acción no se puede deshacer.\n\n¿Deseas continuar?',
+            'Esta acción eliminará de forma permanente todo tu historial de conversaciones con el asistente Midi. Esta acción no se puede deshacer.\n\n¿Deseas continuar?',
           ),
           actions: [
             TextButton(
@@ -194,13 +223,15 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
     if (result.isSuccess) {
       setState(() => _isLoading = false);
       Navigator.of(context).popUntil((route) => route.isFirst);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tu cuenta y todos tus datos fueron eliminados correctamente.'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 4),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text('Tu cuenta y todos tus datos fueron eliminados correctamente.'),
+            backgroundColor: AppTheme.successColor,
+            duration: const Duration(seconds: 4),
+          ),
+        );
       return;
     }
 
@@ -213,12 +244,14 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
         _promptPasswordReauth();
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.error ?? 'Error al eliminar la cuenta.'),
-          backgroundColor: AppTheme.errorColor,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(result.error ?? 'Error al eliminar la cuenta.'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
     }
   }
 
@@ -229,12 +262,14 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
     if (reauthResult.isSuccess) {
       _handleDeleteAccount();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(reauthResult.error ?? 'Error al reautenticar con Google.'),
-          backgroundColor: AppTheme.errorColor,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(reauthResult.error ?? 'Error al reautenticar con Google.'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
     }
   }
 
@@ -331,11 +366,14 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
 
   @override
   Widget build(BuildContext context) {
+    final pref = context.watch<PreferenceNotifier>();
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: ModernAppBar(
         child: AppBar(
           title: const Text('Datos y Privacidad'),
+          centerTitle: true,
           elevation: 0,
           backgroundColor: Colors.transparent,
           foregroundColor: AppTheme.primaryTextColor,
@@ -345,113 +383,75 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
           ? const Center(child: CircularProgressIndicator())
           : ModernContentFade(
               child: ListView(
-                padding: const EdgeInsets.all(16),
-              children: [
-                _buildSectionHeader(
-                  title: 'Privacidad y seguridad',
-                  subtitle: 'Protege tus datos y la visibilidad de tus tratamientos.',
-                ),
-                _buildListTileCard(
-                  child: SwitchListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    secondary: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.security_rounded, color: AppTheme.primaryColor, size: 22),
-                    ),
-                    title: Text(
-                      'Protección contra capturas',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryTextColor,
-                      ),
-                    ),
-                    subtitle: const Text(
-                      'Bloquea capturas de pantalla y oculta la vista previa de la app al cambiar entre aplicaciones para proteger tus datos médicos.',
-                      style: TextStyle(fontSize: 12.5),
-                    ),
-                    value: context.watch<PreferenceNotifier>().secureScreen,
-                    activeThumbImage: null,
-                    activeThumbColor: AppTheme.primaryColor,
-                    onChanged: (bool value) {
-                      context.read<PreferenceNotifier>().setSecureScreen(value);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            value
-                                ? 'Protección de pantalla activada (Anti-captura).'
-                                : 'Protección de pantalla desactivada.',
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                children: [
+                  const SettingsSectionHeader(
+                    title: 'Privacidad en Pantalla',
+                    topPadding: 0,
+                  ),
+                  SettingsSwitchTileCard(
+                    title: 'Protección contra capturas',
+                    description:
+                        'Bloquea capturas de pantalla y oculta la vista previa de MediTime al cambiar entre aplicaciones.',
+                    value: pref.secureScreen,
+                    icon: Icons.security_rounded,
+                    activeColor: AppTheme.primaryColor,
+                    onChanged: (bool value) async {
+                      await context.read<PreferenceNotifier>().setSecureScreen(value);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              value
+                                  ? 'Protección de pantalla activada (Anti-captura).'
+                                  : 'Protección de pantalla desactivada.',
+                            ),
+                            backgroundColor: AppTheme.primaryColor,
+                            duration: const Duration(seconds: 2),
                           ),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
+                        );
                     },
                   ),
-                ),
-                const SizedBox(height: 12),
-                _buildListTileCard(
-                  child: SwitchListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    secondary: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.visibility_off_outlined, color: AppTheme.primaryColor, size: 22),
-                    ),
-                    title: Text(
-                      'Ocultar en pantalla de bloqueo',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryTextColor,
-                      ),
-                    ),
-                    subtitle: const Text(
-                      'Oculta el nombre específico del fármaco en los avisos mientras el dispositivo se encuentre bloqueado.',
-                      style: TextStyle(fontSize: 12.5),
-                    ),
-                    value: context.watch<PreferenceNotifier>().hideMedicineNameOnLockScreen,
-                    activeThumbColor: AppTheme.primaryColor,
-                    onChanged: (bool value) {
-                      context.read<PreferenceNotifier>().setHideMedicineNameOnLockScreen(value);
+                  SettingsSwitchTileCard(
+                    title: 'Ocultar fármaco en pantalla bloqueada',
+                    description:
+                        'Oculta el nombre específico del medicamento en las notificaciones mientras el teléfono está bloqueado.',
+                    value: pref.hideMedicineNameOnLockScreen,
+                    icon: Icons.visibility_off_outlined,
+                    activeColor: Colors.deepPurple,
+                    onChanged: (bool value) async {
+                      await context
+                          .read<PreferenceNotifier>()
+                          .setHideMedicineNameOnLockScreen(value);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              value
+                                  ? 'Nombre de medicamentos oculto en pantalla de bloqueo.'
+                                  : 'Nombre de medicamentos visible en pantalla de bloqueo.',
+                            ),
+                            backgroundColor: AppTheme.primaryColor,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
                     },
                   ),
-                ),
-                const SizedBox(height: 16),
-                _buildSectionHeader(
-                  title: 'Documentación legal y transparencia',
-                  subtitle: 'Consulta las políticas vigentes y términos del servicio.',
-                ),
-                _buildListTileCard(
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.verified_user_outlined, color: AppTheme.primaryColor, size: 22),
-                    ),
-                    title: Text(
-                      'Términos y Política de Privacidad',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryTextColor,
-                      ),
-                    ),
-                    subtitle: const Text(
-                      'Documentos vigentes (v2.4). Conforme a Google Play Health Apps y RGPD.',
-                      style: TextStyle(fontSize: 12.5),
-                    ),
-                    trailing: const Icon(Icons.chevron_right_rounded),
+
+                  const SettingsSectionHeader(
+                    title: 'Documentación Legal y Transparencia',
+                    topPadding: 12,
+                  ),
+                  SettingsActionTileCard(
+                    title: 'Términos y Política de Privacidad',
+                    subtitle:
+                        'Documentos vigentes (v${LegalContent.version}). Conforme a Google Play Health Apps y RGPD.',
+                    icon: Icons.verified_user_outlined,
+                    iconColor: AppTheme.primaryColor,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -461,139 +461,41 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
                       );
                     },
                   ),
-                ),
-                const SizedBox(height: 16),
-                _buildSectionHeader(
-                  title: 'Gestión y eliminación de datos',
-                  subtitle: 'Administra o borra permanentemente tu información registrada.',
-                  isDestructive: true,
-                ),
-                _buildListTileCard(
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.errorColor.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.delete_forever_outlined, color: AppTheme.errorColor, size: 20),
-                    ),
-                    title: const Text(
-                      'Eliminar historial médico',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.errorColor,
-                      ),
-                    ),
-                    subtitle: const Text('Borra permanentemente todos los tratamientos'),
+
+                  const SettingsSectionHeader(
+                    title: 'Gestión y Eliminación de Datos',
+                    isDestructive: true,
+                    topPadding: 12,
+                  ),
+                  SettingsActionTileCard(
+                    title: 'Eliminar historial médico',
+                    subtitle:
+                        'Borra permanentemente todos tus tratamientos registrados y cancela sus alarmas.',
+                    icon: Icons.delete_forever_outlined,
+                    iconColor: AppTheme.errorColor,
+                    isDestructive: true,
                     onTap: () => _confirmClearHistory(context),
                   ),
-                ),
-                const SizedBox(height: 12),
-                _buildListTileCard(
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.errorColor.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.forum_outlined, color: AppTheme.errorColor, size: 20),
-                    ),
-                    title: const Text(
-                      'Eliminar historial de chats con IA',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.errorColor,
-                      ),
-                    ),
-                    subtitle: const Text('Borra todas las conversaciones con Midi'),
+                  SettingsActionTileCard(
+                    title: 'Eliminar historial de chats con IA',
+                    subtitle: 'Borra todas las conversaciones guardadas con el asistente Midi.',
+                    icon: Icons.forum_outlined,
+                    iconColor: AppTheme.errorColor,
+                    isDestructive: true,
                     onTap: () => _confirmClearChatHistory(context),
                   ),
-                ),
-                const SizedBox(height: 12),
-                _buildListTileCard(
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.errorColor.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.no_accounts_rounded, color: AppTheme.errorColor, size: 22),
-                    ),
-                    title: const Text(
-                      'Eliminar mi cuenta y datos personales',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.errorColor,
-                      ),
-                    ),
-                    subtitle: const Text('Elimina permanentemente tu cuenta y toda tu información'),
+                  SettingsActionTileCard(
+                    title: 'Eliminar mi cuenta y datos personales',
+                    subtitle:
+                        'Elimina de forma irreversible tu cuenta, perfiles gestionados y toda tu información.',
+                    icon: Icons.no_accounts_rounded,
+                    iconColor: AppTheme.errorColor,
+                    isDestructive: true,
                     onTap: () => _confirmDeleteAccount(context),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-    );
-  }
-
-  Widget _buildSectionHeader({
-    required String title,
-    required String subtitle,
-    bool isDestructive = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, top: 4, bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isDestructive ? AppTheme.errorColor : AppTheme.primaryTextColor,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppTheme.secondaryTextColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildListTileCard({required Widget child}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-            ? Border.all(color: AppTheme.borderColor)
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: child,
     );
   }
 }

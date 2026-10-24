@@ -2421,6 +2421,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
       drawer: _buildHistoryDrawer(context),
       appBar: ModernAppBar(
         child: AppBar(
+          centerTitle: true,
           elevation: 0,
           backgroundColor: Colors.transparent,
           foregroundColor: AppTheme.primaryTextColor,
@@ -2430,6 +2431,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 38,

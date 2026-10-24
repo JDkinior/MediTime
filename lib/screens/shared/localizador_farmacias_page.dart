@@ -327,7 +327,10 @@ class _LocalizadorFarmaciasPageState extends State<LocalizadorFarmaciasPage> {
     return Scaffold(
       appBar: ModernAppBar(
         showFade: false,
-        child: AppBar(title: const Text('Localizador de Farmacias')),
+        child: AppBar(
+          title: const Text('Localizador de Farmacias'),
+          centerTitle: true,
+        ),
       ),
       body:
           _isLoading

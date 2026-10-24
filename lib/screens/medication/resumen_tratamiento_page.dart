@@ -51,6 +51,7 @@ class ResumenTratamientoPage extends StatelessWidget {
     return Scaffold(
       appBar: ModernAppBar(
         child: AppBar(
+          centerTitle: true,
           title: const Text('Resumen del Tratamiento'),
           backgroundColor: Colors.transparent,
           elevation: 0,

@@ -134,7 +134,7 @@ class _ModernAppBarState extends State<ModernAppBar> {
       iconTheme: bar.iconTheme,
       actionsIconTheme: bar.actionsIconTheme,
       primary: bar.primary,
-      centerTitle: bar.centerTitle,
+      centerTitle: bar.centerTitle ?? true,
       excludeHeaderSemantics: bar.excludeHeaderSemantics,
       titleSpacing: bar.titleSpacing,
       toolbarOpacity: bar.toolbarOpacity,

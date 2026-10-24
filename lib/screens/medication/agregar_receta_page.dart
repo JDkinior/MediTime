@@ -479,6 +479,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
             resizeToAvoidBottomInset: true,
             appBar: ModernAppBar(
               child: AppBar(
+              centerTitle: true,
               elevation: 0,
               backgroundColor: Colors.transparent,
               foregroundColor: AppTheme.primaryTextColor,

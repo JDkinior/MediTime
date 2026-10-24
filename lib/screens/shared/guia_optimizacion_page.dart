@@ -1,12 +1,11 @@
 // lib/screens/shared/guia_optimizacion_page.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/services/system_settings_service.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/primary_button.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/widgets/modern_content_fade.dart';
+import 'package:meditime/widgets/settings/settings_widgets.dart';
 
 class GuiaOptimizacionPage extends StatefulWidget {
   const GuiaOptimizacionPage({super.key});
@@ -64,9 +63,14 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
     }
   }
 
+  bool get _allOk =>
+      _isIgnoringBattery &&
+      _canScheduleExactAlarms &&
+      _notificationsEnabled &&
+      _canUseFullScreen;
+
   @override
   Widget build(BuildContext context) {
-    final prefNotifier = context.watch<PreferenceNotifier>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryTextColor = isDark ? Colors.white : AppTheme.primaryTextColor;
     final secondaryTextColor =
@@ -76,6 +80,7 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
       backgroundColor: AppTheme.backgroundColor,
       appBar: ModernAppBar(
         child: AppBar(
+          centerTitle: true,
           title: Text(
             'Optimización de Alarmas',
             style: TextStyle(
@@ -103,214 +108,78 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
           ? const Center(child: CircularProgressIndicator())
           : ModernContentFade(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              children: [
-                // Banner Informativo Superior
-                _buildHeroBanner(isDark, primaryTextColor, secondaryTextColor),
-                const SizedBox(height: 16),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                children: [
+                  const SettingsSectionHeader(
+                    title: 'Diagnóstico y Permisos',
+                    topPadding: 0,
+                  ),
 
-                // Tarjeta 1: Diagnóstico en Vivo
-                _buildCardWrapper(
-                  context: context,
-                  prefNotifier: prefNotifier,
-                  title: 'Estado de Permisos y Batería',
-                  subtitle:
-                      'Verifica si el sistema operativo permite que MediTime suene en segundo plano.',
-                  trailingHeader: _buildStatusBadge(),
-                  child: _buildLiveDiagnosisContent(
-                      primaryTextColor, secondaryTextColor),
-                ),
+                  // Tarjeta 1: Diagnóstico en Vivo
+                  SettingsCardWrapper(
+                    title: 'Estado de Permisos y Batería',
+                    subtitle:
+                        'Verifica si el sistema operativo permite que MediTime suene en segundo plano.',
+                    trailingHeader: _buildStatusBadge(),
+                    child: _buildLiveDiagnosisContent(
+                        primaryTextColor, secondaryTextColor),
+                  ),
 
-                // Tarjeta 2: Accesos Directos a Configuraciones
-                _buildCardWrapper(
-                  context: context,
-                  prefNotifier: prefNotifier,
-                  title: 'Accesos Directos del Sistema',
-                  subtitle:
-                      'Abre directamente las pantallas de configuración de tu teléfono.',
-                  child: _buildDirectAccessList(
-                      primaryTextColor, secondaryTextColor),
-                ),
+                  // Tarjeta 2: Accesos Directos a Configuraciones
+                  SettingsCardWrapper(
+                    title: 'Accesos Directos del Sistema',
+                    subtitle:
+                        'Abre directamente las pantallas de configuración de tu teléfono.',
+                    child: _buildDirectAccessList(
+                        primaryTextColor, secondaryTextColor),
+                  ),
 
-                // Tarjeta 3: ¿Por qué ocurre esto?
-                _buildCardWrapper(
-                  context: context,
-                  prefNotifier: prefNotifier,
-                  title: '¿Por qué ocurre esto en Android?',
-                  subtitle:
-                      'Conoce los motivos técnicos por los que el sistema puede silenciar recordatorios.',
-                  child: _buildReasonsList(
-                      primaryTextColor, secondaryTextColor),
-                ),
+                  const SettingsSectionHeader(
+                    title: 'Guías por Marca y Ayuda Técnica',
+                    topPadding: 8,
+                  ),
 
-                // Tarjeta 4: Guía por Fabricante
-                _buildCardWrapper(
-                  context: context,
-                  prefNotifier: prefNotifier,
-                  title: 'Guía por Fabricante',
-                  subtitle:
-                      'Dispositivo detectado: $_manufacturer. Pasos específicos según la marca:',
-                  child: _buildBrandGuideList(
-                      primaryTextColor, secondaryTextColor),
-                ),
+                  // Tarjeta 3: ¿Por qué ocurre esto?
+                  SettingsCardWrapper(
+                    title: '¿Por qué ocurre esto en Android?',
+                    subtitle:
+                        'Conoce los motivos técnicos por los que el sistema puede silenciar recordatorios.',
+                    child: _buildReasonsList(
+                        primaryTextColor, secondaryTextColor),
+                  ),
 
-                // Tarjeta 5: Enlace Web DontKillMyApp
-                _buildDontKillMyAppCard(
-                  context: context,
-                  prefNotifier: prefNotifier,
-                  primaryTextColor: primaryTextColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-                const SizedBox(height: 24),
+                  // Tarjeta 4: Guía por Fabricante
+                  SettingsCardWrapper(
+                    title: 'Guía por Fabricante',
+                    subtitle:
+                        'Dispositivo detectado: $_manufacturer. Pasos específicos según la marca:',
+                    child: _buildBrandGuideList(
+                        primaryTextColor, secondaryTextColor),
+                  ),
 
-                PrimaryButton(
-                  text: 'Entendido y Configurado',
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
-    );
-  }
+                  // Tarjeta 5: Enlace Web DontKillMyApp
+                  _buildDontKillMyAppCard(
+                    primaryTextColor: primaryTextColor,
+                    secondaryTextColor: secondaryTextColor,
+                  ),
+                  const SizedBox(height: 16),
 
-  /// Wrapper de tarjeta unificada consistente con el resto de la app
-  Widget _buildCardWrapper({
-    required BuildContext context,
-    required PreferenceNotifier prefNotifier,
-    required String title,
-    required String subtitle,
-    required Widget child,
-    Widget? trailingHeader,
-  }) {
-    final hasBorder =
-        prefNotifier.showCardBorder || prefNotifier.highContrast;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: hasBorder ? Border.all(color: AppTheme.borderColor) : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryTextColor,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.secondaryTextColor,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
-                ),
+                  PrimaryButton(
+                    text: 'Entendido y Configurado',
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
               ),
-              if (trailingHeader != null) ...[
-                const SizedBox(width: 8),
-                trailingHeader,
-              ],
-            ],
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
-  }
-
-  /// Banner superior suave y armónico
-  Widget _buildHeroBanner(
-      bool isDark, Color primaryTextColor, Color secondaryTextColor) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withValues(alpha: isDark ? 0.15 : 0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.shield_outlined,
-              color: AppTheme.primaryColor,
-              size: 26,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Asegura tus recordatorios',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Android y los fabricantes aplican ahorros de batería agresivos que pueden cerrar la app en segundo plano y demorar tus tomas. Configura estos ajustes para que nunca fallen.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: primaryTextColor,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
   /// Badge indicador de estado general
   Widget _buildStatusBadge() {
-    final allOk =
-        _isIgnoringBattery && _canScheduleExactAlarms && _notificationsEnabled && _canUseFullScreen;
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: allOk
+        color: _allOk
             ? AppTheme.successColor.withValues(alpha: 0.12)
             : Colors.amber.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
@@ -319,17 +188,17 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            allOk ? Icons.check_circle_rounded : Icons.warning_amber_rounded,
+            _allOk ? Icons.check_circle_rounded : Icons.warning_amber_rounded,
             size: 14,
-            color: allOk ? AppTheme.successColor : Colors.amber.shade800,
+            color: _allOk ? AppTheme.successColor : Colors.amber.shade800,
           ),
           const SizedBox(width: 4),
           Text(
-            allOk ? 'Óptimo' : 'Requiere Ajustes',
+            _allOk ? 'Óptimo' : 'Requiere Ajustes',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: allOk ? AppTheme.successColor : Colors.amber.shade800,
+              color: _allOk ? AppTheme.successColor : Colors.amber.shade800,
             ),
           ),
         ],
@@ -802,28 +671,10 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
 
   /// Tarjeta de enlace a DontKillMyApp
   Widget _buildDontKillMyAppCard({
-    required BuildContext context,
-    required PreferenceNotifier prefNotifier,
     required Color primaryTextColor,
     required Color secondaryTextColor,
   }) {
-    final hasBorder =
-        prefNotifier.showCardBorder || prefNotifier.highContrast;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: hasBorder ? Border.all(color: AppTheme.borderColor) : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return SettingsCardWrapper(
       child: Row(
         children: [
           Container(

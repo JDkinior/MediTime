@@ -157,7 +157,7 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
     final isAnimal = widget.isAnimalMode ||
         prefNotifier.isAnimalMode ||
         caregiverNotifier.modeType == CaregiverModeType.veterinario;
-    final isClinico = caregiverNotifier.modeType == CaregiverModeType.clinico || caregiverNotifier.modeType == CaregiverModeType.veterinario;
+    final isClinico = isAnimal ? prefNotifier.animalModeType == 'veterinaria' : caregiverNotifier.modeType == CaregiverModeType.clinico;
 
     // Si estamos en modo animales, mostramos perfiles de animales si existen; de lo contrario todos
     final allProfiles = caregiverNotifier.managedProfiles;
@@ -174,6 +174,7 @@ class _ManageCaregiverProfilesPageState extends State<ManageCaregiverProfilesPag
       backgroundColor: AppTheme.backgroundColor,
       appBar: ModernAppBar(
         child: AppBar(
+          centerTitle: true,
           title: Text(isAnimal ? 'Gestión de Mascotas / Pacientes' : 'Gestión de Pacientes'),
           elevation: 0,
           backgroundColor: Colors.transparent,

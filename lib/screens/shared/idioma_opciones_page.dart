@@ -4,6 +4,7 @@ import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/widgets/modern_content_fade.dart';
+import 'package:meditime/widgets/settings/settings_widgets.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 
 class IdiomaOpcionesPage extends StatelessWidget {
@@ -13,9 +14,9 @@ class IdiomaOpcionesPage extends StatelessWidget {
     return Text(
       code.toUpperCase(),
       style: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 0.5,
+        fontSize: 13.5,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.6,
         color: isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
       ),
     );
@@ -28,13 +29,13 @@ class IdiomaOpcionesPage extends StatelessWidget {
     final currentCode = preferenceNotifier.languageCode;
 
     final title = l10n?.languageTitle ?? 'Idioma';
-    final subtitle = l10n?.languageSubtitle ?? 'Selecciona tu idioma preferido para la interfaz.';
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: ModernAppBar(
         child: AppBar(
           title: Text(title),
+          centerTitle: true,
           elevation: 0,
           backgroundColor: Colors.transparent,
           foregroundColor: AppTheme.primaryTextColor,
@@ -44,58 +45,42 @@ class IdiomaOpcionesPage extends StatelessWidget {
           ? const Center(child: CircularProgressIndicator())
           : ModernContentFade(
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4, bottom: 16),
-                    child: Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.secondaryTextColor,
-                      ),
-                    ),
+                  const SettingsSectionHeader(
+                    title: 'Idioma de la interfaz',
+                    topPadding: 0,
                   ),
-                  _buildLanguageCard(
-                    context: context,
-                    id: 'system',
+                  SettingsRadioOptionCard(
                     title: l10n?.languageSystem ?? 'Automático (Sistema)',
-                    description: l10n?.languageSystemDesc ?? 'Seguir la configuración del dispositivo',
-                    leadingWidget: Icon(
-                      Icons.brightness_auto_rounded,
-                      color: currentCode == 'system' ? AppTheme.primaryColor : Colors.blueAccent,
-                      size: 26,
-                    ),
+                    subtitle: l10n?.languageSystemDesc ??
+                        'Seguir automáticamente el idioma configurado en tu teléfono.',
+                    icon: Icons.brightness_auto_rounded,
+                    color: Colors.indigo,
                     isSelected: currentCode == 'system',
                     onTap: () => _changeLanguage(context, 'system'),
                   ),
-                  const SizedBox(height: 12),
-                  _buildLanguageCard(
-                    context: context,
-                    id: 'es',
+                  SettingsRadioOptionCard(
                     title: l10n?.languageSpanish ?? 'Español',
-                    description: l10n?.languageSpanishDesc ?? 'Español (predeterminado)',
+                    subtitle: l10n?.languageSpanishDesc ?? 'Español (predeterminado)',
                     leadingWidget: _buildLanguageBadge('es', currentCode == 'es'),
+                    color: AppTheme.primaryColor,
                     isSelected: currentCode == 'es',
                     onTap: () => _changeLanguage(context, 'es'),
                   ),
-                  const SizedBox(height: 12),
-                  _buildLanguageCard(
-                    context: context,
-                    id: 'en',
+                  SettingsRadioOptionCard(
                     title: l10n?.languageEnglish ?? 'English',
-                    description: l10n?.languageEnglishDesc ?? 'Inglés',
+                    subtitle: l10n?.languageEnglishDesc ?? 'Inglés (Estados Unidos / Internacional)',
                     leadingWidget: _buildLanguageBadge('en', currentCode == 'en'),
+                    color: AppTheme.primaryColor,
                     isSelected: currentCode == 'en',
                     onTap: () => _changeLanguage(context, 'en'),
                   ),
-                  const SizedBox(height: 12),
-                  _buildLanguageCard(
-                    context: context,
-                    id: 'pt',
+                  SettingsRadioOptionCard(
                     title: l10n?.languagePortuguese ?? 'Português',
-                    description: l10n?.languagePortugueseDesc ?? 'Português',
+                    subtitle: l10n?.languagePortugueseDesc ?? 'Portugués (Brasil / Portugal)',
                     leadingWidget: _buildLanguageBadge('pt', currentCode == 'pt'),
+                    color: AppTheme.primaryColor,
                     isSelected: currentCode == 'pt',
                     onTap: () => _changeLanguage(context, 'pt'),
                   ),
@@ -107,126 +92,21 @@ class IdiomaOpcionesPage extends StatelessWidget {
 
   Future<void> _changeLanguage(BuildContext context, String code) async {
     final notifier = context.read<PreferenceNotifier>();
+    if (notifier.languageCode == code) return;
     await notifier.setLanguageCode(code);
 
     if (!context.mounted) return;
     final l10n = AppLocalizations.of(context);
     final msg = l10n?.languageChangedSnackbar ?? 'Idioma actualizado correctamente.';
 
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  Widget _buildLanguageCard({
-    required BuildContext context,
-    required String id,
-    required String title,
-    required String description,
-    required Widget leadingWidget,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final preferenceNotifier = context.watch<PreferenceNotifier>();
-    final showBorder = preferenceNotifier.showCardBorder || preferenceNotifier.highContrast;
-
-    return Material(
-      color: Colors.transparent,
-      child: Semantics(
-        button: true,
-        selected: isSelected,
-        label: '$title, $description',
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isSelected
-                    ? AppTheme.primaryColor
-                    : (showBorder ? AppTheme.borderColor : Colors.transparent),
-                width: isSelected ? 2 : 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppTheme.primaryColor.withValues(alpha: 0.12)
-                        : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-                    shape: BoxShape.circle,
-                  ),
-                  child: leadingWidget,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected ? AppTheme.primaryColor : AppTheme.primaryTextColor,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        description,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.secondaryTextColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected ? AppTheme.primaryColor : Colors.transparent,
-                    border: Border.all(
-                      color: isSelected ? AppTheme.primaryColor : Colors.grey.shade400,
-                      width: 2,
-                    ),
-                  ),
-                  child: isSelected
-                      ? const Icon(
-                          Icons.check,
-                          color: Colors.white,
-                          size: 16,
-                        )
-                      : null,
-                ),
-              ],
-            ),
-          ),
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: AppTheme.successColor,
+          duration: const Duration(seconds: 2),
         ),
-      ),
-    );
+      );
   }
 }

@@ -11,6 +11,7 @@ import 'package:meditime/screens/alarm/alarm_ringing_page.dart';
 import 'package:meditime/screens/shared/guia_optimizacion_page.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/widgets/modern_content_fade.dart';
+import 'package:meditime/widgets/settings/settings_widgets.dart';
 
 class NotificacionesOpcionesPage extends StatefulWidget {
   const NotificacionesOpcionesPage({super.key});
@@ -19,37 +20,56 @@ class NotificacionesOpcionesPage extends StatefulWidget {
   State<NotificacionesOpcionesPage> createState() => _NotificacionesOpcionesPageState();
 }
 
-class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage> {
+class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
+    with WidgetsBindingObserver {
   bool _isRescheduling = false;
-  final List<int> _snoozeOptions = [1, 5, 10, 15, 20, 30]; // Options in minutes
+  final List<int> _snoozeOptions = [1, 5, 10, 15, 20, 30];
   bool _isIgnoringBattery = true;
   bool _canScheduleExact = true;
+  bool _notificationsEnabled = true;
+  bool _canUseFullScreen = true;
   String? _activePreviewId;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkSystemSettings();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     AlarmSoundService.stopPreview();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkSystemSettings();
+    }
   }
 
   Future<void> _checkSystemSettings() async {
     try {
       final ignoring = await SystemSettingsService.isIgnoringBatteryOptimizations();
       final exact = await SystemSettingsService.canScheduleExactAlarms();
+      final notifs = await SystemSettingsService.areNotificationsEnabled();
+      final fullScreen = await SystemSettingsService.canUseFullScreenIntent();
       if (mounted) {
         setState(() {
           _isIgnoringBattery = ignoring;
           _canScheduleExact = exact;
+          _notificationsEnabled = notifs;
+          _canUseFullScreen = fullScreen;
         });
       }
     } catch (_) {}
   }
+
+  bool get _allSystemPermissionsOk =>
+      _isIgnoringBattery && _canScheduleExact && _notificationsEnabled && _canUseFullScreen;
 
   Future<void> _togglePreview(
     String id, {
@@ -82,11 +102,13 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
   }
 
   Future<void> _onReminderModeChanged(DoseReminderMode mode) async {
+    final preferenceNotifier = context.read<PreferenceNotifier>();
+    if (preferenceNotifier.reminderMode == mode) return;
+
     setState(() {
       _isRescheduling = true;
     });
 
-    final preferenceNotifier = context.read<PreferenceNotifier>();
     final authService = context.read<AuthService>();
     final user = authService.currentUser;
 
@@ -102,30 +124,34 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
       setState(() {
         _isRescheduling = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Modo de recordatorio actualizado.'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text('Modo de recordatorio actualizado.'),
+            backgroundColor: AppTheme.successColor,
+            duration: const Duration(seconds: 2),
+          ),
+        );
     }
   }
 
   Future<void> _onSnoozeDurationChanged(int? newDuration) async {
     if (newDuration == null) return;
-    
+
     final preferenceNotifier = context.read<PreferenceNotifier>();
     await preferenceNotifier.setSnoozeDuration(newDuration);
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Tiempo de aplazamiento guardado.'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('Tiempo de aplazamiento guardado ($newDuration min).'),
+          backgroundColor: AppTheme.successColor,
+          duration: const Duration(seconds: 2),
+        ),
+      );
   }
 
   void _showCustomSnoozeDialog(BuildContext context) {
@@ -137,14 +163,18 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
           backgroundColor: Theme.of(context).cardColor,
           title: Text(
             'Tiempo personalizado',
-            style: TextStyle(color: AppTheme.primaryTextColor, fontWeight: FontWeight.bold, fontSize: 16),
+            style: TextStyle(
+              color: AppTheme.primaryTextColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Ingresa el tiempo de aplazamiento en minutos:',
+                'Ingresa el tiempo de aplazamiento en minutos (1 a 120):',
                 style: TextStyle(color: AppTheme.secondaryTextColor, fontSize: 13),
               ),
               const SizedBox(height: 12),
@@ -155,7 +185,9 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                 style: TextStyle(color: AppTheme.primaryTextColor),
                 decoration: InputDecoration(
                   hintText: 'Ej. 8',
-                  hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withValues(alpha: 0.5)),
+                  hintStyle: TextStyle(
+                    color: AppTheme.secondaryTextColor.withValues(alpha: 0.5),
+                  ),
                   suffixText: 'min',
                   suffixStyle: TextStyle(color: AppTheme.secondaryTextColor),
                   enabledBorder: UnderlineInputBorder(
@@ -177,16 +209,18 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
               onPressed: () {
                 final text = controller.text.trim();
                 final val = int.tryParse(text);
-                if (val != null && val > 0) {
+                if (val != null && val > 0 && val <= 120) {
                   Navigator.pop(dialogContext);
                   _onSnoozeDurationChanged(val);
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Por favor ingresa un número de minutos válido (mayor a 0).'),
-                      backgroundColor: AppTheme.errorColor,
-                    ),
-                  );
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      const SnackBar(
+                        content: Text('Ingresa un número válido entre 1 y 120 minutos.'),
+                        backgroundColor: AppTheme.errorColor,
+                      ),
+                    );
                 }
               },
               child: const Text('Guardar'),
@@ -197,7 +231,12 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
     );
   }
 
-  void _openAlarmTest(BuildContext context) {
+  Future<void> _openAlarmTest(BuildContext context) async {
+    await AlarmSoundService.stopPreview();
+    if (mounted) {
+      setState(() => _activePreviewId = null);
+    }
+    if (!context.mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AlarmRingingPage(
@@ -213,6 +252,17 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
     );
   }
 
+  String _getModeDetailedDescription(DoseReminderMode mode) {
+    switch (mode) {
+      case DoseReminderMode.alarm:
+        return 'Modo Alarma (Recomendado): Suena en bucle continuo y enciende la pantalla completa como un despertador hasta que confirmes o aplaces la toma.';
+      case DoseReminderMode.active:
+        return 'Modo Activo: Muestra una notificación interactiva con sonido y botones rápidos para marcar la toma como Tomada, Omitida o Aplazada.';
+      case DoseReminderMode.automatic:
+        return 'Modo Informativo: Envía un aviso discreto a la hora programada y registra la toma automáticamente en tu agenda.';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final preferenceNotifier = context.watch<PreferenceNotifier>();
@@ -223,6 +273,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
       appBar: ModernAppBar(
         child: AppBar(
           title: const Text('Notificaciones y Alarmas'),
+          centerTitle: true,
           elevation: 0,
           backgroundColor: Colors.transparent,
           foregroundColor: AppTheme.primaryTextColor,
@@ -232,168 +283,178 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
           ? const Center(child: CircularProgressIndicator())
           : ModernContentFade(
               child: ListView(
-                padding: const EdgeInsets.all(16),
-              children: [
-                _buildOptionCardWrapper(
-                  title: 'Gestión de tomas',
-                  subtitle: 'Elige cómo quieres que suenen y actúen tus recordatorios de dosis.',
-                  child: Column(
-                    children: [
-                      // 3 Tarjetas de modo de recordatorio
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildNotificationOptionCard(
-                            mode: DoseReminderMode.automatic,
-                            title: 'Automático',
-                            subtitle: 'Toma marcada al sonar',
-                            preview: _buildAutoModePreview(isSelected: currentMode == DoseReminderMode.automatic),
-                          ),
-                          const SizedBox(width: 8),
-                          _buildNotificationOptionCard(
-                            mode: DoseReminderMode.active,
-                            title: 'Modo Activo',
-                            subtitle: 'Notificación con botones',
-                            preview: _buildActiveModePreview(isSelected: currentMode == DoseReminderMode.active),
-                          ),
-                          const SizedBox(width: 8),
-                          _buildNotificationOptionCard(
-                            mode: DoseReminderMode.alarm,
-                            title: 'Modo Alarma',
-                            subtitle: 'Alarma y pantalla completa',
-                            preview: _buildAlarmModePreview(isSelected: currentMode == DoseReminderMode.alarm),
-                          ),
-                        ],
-                      ),
-                    ],
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                children: [
+                  const SettingsSectionHeader(
+                    title: 'Modo de Recordatorio',
+                    topPadding: 0,
                   ),
-                ),
 
-                // Tarjeta de selección de tono y sonido de alarma
-                _buildAlarmSoundCard(context, preferenceNotifier),
-
-                // Tarjeta interactiva de prueba del Modo Alarma
-                _buildOptionCardWrapper(
-                  title: 'Simulación y Prueba',
-                  subtitle: 'Comprueba el tono, vibración y la pantalla completa del Modo Alarma.',
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _openAlarmTest(context),
-                      icon: const Icon(Icons.alarm_on_rounded, size: 20),
-                      label: const Text(
-                        'Probar Modo Alarma',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                  SettingsCardWrapper(
+                    title: 'Gestión de tomas',
+                    subtitle: 'Selecciona entre aviso discreto, notificación interactiva o despertador.',
+                    child: Column(
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SettingsVisualOptionCard(
+                              title: 'Informativo',
+                              subtitle: 'Toma automática',
+                              preview: _buildAutoModePreview(
+                                isSelected: currentMode == DoseReminderMode.automatic,
+                              ),
+                              isSelected: currentMode == DoseReminderMode.automatic,
+                              selectedColor: AppTheme.successColor,
+                              onTap: _isRescheduling
+                                  ? () {}
+                                  : () => _onReminderModeChanged(DoseReminderMode.automatic),
+                            ),
+                            const SizedBox(width: 8),
+                            SettingsVisualOptionCard(
+                              title: 'Modo Activo',
+                              subtitle: 'Con botones',
+                              preview: _buildActiveModePreview(
+                                isSelected: currentMode == DoseReminderMode.active,
+                              ),
+                              isSelected: currentMode == DoseReminderMode.active,
+                              selectedColor: AppTheme.primaryColor,
+                              onTap: _isRescheduling
+                                  ? () {}
+                                  : () => _onReminderModeChanged(DoseReminderMode.active),
+                            ),
+                            const SizedBox(width: 8),
+                            SettingsVisualOptionCard(
+                              title: 'Modo Alarma',
+                              subtitle: 'Pantalla completa',
+                              preview: _buildAlarmModePreview(
+                                isSelected: currentMode == DoseReminderMode.alarm,
+                              ),
+                              isSelected: currentMode == DoseReminderMode.alarm,
+                              selectedColor: AppTheme.errorColor,
+                              onTap: _isRescheduling
+                                  ? () {}
+                                  : () => _onReminderModeChanged(DoseReminderMode.alarm),
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                _buildListTileCard(
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.snooze_outlined, color: AppTheme.primaryColor, size: 20),
-                    ),
-                    title: Text(
-                      'Aplazamiento',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryTextColor,
-                      ),
-                    ),
-                    subtitle: const Text('Duración de la alarma pospuesta'),
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppTheme.borderColor,
-                        ),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: Builder(
-                          builder: (context) {
-                            final currentSnooze = preferenceNotifier.snoozeDuration;
-                            final List<int> displayOptions = List<int>.from(_snoozeOptions);
-                            if (!displayOptions.contains(currentSnooze)) {
-                              displayOptions.add(currentSnooze);
-                              displayOptions.sort();
-                            }
-                            
-                            final List<DropdownMenuItem<int>> dropdownItems = [];
-                            for (var val in displayOptions) {
-                              dropdownItems.add(
-                                DropdownMenuItem<int>(
-                                  value: val,
-                                  child: Text('$val min'),
+                        const SizedBox(height: 14),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.surfaceColor,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppTheme.borderColor.withValues(alpha: 0.7),
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                currentMode == DoseReminderMode.alarm
+                                    ? Icons.alarm_on_rounded
+                                    : (currentMode == DoseReminderMode.active
+                                        ? Icons.notifications_active_outlined
+                                        : Icons.info_outline_rounded),
+                                size: 18,
+                                color: currentMode == DoseReminderMode.alarm
+                                    ? AppTheme.errorColor
+                                    : AppTheme.primaryColor,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _getModeDetailedDescription(currentMode),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.secondaryTextColor,
+                                    height: 1.35,
+                                  ),
                                 ),
-                              );
-                            }
-                            dropdownItems.add(
-                              const DropdownMenuItem<int>(
-                                value: -1,
-                                child: Text('Personalizado...'),
                               ),
-                            );
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                            return DropdownButton<int>(
-                              value: currentSnooze,
-                              dropdownColor: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(16),
-                              style: TextStyle(
-                                color: AppTheme.primaryColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                              icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.primaryColor),
-                                items: dropdownItems,
-                                onChanged: (int? newValue) {
-                                  if (newValue == -1) {
-                                    _showCustomSnoozeDialog(context);
-                                  } else {
-                                    _onSnoozeDurationChanged(newValue);
-                                  }
-                                },
-                              );
-                            }
+                  const SettingsSectionHeader(
+                    title: 'Sonido, Aplazamiento y Prueba',
+                    topPadding: 8,
+                  ),
+
+                  _buildAlarmSoundCard(context, preferenceNotifier),
+
+                  _buildSnoozeCard(context, preferenceNotifier),
+
+                  SettingsCardWrapper(
+                    title: 'Simulación en Vivo',
+                    subtitle:
+                        'Comprueba cómo se verá y sonará la pantalla completa del Modo Alarma en tu teléfono.',
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _openAlarmTest(context),
+                        icon: const Icon(Icons.alarm_on_rounded, size: 20),
+                        label: const Text(
+                          'Probar Modo Alarma Ahora',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
                       ),
                     ),
                   ),
 
-                  // Tarjeta de Fiabilidad y Optimización de Batería
-                  _buildOptionCardWrapper(
+                  const SettingsSectionHeader(
+                    title: 'Fiabilidad del Sistema y Privacidad',
+                    topPadding: 8,
+                  ),
+
+                  SettingsCardWrapper(
                     title: 'Fiabilidad de Alarmas y Batería',
-                    subtitle: 'Asegura que tu teléfono no bloquee o silencie las alarmas en segundo plano.',
+                    subtitle:
+                        'Verifica que Android autorice a MediTime a sonar puntualmente en segundo plano.',
+                    trailingHeader: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _allSystemPermissionsOk
+                            ? AppTheme.successColor.withValues(alpha: 0.12)
+                            : Colors.amber.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        _allSystemPermissionsOk ? 'Óptimo' : 'Revisar',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: _allSystemPermissionsOk
+                              ? AppTheme.successColor
+                              : Colors.amber.shade800,
+                        ),
+                      ),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: (_isIgnoringBattery && _canScheduleExact)
+                            color: _allSystemPermissionsOk
                                 ? const Color(0xFF10B981).withValues(alpha: 0.1)
                                 : const Color(0xFFF59E0B).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                              color: (_isIgnoringBattery && _canScheduleExact)
+                              color: _allSystemPermissionsOk
                                   ? const Color(0xFF10B981).withValues(alpha: 0.3)
                                   : const Color(0xFFF59E0B).withValues(alpha: 0.3),
                             ),
@@ -401,10 +462,10 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                           child: Row(
                             children: [
                               Icon(
-                                (_isIgnoringBattery && _canScheduleExact)
+                                _allSystemPermissionsOk
                                     ? Icons.check_circle_rounded
                                     : Icons.warning_amber_rounded,
-                                color: (_isIgnoringBattery && _canScheduleExact)
+                                color: _allSystemPermissionsOk
                                     ? const Color(0xFF10B981)
                                     : const Color(0xFFF59E0B),
                                 size: 24,
@@ -412,15 +473,16 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  (_isIgnoringBattery && _canScheduleExact)
-                                      ? 'Tu dispositivo está optimizado para hacer sonar alarmas a tiempo.'
-                                      : 'Tu dispositivo podría retrasar o silenciar alarmas para ahorrar batería.',
+                                  _allSystemPermissionsOk
+                                      ? 'Batería, notificaciones y alarmas exactas están correctamente autorizadas.'
+                                      : 'Faltan permisos clave o el ahorro de batería está activo, lo que podría retrasar o silenciar alarmas.',
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 12.5,
                                     fontWeight: FontWeight.w600,
-                                    color: (_isIgnoringBattery && _canScheduleExact)
+                                    color: _allSystemPermissionsOk
                                         ? const Color(0xFF10B981)
                                         : const Color(0xFFF59E0B),
+                                    height: 1.3,
                                   ),
                                 ),
                               ),
@@ -458,233 +520,92 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                     ),
                   ),
 
-                // Tarjeta de Privacidad en Pantalla de Bloqueo
-                _buildListTileCard(
-                  child: SwitchListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    secondary: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurple.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.shield_outlined, color: Colors.deepPurple, size: 20),
-                    ),
-                    title: Text(
-                      'Privacidad en pantalla bloqueada',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryTextColor,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Oculta el nombre del fármaco en la pantalla de bloqueo para proteger tus datos médicos.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.secondaryTextColor,
-                      ),
-                    ),
+                  SettingsSwitchTileCard(
+                    title: 'Ocultar fármaco en pantalla bloqueada',
+                    description:
+                        'Oculta el nombre específico del medicamento en las notificaciones mientras el teléfono está bloqueado.',
                     value: preferenceNotifier.hideMedicineNameOnLockScreen,
-                    activeThumbColor: AppTheme.primaryColor,
+                    icon: Icons.visibility_off_outlined,
+                    activeColor: Colors.deepPurple,
                     onChanged: (bool value) async {
                       await preferenceNotifier.setHideMedicineNameOnLockScreen(value);
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              value
-                                  ? 'Nombre de medicamentos oculto en pantalla de bloqueo.'
-                                  : 'Nombre de medicamentos visible en pantalla de bloqueo.',
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                value
+                                    ? 'Nombre de medicamentos oculto en pantalla de bloqueo.'
+                                    : 'Nombre de medicamentos visible en pantalla de bloqueo.',
+                              ),
+                              backgroundColor: AppTheme.primaryColor,
+                              duration: const Duration(seconds: 2),
                             ),
-                            backgroundColor: AppTheme.primaryColor,
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
+                          );
                       }
                     },
                   ),
-                ),
                 ],
               ),
             ),
-      );
+    );
+  }
+
+  Widget _buildSnoozeCard(BuildContext context, PreferenceNotifier preferenceNotifier) {
+    final currentSnooze = preferenceNotifier.snoozeDuration;
+    final List<int> displayOptions = List<int>.from(_snoozeOptions);
+    if (!displayOptions.contains(currentSnooze)) {
+      displayOptions.add(currentSnooze);
+      displayOptions.sort();
     }
 
-  Widget _buildOptionCardWrapper({
-    required String title,
-    required String subtitle,
-    required Widget child,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-            ? Border.all(color: AppTheme.borderColor)
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    final List<DropdownMenuItem<int>> dropdownItems = [
+      for (final val in displayOptions)
+        DropdownMenuItem<int>(
+          value: val,
+          child: Text('$val min'),
+        ),
+      const DropdownMenuItem<int>(
+        value: -1,
+        child: Text('Personalizado...'),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.primaryTextColor,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppTheme.secondaryTextColor,
-            ),
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
-  }
+    ];
 
-  Widget _buildListTileCard({required Widget child}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-            ? Border.all(color: AppTheme.borderColor)
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
-
-  Widget _buildOptionCardLayout({
-    required Widget preview,
-    required String title,
-    required String subtitle,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final cardBorderColor = isSelected
-        ? AppTheme.primaryColor
-        : AppTheme.borderColor;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppTheme.primaryColor.withValues(alpha: 0.05)
-                : Theme.of(context).cardColor,
+    return SettingsActionTileCard(
+      title: 'Tiempo de aplazamiento',
+      subtitle: 'Minutos que esperará la alarma al pulsar "Posponer".',
+      icon: Icons.snooze_rounded,
+      iconColor: AppTheme.primaryColor,
+      trailing: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.borderColor),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<int>(
+            value: currentSnooze,
+            dropdownColor: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: cardBorderColor,
-              width: isSelected ? 2 : 1,
+            style: TextStyle(
+              color: AppTheme.primaryColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 13.5,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              SizedBox(
-                height: 44,
-                child: Center(child: preview),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: isSelected ? AppTheme.primaryColor : AppTheme.primaryTextColor,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 3),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: AppTheme.secondaryTextColor,
-                  height: 1.15,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 10),
-              Container(
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isSelected ? AppTheme.primaryColor : Colors.transparent,
-                  border: Border.all(
-                    color: isSelected ? AppTheme.primaryColor : Colors.grey.shade400,
-                    width: isSelected ? 0 : 2,
-                  ),
-                ),
-                child: isSelected
-                    ? const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 12,
-                      )
-                    : null,
-              ),
-            ],
+            icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.primaryColor),
+            items: dropdownItems,
+            onChanged: (int? newValue) {
+              if (newValue == -1) {
+                _showCustomSnoozeDialog(context);
+              } else {
+                _onSnoozeDurationChanged(newValue);
+              }
+            },
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildNotificationOptionCard({
-    required DoseReminderMode mode,
-    required String title,
-    required String subtitle,
-    required Widget preview,
-  }) {
-    final preferenceNotifier = context.watch<PreferenceNotifier>();
-    final isSelected = preferenceNotifier.reminderMode == mode;
-    return _buildOptionCardLayout(
-      preview: preview,
-      title: title,
-      subtitle: subtitle,
-      isSelected: isSelected,
-      onTap: _isRescheduling ? () {} : () => _onReminderModeChanged(mode),
     );
   }
 
@@ -695,13 +616,19 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.notifications_active, size: 15, color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500),
+            Icon(
+              Icons.notifications_active,
+              size: 15,
+              color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500,
+            ),
             const SizedBox(width: 3),
             Container(
-              width: 26, 
-              height: 4, 
+              width: 26,
+              height: 4,
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.4) : Colors.grey.shade700.withValues(alpha: 0.3),
+                color: isSelected
+                    ? AppTheme.primaryColor.withValues(alpha: 0.4)
+                    : Colors.grey.shade700.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -715,23 +642,39 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
               width: 22,
               height: 8,
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.2) : Colors.grey.shade700.withValues(alpha: 0.2),
+                color: isSelected
+                    ? AppTheme.primaryColor.withValues(alpha: 0.2)
+                    : Colors.grey.shade700.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(3),
               ),
-              child: Center(child: Container(width: 10, height: 2, color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500)),
+              child: Center(
+                child: Container(
+                  width: 10,
+                  height: 2,
+                  color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500,
+                ),
+              ),
             ),
             const SizedBox(width: 4),
             Container(
               width: 22,
               height: 8,
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.2) : Colors.grey.shade700.withValues(alpha: 0.2),
+                color: isSelected
+                    ? AppTheme.primaryColor.withValues(alpha: 0.2)
+                    : Colors.grey.shade700.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(3),
               ),
-              child: Center(child: Container(width: 10, height: 2, color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500)),
+              child: Center(
+                child: Container(
+                  width: 10,
+                  height: 2,
+                  color: isSelected ? AppTheme.primaryColor : Colors.grey.shade500,
+                ),
+              ),
             ),
           ],
-        )
+        ),
       ],
     );
   }
@@ -743,13 +686,19 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle, size: 15, color: isSelected ? AppTheme.successColor : Colors.grey.shade500),
+            Icon(
+              Icons.check_circle,
+              size: 15,
+              color: isSelected ? AppTheme.successColor : Colors.grey.shade500,
+            ),
             const SizedBox(width: 4),
             Container(
-              width: 26, 
-              height: 4, 
+              width: 26,
+              height: 4,
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.successColor.withValues(alpha: 0.4) : Colors.grey.shade700.withValues(alpha: 0.3),
+                color: isSelected
+                    ? AppTheme.successColor.withValues(alpha: 0.4)
+                    : Colors.grey.shade700.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -757,10 +706,12 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
         ),
         const SizedBox(height: 6),
         Container(
-          width: 38, 
-          height: 3, 
+          width: 38,
+          height: 3,
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.successColor.withValues(alpha: 0.3) : Colors.grey.shade700.withValues(alpha: 0.2),
+            color: isSelected
+                ? AppTheme.successColor.withValues(alpha: 0.3)
+                : Colors.grey.shade700.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(1.5),
           ),
         ),
@@ -815,9 +766,10 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
     final isCustom = soundType == 'custom';
     final isPreviewPlaying = _activePreviewId == 'current_selected_tone';
 
-    return _buildOptionCardWrapper(
+    return SettingsCardWrapper(
       title: 'Tono y Sonido de Alarma',
-      subtitle: 'Configura el sonido del Modo Alarma con tonos de tu teléfono o personalizados de MediTime.',
+      subtitle:
+          'Configura el sonido del Modo Alarma con tonos de tu teléfono o personalizados de MediTime.',
       child: Column(
         children: [
           Material(
@@ -1018,7 +970,6 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
       resourceName: resourceName,
     );
 
-    // Reproducir vista previa inmediata del tono seleccionado
     _togglePreview(
       type == 'custom' ? (resourceName ?? type) : (uri ?? type),
       uri: uri,
@@ -1042,13 +993,15 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
       );
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Tono de alarma seleccionado: $title'),
-            backgroundColor: AppTheme.primaryColor,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('Tono de alarma seleccionado: $title'),
+              backgroundColor: AppTheme.primaryColor,
+              duration: const Duration(seconds: 2),
+            ),
+          );
       }
     }
   }
@@ -1086,7 +1039,6 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Barra de arrastre superior
               const SizedBox(height: 12),
               Container(
                 width: 40,
@@ -1098,7 +1050,6 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
               ),
               const SizedBox(height: 12),
 
-              // Título y Subtítulo
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
@@ -1138,7 +1089,6 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
               ),
               const SizedBox(height: 14),
 
-              // Selector de Pestañas (Pill Tabs)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
@@ -1247,7 +1197,6 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
               ),
               const SizedBox(height: 12),
 
-              // Lista de Tonos según pestaña
               Flexible(
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
@@ -1263,7 +1212,6 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
                 ),
               ),
 
-              // Botón inferior de confirmación
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: SizedBox(
@@ -1336,7 +1284,6 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
   }) {
     final List<Widget> items = [];
 
-    // 1. Tono de alarma predeterminado del teléfono
     final isAlarmDefaultSelected = currentSoundType == 'system_alarm';
     final isAlarmDefaultPlaying = _previewId == 'system_alarm';
     items.add(
@@ -1365,7 +1312,6 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
       ),
     );
 
-    // 2. Tono de llamada predeterminado del teléfono
     final isRingtoneDefaultSelected = currentSoundType == 'system_ringtone';
     final isRingtoneDefaultPlaying = _previewId == 'system_ringtone';
     items.add(
@@ -1394,7 +1340,6 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
       ),
     );
 
-    // 3. Botón para abrir el selector nativo del sistema operativo
     items.add(
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1453,7 +1398,6 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
       ),
     );
 
-    // 4. Lista de tonos detectados en el teléfono mediante RingtoneManager
     if (_loadingPhoneRingtones) {
       items.add(
         const Padding(
@@ -1643,4 +1587,3 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
     );
   }
 }
-

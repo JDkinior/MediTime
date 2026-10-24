@@ -360,7 +360,7 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
         prefNotifier.isAnimalMode ||
         caregiverNotifier.modeType == CaregiverModeType.veterinario;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isClinico = caregiverNotifier.modeType == CaregiverModeType.clinico || caregiverNotifier.modeType == CaregiverModeType.veterinario;
+    final isClinico = isAnimal ? prefNotifier.animalModeType == 'veterinaria' : caregiverNotifier.modeType == CaregiverModeType.clinico;
     final relationshipOptions = isAnimal
         ? _animalRoleOptions
         : (isClinico ? _clinicRelationships : _familyRelationships);
