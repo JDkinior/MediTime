@@ -1,12 +1,13 @@
 // lib/screens/medication/detalle_receta_page.dart
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/core/utils.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/models/caregiver_profile.dart';
-import 'package:meditime/models/tratamiento.dart'; // <-- CAMBIO: Importar modelo
+import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/treatment_form/treatment_summary_card.dart';
@@ -18,18 +19,18 @@ import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/widgets/modern_content_fade.dart';
 import 'package:meditime/screens/medication/editar_tratamiento_page.dart';
 
-// CAMBIO: Convertimos a StatefulWidget para manejar el temporizador de la cuenta regresiva
 class DetalleRecetaPage extends StatefulWidget {
-  // CAMBIO: Recibimos el objeto Tratamiento y la hora específica de la dosis
   final Tratamiento tratamiento;
-  final DateTime horaDosis;
+  final DateTime? horaDosis;
   final CaregiverProfile? profile;
+  final bool canEdit;
 
   const DetalleRecetaPage({
     super.key,
     required this.tratamiento,
-    required this.horaDosis,
+    this.horaDosis,
     this.profile,
+    this.canEdit = true,
   });
 
   @override
@@ -42,14 +43,16 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
   bool _isProcessing = false;
   DoseStatus? _currentStatus;
   late Tratamiento _tratamiento;
-  late DateTime _horaDosis;
+  DateTime? _horaDosis;
 
   @override
   void initState() {
     super.initState();
     _tratamiento = widget.tratamiento;
     _horaDosis = widget.horaDosis;
-    _currentStatus = _getDoseStatus(_horaDosis);
+    if (_horaDosis != null) {
+      _currentStatus = _getDoseStatus(_horaDosis!);
+    }
     _nextUpcomingDose = _findNextUpcomingDose();
 
     if (_nextUpcomingDose != null) {
@@ -72,7 +75,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
   }
 
   Future<void> _handleDoseAction(DoseStatus newStatus) async {
-    if (_isProcessing) return;
+    if (_isProcessing || _horaDosis == null) return;
     final userId =
         FirebaseAuth.instance.currentUser?.uid ??
         await PreferenceService().getCurrentUserId();
@@ -84,7 +87,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
 
     try {
       final docId = _tratamiento.id;
-      final doseTime = _horaDosis;
+      final doseTime = _horaDosis!;
       final firestoreService = FirestoreService();
 
       final resolved = await firestoreService.resolveMedicamentoWithProfile(
@@ -113,9 +116,8 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
         final snoozeMinutes = await PreferenceService().getSnoozeDuration();
         final payload =
             'active_notification|$userId|$docId|${doseTime.toIso8601String()}|${effectiveProfile?.id ?? ""}';
-        // Enviar id ficticio para aplazar
         await NotificationService.snoozeNotification(
-          doseTime.hashCode.abs(), // Generar un ID único basado en la hora
+          doseTime.hashCode.abs(),
           payload,
           doseTime,
           snoozeMinutes,
@@ -133,7 +135,6 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
           );
         }
       } else {
-        // Reprogramar próxima dosis
         final docRef =
             resolved?.docRef ??
             firestoreService.getMedicamentoDocRef(
@@ -158,7 +159,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
         Navigator.of(context).pop();
       }
     } catch (e) {
-      debugPrint('Error actualizando dosis: $e');
+      if (!kReleaseMode) debugPrint('Error actualizando dosis: $e');
       if (mounted) {
         final l10n = AppLocalizations.of(context);
         setState(() {
@@ -176,42 +177,51 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
   }
 
   DateTime? _findNextUpcomingDose() {
-    // CAMBIO: Lógica adaptada para usar el objeto Tratamiento
+    final intervalo = _tratamiento.intervaloDosis;
+    if (intervalo.inMinutes <= 0) return null;
+
     final horaInicial = _tratamiento.horaPrimeraDosis;
-    final intervalo = _tratamiento.intervaloDosis.inHours;
+    final fechaInicio = _tratamiento.fechaInicioTratamiento;
     final fechaFinTratamiento = _tratamiento.fechaFinTratamiento;
     final List<DateTime> dosisOmitidas = _tratamiento.skippedDoses;
+    final threshold = DateTime.now().subtract(const Duration(minutes: 1));
 
-    List<DateTime> dosisPotenciales = [];
     DateTime dosisActual = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
+      fechaInicio.year,
+      fechaInicio.month,
+      fechaInicio.day,
       horaInicial.hour,
       horaInicial.minute,
     );
 
-    while (dosisActual.isBefore(fechaFinTratamiento)) {
-      if (dosisActual.isAfter(
-        DateTime.now().subtract(const Duration(minutes: 1)),
-      )) {
-        dosisPotenciales.add(dosisActual);
+    if (dosisActual.isBefore(threshold)) {
+      final elapsedMinutes = threshold.difference(dosisActual).inMinutes;
+      final steps = elapsedMinutes ~/ intervalo.inMinutes;
+      if (steps > 0) {
+        dosisActual = dosisActual.add(intervalo * steps);
       }
-      dosisActual = dosisActual.add(Duration(hours: intervalo));
+      while (dosisActual.isBefore(threshold)) {
+        dosisActual = dosisActual.add(intervalo);
+      }
     }
 
-    for (final dosis in dosisPotenciales) {
-      bool esOmitida = dosisOmitidas.any(
-        (skipped) => skipped.isAtSameMomentAs(dosis),
+    int safetyCounter = 0;
+    while (dosisActual.isBefore(fechaFinTratamiento) && safetyCounter < 1000) {
+      safetyCounter++;
+      final bool esOmitida = dosisOmitidas.any(
+        (skipped) => skipped.difference(dosisActual).inMinutes.abs() <= 15,
       );
-      if (!esOmitida) {
-        return dosis;
+      final status = _tratamiento.doseStatus[dosisActual.toIso8601String()];
+      if (!esOmitida &&
+          status != DoseStatus.tomada &&
+          status != DoseStatus.omitida) {
+        return dosisActual;
       }
+      dosisActual = dosisActual.add(intervalo);
     }
     return null;
   }
 
-  // --- PASO 4: ACTUALIZAR LA LÓGICA DEL TIEMPO RESTANTE ---
   String _getTiempoRestante(DateTime proximaDosis, AppLocalizations? l10n) {
     final ahora = DateTime.now();
     final diferencia = proximaDosis.difference(ahora);
@@ -220,7 +230,6 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       return l10n?.doseDetailTimeNow ?? 'Es momento de tomar la dosis';
     }
 
-    // Si falta menos de un minuto, muestra los segundos
     if (diferencia.inMinutes < 1) {
       return l10n?.doseDetailInSeconds(diferencia.inSeconds) ??
           'En ${diferencia.inSeconds} segundos';
@@ -243,11 +252,11 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
 
   @override
   Widget build(BuildContext context) {
-    final DateTime selectedDoseTime = _horaDosis;
+    final DateTime? selectedDoseTime = _horaDosis;
     final formData = _convertToFormData();
     final l10n = AppLocalizations.of(context);
-    final status = _getDoseStatus(selectedDoseTime);
-    final isNotificada = status == DoseStatus.notificada;
+    final status = selectedDoseTime != null ? _getDoseStatus(selectedDoseTime) : null;
+    final isNotificada = selectedDoseTime != null && status == DoseStatus.notificada;
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
@@ -285,36 +294,38 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               ),
             ),
           ),
-          actions: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(right: 16),
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
+          actions: widget.canEdit
+              ? [
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 16),
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: Icon(
+                          Icons.edit_outlined,
+                          size: 20,
+                          color: AppTheme.primaryTextColor,
+                        ),
+                        tooltip: l10n?.editTreatment ?? 'Editar receta',
+                        onPressed: _showEditOptionsDialog,
+                      ),
                     ),
-                  ],
-                ),
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  icon: Icon(
-                    Icons.edit_outlined,
-                    size: 20,
-                    color: AppTheme.primaryTextColor,
                   ),
-                  tooltip: l10n?.editTreatment ?? 'Editar receta',
-                  onPressed: _showEditOptionsDialog,
-                ),
-              ),
-            ),
-          ],
+                ]
+              : null,
         ),
       ),
       body: Stack(
@@ -330,15 +341,21 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildSelectedDoseDisplay(selectedDoseTime, l10n),
-                  const SizedBox(height: 24),
-                  _buildNextDoseInfo(_nextUpcomingDose, selectedDoseTime, l10n),
-                  const SizedBox(height: 22),
-                  Divider(
-                    height: 1,
-                    color: AppTheme.borderColor.withValues(alpha: 0.5),
-                  ),
-                  const SizedBox(height: 22),
+                  if (selectedDoseTime != null) ...[
+                    _buildSelectedDoseDisplay(selectedDoseTime, l10n),
+                    const SizedBox(height: 24),
+                  ],
+                  if (widget.canEdit && _nextUpcomingDose != null) ...[
+                    _buildNextDoseInfo(_nextUpcomingDose, selectedDoseTime, l10n),
+                    const SizedBox(height: 22),
+                  ],
+                  if (selectedDoseTime != null || (widget.canEdit && _nextUpcomingDose != null)) ...[
+                    Divider(
+                      height: 1,
+                      color: AppTheme.borderColor.withValues(alpha: 0.5),
+                    ),
+                    const SizedBox(height: 22),
+                  ],
                   TreatmentSummaryCard(
                     formData: formData,
                     summaryInfo: _getSummaryInfo(formData, context),
@@ -378,19 +395,16 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     );
   }
 
-  // --- El resto de los widgets de construcción ---
-
   DoseStatus _getDoseStatus(DateTime doseTime) {
     if (_currentStatus != null &&
-        doseTime.difference(_horaDosis).inMinutes.abs() <= 5) {
+        _horaDosis != null &&
+        doseTime.difference(_horaDosis!).inMinutes.abs() <= 5) {
       return _currentStatus!;
     }
 
-    // 1. Coincidencia directa por clave ISO
     final directStatus = _tratamiento.doseStatus[doseTime.toIso8601String()];
     if (directStatus != null) return directStatus;
 
-    // 2. Coincidencia aproximada dentro de una tolerancia (30 min)
     for (final entry in _tratamiento.doseStatus.entries) {
       final dt = DateTime.tryParse(entry.key);
       if (dt != null && dt.difference(doseTime).inMinutes.abs() <= 30) {
@@ -398,14 +412,12 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       }
     }
 
-    // 3. Revisar si está en dosis omitidas
     if (_tratamiento.skippedDoses.any(
       (d) => d.difference(doseTime).inMinutes.abs() <= 30,
     )) {
       return DoseStatus.omitida;
     }
 
-    // 4. Si la hora ya pasó y no tiene interacción previa
     if (doseTime.isBefore(DateTime.now())) {
       return DoseStatus.notificada;
     }
@@ -562,7 +574,6 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
         padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 4),
         child: Row(
           children: [
-            // Left: Snooze / Aplazar
             Expanded(
               flex: 3,
               child: _buildPillActionButton(
@@ -576,7 +587,6 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               ),
             ),
             const SizedBox(width: 10),
-            // Center: Take / Tomar (Hero action)
             Expanded(
               flex: 4,
               child: _buildPillActionButton(
@@ -591,7 +601,6 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               ),
             ),
             const SizedBox(width: 10),
-            // Right: Skip / Omitir
             Expanded(
               flex: 3,
               child: _buildPillActionButton(
@@ -685,22 +694,14 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
 
   Widget _buildNextDoseInfo(
     DateTime? nextDose,
-    DateTime selectedDose,
+    DateTime? selectedDose,
     AppLocalizations? l10n,
   ) {
     if (nextDose == null) {
-      return _buildStatusBannerCard(
-        icon: Icons.check_circle_rounded,
-        color: AppTheme.successColor,
-        title:
-            (l10n?.doseDetailTreatmentFinished ?? 'Tratamiento Finalizado')
-                .toUpperCase(),
-        subtitle:
-            l10n?.doseDetailNoMoreDoses ?? 'No hay más dosis programadas.',
-      );
+      return const SizedBox.shrink();
     }
 
-    if (nextDose.isAtSameMomentAs(selectedDose)) {
+    if (selectedDose != null && nextDose.isAtSameMomentAs(selectedDose)) {
       return _buildStatusBannerCard(
         icon: Icons.notifications_active_rounded,
         color: AppTheme.primaryColor,
@@ -752,14 +753,12 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
           ),
           child: Row(
             children: [
-              // Clock Icon without circle
               const Icon(
                 Icons.access_time_rounded,
                 color: Color(0xFFFE8A23),
                 size: 32,
               ),
               const SizedBox(width: 14),
-              // Content
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -857,25 +856,20 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
   }
 
   TreatmentFormData _convertToFormData() {
-    // Calcular la duración real basada en las fechas de inicio y fin
     final fechaInicio = _tratamiento.fechaInicioTratamiento;
     final fechaFin = _tratamiento.fechaFinTratamiento;
     final duracionEnDias = fechaFin.difference(fechaInicio).inDays;
 
-    // Determinar la mejor unidad y número para mostrar
     int duracionNumero;
     DurationUnit duracionUnidad;
 
     if (duracionEnDias >= 365) {
-      // Si es más de un año, mostrar en años
       duracionNumero = (duracionEnDias / 365).round();
       duracionUnidad = DurationUnit.years;
     } else if (duracionEnDias >= 30) {
-      // Si es más de un mes, mostrar en meses
       duracionNumero = (duracionEnDias / 30).round();
       duracionUnidad = DurationUnit.months;
     } else {
-      // Mostrar en días
       duracionNumero = duracionEnDias;
       duracionUnidad = DurationUnit.days;
     }
@@ -890,7 +884,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       intervaloDosis: _tratamiento.intervaloDosis.inHours,
       duracionNumero: duracionNumero,
       duracionUnidad: duracionUnidad,
-      esIndefinido: false, // Los tratamientos guardados no son indefinidos
+      esIndefinido: false,
       notas: _tratamiento.notas,
     );
   }
@@ -917,7 +911,26 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     final l10n = AppLocalizations.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-    final formattedDoseTime = AppUtils.formatDoseTime(_horaDosis);
+
+    if (_horaDosis == null) {
+      final updatedTratamiento = await navigator.push<Tratamiento>(
+        MaterialPageRoute(
+          builder: (context) => EditarTratamientoPage(
+            tratamiento: _tratamiento,
+            profile: widget.profile,
+          ),
+        ),
+      );
+      if (updatedTratamiento != null && mounted) {
+        setState(() {
+          _tratamiento = updatedTratamiento;
+          _nextUpcomingDose = _findNextUpcomingDose();
+        });
+      }
+      return;
+    }
+
+    final formattedDoseTime = AppUtils.formatDoseTime(_horaDosis!);
 
     final option = await showModalBottomSheet<String>(
       context: context,
@@ -1095,16 +1108,16 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     );
 
     if (option == 'single_dose') {
-      if (!mounted) return;
+      if (!mounted || _horaDosis == null) return;
       final pickedTime = await showTimePicker(
         context: context,
-        initialTime: TimeOfDay.fromDateTime(_horaDosis),
+        initialTime: TimeOfDay.fromDateTime(_horaDosis!),
       );
       if (pickedTime != null) {
         final newDoseTime = DateTime(
-          _horaDosis.year,
-          _horaDosis.month,
-          _horaDosis.day,
+          _horaDosis!.year,
+          _horaDosis!.month,
+          _horaDosis!.day,
           pickedTime.hour,
           pickedTime.minute,
         );
@@ -1137,7 +1150,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
             snapshot as DocumentSnapshot<Map<String, dynamic>>,
           );
           final updatedMap = Map<String, DoseStatus>.from(t.doseStatus);
-          final oldKey = _horaDosis.toIso8601String();
+          final oldKey = _horaDosis!.toIso8601String();
           final statusVal = updatedMap.remove(oldKey) ?? DoseStatus.pendiente;
           updatedMap[newDoseTime.toIso8601String()] = statusVal;
           transaction.update(docRef, {
@@ -1159,7 +1172,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
             setState(() {
               _tratamiento = updatedTratamiento;
               _horaDosis = newDoseTime;
-              _currentStatus = _getDoseStatus(_horaDosis);
+              _currentStatus = _getDoseStatus(_horaDosis!);
               _nextUpcomingDose = _findNextUpcomingDose();
             });
           }
@@ -1214,7 +1227,9 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
           );
           setState(() {
             _tratamiento = updatedTratamiento;
-            _currentStatus = _getDoseStatus(_horaDosis);
+            if (_horaDosis != null) {
+              _currentStatus = _getDoseStatus(_horaDosis!);
+            }
             _nextUpcomingDose = _findNextUpcomingDose();
           });
           scaffoldMessenger.showSnackBar(

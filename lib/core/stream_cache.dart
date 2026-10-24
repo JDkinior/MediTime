@@ -13,58 +13,54 @@ class StreamCache<K, T> {
 
   /// Gets or creates a cached stream for the given key.
   /// 
-  /// If a stream already exists for this key, returns the existing stream.
-  /// Otherwise, creates a new stream using the provided factory function.
+  /// If a stream already exists for this key, returns a stream that replays
+  /// the latest value only to the new subscriber without re-emitting to
+  /// existing listeners.
   Stream<T> getStream(K key, Stream<T> Function() streamFactory) {
-    // If we already have a controller for this key, return its stream
-    if (_controllers.containsKey(key)) {
-      final controller = _controllers[key]!;
-      
-      // If we have a cached value, emit it immediately
-      if (_lastValues.containsKey(key) && _lastValues[key] != null) {
-        // Schedule the emission for the next event loop to avoid sync issues
-        scheduleMicrotask(() {
+    if (!_controllers.containsKey(key)) {
+      final controller = StreamController<T>.broadcast(
+        onCancel: () => _cleanup(key),
+      );
+
+      _controllers[key] = controller;
+
+      final subscription = streamFactory().listen(
+        (data) {
+          _lastValues[key] = data;
           if (!controller.isClosed) {
-            controller.add(_lastValues[key] as T);
+            controller.add(data);
           }
-        });
-      }
-      
-      return controller.stream;
+        },
+        onError: (error) {
+          if (!controller.isClosed) {
+            controller.addError(error);
+          }
+          _cleanup(key);
+        },
+        onDone: () {
+          if (!controller.isClosed) {
+            controller.close();
+          }
+          _cleanup(key);
+        },
+      );
+
+      _subscriptions[key] = subscription;
     }
 
-    // Create a new controller and subscription
-    final controller = StreamController<T>.broadcast(
-      onCancel: () => _cleanup(key),
-    );
-    
-    _controllers[key] = controller;
+    final controller = _controllers[key]!;
 
-    // Subscribe to the original stream
-    final subscription = streamFactory().listen(
-      (data) {
-        _lastValues[key] = data;
-        if (!controller.isClosed) {
-          controller.add(data);
-        }
-      },
-      onError: (error) {
-        if (!controller.isClosed) {
-          controller.addError(error);
-        }
-        _cleanup(key);
-      },
-      onDone: () {
-        if (!controller.isClosed) {
-          controller.close();
-        }
-        _cleanup(key);
-      },
-    );
-
-    _subscriptions[key] = subscription;
-
-    return controller.stream;
+    return Stream<T>.multi((multiController) {
+      if (_lastValues.containsKey(key) && _lastValues[key] != null) {
+        multiController.add(_lastValues[key] as T);
+      }
+      final sub = controller.stream.listen(
+        multiController.add,
+        onError: multiController.addError,
+        onDone: multiController.close,
+      );
+      multiController.onCancel = () => sub.cancel();
+    }, isBroadcast: true);
   }
 
   /// Clears the cache for a specific key

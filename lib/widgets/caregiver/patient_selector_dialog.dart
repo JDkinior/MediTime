@@ -157,7 +157,8 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                     if (!isAnimalMode) ...[
                       InkWell(
                         onTap: () {
-                          caregiverNotifier.setActiveProfileId(null);
+                          final userId = context.read<AuthService>().currentUser?.uid;
+                          caregiverNotifier.setActiveProfileId(null, userId);
                           Navigator.pop(context);
                         },
                         borderRadius: BorderRadius.circular(18),
@@ -222,7 +223,8 @@ class _PatientSelectorDialogState extends State<PatientSelectorDialog> {
                     // Vista General (Todos / Todas las mascotas) Option
                     InkWell(
                       onTap: () {
-                        caregiverNotifier.setActiveProfileId('general');
+                        final userId = context.read<AuthService>().currentUser?.uid;
+                        caregiverNotifier.setActiveProfileId('general', userId);
                         Navigator.pop(context);
                       },
                       borderRadius: BorderRadius.circular(18),

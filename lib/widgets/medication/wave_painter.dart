@@ -60,7 +60,8 @@ class WavePainter extends CustomPainter {
     path3.moveTo(0, yOffset3);
     path4.moveTo(0, yOffset4);
 
-    for (double x = 0; x <= size.width; x++) {
+    // Step by 3px instead of 1px to cut trigonometric overhead by 3x without visual difference
+    for (double x = 0; x <= size.width; x += 3) {
       // First wave (moving left to right)
       final relativeX1 = x / wavelength1;
       final y1 =

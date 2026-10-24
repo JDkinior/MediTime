@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.database.Cursor
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
@@ -251,10 +252,11 @@ class AlarmSoundPlugin : FlutterPlugin, ActivityAware, PluginRegistry.ActivityRe
 
         fun getSystemRingtones(ctx: Context): List<Map<String, String>> {
             val result = mutableListOf<Map<String, String>>()
+            var cursor: Cursor? = null
             try {
                 val manager = RingtoneManager(ctx)
                 manager.setType(RingtoneManager.TYPE_ALARM)
-                val cursor = manager.cursor
+                cursor = manager.cursor
                 while (cursor != null && cursor.moveToNext()) {
                     val title = cursor.getString(RingtoneManager.TITLE_COLUMN_INDEX)
                     val uri = manager.getRingtoneUri(cursor.position)?.toString() ?: ""
@@ -265,6 +267,10 @@ class AlarmSoundPlugin : FlutterPlugin, ActivityAware, PluginRegistry.ActivityRe
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error obteniendo tonos del sistema", e)
+            } finally {
+                try {
+                    cursor?.close()
+                } catch (_: Exception) {}
             }
             return result
         }

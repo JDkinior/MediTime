@@ -1,12 +1,14 @@
 // lib/screens/medication/agregar_receta_page.dart
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:meditime/services/gemini_service.dart';
+import 'package:meditime/services/firestore_service.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/treatment_form_notifier.dart';
 import 'package:meditime/notifiers/caregiver_notifier.dart';
@@ -17,7 +19,6 @@ import 'package:meditime/widgets/treatment_form/form_field_wrapper.dart';
 import 'package:meditime/widgets/treatment_form/duration_selector.dart';
 import 'package:meditime/widgets/treatment_form/treatment_summary_card.dart';
 import 'package:meditime/widgets/drug_interaction_dialog.dart';
-import 'package:meditime/repositories/treatment_repository.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/core/utils.dart';
@@ -142,8 +143,11 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
     }
   }
 
-  /// Verificación de interacciones farmacológicas con la IA
-  Future<bool> _checkAndWarnDrugInteractions(String newDrugName) async {
+  /// Verificación de interacciones farmacológicas con la IA (respetando el perfil activo)
+  Future<bool> _checkAndWarnDrugInteractions(
+    String newDrugName, [
+    CaregiverProfile? activeProfile,
+  ]) async {
     if (newDrugName.trim().isEmpty) return true;
 
     try {
@@ -151,15 +155,31 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
       final userId = authService.currentUser?.uid;
       if (userId == null) return true;
 
-      final treatmentRepo = context.read<TreatmentRepository>();
+      final firestoreService = context.read<FirestoreService>();
       final geminiService = context.read<GeminiService>();
-      final result = await treatmentRepo.getTreatments(userId);
-      if (!result.isSuccess || result.data == null || result.data!.isEmpty) return true;
+      final caregiverNotifier = context.read<CaregiverNotifier>();
+      final prefNotifier = context.read<PreferenceNotifier>();
+      final isAnimal = prefNotifier.isAnimalMode;
+      final isManagedMode = caregiverNotifier.isCaregiverModeActive || isAnimal;
+      final effectiveProfile =
+          activeProfile ??
+          (isManagedMode
+              ? caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimal)
+              : null);
+
+      final treatments = await firestoreService.getMedicamentos(
+        userId,
+        effectiveProfile,
+      );
+      if (treatments.isEmpty) return true;
 
       // Excluir medicamentos finalizados del historial médico para evitar falsas interacciones
-      final activeTreatments = result.data!
-          .where((t) => t.isActivo || !t.isFinalizado)
+      final activeTreatments = treatments
+          .where((t) =>
+              (t.isActivo || !t.isFinalizado) &&
+              t.id != widget.tratamientoToEdit?.id)
           .toList();
+      if (activeTreatments.isEmpty) return true;
 
       final checkResult = await geminiService.checkDrugInteractions(
         newDrugName: newDrugName,
@@ -177,7 +197,7 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
         return proceed;
       }
     } catch (e) {
-      debugPrint('Error en la verificación de interacciones: $e');
+      if (!kReleaseMode) debugPrint('Error en la verificación de interacciones: $e');
     }
 
     return true;
@@ -195,7 +215,10 @@ class AgregarRecetaPageState extends State<AgregarRecetaPage> {
     final activeProfile = isManagedMode ? caregiverNotifier.getEffectiveActiveProfile(isAnimalMode: isAnimal) : null;
     final isEditing = widget.tratamientoToEdit != null;
 
-    final proceed = await _checkAndWarnDrugInteractions(notifier.formData.nombreMedicamento);
+    final proceed = await _checkAndWarnDrugInteractions(
+      notifier.formData.nombreMedicamento,
+      activeProfile,
+    );
     if (!proceed || !mounted) return;
 
     final bool success;

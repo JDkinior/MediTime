@@ -97,14 +97,20 @@ class PreferenceService {
   static const String _caregiverAlarmIdsKey = 'caregiver_alarm_ids';
   static const String _animalAlarmIdsKey = 'animal_alarm_ids';
 
+  /// Recarga una sola vez el estado en disco de SharedPreferences (útil para lecturas por lotes o en isolates de fondo).
+  Future<void> reload() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+  }
+
   Future<void> saveThemeMode(String themeStr) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_themeModeKey, themeStr);
   }
 
-  Future<String> getThemeMode() async {
+  Future<String> getThemeMode({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getString(_themeModeKey) ?? 'system';
   }
 
@@ -113,9 +119,9 @@ class PreferenceService {
     await prefs.setString(_languageCodeKey, code);
   }
 
-  Future<String> getLanguageCode() async {
+  Future<String> getLanguageCode({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getString(_languageCodeKey) ?? 'system';
   }
 
@@ -124,9 +130,9 @@ class PreferenceService {
     await prefs.setString(_interfaceStyleKey, style);
   }
 
-  Future<String> getInterfaceStyle() async {
+  Future<String> getInterfaceStyle({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getString(_interfaceStyleKey) ?? 'classic';
   }
 
@@ -135,9 +141,9 @@ class PreferenceService {
     await prefs.setBool(_enableScrollFadeKey, value);
   }
 
-  Future<bool> getEnableScrollFade() async {
+  Future<bool> getEnableScrollFade({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool(_enableScrollFadeKey) ?? true;
   }
 
@@ -146,9 +152,9 @@ class PreferenceService {
     await prefs.setString(_calendarFormatKey, format);
   }
 
-  Future<String> getCalendarFormat() async {
+  Future<String> getCalendarFormat({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getString(_calendarFormatKey) ?? 'weekly';
   }
 
@@ -159,9 +165,9 @@ class PreferenceService {
     await prefs.setBool(_notificationModeKey, mode == DoseReminderMode.active);
   }
 
-  Future<DoseReminderMode> getReminderMode() async {
+  Future<DoseReminderMode> getReminderMode({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     final modeStr = prefs.getString(_reminderModeKey);
     if (modeStr != null && modeStr.isNotEmpty) {
       return DoseReminderMode.fromString(modeStr);
@@ -184,12 +190,12 @@ class PreferenceService {
   }
 
   // --- INICIO DE LA MODIFICACIÓN ---
-  Future<bool> getNotificationMode() async {
+  Future<bool> getNotificationMode({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
     
     // 1. Forzamos la recarga de los datos desde el disco.
     // Esto es crucial para que el proceso en segundo plano obtenga el valor más reciente.
-    await prefs.reload(); 
+    if (reload) await prefs.reload(); 
     
     // 2. Si se guardó el nuevo modo, revisamos si es 'active'
     final modeStr = prefs.getString(_reminderModeKey);
@@ -208,9 +214,9 @@ class PreferenceService {
 
   /// Obtiene la duración de aplazamiento guardada.
   /// Devuelve `10` minutos por defecto si no se ha guardado nada.
-  Future<int> getSnoozeDuration() async {
+  Future<int> getSnoozeDuration({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getInt(_snoozeDurationKey) ?? 10;
   }  
 
@@ -235,21 +241,21 @@ class PreferenceService {
     }
   }
 
-  Future<String> getAlarmSoundType() async {
+  Future<String> getAlarmSoundType({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getString(_alarmSoundTypeKey) ?? 'system_alarm';
   }
 
-  Future<String> getAlarmSoundTitle() async {
+  Future<String> getAlarmSoundTitle({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getString(_alarmSoundTitleKey) ?? 'Alarma del teléfono (Predeterminada)';
   }
 
-  Future<String?> getAlarmSoundUri() async {
+  Future<String?> getAlarmSoundUri({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     final type = prefs.getString(_alarmSoundTypeKey) ?? 'system_alarm';
     if (type == 'custom') {
       return null;
@@ -257,9 +263,9 @@ class PreferenceService {
     return prefs.getString(_alarmSoundUriKey) ?? 'content://settings/system/alarm_alert';
   }
 
-  Future<String?> getAlarmSoundResource() async {
+  Future<String?> getAlarmSoundResource({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getString(_alarmSoundResourceKey);
   }
 
@@ -269,9 +275,9 @@ class PreferenceService {
     await prefs.setBool(_highContrastKey, isActive);
   }
 
-  Future<bool> getHighContrast() async {
+  Future<bool> getHighContrast({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool(_highContrastKey) ?? false;
   }
 
@@ -280,9 +286,9 @@ class PreferenceService {
     await prefs.setBool(_largeTextKey, isActive);
   }
 
-  Future<bool> getLargeText() async {
+  Future<bool> getLargeText({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool(_largeTextKey) ?? false;
   }
 
@@ -291,9 +297,9 @@ class PreferenceService {
     await prefs.setBool(_largeButtonsKey, isActive);
   }
 
-  Future<bool> getLargeButtons() async {
+  Future<bool> getLargeButtons({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool(_largeButtonsKey) ?? false;
   }
 
@@ -302,9 +308,9 @@ class PreferenceService {
     await prefs.setBool(_simplifiedInterfaceKey, isActive);
   }
 
-  Future<bool> getSimplifiedInterface() async {
+  Future<bool> getSimplifiedInterface({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool(_simplifiedInterfaceKey) ?? false;
   }
 
@@ -313,9 +319,9 @@ class PreferenceService {
     await prefs.setBool(_showCardBorderKey, isActive);
   }
 
-  Future<bool> getShowCardBorder() async {
+  Future<bool> getShowCardBorder({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool(_showCardBorderKey) ?? false;
   }
 
@@ -329,9 +335,9 @@ class PreferenceService {
     }
   }
 
-  Future<String?> getCurrentUserId() async {
+  Future<String?> getCurrentUserId({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getString(_currentUserIdKey);
   }
 
@@ -357,9 +363,9 @@ class PreferenceService {
     await prefs.setStringList(_revokedTreatmentsKey, list.toList());
   }
 
-  Future<bool> isTreatmentRevoked(String userId, String docId) async {
+  Future<bool> isTreatmentRevoked(String userId, String docId, {bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     final key = '$userId|$docId';
     final list = prefs.getStringList(_revokedTreatmentsKey) ?? <String>[];
     return list.contains(key);
@@ -387,9 +393,9 @@ class PreferenceService {
     await prefs.setBool(_caregiverModeActiveKey, isActive);
   }
 
-  Future<bool> getCaregiverModeActive() async {
+  Future<bool> getCaregiverModeActive({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool(_caregiverModeActiveKey) ?? false;
   }
 
@@ -398,9 +404,9 @@ class PreferenceService {
     await prefs.setString(_caregiverModeTypeKey, type);
   }
 
-  Future<String> getCaregiverModeType() async {
+  Future<String> getCaregiverModeType({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getString(_caregiverModeTypeKey) ?? 'familiar';
   }
 
@@ -413,9 +419,9 @@ class PreferenceService {
     }
   }
 
-  Future<String?> getCaregiverActiveProfile() async {
+  Future<String?> getCaregiverActiveProfile({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getString(_caregiverActiveProfileKey);
   }
 
@@ -424,9 +430,9 @@ class PreferenceService {
     await prefs.setBool(_caregiverNotifyPatientDosesKey, val);
   }
 
-  Future<bool> getCaregiverNotifyPatientDoses() async {
+  Future<bool> getCaregiverNotifyPatientDoses({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool(_caregiverNotifyPatientDosesKey) ?? true;
   }
 
@@ -435,9 +441,9 @@ class PreferenceService {
     await prefs.setBool(_caregiverIncludeLocationKey, val);
   }
 
-  Future<bool> getCaregiverIncludeLocation() async {
+  Future<bool> getCaregiverIncludeLocation({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool(_caregiverIncludeLocationKey) ?? true;
   }
 
@@ -446,9 +452,9 @@ class PreferenceService {
     await prefs.setBool(_hideMedicineNameOnLockScreenKey, val);
   }
 
-  Future<bool> getHideMedicineNameOnLockScreen() async {
+  Future<bool> getHideMedicineNameOnLockScreen({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool(_hideMedicineNameOnLockScreenKey) ?? false;
   }
 
@@ -457,9 +463,9 @@ class PreferenceService {
     await prefs.setBool(_secureScreenKey, val);
   }
 
-  Future<bool> getSecureScreen() async {
+  Future<bool> getSecureScreen({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool(_secureScreenKey) ?? false;
   }
 
@@ -468,9 +474,9 @@ class PreferenceService {
     await prefs.setBool('$_onboardingCompletedPrefix$userId', val);
   }
 
-  Future<bool> hasCompletedOnboarding(String userId) async {
+  Future<bool> hasCompletedOnboarding(String userId, {bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool('$_onboardingCompletedPrefix$userId') ?? false;
   }
 
@@ -489,21 +495,21 @@ class PreferenceService {
     }
   }
 
-  Future<bool> hasAcceptedTerms(String userId) async {
+  Future<bool> hasAcceptedTerms(String userId, {bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool('$_termsAcceptedPrefix$userId') ?? false;
   }
 
-  Future<String?> getTermsAcceptedAt(String userId) async {
+  Future<String?> getTermsAcceptedAt(String userId, {bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getString('$_termsAcceptedAtPrefix$userId');
   }
 
-  Future<String?> getTermsAcceptedVersion(String userId) async {
+  Future<String?> getTermsAcceptedVersion(String userId, {bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getString('$_termsAcceptedVersionPrefix$userId');
   }
 
@@ -513,9 +519,9 @@ class PreferenceService {
     await prefs.setBool(_animalModeActiveKey, isActive);
   }
 
-  Future<bool> getAnimalModeActive() async {
+  Future<bool> getAnimalModeActive({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool(_animalModeActiveKey) ?? false;
   }
 
@@ -524,9 +530,9 @@ class PreferenceService {
     await prefs.setString(_animalModeTypeKey, type);
   }
 
-  Future<String> getAnimalModeType() async {
+  Future<String> getAnimalModeType({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getString(_animalModeTypeKey) ?? 'individual';
   }
 
@@ -539,9 +545,9 @@ class PreferenceService {
     }
   }
 
-  Future<String?> getAnimalActiveProfile() async {
+  Future<String?> getAnimalActiveProfile({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getString(_animalActiveProfileKey);
   }
 
@@ -550,9 +556,9 @@ class PreferenceService {
     await prefs.setBool(_animalNotifyDosesKey, val);
   }
 
-  Future<bool> getAnimalNotifyDoses() async {
+  Future<bool> getAnimalNotifyDoses({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool(_animalNotifyDosesKey) ?? true;
   }
 
@@ -561,9 +567,9 @@ class PreferenceService {
     await prefs.setBool(_animalIncludeLocationKey, val);
   }
 
-  Future<bool> getAnimalIncludeLocation() async {
+  Future<bool> getAnimalIncludeLocation({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getBool(_animalIncludeLocationKey) ?? true;
   }
 
@@ -678,20 +684,58 @@ class PreferenceService {
     } catch (_) {}
   }
 
+  /// Limpia absolutamente todos los datos locales asociados a un usuario eliminado (Derecho al Olvido / RGPD).
+  Future<void> clearAllUserData(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keysToRemove = <String>{
+        _currentUserIdKey,
+        _revokedTreatmentsKey,
+        _cachedUserNameKey,
+        _cachedProfileImageUrlKey,
+        _cachedProfileLocalPathKey,
+        _cachedAiTipsKey,
+        _cachedAiTipsFingerprintKey,
+        _cachedAiTipsTimestampKey,
+        _caregiverActiveProfileKey,
+        _animalActiveProfileKey,
+        _caregiverProfileIdsKey,
+        _animalProfileIdsKey,
+        _caregiverAlarmIdsKey,
+        _animalAlarmIdsKey,
+        '$_onboardingCompletedPrefix$userId',
+        '$_termsAcceptedPrefix$userId',
+        '$_termsAcceptedAtPrefix$userId',
+        '$_termsAcceptedVersionPrefix$userId',
+        '$_tutorialShownPrefix$userId',
+      };
+
+      for (final key in prefs.getKeys().toList()) {
+        if (keysToRemove.contains(key) ||
+            key.startsWith(_cachedAiTipsKey) ||
+            key.startsWith(_cachedAiTipsFingerprintKey) ||
+            key.startsWith(_cachedAiTipsTimestampKey) ||
+            key.contains(userId)) {
+          await prefs.remove(key);
+        }
+      }
+    } catch (_) {}
+  }
+
   // --- Profile categorization & Alarm ID tracking ---
   Future<void> saveAnimalProfileIds(List<String> ids) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_animalProfileIdsKey, ids);
   }
 
-  Future<List<String>> getAnimalProfileIds() async {
+  Future<List<String>> getAnimalProfileIds({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getStringList(_animalProfileIdsKey) ?? [];
   }
 
-  Future<bool> isAnimalProfile(String profileId) async {
-    final ids = await getAnimalProfileIds();
+  Future<bool> isAnimalProfile(String profileId, {bool reload = true}) async {
+    final ids = await getAnimalProfileIds(reload: reload);
     return ids.contains(profileId);
   }
 
@@ -700,14 +744,14 @@ class PreferenceService {
     await prefs.setStringList(_caregiverProfileIdsKey, ids);
   }
 
-  Future<List<String>> getCaregiverProfileIds() async {
+  Future<List<String>> getCaregiverProfileIds({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     return prefs.getStringList(_caregiverProfileIdsKey) ?? [];
   }
 
-  Future<bool> isCaregiverProfile(String profileId) async {
-    final ids = await getCaregiverProfileIds();
+  Future<bool> isCaregiverProfile(String profileId, {bool reload = true}) async {
+    final ids = await getCaregiverProfileIds(reload: reload);
     return ids.contains(profileId);
   }
 
@@ -717,9 +761,9 @@ class PreferenceService {
     await prefs.setStringList(_caregiverAlarmIdsKey, ids.map((e) => e.toString()).toList());
   }
 
-  Future<List<int>> getCaregiverAlarmIds() async {
+  Future<List<int>> getCaregiverAlarmIds({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     final list = prefs.getStringList(_caregiverAlarmIdsKey) ?? [];
     return list.map((e) => int.tryParse(e)).whereType<int>().toList();
   }
@@ -750,9 +794,9 @@ class PreferenceService {
     await prefs.setStringList(_animalAlarmIdsKey, ids.map((e) => e.toString()).toList());
   }
 
-  Future<List<int>> getAnimalAlarmIds() async {
+  Future<List<int>> getAnimalAlarmIds({bool reload = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
+    if (reload) await prefs.reload();
     final list = prefs.getStringList(_animalAlarmIdsKey) ?? [];
     return list.map((e) => int.tryParse(e)).whereType<int>().toList();
   }

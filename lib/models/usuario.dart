@@ -130,7 +130,7 @@ class Usuario {
       try {
         dateOfBirth = DateTime.parse(dobString);
       } catch (e) {
-        debugPrint('Error parsing date of birth: $e');
+        if (!kReleaseMode) debugPrint('Error parsing date of birth: $e');
       }
     }
 
@@ -140,7 +140,7 @@ class Usuario {
       try {
         subscriptionExpiresAt = DateTime.parse(subExpiresString);
       } catch (e) {
-        debugPrint('Error parsing subscription expires date: $e');
+        if (!kReleaseMode) debugPrint('Error parsing subscription expires date: $e');
       }
     }
 
@@ -201,6 +201,6 @@ class Usuario {
 
   @override
   String toString() {
-    return 'Usuario{uid: $uid, name: $name, email: $email, isPremium: $isPremium, tier: $subscriptionTier}';
+    return 'Usuario{uid: $uid, isPremium: $isPremium, tier: $subscriptionTier}';
   }
 }

@@ -2,51 +2,59 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/core/utils.dart';
-import 'package:meditime/models/tratamiento.dart'; // <-- CAMBIO: Importar modelo
+import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
 import 'package:meditime/widgets/modern_content_fade.dart';
 
 class ResumenTratamientoPage extends StatelessWidget {
-  // CAMBIO: El constructor ahora espera un objeto Tratamiento
   final Tratamiento tratamiento;
 
   const ResumenTratamientoPage({super.key, required this.tratamiento});
 
-  // CAMBIO: La función ahora usa el objeto Tratamiento
   int _calcularTotalDosis() {
     final DateTime inicio = tratamiento.fechaInicioTratamiento;
     final DateTime fin = tratamiento.fechaFinTratamiento;
-    final int intervaloHoras = tratamiento.intervaloDosis.inHours;
+    final int intervaloMinutos = tratamiento.intervaloDosis.inMinutes;
 
-    if (inicio.isAfter(fin) || intervaloHoras <= 0) {
+    if (inicio.isAfter(fin) || intervaloMinutos <= 0) {
       return 0;
     }
 
-    int totalDosis = 0;
-    DateTime dosisActual = inicio;
-
-    while (dosisActual.isBefore(fin)) {
-      totalDosis++;
-      dosisActual = dosisActual.add(Duration(hours: intervaloHoras));
-    }
-    return totalDosis;
+    final totalMinutes = fin.difference(inicio).inMinutes;
+    return (totalMinutes / intervaloMinutos).ceil().clamp(0, 100000);
   }
 
   @override
   Widget build(BuildContext context) {
-    // CAMBIO: Acceso directo y seguro a las propiedades del modelo
     final String nombreMedicamento = tratamiento.nombreMedicamento;
     final DateTime fechaInicio = tratamiento.fechaInicioTratamiento;
     final DateTime fechaFin = tratamiento.fechaFinTratamiento;
-    final List<DateTime> dosisOmitidas = tratamiento.skippedDoses;
 
+    // Consolidar dosis omitidas desde skippedDoses y doseStatus
+    final Set<DateTime> omittedDatesSet = {...tratamiento.skippedDoses};
+    int tomadasEnStatus = 0;
+    tratamiento.doseStatus.forEach((key, status) {
+      if (status == DoseStatus.tomada) {
+        tomadasEnStatus++;
+      } else if (status == DoseStatus.omitida) {
+        final parsed = DateTime.tryParse(key);
+        if (parsed != null) {
+          omittedDatesSet.add(parsed);
+        }
+      }
+    });
+
+    final List<DateTime> dosisOmitidas = omittedDatesSet.toList()..sort();
     final int totalDosis = _calcularTotalDosis();
     final int numOmitidas = dosisOmitidas.length;
-    final int numTomadas =
-        totalDosis > numOmitidas ? totalDosis - numOmitidas : 0;
+    final int numTomadas = tomadasEnStatus > 0
+        ? tomadasEnStatus
+        : (tratamiento.isFinalizado && totalDosis > numOmitidas
+            ? totalDosis - numOmitidas
+            : 0);
     final double cumplimiento =
-        totalDosis > 0 ? (numTomadas / totalDosis) * 100 : 0.0;
+        totalDosis > 0 ? ((numTomadas / totalDosis) * 100).clamp(0.0, 100.0) : 0.0;
 
     return Scaffold(
       appBar: ModernAppBar(
@@ -54,7 +62,7 @@ class ResumenTratamientoPage extends StatelessWidget {
           title: const Text('Resumen del Tratamiento'),
           backgroundColor: Colors.transparent,
           elevation: 0,
-          foregroundColor: Colors.black87,
+          foregroundColor: AppTheme.primaryTextColor,
         ),
       ),
       body: ModernContentFade(
@@ -114,7 +122,6 @@ class ResumenTratamientoPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Chip(
-            // CAMBIO: Acceso directo
             label: Text(
               tratamiento.presentacion,
               style: TextStyle(color: Colors.blue.shade800),
@@ -219,7 +226,7 @@ class ResumenTratamientoPage extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 13,
-              color: Colors.black.withValues(alpha: 0.7),
+              color: AppTheme.secondaryTextColor,
             ),
           ),
         ],

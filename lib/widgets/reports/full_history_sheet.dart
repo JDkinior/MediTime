@@ -2,7 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:meditime/models/tratamiento.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
+import 'package:provider/provider.dart';
 
 /// Hoja modal con el historial completo interactivo de dosis pasadas y filtros.
 class FullHistorySheet extends StatefulWidget {
@@ -36,6 +38,7 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
     required VoidCallback onTap,
     required Color color,
     required int count,
+    bool showBorder = false,
   }) {
     return InkWell(
       onTap: onTap,
@@ -46,10 +49,12 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
         decoration: BoxDecoration(
           color: isSelected ? color : color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? color : color.withValues(alpha: 0.2),
-            width: isSelected ? 1.5 : 1,
-          ),
+          border: showBorder
+              ? Border.all(
+                  color: isSelected ? color : color.withValues(alpha: 0.25),
+                  width: isSelected ? 1.5 : 1,
+                )
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -58,8 +63,8 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
               label,
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? Colors.white : AppTheme.primaryTextColor,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                color: isSelected ? Colors.white : color,
               ),
             ),
             const SizedBox(width: 4),
@@ -78,7 +83,7 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                   color:
-                      isSelected ? Colors.white : AppTheme.secondaryTextColor,
+                      isSelected ? Colors.white : color,
                 ),
               ),
             ),
@@ -90,12 +95,14 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
 
   @override
   Widget build(BuildContext context) {
+    final pref = context.watch<PreferenceNotifier>();
+    final showBorder = pref.showCardBorder || pref.highContrast;
     final List<Map<String, dynamic>> allHistory = [];
     final now = DateTime.now();
     for (var t in widget.tratamientos) {
       t.doseStatus.forEach((dateString, status) {
-        final doseTime = DateTime.parse(dateString);
-        if (doseTime.isBefore(now)) {
+        final doseTime = DateTime.tryParse(dateString);
+        if (doseTime != null && doseTime.isBefore(now)) {
           allHistory.add({'treatment': t, 'time': doseTime, 'status': status});
         }
       });
@@ -135,6 +142,7 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                 topLeft: Radius.circular(24),
                 topRight: Radius.circular(24),
               ),
+              border: showBorder ? Border.all(color: AppTheme.borderColor) : null,
             ),
             child: Column(
               children: [
@@ -199,6 +207,7 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                         onTap: () => setState(() => _selectedStatus = null),
                         color: AppTheme.primaryColor,
                         count: allHistory.length,
+                        showBorder: showBorder,
                       ),
                       const SizedBox(width: 8),
                       _buildHistoryFilterChip(
@@ -213,6 +222,7 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                             allHistory
                                 .where((e) => e['status'] == DoseStatus.tomada)
                                 .length,
+                        showBorder: showBorder,
                       ),
                       const SizedBox(width: 8),
                       _buildHistoryFilterChip(
@@ -227,6 +237,7 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                             allHistory
                                 .where((e) => e['status'] == DoseStatus.omitida)
                                 .length,
+                        showBorder: showBorder,
                       ),
                       const SizedBox(width: 8),
                       _buildHistoryFilterChip(
@@ -243,6 +254,7 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                                   (e) => e['status'] == DoseStatus.aplazada,
                                 )
                                 .length,
+                        showBorder: showBorder,
                       ),
                     ],
                   ),
@@ -325,53 +337,62 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                               switch (status) {
                                 case DoseStatus.tomada:
                                   statusColor = AppTheme.successColor;
-                                  statusIcon = Icons.check_circle_rounded;
+                                  statusIcon = Icons.check;
                                   statusLabel = 'Tomada';
                                   break;
                                 case DoseStatus.omitida:
                                   statusColor = AppTheme.errorColor;
-                                  statusIcon = Icons.cancel_rounded;
+                                  statusIcon = Icons.close;
                                   statusLabel = 'Omitida';
                                   break;
                                 case DoseStatus.aplazada:
                                   statusColor = Colors.orange;
-                                  statusIcon = Icons.snooze_rounded;
+                                  statusIcon = Icons.schedule;
                                   statusLabel = 'Aplazada';
                                   break;
                                 case DoseStatus.notificada:
-                                  statusColor = const Color(0xFFFFB703);
-                                  statusIcon =
-                                      Icons.notifications_active_rounded;
+                                  statusColor = Colors.amber;
+                                  statusIcon = Icons.notifications;
                                   statusLabel = 'Notificada';
                                   break;
                                 case DoseStatus.pendiente:
                                   statusColor = Colors.grey;
-                                  statusIcon = Icons.schedule_rounded;
+                                  statusIcon = Icons.hourglass_empty;
                                   statusLabel = 'Pendiente';
                                   break;
                               }
 
                               return Container(
-                                margin: const EdgeInsets.only(bottom: 8),
+                                margin: const EdgeInsets.only(bottom: 12),
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 10,
+                                  horizontal: 16,
+                                  vertical: 14,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.surfaceColor,
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: AppTheme.borderColor,
-                                  ),
+                                  color: Theme.of(context).cardColor,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: AppTheme.cardShadow,
+                                  border: showBorder
+                                      ? Border.all(
+                                          color: AppTheme.borderColor,
+                                        )
+                                      : null,
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      statusIcon,
-                                      color: statusColor,
-                                      size: 24,
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: statusColor.withValues(alpha: 0.12),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        statusIcon,
+                                        color: statusColor,
+                                        size: 18,
+                                      ),
                                     ),
-                                    const SizedBox(width: 12),
+                                    const SizedBox(width: 14),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
@@ -380,15 +401,16 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                                           Text(
                                             t.nombreMedicamento,
                                             style: TextStyle(
-                                              fontSize: 14,
+                                              fontSize: 15,
                                               fontWeight: FontWeight.bold,
                                               color: AppTheme.primaryTextColor,
                                             ),
                                           ),
+                                          const SizedBox(height: 3),
                                           Text(
-                                            '${t.presentacion} - ${t.dosisPorToma} dosis',
+                                            '${t.presentacion} · ${t.dosisPorToma} dosis · ${DateFormat('dd MMM, hh:mm a', 'es').format(doseTime)}',
                                             style: TextStyle(
-                                              fontSize: 11,
+                                              fontSize: 12,
                                               color:
                                                   AppTheme.secondaryTextColor,
                                             ),
@@ -396,29 +418,24 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                                         ],
                                       ),
                                     ),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          DateFormat(
-                                            'dd/MM HH:mm',
-                                          ).format(doseTime),
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppTheme.primaryTextColor,
-                                          ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: statusColor.withValues(alpha: 0.10),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        statusLabel,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: statusColor,
                                         ),
-                                        Text(
-                                          statusLabel,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: statusColor,
-                                          ),
-                                        ),
-                                      ],
+                                      ),
                                     ),
                                   ],
                                 ),

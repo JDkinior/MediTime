@@ -34,8 +34,19 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
 
     try {
       final eliminados = await firestoreService.clearAllMedicamentos(user.uid);
+      final profiles = await firestoreService.getCaregiverProfiles(user.uid);
+      for (final p in profiles) {
+        if (!p.isExternalUser) {
+          final profEliminados = await firestoreService.clearAllMedicamentos(
+            user.uid,
+            p,
+          );
+          eliminados.addAll(profEliminados);
+        }
+      }
 
       for (Tratamiento t in eliminados) {
+        await NotificationService.revokeTreatmentLocally(user.uid, t.id);
         await NotificationService.cancelTreatmentAlarms(t.prescriptionAlarmId);
       }
 
@@ -238,9 +249,9 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
     }
   }
 
-  void _promptPasswordReauth() {
+  void _promptPasswordReauth() async {
     final passwordController = TextEditingController();
-    showDialog(
+    final pwd = await showDialog<String>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
         title: const Text('Confirma tu contraseña'),
@@ -272,17 +283,17 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorColor),
             onPressed: () {
-              final pwd = passwordController.text.trim();
-              Navigator.pop(dialogCtx);
-              if (pwd.isNotEmpty) {
-                _handleDeleteAccount(password: pwd);
-              }
+              Navigator.pop(dialogCtx, passwordController.text.trim());
             },
             child: const Text('Confirmar Eliminación', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
+    passwordController.dispose();
+    if (pwd != null && pwd.isNotEmpty && mounted) {
+      _handleDeleteAccount(password: pwd);
+    }
   }
 
   void _confirmDeleteAccount(BuildContext context) {
@@ -448,7 +459,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
                       ),
                     ),
                     subtitle: const Text(
-                      'Documentos vigentes (v2.4). Conforme a Google Play Health Apps y RGPD.',
+                      'Documentos vigentes (v2.36). Conforme a Google Play Health Apps, RGPD y Habeas Data.',
                       style: TextStyle(fontSize: 12.5),
                     ),
                     trailing: const Icon(Icons.chevron_right_rounded),

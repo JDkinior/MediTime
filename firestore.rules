@@ -12,27 +12,31 @@ service cloud.firestore {
     }
 
     function isAssignedCaregiver(patientUid) {
-      return isAuthenticated() && (
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)/managed_profiles/$(patientUid)) ||
-        (exists(/databases/$(database)/documents/users/$(patientUid)) &&
-         get(/databases/$(database)/documents/users/$(patientUid)).data.get('caregiverUid', '') == request.auth.uid) ||
-        (exists(/databases/$(database)/documents/users/$(patientUid)) &&
-         'caregivers' in get(/databases/$(database)/documents/users/$(patientUid)).data &&
-         request.auth.uid in get(/databases/$(database)/documents/users/$(patientUid)).data.caregivers)
-      );
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(patientUid)) && (
+          get(/databases/$(database)/documents/users/$(patientUid)).data.get('caregiverUid', '') == request.auth.uid ||
+          ('caregivers' in get(/databases/$(database)/documents/users/$(patientUid)).data &&
+           request.auth.uid in get(/databases/$(database)/documents/users/$(patientUid)).data.caregivers)
+        );
     }
 
     match /users/{userId} {
       // Bloquear acceso indiscriminado por ID: solo el dueño o el cuidador asignado pueden leer el perfil
       allow get: if isOwner(userId) || isAssignedCaregiver(userId);
       
-      // Permitir 'list' a usuarios autenticados para permitir la vinculación de pacientes por email
-      allow list: if isAuthenticated();
+      // Permitir búsqueda acotada a usuarios autenticados para vinculación de pacientes por email (máx. 5 resultados)
+      allow list: if isAuthenticated() && request.query.limit <= 5;
       
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || (
         isAuthenticated() && 
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['caregiverUid', 'caregivers'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['caregiverUid', 'caregivers']) &&
+        (
+          request.resource.data.get('caregiverUid', null) == request.auth.uid ||
+          (request.resource.data.get('caregiverUid', null) == null &&
+           (resource.data.get('caregiverUid', '') == request.auth.uid ||
+            ('caregivers' in resource.data && request.auth.uid in resource.data.caregivers)))
+        )
       );
       
       allow delete: if isOwner(userId);

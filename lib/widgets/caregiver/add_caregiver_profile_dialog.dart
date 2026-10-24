@@ -58,6 +58,9 @@ class _AddCaregiverProfileDialogState extends State<AddCaregiverProfileDialog> w
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     
     if (widget.initialProfile != null) {
       final p = widget.initialProfile!;
@@ -135,12 +138,19 @@ class _AddCaregiverProfileDialogState extends State<AddCaregiverProfileDialog> w
     }
 
     try {
-      // Find user by email
-      final query = await FirebaseFirestore.instance.collection('users').where('email', isEqualTo: email).get();
+      // Find user by email (with limit(1) to comply with Firestore security rules)
+      final query = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
       if (query.docs.isEmpty) {
         throw Exception('Usuario no encontrado.');
       }
       final linkedUser = query.docs.first;
+      if (linkedUser.id == userId) {
+        throw Exception('No puedes vincular tu propia cuenta.');
+      }
       
       final newProfile = CaregiverProfile(
         id: linkedUser.id, // Use their UID as profile ID

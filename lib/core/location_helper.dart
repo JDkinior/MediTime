@@ -304,7 +304,10 @@ class LocationHelper {
 			final response = await http
 					.post(
 						Uri.parse(endpoint),
-						headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+						headers: {
+							'Content-Type': 'application/x-www-form-urlencoded',
+							'User-Agent': 'MediTime/1.0 (Flutter app)',
+						},
 						body: {'data': query},
 					)
 					.timeout(const Duration(seconds: 8));
@@ -335,4 +338,3 @@ class LocationHelper {
 		return '${(meters / 1000).toStringAsFixed(1)} km';
 	}
 }
-

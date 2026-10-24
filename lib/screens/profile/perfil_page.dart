@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -9,9 +10,9 @@ import 'package:showcaseview/showcaseview.dart';
 import 'package:meditime/services/auth_service.dart';
 import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/storage_service.dart';
-import 'package:meditime/notifiers/profile_notifier.dart'; // Se importa el notifier
+import 'package:meditime/notifiers/profile_notifier.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
-import 'package:meditime/theme/app_theme.dart'; // Se importa el tema para estilos consistentes
+import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/screens/shared/localizador_farmacias_page.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 import 'package:meditime/widgets/profile_avatar.dart';
@@ -46,6 +47,7 @@ class _PerfilPageState extends State<PerfilPage> {
   // FocusNodes for inline editing
   final FocusNode _nameFocusNode = FocusNode();
   final FocusNode _phoneFocusNode = FocusNode();
+  final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _dobFocusNode = FocusNode();
   final FocusNode _bloodTypeFocusNode = FocusNode();
   final FocusNode _allergiesFocusNode = FocusNode();
@@ -136,6 +138,7 @@ class _PerfilPageState extends State<PerfilPage> {
 
     _nameFocusNode.dispose();
     _phoneFocusNode.dispose();
+    _emailFocusNode.dispose();
     _dobFocusNode.dispose();
     _bloodTypeFocusNode.dispose();
     _allergiesFocusNode.dispose();
@@ -268,7 +271,8 @@ class _PerfilPageState extends State<PerfilPage> {
       String? finalImageUrl = _originalProfileImageUrl;
       String? savedLocalPath;
 
-      if (_profileImageUrl != null &&
+      if (!kIsWeb &&
+          _profileImageUrl != null &&
           _profileImageUrl!.isNotEmpty &&
           !_profileImageUrl!.startsWith('http')) {
         File imageFile = File(_profileImageUrl!);
@@ -300,7 +304,7 @@ class _PerfilPageState extends State<PerfilPage> {
         try {
           await user.updatePhotoURL(finalImageUrl);
         } catch (e) {
-          debugPrint('PerfilPage: Error al actualizar photoURL en FirebaseAuth: $e');
+          if (!kReleaseMode) debugPrint('PerfilPage: Error al actualizar photoURL en FirebaseAuth: $e');
         }
       }
 
@@ -330,7 +334,7 @@ class _PerfilPageState extends State<PerfilPage> {
         });
       }
     } catch (e) {
-      debugPrint('PerfilPage: Error al guardar datos del perfil: $e');
+      if (!kReleaseMode) debugPrint('PerfilPage: Error al guardar datos del perfil: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al guardar la foto/perfil: $e')),
@@ -611,7 +615,7 @@ class _PerfilPageState extends State<PerfilPage> {
                         hintText: l10n?.profileEmailHint ?? 'Tu correo electrónico',
                         enabled: false,
                         icon: Icons.email_outlined,
-                        focusNode: FocusNode(), // Always disabled, mock node
+                        focusNode: _emailFocusNode,
                       ),
                       _buildEditableOrDisplayField(
                         controller: _dobController,

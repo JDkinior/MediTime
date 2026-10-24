@@ -4,6 +4,7 @@ import 'package:meditime/core/result.dart';
 import 'package:meditime/repositories/treatment_repository.dart';
 import 'package:meditime/services/notification_service.dart';
 import 'package:meditime/services/preference_service.dart';
+import 'package:meditime/services/widget_service.dart';
 
 /// Use case for handling user sign out operations.
 /// 
@@ -24,9 +25,9 @@ class SignOutUseCase {
   Future<Result<void>> execute(String userId) async {
     try {
       debugPrint('SignOutUseCase: Starting sign out process for user $userId');
-  final prefs = PreferenceService();
-  // Persist the current user id before clear, to allow guards to compare
-  await prefs.saveCurrentUserId(userId);
+      final prefs = PreferenceService();
+      // Persist the current user id before clear, to allow guards to compare
+      await prefs.saveCurrentUserId(userId);
       
       // Get user treatments to cancel their alarms
       final treatmentsResult = await _treatmentRepository.getTreatments(userId);
@@ -56,6 +57,12 @@ class SignOutUseCase {
           } catch (_) {}
         }
       }
+
+      // Also cancel caregiver and animal mode alarms if any were scheduled
+      try {
+        await NotificationService.deactivateCaregiverAlarms(userId: userId);
+        await NotificationService.deactivateAnimalAlarms(userId: userId);
+      } catch (_) {}
       
       // Cancel all local notifications
       try {
@@ -67,10 +74,12 @@ class SignOutUseCase {
       }
       // Also cancel any active visible notifications
       await NotificationService.cancelAllActiveAndroidNotifications();
-      // Clear any remembered current user, so future callbacks are blocked by guard
+      // Clear any remembered current user, so future callbacks are blocked by guard.
+      // Note: Do NOT clear revokedTreatments here so in-flight native alarms remain blocked until next login.
       await prefs.clearCurrentUserId();
-      // Optionally clear revoked list (not strictly necessary, but keeps it clean)
-      await prefs.clearRevokedTreatments();
+      try {
+        await WidgetService.clearWidgetData();
+      } catch (_) {}
       
       debugPrint('SignOutUseCase: Sign out process completed successfully');
       return const Result.success(null);

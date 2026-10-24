@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/models/caregiver_profile.dart';
@@ -22,6 +23,11 @@ import 'package:meditime/firebase_options.dart';
 /// para permitir el funcionamiento 100% offline.
 @pragma('vm:entry-point')
 void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
+  // En modo release (producción), silenciar todos los logs en este isolate de fondo para evitar fuga de PII/PHI en Logcat
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
+
   debugPrint("🚨 INICIO alarmCallbackLogic (Offline-First) - ID: $id");
   debugPrint("Parámetros recibidos: ${params.keys.toList()}");
 
@@ -34,6 +40,7 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
     await NotificationService.initializeCore();
 
     final preferenceService = PreferenceService();
+    await preferenceService.reload();
 
     // 2. Extraer datos directamente del payload (100% offline)
     final userId = params['userId'] as String?;
@@ -61,7 +68,7 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
     // 3. Leer modo de recordatorio (automático, activo o alarma)
     DoseReminderMode reminderMode = DoseReminderMode.automatic;
     try {
-      reminderMode = await preferenceService.getReminderMode();
+      reminderMode = await preferenceService.getReminderMode(reload: false);
     } catch (e) {
       debugPrint("ERROR leyendo preferencias: $e. Usando modo automático como default");
       reminderMode = DoseReminderMode.automatic;
@@ -69,8 +76,8 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
 
     // 4. Validación de usuario y revocación local (sin requerir internet)
     try {
-      final currentUserId = await preferenceService.getCurrentUserId();
-      final isRevoked = await preferenceService.isTreatmentRevoked(userId, docId);
+      final currentUserId = await preferenceService.getCurrentUserId(reload: false);
+      final isRevoked = await preferenceService.isTreatmentRevoked(userId, docId, reload: false);
       final int seriesId = (params['prescriptionAlarmId'] as int?) ?? 0;
 
       if (currentUserId == null || currentUserId != userId || isRevoked) {
@@ -87,10 +94,10 @@ void alarmCallbackLogic(int id, Map<String, dynamic> params) async {
       // 4.1 Validación de Modo Cuidador / Modo Animales
       final profileId = params['profileId'] as String?;
       if (profileId != null && profileId.isNotEmpty) {
-        bool isAnimal = params['isAnimal'] as bool? ?? await preferenceService.isAnimalProfile(profileId);
-        final isCaregiverModeActive = await preferenceService.getCaregiverModeActive();
-        final isAnimalModeActive = await preferenceService.getAnimalModeActive();
-        final notifyPatientDoses = await preferenceService.getCaregiverNotifyPatientDoses();
+        bool isAnimal = params['isAnimal'] as bool? ?? await preferenceService.isAnimalProfile(profileId, reload: false);
+        final isCaregiverModeActive = await preferenceService.getCaregiverModeActive(reload: false);
+        final isAnimalModeActive = await preferenceService.getAnimalModeActive(reload: false);
+        final notifyPatientDoses = await preferenceService.getCaregiverNotifyPatientDoses(reload: false);
 
         bool shouldBlock = false;
         String reason = '';
@@ -293,7 +300,7 @@ Future<void> _reprogramarSiguienteDosis(Map<String, dynamic> params, String user
     }
     
     final doc = await firestoreService.getMedicamentoDocRef(userId, docId, dummyProfile).get()
-        .timeout(Duration(seconds: 5));
+        .timeout(const Duration(seconds: 5));
     
     if (doc.exists) {
       final tratamiento = Tratamiento.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);

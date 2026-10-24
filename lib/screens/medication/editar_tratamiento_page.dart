@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/models/tratamiento.dart';
@@ -7,8 +8,8 @@ import 'package:meditime/models/treatment_form_data.dart';
 import 'package:meditime/notifiers/treatment_form_notifier.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/services/auth_service.dart';
+import 'package:meditime/services/firestore_service.dart';
 import 'package:meditime/services/gemini_service.dart';
-import 'package:meditime/repositories/treatment_repository.dart';
 import 'package:meditime/widgets/drug_interaction_dialog.dart';
 import 'package:meditime/widgets/pill_icon.dart';
 import 'package:meditime/theme/app_theme.dart';
@@ -201,15 +202,18 @@ class _EditarTratamientoPageState extends State<EditarTratamientoPage> {
       final userId = authService.currentUser?.uid;
       if (userId == null) return true;
 
-      final treatmentRepo = context.read<TreatmentRepository>();
+      final firestoreService = context.read<FirestoreService>();
       final geminiService = context.read<GeminiService>();
-      final result = await treatmentRepo.getTreatments(userId);
-      if (!result.isSuccess || result.data == null || result.data!.isEmpty) {
+      final treatments = await firestoreService.getMedicamentos(
+        userId,
+        widget.profile,
+      );
+      if (treatments.isEmpty) {
         return true;
       }
 
       final activeTreatments =
-          result.data!
+          treatments
               .where(
                 (t) =>
                     (t.isActivo || !t.isFinalizado) &&
@@ -239,7 +243,7 @@ class _EditarTratamientoPageState extends State<EditarTratamientoPage> {
         return proceed;
       }
     } catch (e) {
-      debugPrint('Error en la verificación de interacciones: $e');
+      if (!kReleaseMode) debugPrint('Error en la verificación de interacciones: $e');
     }
 
     return true;

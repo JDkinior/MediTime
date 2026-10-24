@@ -1,4 +1,5 @@
 // lib/services/widget_service.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:meditime/core/utils.dart';
@@ -14,6 +15,9 @@ import 'package:meditime/services/notification_service.dart';
 /// con los botones del Widget de Android ("Tomar", "Aplazar", "Omitir").
 @pragma('vm:entry-point')
 Future<void> homeWidgetBackgroundCallback(Uri? uri) async {
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
   if (uri == null) return;
   debugPrint('🤖 HomeWidget Callback recibido: $uri');
 
@@ -35,9 +39,11 @@ Future<void> homeWidgetBackgroundCallback(Uri? uri) async {
 
   if (docId != null && doseTimeStr != null) {
     try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
 
       final userId = await PreferenceService().getCurrentUserId();
       if (userId == null || userId.isEmpty) return;
@@ -97,6 +103,7 @@ class WidgetService {
 
   /// Registra los callbacks de interactividad en segundo plano con HomeWidget.
   static Future<void> initialize() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
     try {
       await HomeWidget.registerInteractivityCallback(
         homeWidgetBackgroundCallback,
@@ -106,15 +113,50 @@ class WidgetService {
     }
   }
 
+  /// Limpia la información del Widget al cerrar sesión o eliminar la cuenta para evitar fuga de datos médicos.
+  static Future<void> clearWidgetData() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    try {
+      await HomeWidget.saveWidgetData<String>(
+        'next_dose_med_name',
+        'No hay dosis pendientes',
+      );
+      await HomeWidget.saveWidgetData<String>('next_dose_time', '--:--');
+      await HomeWidget.saveWidgetData<String>(
+        'next_dose_detail',
+        'Inicia sesión en MediTime para ver tus recordatorios.',
+      );
+      await HomeWidget.saveWidgetData<String>('next_dose_doc_id', '');
+      await HomeWidget.saveWidgetData<String>('next_dose_iso_time', '');
+      await HomeWidget.saveWidgetData<String>(
+        'widget_summary',
+        'Hoy: 0/0 tomadas',
+      );
+      await HomeWidget.updateWidget(androidName: androidDoseWidget);
+      await HomeWidget.updateWidget(androidName: androidQuickWidget);
+    } catch (e) {
+      debugPrint('Error limpiando datos de HomeWidget: $e');
+    }
+  }
+
   /// Recalcula y envía la información actualizada de las dosis del día a los Widgets nativos.
   static Future<void> updateWidgetData({
     String? userId,
     List<Tratamiento>? tratamientos,
   }) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
     try {
+      final prefService = PreferenceService();
       final activeUserId =
-          userId ?? await PreferenceService().getCurrentUserId();
-      if (activeUserId == null || activeUserId.isEmpty) return;
+          userId ?? await prefService.getCurrentUserId();
+      if (activeUserId == null || activeUserId.isEmpty) {
+        await clearWidgetData();
+        return;
+      }
+
+      final hideMedName = await prefService.getHideMedicineNameOnLockScreen(
+        reload: false,
+      );
 
       List<Tratamiento> list = tratamientos ?? [];
       if (list.isEmpty) {
@@ -128,6 +170,7 @@ class WidgetService {
 
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
+      final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
 
       int tomadasHoy = 0;
       int totalHoy = 0;
@@ -136,7 +179,18 @@ class WidgetService {
       DateTime? proximaFechaDosis;
 
       for (final t in list) {
-        if (t.intervaloDosis.inHours <= 0) continue;
+        if (t.intervaloDosis.inMinutes <= 0) continue;
+
+        final finDelDiaTratamiento = DateTime(
+          t.fechaFinTratamiento.year,
+          t.fechaFinTratamiento.month,
+          t.fechaFinTratamiento.day,
+          23,
+          59,
+          59,
+          999,
+        );
+        if (finDelDiaTratamiento.isBefore(today)) continue;
 
         DateTime current = DateTime(
           t.fechaInicioTratamiento.year,
@@ -146,8 +200,31 @@ class WidgetService {
           t.horaPrimeraDosis.minute,
         );
 
-        while (current.isBefore(t.fechaFinTratamiento) ||
-            current.isAtSameMomentAs(t.fechaFinTratamiento)) {
+        if (current.isAfter(endOfToday)) continue;
+
+        // Fast-forward directo hasta el día de hoy para evitar iterar meses/años pasados
+        if (current.isBefore(today)) {
+          final diffMinutes = today.difference(current).inMinutes;
+          final stepsToSkip = diffMinutes ~/ t.intervaloDosis.inMinutes;
+          if (stepsToSkip > 1) {
+            current = current.add(t.intervaloDosis * (stepsToSkip - 1));
+          }
+        }
+
+        // Pre-parsear claves del día de hoy para soporte de tolerancia de 15 minutos
+        final parsedEntries = <DateTime, DoseStatus>{};
+        for (final entry in t.doseStatus.entries) {
+          final dt = DateTime.tryParse(entry.key);
+          if (dt != null &&
+              dt.year == today.year &&
+              dt.month == today.month &&
+              dt.day == today.day) {
+            parsedEntries[dt] = entry.value;
+          }
+        }
+
+        while (!current.isAfter(endOfToday) &&
+            !current.isAfter(finDelDiaTratamiento)) {
           final isToday =
               current.year == today.year &&
               current.month == today.month &&
@@ -155,11 +232,19 @@ class WidgetService {
 
           if (isToday) {
             totalHoy++;
-            final status =
-                t.doseStatus[current.toIso8601String()] ?? DoseStatus.pendiente;
-            if (status == DoseStatus.tomada) {
+            DoseStatus? status = t.doseStatus[current.toIso8601String()];
+            if (status == null && parsedEntries.isNotEmpty) {
+              for (final entry in parsedEntries.entries) {
+                if (entry.key.difference(current).inMinutes.abs() <= 15) {
+                  status = entry.value;
+                  break;
+                }
+              }
+            }
+            final effectiveStatus = status ?? DoseStatus.pendiente;
+            if (effectiveStatus == DoseStatus.tomada) {
               tomadasHoy++;
-            } else if (status != DoseStatus.omitida) {
+            } else if (effectiveStatus != DoseStatus.omitida) {
               // Dosis pendiente, notificada o aplazada
               if (proximaFechaDosis == null ||
                   current.isBefore(proximaFechaDosis)) {
@@ -174,10 +259,13 @@ class WidgetService {
 
       if (proximaTratamiento != null && proximaFechaDosis != null) {
         final formattedTime = AppUtils.formatDoseTime(proximaFechaDosis);
+        final displayMedName = hideMedName
+            ? 'Medicamento programado'
+            : proximaTratamiento.nombreMedicamento;
 
         await HomeWidget.saveWidgetData<String>(
           'next_dose_med_name',
-          proximaTratamiento.nombreMedicamento,
+          displayMedName,
         );
         await HomeWidget.saveWidgetData<String>(
           'next_dose_time',
@@ -224,6 +312,7 @@ class WidgetService {
 
   /// Verifica si la app fue abierta desde el Widget (ej. al pulsar "Asistente Midi").
   static Future<void> handleWidgetLaunch(BuildContext context) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
     try {
       final uri = await HomeWidget.initiallyLaunchedFromHomeWidget();
       if (uri != null &&

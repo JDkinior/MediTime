@@ -65,6 +65,15 @@ class CaregiverNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Limpia en memoria los perfiles gestionados al cerrar sesión
+  void reset() {
+    _currentUserId = null;
+    _managedProfiles = [];
+    _activeProfileId = null;
+    _isLoading = false;
+    notifyListeners();
+  }
+
   void ensureActiveProfileForMode({required bool isAnimalMode, String animalModeType = 'individual'}) {
     final relevantProfiles = isAnimalMode
         ? _managedProfiles.where((p) => p.isAnimal).toList()
@@ -88,18 +97,23 @@ class CaregiverNotifier extends ChangeNotifier {
   }
 
   Future<void> _loadPreferences() async {
-    _isCaregiverModeActive = await _preferenceService.getCaregiverModeActive();
-    final typeStr = await _preferenceService.getCaregiverModeType();
+    await _preferenceService.reload();
+    _isCaregiverModeActive = await _preferenceService.getCaregiverModeActive(reload: false);
+    final typeStr = await _preferenceService.getCaregiverModeType(reload: false);
     _modeType = typeStr == 'clinico'
         ? CaregiverModeType.clinico
         : (typeStr == 'veterinario' ? CaregiverModeType.veterinario : CaregiverModeType.familiar);
-    _activeProfileId = await _preferenceService.getCaregiverActiveProfile();
-    _notifyPatientDoses = await _preferenceService.getCaregiverNotifyPatientDoses();
-    _includeLocationInNotifications = await _preferenceService.getCaregiverIncludeLocation();
+    _activeProfileId = await _preferenceService.getCaregiverActiveProfile(reload: false);
+    _notifyPatientDoses = await _preferenceService.getCaregiverNotifyPatientDoses(reload: false);
+    _includeLocationInNotifications = await _preferenceService.getCaregiverIncludeLocation(reload: false);
     notifyListeners();
   }
 
   Future<void> loadProfiles(String userId) async {
+    if (userId.trim().isEmpty) {
+      reset();
+      return;
+    }
     _currentUserId = userId;
     _isLoading = true;
     notifyListeners();
@@ -119,7 +133,7 @@ class CaregiverNotifier extends ChangeNotifier {
         }
       }
       // Validate if the active profile still exists
-      if (_activeProfileId != null && activeProfile == null) {
+      if (_activeProfileId != null && _activeProfileId != 'general' && activeProfile == null) {
         _activeProfileId = null;
         await _preferenceService.saveCaregiverActiveProfile(null);
       }
@@ -134,7 +148,7 @@ class CaregiverNotifier extends ChangeNotifier {
   Future<void> setCaregiverModeActive(bool isActive) async {
     _isCaregiverModeActive = isActive;
     await _preferenceService.saveCaregiverModeActive(isActive);
-    final userId = _currentUserId ?? await _preferenceService.getCurrentUserId() ?? '';
+    final userId = _currentUserId ?? await _preferenceService.getCurrentUserId(reload: false) ?? '';
 
     if (isActive) {
       // Exclusividad mutua: desactiva modo animales en persistencia
@@ -175,8 +189,13 @@ class CaregiverNotifier extends ChangeNotifier {
 
   /// Gestiona la activación y desactivación de alarmas cuando se conmuta el Modo Animales.
   Future<void> onAnimalModeToggled(bool isActive) async {
-    final userId = _currentUserId ?? await _preferenceService.getCurrentUserId() ?? '';
+    final userId = _currentUserId ?? await _preferenceService.getCurrentUserId(reload: false) ?? '';
     if (isActive) {
+      if (_isCaregiverModeActive) {
+        _isCaregiverModeActive = false;
+        await _preferenceService.saveCaregiverModeActive(false);
+        notifyListeners();
+      }
       if (userId.isNotEmpty) {
         // Al activar animales, desactivar alarmas de cuidador
         await NotificationService.deactivateCaregiverAlarms(
@@ -226,8 +245,13 @@ class CaregiverNotifier extends ChangeNotifier {
   Future<void> setActiveProfileId(String? profileId, [String? currentUserId]) async {
     _activeProfileId = profileId;
     await _preferenceService.saveCaregiverActiveProfile(profileId);
-    if (currentUserId != null && activeProfile != null && activeProfile!.isExternalUser && activeProfile!.linkedUid != null) {
-      _firestoreService.ensureCaregiverLink(currentUserId, activeProfile!.linkedUid!);
+    final effectiveUid = currentUserId ?? _currentUserId;
+    if (effectiveUid != null &&
+        effectiveUid.isNotEmpty &&
+        activeProfile != null &&
+        activeProfile!.isExternalUser &&
+        activeProfile!.linkedUid != null) {
+      _firestoreService.ensureCaregiverLink(effectiveUid, activeProfile!.linkedUid!);
     }
     notifyListeners();
   }
@@ -235,7 +259,7 @@ class CaregiverNotifier extends ChangeNotifier {
   Future<void> setNotifyPatientDoses(bool val) async {
     _notifyPatientDoses = val;
     await _preferenceService.saveCaregiverNotifyPatientDoses(val);
-    final userId = _currentUserId ?? await _preferenceService.getCurrentUserId() ?? '';
+    final userId = _currentUserId ?? await _preferenceService.getCurrentUserId(reload: false) ?? '';
 
     if (userId.isNotEmpty) {
       if (!val) {
@@ -247,7 +271,7 @@ class CaregiverNotifier extends ChangeNotifier {
             firestoreService: _firestoreService,
           );
         }
-        final isAnimalActive = await _preferenceService.getAnimalModeActive();
+        final isAnimalActive = await _preferenceService.getAnimalModeActive(reload: false);
         if (isAnimalActive) {
           await NotificationService.deactivateAnimalAlarms(
             userId: userId,
@@ -264,7 +288,7 @@ class CaregiverNotifier extends ChangeNotifier {
             firestoreService: _firestoreService,
           );
         }
-        final isAnimalActive = await _preferenceService.getAnimalModeActive();
+        final isAnimalActive = await _preferenceService.getAnimalModeActive(reload: false);
         if (isAnimalActive) {
           await NotificationService.activateAnimalAlarms(
             userId: userId,
