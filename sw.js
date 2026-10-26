@@ -1,5 +1,5 @@
-// MediTime PWA Service Worker (v2.39.0)
-const CACHE_NAME = 'meditime-cache-v2.39.0';
+// MediTime PWA Service Worker (v2.39.2)
+const CACHE_NAME = 'meditime-cache-v2.39.2';
 
 const APP_ASSETS = [
   './',
