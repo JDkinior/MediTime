@@ -240,11 +240,11 @@ document.addEventListener('DOMContentLoaded', () => {
       published_at: '2026-10-25T23:15:00Z',
       apk_url: 'https://github.com/JDkinior/MediTime/releases/download/v2.37.0/app-release.apk',
       body: `### Novedades Principales
-- **Diseño Transmateria y Frosted Glass:** Implementación de `FrostedGlassBottomSheet` con desenfoque gaussiano de 20px (`BackdropFilter`), gradiente adaptativo y atenuación de fondo en reprogramación, recetas y reportes.
-- **Navegación Fluida Samsung One UI:** Encapsulamiento dinámico flotante en `ModernAppBar` (`encapsulateOnScroll`) con disolución de título al hacer scroll y botones flotantes en cápsula circular esmerilada.
-- **Celebración de Racha Estilo Gamificación:** Hoja modal Duolingo-style (`StreakCelebrationSheet`) con físicas spring (`Curves.easeOutBack`), retroalimentación háptica táctil y desglose de cumplimiento.
-- **Acordeones de Tratamiento Refinados:** `TreatmentAccordionCard` con micro-interacciones táctiles de escala (`_PressableScale`) y barra de progreso segmentada multi-estado (cumplidas, omitidas, notificadas y aplazadas).
-- **Diálogo de Interacciones Farmacológicas Estilizado:** `DrugInteractionDialog` modernizado con estética de cristal ámbar de alto contraste.
+- **Diseño Transmateria y Frosted Glass:** Implementación de \`FrostedGlassBottomSheet\` con desenfoque gaussiano de 20px (\`BackdropFilter\`), gradiente adaptativo y atenuación de fondo en reprogramación, recetas y reportes.
+- **Navegación Fluida Samsung One UI:** Encapsulamiento dinámico flotante en \`ModernAppBar\` (\`encapsulateOnScroll\`) con disolución de título al hacer scroll y botones flotantes en cápsula circular esmerilada.
+- **Celebración de Racha Estilo Gamificación:** Hoja modal Duolingo-style (\`StreakCelebrationSheet\`) con físicas spring (\`Curves.easeOutBack\`), retroalimentación háptica táctil y desglose de cumplimiento.
+- **Acordeones de Tratamiento Refinados:** \`TreatmentAccordionCard\` con micro-interacciones táctiles de escala (\`_PressableScale\`) y barra de progreso segmentada multi-estado (cumplidas, omitidas, notificadas y aplazadas).
+- **Diálogo de Interacciones Farmacológicas Estilizado:** \`DrugInteractionDialog\` modernizado con estética de cristal ámbar de alto contraste.
 
 ### Calidad & Entrega Oficial C3
 - **Suite de Pruebas Automatizadas:** 205 pruebas unitarias y de widgets ejecutadas exitosamente con 0 advertencias en análisis estático.
