@@ -16,7 +16,7 @@
 | Campo Institucional | Detalle Oficial del Proyecto |
 | :--- | :--- |
 | **Título del Proyecto:** | Desarrollo de una Aplicación Móvil para la Gestión de Tratamientos Médicos (MediTime) |
-| **Versión del Software:** | 2.36.0 |
+| **Versión del Software:** | 2.37.0 |
 | **Autores / Ingenieros Desarrolladores:** | **Jorge Eliecer Delgado Cortés**<br>**Johan Alexander Arévalo Contreras** |
 | **Programa Académico:** | Ingeniería de Sistemas y Computación |
 | **Facultad:** | Facultad de Ingeniería |
@@ -67,7 +67,7 @@
 
 ## 1. INTRODUCCIÓN Y RESUMEN TÉCNICO
 
-El presente **Manual Técnico** provee la especificación rigurosa de la ingeniería, arquitectura de software, patrones de diseño, modelo de datos y protocolos de comunicación implementados en **MediTime** (versión **2.36.0**).
+El presente **Manual Técnico** provee la especificación rigurosa de la ingeniería, arquitectura de software, patrones de diseño, modelo de datos y protocolos de comunicación implementados en **MediTime** (versión **2.37.0**).
 
 MediTime es una solución móvil empresarial orientada a la salud digital (*mHealth*), construida sobre el framework **Flutter** y el lenguaje **Dart**, con persistencia en la nube provista por **Google Cloud Firebase** y capacidades cognitivas soportadas en modelos fundacionales de inteligencia artificial ejecutados a baja latencia sobre la infraestructura de **Groq Cloud**.
 
@@ -80,7 +80,7 @@ El propósito de este documento es otorgar al equipo de ingeniería, a los evalu
 | Componente | Especificación Técnica | Justificación Tecnológica |
 | :--- | :--- | :--- |
 | **Nombre del Sistema:** | MediTime | Plataforma integral para la gestión farmacológica. |
-| **Versión Actual:** | 2.36.0 | Versión final estable y auditada para C3 (2026). |
+| **Versión Actual:** | 2.37.0 | Versión final estable y auditada para C3 (2026). |
 | **Framework Base:** | Flutter SDK 3.7.0+ (Canal Stable) | Renderizado reactivo a 60/120 fps con Skia/Impeller. |
 | **Lenguaje de Programación:** | Dart 3.7+ con *Sound Null Safety* | Tipado estricto, análisis estático y sealed classes. |
 | **Plataforma Primaria:** | Android (API Level 26 a 34+) | Cobertura superior al 95% del ecosistema móvil colombiano. |
@@ -287,10 +287,12 @@ A continuación se detalla la responsabilidad técnica de cada uno de los archiv
 - `screens/onboarding/onboarding_page.dart`: Asistente de bienvenida y calibración inicial en 5 pasos (perfil/foto, propósito con colores temáticos dinámicos: azul para uso personal, morado para modo cuidador y verde para modo animales con garantía de exclusividad mutua, estilo visual y modalidad de alarmas).
 - `screens/shared/`: Pantallas de configuración, accesibilidad, **Modo Animales (`modo_animales_opciones_page.dart`)**, selector de idiomas nativos (`idioma_opciones_page.dart`), localización de farmacias, datos de privacidad, visor de marco normativo y consentimientos informados (`legal_document_page.dart`) y guía de optimización por fabricante.
 - `widgets/`: Componentes modulares desacoplados:
+  * `frosted_glass_bottom_sheet.dart`: Contenedor modal con efecto translúcido *frosted glass*, desenfoque gaussiano de 20px (`BackdropFilter`) y atenuación de fondo adaptativa para modo claro y oscuro.
+  * `reports/streak_celebration_sheet.dart`: Hoja modal de gamificación estilo Duolingo para celebrar rachas consecutivas de tomas, animada con curvas físicas spring (`Curves.easeOutBack`) y retroalimentación háptica.
   * `container_transform_card.dart`: Transición GPU nativa a 120 FPS sin freeze de layout, con aislamiento de capas `RepaintBoundary` y precalentamiento `Offstage`.
   * `calendar_expand_handle.dart`: Manejador gestual táctil con snap adaptativo para expansión de calendario.
   * `pill_icon.dart`: Iconografía dinámica para presentaciones farmacéuticas (pastillas, cápsulas, jarabes, gotas, suspensiones, sobres).
-  * `modern_app_bar.dart` y `modern_content_fade.dart`: Sistema de cabeceras universales con degradados y scroll fade.
+  * `modern_app_bar.dart` y `modern_content_fade.dart`: Sistema de cabeceras universales con degradados, scroll fade, modo cristal translúcido (`useGlass`) y encapsulamiento flotante de botones en scroll (`encapsulateOnScroll`).
   * `markdown_message_body.dart`: Renderizado de Markdown clínico, tablas y bloques.
   * `drawer_widget.dart`: Menú lateral unificado con sincronización temática total en modo claro y oscuro.
 
@@ -556,7 +558,7 @@ El proyecto implementa un estricto conjunto de reglas en `analysis_options.yaml`
 El proyecto cuenta con un flujo automatizado de Integración Continua configurado en `.github/workflows/flutter_ci.yml` que se dispara ante cada *push* o *pull request* hacia la rama `main`, garantizando:
 1. Verificación estricta de formato de código (`dart format --output=none --set-exit-if-changed`).
 2. Análisis estático riguroso (`flutter analyze`) con cero advertencias y cero errores tolerados.
-3. Ejecución de la suite completa de **194 pruebas automatizadas** (`flutter test`) con cobertura exhaustiva de widgets, lógica de negocio y servicios.
+3. Ejecución de la suite completa de **205 pruebas automatizadas** (`flutter test`) con cobertura exhaustiva de widgets, lógica de negocio y servicios.
 
 ### 10.3. Ejecución de Pruebas Automatizadas en Entorno Local
 Para auditar la integridad del código fuente antes de un despliegue:
@@ -564,7 +566,7 @@ Para auditar la integridad del código fuente antes de un despliegue:
 # Ejecución de análisis estático (0 issues):
 flutter analyze
 
-# Ejecución de la suite completa de 194 pruebas unitarias y de widgets:
+# Ejecución de la suite completa de 205 pruebas unitarias y de widgets:
 flutter test
 ```
 

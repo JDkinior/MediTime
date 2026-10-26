@@ -16,7 +16,7 @@
 | Campo Institucional | Detalle Oficial del Proyecto |
 | :--- | :--- |
 | **Título del Proyecto:** | Desarrollo de una Aplicación Móvil para la Gestión de Tratamientos Médicos (MediTime) |
-| **Versión del Software:** | 2.36.0 |
+| **Versión del Software:** | 2.37.0 |
 | **Autores / Investigadores:** | **Jorge Eliecer Delgado Cortés**<br>**Johan Alexander Arévalo Contreras** |
 | **Programa Académico:** | Ingeniería de Sistemas y Computación |
 | **Facultad:** | Facultad de Ingeniería |
@@ -88,7 +88,7 @@
 
 ## 1. INTRODUCCIÓN Y PROPÓSITO DEL MANUAL
 
-El presente documento constituye el **Manual de Usuario** oficial de la solución tecnológica **MediTime** en su versión **2.36.0**, desarrollada en el marco del Proyecto de Grado del programa de **Ingeniería de Sistemas y Computación** de la **Universidad de Cundinamarca, Seccional Ubaté**.
+El presente documento constituye el **Manual de Usuario** oficial de la solución tecnológica **MediTime** en su versión **2.37.0**, desarrollada en el marco del Proyecto de Grado del programa de **Ingeniería de Sistemas y Computación** de la **Universidad de Cundinamarca, Seccional Ubaté**.
 
 ### 1.1. Propósito
 El objetivo primordial de esta guía es orientar al usuario final (paciente, familiar o cuidador asistencial) en la correcta operación, parametrización y aprovechamiento de todas las funcionalidades ofrecidas por el aplicativo móvil. La plataforma ha sido diseñada con un enfoque centrado en la accesibilidad, la usabilidad y la confiabilidad, garantizando que personas de diversos grupos etarios puedan gestionar sus tratamientos médicos con total autonomía y precisión.
@@ -378,6 +378,8 @@ El seguimiento riguroso del cumplimiento farmacológico es esencial para el éxi
 ### 11.1. Métricas e Indicadores Cuantitativos de Cumplimiento
 En la sección **"Progreso y Reportes"**, el usuario puede visualizar:
 - **Tasa de Adherencia Global:** Porcentaje matemático calculado como el cociente entre el número de dosis tomadas y el total de dosis programadas multiplicado por cien.
+- **Celebración de Rachas Duolingo-Style (`StreakCelebrationSheet`):** Al presionar la tarjeta de racha activa en días consecutivos, se despliega una hoja interactiva de celebración con física spring, retroalimentación háptica táctil y desglose de cumplimiento de cada fármaco para motivar la constancia del paciente.
+- **Tarjetas Desplegables de Tratamiento (`TreatmentAccordionCard`):** Cada medicamento cuenta con una tarjeta táctil interactiva (`_PressableScale`) que incorpora una barra de progreso segmentada multi-estado, desglosando visualmente dosis tomadas (verde esmeralda), omitidas (rojo carmesí), notificadas pendientes (ámbar) y aplazadas (naranja).
 - **Gráficos interactivos:** Gráficos de anillo y barras de cumplimiento temporal (`fl_chart`), con desglose específico por cada fármaco prescrito.
 
 ### 11.2. Generación y Exportación del Informe Clínico Oficial en PDF

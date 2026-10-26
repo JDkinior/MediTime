@@ -10,7 +10,7 @@ MediTime es una aplicación móvil multiplataforma desarrollada con Flutter, dis
 
 La aplicación utiliza Firebase como backend para ofrecer una experiencia de usuario fluida y sincronizada en tiempo real, desde la autenticación hasta el almacenamiento seguro de tus datos de salud, siguiendo una arquitectura de software limpia y escalable.
 
-**Versión actual:** 2.36.0
+**Versión actual:** 2.37.0
 
 ## 🔥 Características Principales
 
@@ -501,42 +501,39 @@ Agradecimientos especiales a la **Universidad de Cundinamarca**, seccional Ubat�
 
 ---
 
-**MediTime v2.36.0** - Tu salud, nuestra prioridad 💊✨
+**MediTime v2.37.0** - Tu salud, nuestra prioridad 💊✨
 
-### 🆕 Novedades en v2.36.0
+### 🆕 Novedades en v2.37.0
 
-#### 🏗️ Auditoría Arquitectónica y Modularización Profunda
-- **Modularización del Asistente Chat (`lib/widgets/chat/`):** Desacoplamiento de `ChatBotScreen` en componentes reutilizables y comprobables: `ChatBubble`, `AdherenceChartCard`, `PrescriptionFormCard`, `AnimatedTypingDots` y utilidades en `ChatHelpers`.
-- **Modularización de Reportes y Gráficas (`lib/widgets/reports/`):** Extracción de hojas de detalle modal `EvolutionDetailsSheet`, `FullHistorySheet`, `OmissionAnalysisSheet` y renderizado vectorial de adherencia con `MultiSegmentRingPainter`.
-- **Modularización de Recetas y Medicación (`lib/widgets/medication/`):** Nuevos componentes `RecetaSummaryCard`, `WavePainter` y widget vectorial `PillIcon`.
+#### 🪟 Diseño Transmateria y Frosted Glass (`FrostedGlassBottomSheet`)
+- **Hojas Modales con Desenfoque Gaussiano:** Implementación de `FrostedGlassBottomSheet` con desenfoque de 20px (`BackdropFilter`), gradiente translúcido adaptativo para modo claro y oscuro y micro-bordes suaves.
+- **Despliegue Universal:** Integrado en hojas de opciones de calendario, reprogramación de dosis, selector de recetas y reportes analíticos con atenuación de fondo (`barrierColor`).
+- **Diálogo de Interacciones Farmacológicas Estilizado:** `DrugInteractionDialog` modernizado con estética de cristal, desenfoque de fondo y paleta ámbar de alto contraste.
 
-#### ✏️ Edición Integral de Tratamientos (`EditarTratamientoPage`)
-- **Editor en Pantalla Única:** Pantalla dedicada e intuitiva con lista interactiva de dosis, ajuste dinámico de frecuencias, horarios y especificaciones del medicamento, accesible directamente desde el AppBar de `DetalleRecetaPage`.
+#### 📱 Navegación Fluida Samsung One UI & Apple (`ModernAppBar`)
+- **Encapsulamiento Flotante en Scroll (`encapsulateOnScroll`):** Al desplazar las listas verticalmente, el título se disuelve gradualmente (`opacity -> 0`) y los botones de menú y acciones se encapsulan en cápsulas flotantes circulares estilizadas con sombras suaves y fondos translúcidos.
+- **Modo Translúcido Esmerilado (`useGlass`):** Integración nativa de cristal esmerilado en barras superiores con cálculo reactivo de altura de barra de estado.
 
-#### ⚡ Animaciones de Alto Rendimiento a 120 FPS (`ContainerTransformCard`)
-- **Transiciones GPU Nativas:** Implementación de `ContainerTransformCard` con escalado de matriz GPU sin recalcular layout en vuelo, aislamiento de capas con `RepaintBoundary` y precalentamiento `Offstage`, eliminando jank y congelamientos visuales.
+#### 🔥 Celebración de Racha Estilo Gamificación (`StreakCelebrationSheet`)
+- **Hoja Modal de Logros Duolingo-Style:** Visualización inmersiva de días consecutivos de adherencia con animaciones físicas tipo spring (`Curves.easeOutBack`), retroalimentación háptica táctil y desglose de cumplimiento por tratamiento.
+- **Micro-Interacciones Táctiles (`_PressableScale`):** Retroalimentación de escala física al pulsar tarjetas de tratamiento y botones de acción.
 
-#### 🗓️ Control Táctil y Expansión Fluida del Calendario (`CalendarExpandHandle`)
-- **Arrastre Continuo y Snap Adaptativo:** Manejador táctil para alternar fluidamente entre vistas semanal, quincenal y mensual siguiendo la posición del dedo sin saltos bruscos.
-- **Correcciones de Usabilidad:** Resolución de sobreextensión de mes, navegación horizontal fluida y saltos de fecha no deseados.
+#### 📊 Refinamiento de Acordeones de Tratamiento (`TreatmentAccordionCard`)
+- **Barra de Progreso Segmentada Multi-Estado:** Indicador visual continuo con desglose dinámico proporcional de tomas cumplidas (verde), omitidas (rojo), notificadas (ámbar) y aplazadas (naranja).
+- **Insignias Dinámicas de Nivel:** Etiquetas de adherencia con gradientes cromáticos y metadatos de posología e intervalos horarios.
 
-#### 💊 Rediseño de Línea de Tiempo y Presentaciones Farmacéuticas
-- **Tarjetas de Tomas en Dos Columnas:** Estructura visual dividida con iconografía adaptativa (`PillIcon`) según presentación (tabletas, jarabes, gotas, sobres, etc.).
-- **Botones Flotantes y Difuminados:** Acciones flotantes estilizadas en tomas notificadas con gradiente inferior y contraste refinado.
-- **Estandarización de Fechas y Horas:** Formato horario AM/PM / a.m./p.m. y fechas de 2 dígitos por día y mes adaptadas al idioma activo.
-
-#### 🌐 Idiomas Nativos e Integración Continua (CI/CD)
-- **Selector de Idiomas:** Nombres de idiomas en su grafía nativa (Español, English, Português) para evitar ambigüedades.
-- **Pipeline Automatizado GitHub Actions:** Integración de `.github/workflows/flutter_ci.yml` para validación continua de análisis estático y pruebas en cada commit.
-- **Cobertura de Pruebas Expandida:** Incremento de la suite automatizada a **194 pruebas unitarias y de widgets** con 0 advertencias en `flutter analyze`.
+#### 🎓 Entrega Institucional Oficial (C3 2026)
+- **Sustentación de Proyecto de Grado:** Incorporación de diapositivas oficiales en PowerPoint (`.pptx`) y PDF (`.pdf`), guía metodológica de defensa (`guia_sustentacion_meditime_ix.md`) y script generador automatizado.
+- **Cobertura de Pruebas Automatizadas:** Incremento de la suite a **205 pruebas unitarias y de widgets** con 0 advertencias en `flutter analyze`.
 
 ---
 
 ### 📋 Historial de Versiones Anteriores
 
 <details>
-<summary><b>v2.26.5 - v2.35.0</b> (Click para desplegar)</summary>
+<summary><b>v2.26.5 - v2.36.0</b> (Click para desplegar)</summary>
 
+- **v2.36.0:** Modularización profunda de chat, reportes y recetas, editor integral en pantalla única (EditarTratamientoPage), transiciones GPU 120 FPS (ContainerTransformCard), manejador de calendario (CalendarExpandHandle), formato horario AM/PM y pipeline CI/CD en GitHub Actions.
 - **v2.35.0:** Asistente Midi multiperfil con cuotas diarias (AiQuotaService), renderizado Markdown enriquecido (MarkdownMessageBody), repositorio legal de privacidad y consentimiento informado (LegalContent, LegalDocumentPage) y resiliencia en alarmas nativas.
 - **v2.34.0:** Componentes ModernAppBar y ModernContentFade con difuminados continuos al hacer scroll, anulación de entintado forzado de Material 3 y modernización homogénea en más de 25 pantallas.
 - **v2.33.0:** Identificador com.meditime.app, eliminación definitiva de cuenta para Google Play, protección anti-screenshot (FLAG_SECURE), ProGuard/R8, selector avanzado de tonos y alarmas nativas, soporte trilingüe completo (portugués, inglés, español) e inventario opcional.
