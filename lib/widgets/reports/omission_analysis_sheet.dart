@@ -1,3 +1,6 @@
+import 'dart:ui';
+import 'package:provider/provider.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 // lib/widgets/reports/omission_analysis_sheet.dart
 import 'package:flutter/material.dart';
 import 'package:meditime/models/tratamiento.dart';
@@ -17,6 +20,7 @@ class OmissionAnalysisSheet extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (ctx) => OmissionAnalysisSheet(tratamientos: tratamientos),
     );
   }
@@ -151,20 +155,55 @@ class OmissionAnalysisSheet extends StatelessWidget {
         medicationOmissions.entries.toList()
           ..sort((a, b) => b.value.compareTo(a.value));
 
+    PreferenceNotifier? pref;
+    try {
+      pref = context.watch<PreferenceNotifier>();
+    } catch (_) {}
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isModern = pref?.interfaceStyle == 'modern' || pref == null;
+    final highContrast = pref?.highContrast ?? false;
+    final useGlass = isModern && !highContrast;
+
     return DraggableScrollableSheet(
       initialChildSize: 0.80,
       maxChildSize: 0.95,
       minChildSize: 0.4,
       builder:
-          (ctx, scrollController) => Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
-              ),
+          (ctx, scrollController) => ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(28),
+              topRight: Radius.circular(28),
             ),
-            child: ListView(
+            child: BackdropFilter(
+              filter: useGlass
+                  ? ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0)
+                  : ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: useGlass
+                      ? (isDark
+                          ? Theme.of(context).cardColor.withValues(alpha: 0.78)
+                          : Colors.white.withValues(alpha: 0.85))
+                      : Theme.of(context).cardColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(28),
+                    topRight: Radius.circular(28),
+                  ),
+                  border: Border.all(
+                    color: useGlass
+                        ? (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.12 : 0.08)
+                        : ((pref?.showCardBorder ?? false) || highContrast ? AppTheme.borderColor : Colors.transparent),
+                    width: 1.0,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.40 : 0.10),
+                      blurRadius: 24,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: ListView(
               controller: scrollController,
               padding: const EdgeInsets.all(20),
               children: [
@@ -355,6 +394,8 @@ class OmissionAnalysisSheet extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
     );
   }
 }

@@ -61,16 +61,16 @@ class PdfReportService {
           children: [
             pw.Image(logo, width: 40),
             pw.SizedBox(width: 10),
-            pw.Text("MediTime", style: pw.TextStyle(font: font, fontSize: 24, color: PdfColors.blueGrey800)),
+            pw.Text("MediTime", style: pw.TextStyle(font: font, fontSize: 24, color: PdfColors.blue800)),
           ]
         ),
-        pw.Text("Reporte de Adherencia", style: pw.TextStyle(font: font, fontSize: 16)),
+        pw.Text("Reporte de Adherencia", style: pw.TextStyle(font: font, fontSize: 16, color: PdfColors.blue700)),
       ],
     );
   }
 
   pw.Widget _buildTitle(String intervalText, pw.Font boldFont) {
-    return pw.Text("Periodo del Reporte: $intervalText", style: pw.TextStyle(font: boldFont, fontSize: 20));
+    return pw.Text("Periodo del Reporte: $intervalText", style: pw.TextStyle(font: boldFont, fontSize: 18, color: PdfColors.blueGrey900));
   }
   
   pw.Widget _buildSummaryCard(int tomadas, int omitidas, int notificadas, int aplazadas, Uint8List chartImage, pw.Font font, pw.Font boldFont) {
@@ -80,15 +80,16 @@ class PdfReportService {
     return pw.Container(
       padding: const pw.EdgeInsets.all(16),
       decoration: pw.BoxDecoration(
-        color: PdfColors.grey200,
+        color: PdfColors.blue50,
         borderRadius: pw.BorderRadius.circular(10),
+        border: pw.Border.all(color: PdfColors.blue200, width: 1),
       ),
       child: pw.Row(
         children: [
           pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text("Tasa de Adherencia", style: pw.TextStyle(font: boldFont, fontSize: 16)),
+              pw.Text("Tasa de Adherencia", style: pw.TextStyle(font: boldFont, fontSize: 16, color: PdfColors.blue900)),
               pw.Text("${adherencia.toStringAsFixed(1)}%", style: pw.TextStyle(font: boldFont, fontSize: 40, color: PdfColors.blue800)),
               pw.SizedBox(height: 10),
               pw.Text("Dosis Tomadas: $tomadas", style: pw.TextStyle(font: font)),
@@ -120,7 +121,7 @@ class PdfReportService {
       headers: headers,
       data: data,
       headerStyle: pw.TextStyle(font: boldFont, color: PdfColors.white),
-      headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey),
+      headerDecoration: const pw.BoxDecoration(color: PdfColors.blue700),
       cellStyle: pw.TextStyle(font: font),
       cellAlignments: {
         0: pw.Alignment.centerLeft,

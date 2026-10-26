@@ -1,3 +1,4 @@
+import 'package:meditime/widgets/frosted_glass_bottom_sheet.dart';
 // lib/screens/medication/receta_page.dart
 import 'package:meditime/widgets/medication/receta_summary_card.dart';
 import 'package:flutter/foundation.dart' show kReleaseMode;
@@ -316,12 +317,10 @@ class _RecetaPageState extends State<RecetaPage>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (BuildContext sheetCtx) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(sheetCtx).cardColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
+        final isDark = Theme.of(sheetCtx).brightness == Brightness.dark;
+        return FrostedGlassBottomSheet(
           padding: EdgeInsets.only(
             top: 8,
             left: 20,
@@ -490,12 +489,14 @@ class _RecetaPageState extends State<RecetaPage>
 
               // Section 2: Quick Adjustments Group
               Material(
-                color: AppTheme.surfaceColor,
+                color: isDark ? AppTheme.surfaceColor : const Color(0xFFF4F6F9),
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.borderColor),
+                    border: Border.all(
+                      color: isDark ? AppTheme.borderColor : const Color(0xFFE5E9F0),
+                    ),
                   ),
                   child: Column(
                     children: [
@@ -505,9 +506,9 @@ class _RecetaPageState extends State<RecetaPage>
                           vertical: 4,
                         ),
                         leading: CircleAvatar(
-                          backgroundColor: AppTheme.errorColor.withValues(
-                            alpha: 0.1,
-                          ),
+                          backgroundColor: isDark
+                              ? AppTheme.errorColor.withValues(alpha: 0.1)
+                              : const Color(0xFFE8ECF2),
                           child: const Icon(
                             Icons.close,
                             color: AppTheme.errorColor,
@@ -557,14 +558,19 @@ class _RecetaPageState extends State<RecetaPage>
                           );
                         },
                       ),
-                      Divider(height: 1, color: AppTheme.borderColor),
+                      Divider(
+                        height: 1,
+                        color: isDark ? AppTheme.borderColor : const Color(0xFFEAECEF),
+                      ),
                       ListTile(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 4,
                         ),
                         leading: CircleAvatar(
-                          backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                          backgroundColor: isDark
+                              ? Colors.orange.withValues(alpha: 0.1)
+                              : const Color(0xFFE8ECF2),
                           child: const Icon(
                             Icons.snooze,
                             color: Colors.orange,
@@ -591,14 +597,9 @@ class _RecetaPageState extends State<RecetaPage>
                           final minutes = await showModalBottomSheet<int>(
                             context: context,
                             backgroundColor: Colors.transparent,
+                            barrierColor: Colors.black.withValues(alpha: 0.35),
                             builder:
-                                (ctx) => Container(
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(ctx).cardColor,
-                                    borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(24),
-                                    ),
-                                  ),
+                                (ctx) => FrostedGlassBottomSheet(
                                   padding: const EdgeInsets.all(20),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
@@ -713,16 +714,19 @@ class _RecetaPageState extends State<RecetaPage>
                           }
                         },
                       ),
-                      Divider(height: 1, color: AppTheme.borderColor),
+                      Divider(
+                        height: 1,
+                        color: isDark ? AppTheme.borderColor : const Color(0xFFEAECEF),
+                      ),
                       ListTile(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 4,
                         ),
                         leading: CircleAvatar(
-                          backgroundColor: AppTheme.primaryColor.withValues(
-                            alpha: 0.1,
-                          ),
+                          backgroundColor: isDark
+                              ? AppTheme.primaryColor.withValues(alpha: 0.1)
+                              : const Color(0xFFE8ECF2),
                           child: Icon(
                             Icons.edit_outlined,
                             color: AppTheme.primaryColor,
@@ -879,14 +883,9 @@ class _RecetaPageState extends State<RecetaPage>
     final option = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
       builder:
-          (BuildContext sheetCtx) => Container(
-            decoration: BoxDecoration(
-              color: Theme.of(sheetCtx).cardColor,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(24),
-              ),
-            ),
+          (BuildContext sheetCtx) => FrostedGlassBottomSheet(
             padding: EdgeInsets.only(
               top: 12,
               left: 20,
@@ -1118,6 +1117,7 @@ class _RecetaPageState extends State<RecetaPage>
               isAnimalMode: isAnimal,
             )
             : null;
+    final hasManagedBanner = isManagedMode && (caregiverNotifier.isGeneralMode || activeProfile != null);
     final l10n = AppLocalizations.of(context);
 
     if (user == null) {
@@ -1145,9 +1145,7 @@ class _RecetaPageState extends State<RecetaPage>
             ? (rawDate.substring(0, 1).toUpperCase() + rawDate.substring(1))
             : rawDate;
 
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      body: StreamBuilder<List<Tratamiento>>(
+    final content = StreamBuilder<List<Tratamiento>>(
         initialData: firestoreService.getCachedMedicamentos(
           user.uid,
           activeProfile,
@@ -1288,14 +1286,14 @@ class _RecetaPageState extends State<RecetaPage>
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.secondaryTextColor,
+                      color: AppTheme.primaryTextColor,
                     ),
                   ),
                   const SizedBox(width: 6),
                   Icon(
                     Icons.calendar_today_outlined,
                     size: 14,
-                    color: AppTheme.secondaryTextColor,
+                    color: AppTheme.primaryColor,
                   ),
                 ],
               ),
@@ -1353,13 +1351,22 @@ class _RecetaPageState extends State<RecetaPage>
             l10n: l10n,
           );
 
+          final double totalAppBarPadding = MediaQuery.paddingOf(context).top;
+          final double rawStatusBarHeight =
+              (totalAppBarPadding - kToolbarHeight).clamp(0.0, 60.0);
+          final double topListPadding = isModern
+              ? (hasManagedBanner
+                  ? 16.0
+                  : (totalAppBarPadding + 14.0))
+              : 16.0;
+
           return ModernContentFade(
-            height: 28,
+            height: rawStatusBarHeight > 0 ? (rawStatusBarHeight + 6.0) : 28.0,
             child: ListView(
               padding: EdgeInsets.only(
                 left: 20.0,
                 right: 20.0,
-                top: 16.0,
+                top: topListPadding,
                 bottom: isModern ? 100.0 : 16.0,
               ),
               children: [
@@ -1487,8 +1494,15 @@ class _RecetaPageState extends State<RecetaPage>
             ),
           );
         },
-      ),
-      floatingActionButton: isModern ? null : _buildFab(context),
+      );
+
+    if (isModern) {
+      return content;
+    }
+
+    return Scaffold(
+      body: content,
+      floatingActionButton: _buildFab(context),
     );
   }
 

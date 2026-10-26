@@ -1,3 +1,4 @@
+import 'package:meditime/widgets/frosted_glass_bottom_sheet.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:meditime/models/tratamiento.dart';
@@ -697,12 +698,10 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (BuildContext sheetCtx) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(sheetCtx).cardColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
+        final isDark = Theme.of(sheetCtx).brightness == Brightness.dark;
+        return FrostedGlassBottomSheet(
           padding: EdgeInsets.only(
             top: 8,
             left: 20,
@@ -864,12 +863,14 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
 
               // Section 2: Quick Adjustments Group
               Material(
-                color: AppTheme.surfaceColor,
+                color: isDark ? AppTheme.surfaceColor : const Color(0xFFF4F6F9),
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.borderColor),
+                    border: Border.all(
+                      color: isDark ? AppTheme.borderColor : const Color(0xFFE5E9F0),
+                    ),
                   ),
                   child: Column(
                     children: [
@@ -879,9 +880,9 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
                           vertical: 4,
                         ),
                         leading: CircleAvatar(
-                          backgroundColor: AppTheme.errorColor.withValues(
-                            alpha: 0.1,
-                          ),
+                          backgroundColor: isDark
+                              ? AppTheme.errorColor.withValues(alpha: 0.1)
+                              : const Color(0xFFE8ECF2),
                           child: const Icon(
                             Icons.close,
                             color: AppTheme.errorColor,
@@ -927,14 +928,19 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
                           );
                         },
                       ),
-                      Divider(height: 1, color: AppTheme.borderColor),
+                      Divider(
+                        height: 1,
+                        color: isDark ? AppTheme.borderColor : const Color(0xFFEAECEF),
+                      ),
                       ListTile(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 4,
                         ),
                         leading: CircleAvatar(
-                          backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                          backgroundColor: isDark
+                              ? Colors.orange.withValues(alpha: 0.1)
+                              : const Color(0xFFE8ECF2),
                           child: const Icon(
                             Icons.snooze,
                             color: Colors.orange,
@@ -960,14 +966,9 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
                           final minutes = await showModalBottomSheet<int>(
                             context: context,
                             backgroundColor: Colors.transparent,
+                            barrierColor: Colors.black.withValues(alpha: 0.35),
                             builder:
-                                (ctx) => Container(
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(ctx).cardColor,
-                                    borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(24),
-                                    ),
-                                  ),
+                                (ctx) => FrostedGlassBottomSheet(
                                   padding: const EdgeInsets.all(20),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
@@ -1061,16 +1062,19 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
                           }
                         },
                       ),
-                      Divider(height: 1, color: AppTheme.borderColor),
+                      Divider(
+                        height: 1,
+                        color: isDark ? AppTheme.borderColor : const Color(0xFFEAECEF),
+                      ),
                       ListTile(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 4,
                         ),
                         leading: CircleAvatar(
-                          backgroundColor: AppTheme.primaryColor.withValues(
-                            alpha: 0.1,
-                          ),
+                          backgroundColor: isDark
+                              ? AppTheme.primaryColor.withValues(alpha: 0.1)
+                              : const Color(0xFFE8ECF2),
                           child: Icon(
                             Icons.edit_outlined,
                             color: AppTheme.primaryColor,
@@ -1216,14 +1220,9 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
     final option = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
       builder:
-          (BuildContext sheetCtx) => Container(
-            decoration: BoxDecoration(
-              color: Theme.of(sheetCtx).cardColor,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(24),
-              ),
-            ),
+          (BuildContext sheetCtx) => FrostedGlassBottomSheet(
             padding: EdgeInsets.only(
               top: 12,
               left: 20,
@@ -1675,6 +1674,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
           final dosesForDay = _getGroupedDosesForDay(day);
           if (dosesForDay.isEmpty) return null;
           final dayColor = _determineDayColor(dosesForDay);
+          final isHighContrast = context.watch<PreferenceNotifier>().highContrast;
           return AspectRatio(
             aspectRatio: 1.0,
             child: Container(
@@ -1682,10 +1682,9 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
               decoration: BoxDecoration(
                 color: dayColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12.0),
-                border: Border.all(
-                  color: dayColor.withValues(alpha: 0.4),
-                  width: 1.5,
-                ),
+                border: isHighContrast
+                    ? Border.all(color: dayColor, width: 1.5)
+                    : null,
               ),
               child: Center(
                 child: Text(
@@ -1730,19 +1729,31 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
           );
         },
         todayBuilder: (context, day, focusedDay) {
+          final dosesForDay = _getGroupedDosesForDay(day);
+          final dayColor = dosesForDay.isNotEmpty
+              ? _determineDayColor(dosesForDay)
+              : AppTheme.primaryColor;
           return AspectRatio(
             aspectRatio: 1.0,
             child: Container(
               margin: const EdgeInsets.all(5.0),
               decoration: BoxDecoration(
+                color: dosesForDay.isNotEmpty
+                    ? dayColor.withValues(alpha: 0.15)
+                    : null,
                 borderRadius: BorderRadius.circular(12.0),
-                border: Border.all(color: AppTheme.primaryColor, width: 2.0),
+                border: Border.all(
+                  color: dosesForDay.isNotEmpty
+                      ? dayColor.withValues(alpha: 0.5)
+                      : AppTheme.primaryColor,
+                  width: 1.5,
+                ),
               ),
               child: Center(
                 child: Text(
                   '${day.day}',
                   style: TextStyle(
-                    color: AppTheme.primaryColor,
+                    color: dayColor,
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
                   ),

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'dart:async';
 import 'package:meditime/models/chat_message.dart';
 import 'package:meditime/widgets/chat/chat_bubble.dart';
@@ -6,6 +7,7 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -1614,24 +1616,52 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
+    final pref = context.watch<PreferenceNotifier>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isHighContrast = pref.highContrast;
+
+    final cardGradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: isDark
+          ? [
+              Color.alphaBlend(color.withValues(alpha: 0.06), Theme.of(context).cardColor),
+              Color.alphaBlend(color.withValues(alpha: 0.16), Theme.of(context).cardColor),
+            ]
+          : [
+              Color.alphaBlend(color.withValues(alpha: 0.03), Colors.white),
+              Color.alphaBlend(color.withValues(alpha: 0.10), Colors.white),
+            ],
+    );
+
     return Expanded(
-      child: GestureDetector(
+      child: _PressableScale(
         onTap: onTap,
+        scaleFactor: 0.97,
         child: Container(
           margin: const EdgeInsets.all(6),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withValues(alpha: 0.25), width: 1.2),
+            gradient: cardGradient,
+            borderRadius: BorderRadius.circular(18),
+            border: isHighContrast ? Border.all(color: color, width: 1.5) : null,
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.22)
+                    : color.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.08),
+                  color: color.withValues(alpha: isDark ? 0.22 : 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: color, size: 24),
@@ -1645,15 +1675,22 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                   color: AppTheme.primaryTextColor,
                 ),
                 textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
                 style: TextStyle(
                   fontSize: 11,
-                  color: AppTheme.secondaryTextColor,
+                  fontWeight: FontWeight.w600,
+                  color: isDark
+                      ? Color.lerp(color, Colors.white, 0.30)
+                      : Color.lerp(color, AppTheme.primaryTextColor, 0.15),
                 ),
                 textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -1690,9 +1727,16 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
+        color: (prefNotifier.interfaceStyle == 'modern' &&
+                !prefNotifier.highContrast)
+            ? ((Theme.of(context).brightness == Brightness.dark)
+                ? color.withValues(alpha: 0.08)
+                : color.withValues(alpha: 0.06))
+            : color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.15)),
+        border: prefNotifier.highContrast
+            ? Border.all(color: color, width: 1.5)
+            : null,
       ),
       child: Row(
         children: [
@@ -2011,12 +2055,28 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
+                      color: (context.watch<PreferenceNotifier>().interfaceStyle == 'modern' &&
+                              !context.watch<PreferenceNotifier>().highContrast)
+                          ? ((Theme.of(context).brightness == Brightness.dark)
+                              ? Theme.of(context).cardColor.withValues(alpha: 0.68)
+                              : Colors.white.withValues(alpha: 0.82))
+                          : Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(_composerRadius),
-                      border: Border.all(color: _isRecording ? AppTheme.errorColor.withValues(alpha: 0.4) : AppTheme.borderColor),
+                      border: Border.all(
+                        color: _isRecording
+                            ? AppTheme.errorColor.withValues(alpha: 0.4)
+                            : ((context.watch<PreferenceNotifier>().interfaceStyle == 'modern' &&
+                                    !context.watch<PreferenceNotifier>().highContrast)
+                                ? ((Theme.of(context).brightness == Brightness.dark)
+                                    ? Colors.white.withValues(alpha: 0.12)
+                                    : Colors.black.withValues(alpha: 0.08))
+                                : AppTheme.borderColor),
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
+                          color: (Theme.of(context).brightness == Brightness.dark)
+                              ? Colors.black.withValues(alpha: 0.25)
+                              : Colors.black.withValues(alpha: 0.03),
                           blurRadius: 14,
                           offset: const Offset(0, 4),
                         ),
@@ -2024,23 +2084,32 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(_composerRadius),
-                      child: TextField(
-                        controller: _messageController,
-                        minLines: 1,
-                        maxLines: 4,
-                        enabled: !_isRecording,
-                        textCapitalization: TextCapitalization.sentences,
-                        style: TextStyle(color: AppTheme.primaryTextColor),
-                        decoration: InputDecoration(
-                          hintText: _isRecording
-                              ? (l10n?.chatBotListening ?? 'Escuchando...')
-                              : (l10n?.chatBotInputHint ?? 'Pregunta lo que necesitas...'),
-                          hintStyle: TextStyle(
-                            color: _isRecording ? AppTheme.errorColor.withValues(alpha: 0.6) : AppTheme.secondaryTextColor.withValues(alpha: 0.6),
-                            fontSize: 16,
-                          ),
-                          filled: true,
-                          fillColor: Theme.of(context).cardColor,
+                      child: BackdropFilter(
+                        filter: (context.watch<PreferenceNotifier>().interfaceStyle == 'modern' &&
+                                !context.watch<PreferenceNotifier>().highContrast)
+                            ? ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0)
+                            : ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
+                        child: TextField(
+                          controller: _messageController,
+                          minLines: 1,
+                          maxLines: 4,
+                          enabled: !_isRecording,
+                          textCapitalization: TextCapitalization.sentences,
+                          style: TextStyle(color: AppTheme.primaryTextColor),
+                          decoration: InputDecoration(
+                            hintText: _isRecording
+                                ? (l10n?.chatBotListening ?? 'Escuchando...')
+                                : (l10n?.chatBotInputHint ?? 'Pregunta lo que necesitas...'),
+                            hintStyle: TextStyle(
+                              color: _isRecording ? AppTheme.errorColor.withValues(alpha: 0.6) : AppTheme.secondaryTextColor.withValues(alpha: 0.6),
+                              fontSize: 16,
+                            ),
+                            filled: !(context.watch<PreferenceNotifier>().interfaceStyle == 'modern' &&
+                                !context.watch<PreferenceNotifier>().highContrast),
+                            fillColor: (context.watch<PreferenceNotifier>().interfaceStyle == 'modern' &&
+                                    !context.watch<PreferenceNotifier>().highContrast)
+                                ? Colors.transparent
+                                : Theme.of(context).cardColor,
                           prefixIcon: Padding(
                             padding: const EdgeInsets.only(left: 12, right: 8),
                             child: InkWell(
@@ -2067,6 +2136,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                       ),
                     ),
                   ),
+                ),
                 ),
                 const SizedBox(width: 8),
                 AnimatedSwitcher(
@@ -2151,11 +2221,38 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   Widget _buildHistoryDrawer(BuildContext context) {
     final authService = context.watch<AuthService>();
     final firestoreService = context.watch<FirestoreService>();
+    final prefNotifier = context.watch<PreferenceNotifier>();
+    final isModern = prefNotifier.interfaceStyle == 'modern';
+    final highContrast = prefNotifier.highContrast;
+    final useGlass = isModern && !highContrast;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = authService.currentUser;
 
     return Drawer(
-      backgroundColor: AppTheme.backgroundColor,
-      child: Column(
+      backgroundColor: useGlass ? Colors.transparent : AppTheme.backgroundColor,
+      elevation: useGlass ? 0 : 16,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: useGlass
+              ? ImageFilter.blur(sigmaX: 25.0, sigmaY: 25.0)
+              : ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: useGlass
+                  ? (isDark
+                      ? AppTheme.backgroundColor.withValues(alpha: 0.75)
+                      : Colors.white.withValues(alpha: 0.82))
+                  : AppTheme.backgroundColor,
+              border: useGlass
+                  ? Border(
+                      right: BorderSide(
+                        color: (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.12 : 0.08),
+                        width: 1.0,
+                      ),
+                    )
+                  : null,
+            ),
+            child: Column(
         children: [
           DrawerHeader(
             decoration: const BoxDecoration(
@@ -2284,6 +2381,9 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
           ),
         ],
       ),
+    ),
+    ),
+    ),
     );
   }
 
@@ -2425,9 +2525,15 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       drawer: _buildHistoryDrawer(context),
+      drawerScrimColor: (context.watch<PreferenceNotifier>().interfaceStyle == 'modern' &&
+              !context.watch<PreferenceNotifier>().highContrast)
+          ? Colors.black.withValues(alpha: 0.35)
+          : null,
       appBar: ModernAppBar(
+        useGlass: (context.watch<PreferenceNotifier>().interfaceStyle == 'modern' &&
+            !context.watch<PreferenceNotifier>().highContrast),
         child: AppBar(
-          centerTitle: true,
+          centerTitle: false,
           elevation: 0,
           backgroundColor: Colors.transparent,
           foregroundColor: AppTheme.primaryTextColor,
@@ -2523,3 +2629,85 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
 // Typedefs para mantener compatibilidad interna tras modularización
 typedef _ChatMessage = ChatMessage;
 typedef _ChatBubble = ChatBubble;
+
+/// Micro-interacción física táctil (Apple style & Emil Kowalski craft)
+/// Proporciona compresión elástica instantánea al presionar (scale down a 0.97)
+/// y rebote suave con curvas físicas (Curves.easeOutCubic).
+class _PressableScale extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final double scaleFactor;
+
+  const _PressableScale({
+    required this.child,
+    this.onTap,
+    this.scaleFactor = 0.97,
+  });
+
+  @override
+  State<_PressableScale> createState() => _PressableScaleState();
+}
+
+class _PressableScaleState extends State<_PressableScale> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+      reverseDuration: const Duration(milliseconds: 160),
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: widget.scaleFactor,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeOutCubic,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails _) {
+    if (widget.onTap != null) _controller.forward();
+  }
+
+  void _onTapUp(TapUpDetails _) {
+    if (widget.onTap != null) _controller.reverse();
+  }
+
+  void _onTapCancel() {
+    if (widget.onTap != null) _controller.reverse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.onTap == null) return widget.child;
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        widget.onTap?.call();
+      },
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) => Transform.scale(
+          scale: _scaleAnimation.value,
+          child: child,
+        ),
+        child: widget.child,
+      ),
+    );
+  }
+}

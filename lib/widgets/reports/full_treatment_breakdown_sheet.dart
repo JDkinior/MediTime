@@ -1,3 +1,4 @@
+import 'dart:ui';
 // lib/widgets/reports/full_treatment_breakdown_sheet.dart
 import 'package:flutter/material.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
@@ -32,6 +33,7 @@ class FullTreatmentBreakdownSheet extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (ctx) => FullTreatmentBreakdownSheet(
         tratamientos: tratamientos,
         dateRange: dateRange,
@@ -142,8 +144,8 @@ class _FullTreatmentBreakdownSheetState
           borderRadius: BorderRadius.circular(12),
           border: showBorder
               ? Border.all(
-                  color: isSelected ? color : color.withValues(alpha: 0.25),
-                  width: isSelected ? 1.5 : 1,
+                  color: isSelected ? Colors.transparent : color.withValues(alpha: 0.25),
+                  width: 1,
                 )
               : null,
         ),
@@ -189,6 +191,10 @@ class _FullTreatmentBreakdownSheetState
     final l10n = AppLocalizations.of(context);
     final pref = context.watch<PreferenceNotifier>();
     final showBorder = pref.showCardBorder || pref.highContrast;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isModern = pref.interfaceStyle == 'modern';
+    final highContrast = pref.highContrast;
+    final useGlass = isModern && !highContrast;
 
     // Precalcular estadísticas y porcentajes para todos los tratamientos
     final Map<String, Map<String, int>> statsMap = {};
@@ -237,28 +243,53 @@ class _FullTreatmentBreakdownSheetState
       maxChildSize: 0.95,
       minChildSize: 0.5,
       builder:
-          (ctx, scrollController) => Container(
-            decoration: BoxDecoration(
-              color: AppTheme.backgroundColor,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
-              ),
-              border: showBorder ? Border.all(color: AppTheme.borderColor) : null,
+          (ctx, scrollController) => ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(28),
+              topRight: Radius.circular(28),
             ),
-            child: Column(
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(top: 12, bottom: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+            child: BackdropFilter(
+              filter: useGlass
+                  ? ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0)
+                  : ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: useGlass
+                      ? (isDark
+                          ? AppTheme.backgroundColor.withValues(alpha: 0.78)
+                          : Colors.white.withValues(alpha: 0.85))
+                      : AppTheme.backgroundColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(28),
+                    topRight: Radius.circular(28),
                   ),
+                  border: Border.all(
+                    color: (useGlass
+                        ? (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.12 : 0.08)
+                        : (showBorder ? AppTheme.borderColor : Colors.transparent)),
+                    width: 1.0,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.40 : 0.10),
+                      blurRadius: 24,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
                 ),
+                child: Column(
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(top: 12, bottom: 8),
+                        decoration: BoxDecoration(
+                          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.20),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
@@ -472,6 +503,8 @@ class _FullTreatmentBreakdownSheetState
               ],
             ),
           ),
+        ),
+      ),
     );
   }
 }

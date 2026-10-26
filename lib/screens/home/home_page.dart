@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:showcaseview/showcaseview.dart';
@@ -221,9 +222,9 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final List<String> titles = [
-      l10n?.appBarMedications ?? 'Medicamentos',
+      l10n?.appTitle ?? 'MediTime',
       l10n?.appBarCalendar ?? 'Calendario',
-      l10n?.appBarProgress ?? 'Mi Progreso',
+      l10n?.navProgress ?? 'Progreso',
     ];
 
     return ShowCaseWidget(
@@ -280,7 +281,9 @@ class _HomePageState extends State<HomePage> {
         return Scaffold(
           extendBody: isModern,
           extendBodyBehindAppBar: isModern,
+          drawerScrimColor: isModern ? Colors.black.withValues(alpha: 0.35) : null,
           appBar: ModernAppBar(
+            encapsulateOnScroll: true,
             child: AppBar(
             centerTitle: true,
             title: isManagedModeActive
@@ -361,8 +364,9 @@ class _HomePageState extends State<HomePage> {
                         titles[currentIndex],
                         style: TextStyle(
                           color: AppTheme.primaryTextColor,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: currentIndex == 0 ? FontWeight.w800 : FontWeight.bold,
                           fontSize: 20,
+                          letterSpacing: currentIndex == 0 ? -0.4 : -0.2,
                         ),
                       );
                     },
@@ -467,18 +471,20 @@ class _HomePageState extends State<HomePage> {
                         }
                       },
                       children: [
-                        Padding(
-                          padding: EdgeInsets.only(
-                            top: (isModern && !hasManagedBanner) ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0,
-                          ),
-                          child: (isManagedModeActive && caregiverNotifier.isGeneralMode)
-                              ? const GeneralCaregiverPage()
-                              : RecetaPage(
-                                  fabKey: isModern ? null : _classicFabKey,
-                                  summaryKey: _summaryKey,
-                                  dateKey: _dateKey,
+                        (isManagedModeActive && caregiverNotifier.isGeneralMode)
+                            ? Padding(
+                                padding: EdgeInsets.only(
+                                  top: (isModern && !hasManagedBanner)
+                                      ? (MediaQuery.paddingOf(context).top + kToolbarHeight)
+                                      : 0,
                                 ),
-                        ),
+                                child: const GeneralCaregiverPage(),
+                              )
+                            : RecetaPage(
+                                fabKey: isModern ? null : _classicFabKey,
+                                summaryKey: _summaryKey,
+                                dateKey: _dateKey,
+                              ),
                         Padding(
                           padding: EdgeInsets.only(
                             top: (isModern && !hasManagedBanner) ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0,
@@ -507,7 +513,7 @@ class _HomePageState extends State<HomePage> {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  height: 160,
+                  height: 135,
                   child: IgnorePointer(
                     child: Container(
                       decoration: BoxDecoration(
@@ -515,12 +521,13 @@ class _HomePageState extends State<HomePage> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            AppTheme.backgroundColor.withValues(alpha: 0.0),
-                            AppTheme.backgroundColor.withValues(alpha: 0.35),
-                            AppTheme.backgroundColor.withValues(alpha: 0.8),
-                            AppTheme.backgroundColor.withValues(alpha: 0.98),
+                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.0),
+                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.10),
+                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.30),
+                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.65),
+                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.90),
                           ],
-                          stops: const [0.0, 0.35, 0.7, 1.0],
+                          stops: const [0.0, 0.25, 0.55, 0.80, 1.0],
                         ),
                       ),
                     ),
@@ -555,30 +562,63 @@ class _HomePageState extends State<HomePage> {
                             targetPadding: EdgeInsets.zero,
                             child: Container(
                               height: 64,
-                              decoration: BoxDecoration(color: Theme.of(context).cardColor,
+                              decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(24),
-                                border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-                                    ? Border.all(color: AppTheme.borderColor, width: 1)
-                                    : null,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: isDark
-                                        ? Colors.black.withValues(alpha: 0.45)
-                                        : Colors.black.withValues(alpha: 0.04),
-                                    blurRadius: isDark ? 16 : 10,
-                                    offset: const Offset(0, -3),
-                                  ),
-                                  if (!isDark)
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.02),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                ],
+                                boxShadow: isDark
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.70),
+                                          blurRadius: 28,
+                                          spreadRadius: 2,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.55),
+                                          blurRadius: 16,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                      ]
+                                    : [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.10),
+                                          blurRadius: 24,
+                                          spreadRadius: 1,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.08),
+                                          blurRadius: 14,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.04),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(24),
-                                child: ValueListenableBuilder<int>(
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: (context.watch<PreferenceNotifier>().highContrast)
+                                          ? Theme.of(context).cardColor
+                                          : (isDark
+                                              ? Theme.of(context).cardColor.withValues(alpha: 0.55)
+                                              : Colors.white.withValues(alpha: 0.62)),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                                          ? Border.all(color: AppTheme.borderColor, width: 1)
+                                          : Border.all(
+                                              color: isDark
+                                                  ? Colors.white.withValues(alpha: 0.12)
+                                                  : Colors.white.withValues(alpha: 0.45),
+                                              width: 1,
+                                            ),
+                                    ),
+                                    child: ValueListenableBuilder<int>(
                                   valueListenable: _currentIndexNotifier,
                                   builder: (context, currentIndex, _) {
                                     return BottomNavigationBar(
@@ -590,57 +630,81 @@ class _HomePageState extends State<HomePage> {
                                       backgroundColor: Colors.transparent,
                                       elevation: 0,
                                       type: BottomNavigationBarType.fixed,
+                                      showSelectedLabels: true,
+                                      showUnselectedLabels: true,
+                                      selectedFontSize: 11.5,
+                                      unselectedFontSize: 11.5,
+                                      selectedLabelStyle: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 11.5,
+                                      ),
+                                      unselectedLabelStyle: const TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 11.5,
+                                      ),
+                                      iconSize: 24,
                                       items: [
-                                        BottomNavigationBarItem(
-                                          icon: const Icon(Icons.medication_rounded),
-                                          label: l10n?.navPrescription ?? 'Receta',
-                                        ),
-                                        BottomNavigationBarItem(
-                                          icon: Showcase.withWidget(
-                                            key: _calendarKey,
-                                            height: 160,
-                                            width: 320,
-                                            disableDefaultTargetGestures: true,
-                                            container: TutorialTooltip(
-                                              icon: Icons.calendar_month_rounded,
-                                              title: l10n?.tutorialStep6Title ?? 'Pestaña Calendario',
-                                              description: l10n?.tutorialStep6Desc ?? 'Accede al Calendario interactivo para ver tu historial de tomas organizado día por día.',
-                                              stepNumber: 6,
-                                              totalSteps: 11,
-                                            ),
-                                            targetShapeBorder: const CircleBorder(),
-                                            targetPadding: const EdgeInsets.all(4),
-                                            child: const Icon(Icons.calendar_today),
+                                          BottomNavigationBarItem(
+                                            icon: const Icon(Icons.medication_outlined),
+                                            activeIcon: const Icon(Icons.medication_rounded),
+                                            label: l10n?.navPrescription ?? 'Receta',
                                           ),
-                                          label: l10n?.navCalendar ?? 'Calendario',
-                                        ),
-                                        BottomNavigationBarItem(
-                                          icon: Showcase.withWidget(
-                                            key: _progressKey,
-                                            height: 160,
-                                            width: 320,
-                                            disableDefaultTargetGestures: true,
-                                            container: TutorialTooltip(
-                                              icon: Icons.bar_chart_rounded,
-                                              title: l10n?.tutorialStep8Title ?? 'Pestaña Mi Progreso',
-                                              description: l10n?.tutorialStep8Desc ?? 'Accede a la pestaña Progreso para analizar tus estadísticas de salud, cumplimiento acumulado y rachas.',
-                                              stepNumber: 8,
-                                              totalSteps: 11,
+                                          BottomNavigationBarItem(
+                                            icon: Showcase.withWidget(
+                                              key: _calendarKey,
+                                              height: 160,
+                                              width: 320,
+                                              disableDefaultTargetGestures: true,
+                                              container: TutorialTooltip(
+                                                icon: Icons.calendar_month_rounded,
+                                                title: l10n?.tutorialStep6Title ?? 'Pestaña Calendario',
+                                                description: l10n?.tutorialStep6Desc ?? 'Accede al Calendario interactivo para ver tu historial de tomas organizado día por día.',
+                                                stepNumber: 6,
+                                                totalSteps: 11,
+                                              ),
+                                              targetShapeBorder: const CircleBorder(),
+                                              targetPadding: const EdgeInsets.all(4),
+                                              child: Icon(
+                                                currentIndex == 1
+                                                    ? Icons.calendar_today
+                                                    : Icons.calendar_today_outlined,
+                                              ),
                                             ),
-                                            targetShapeBorder: const CircleBorder(),
-                                            targetPadding: const EdgeInsets.all(4),
-                                            child: const Icon(Icons.bar_chart_rounded),
+                                            label: l10n?.navCalendar ?? 'Calendario',
                                           ),
-                                          label: l10n?.navProgress ?? 'Progreso',
-                                        ),
-                                      ],
-                                    );
-                                  },
+                                          BottomNavigationBarItem(
+                                            icon: Showcase.withWidget(
+                                              key: _progressKey,
+                                              height: 160,
+                                              width: 320,
+                                              disableDefaultTargetGestures: true,
+                                              container: TutorialTooltip(
+                                                icon: Icons.bar_chart_rounded,
+                                                title: l10n?.tutorialStep8Title ?? 'Pestaña Mi Progreso',
+                                                description: l10n?.tutorialStep8Desc ?? 'Accede a la pestaña Progreso para analizar tus estadísticas de salud, cumplimiento acumulado y rachas.',
+                                                stepNumber: 8,
+                                                totalSteps: 11,
+                                              ),
+                                              targetShapeBorder: const CircleBorder(),
+                                              targetPadding: const EdgeInsets.all(4),
+                                              child: Icon(
+                                                currentIndex == 2
+                                                    ? Icons.bar_chart_rounded
+                                                    : Icons.bar_chart_outlined,
+                                              ),
+                                            ),
+                                            label: l10n?.navProgress ?? 'Progreso',
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
+                      ),
                         const SizedBox(width: 12),
                         // Right: Modern FAB
                         Showcase.withWidget(
@@ -679,9 +743,16 @@ class _HomePageState extends State<HomePage> {
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                                    color: isDark
+                                        ? Colors.black.withValues(alpha: 0.50)
+                                        : AppTheme.primaryColor.withValues(alpha: 0.28),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                  BoxShadow(
+                                    color: AppTheme.primaryColor.withValues(alpha: isDark ? 0.40 : 0.25),
                                     blurRadius: 8,
-                                    offset: const Offset(0, 4),
+                                    offset: const Offset(0, 3),
                                   ),
                                 ],
                               ),

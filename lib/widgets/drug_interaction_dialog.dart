@@ -1,4 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 
@@ -19,6 +22,7 @@ class DrugInteractionDialog extends StatelessWidget {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.40),
       builder: (context) => DrugInteractionDialog(warningMessage: warningMessage),
     );
     return result ?? false;
@@ -28,18 +32,53 @@ class DrugInteractionDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
+    final pref = context.watch<PreferenceNotifier>();
+    final isModern = pref.interfaceStyle == 'modern';
+    final highContrast = pref.highContrast;
+    final useGlass = isModern && !highContrast;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
       ),
-      elevation: 8,
-      backgroundColor: AppTheme.cardColor,
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
+      elevation: useGlass ? 0 : 8,
+      backgroundColor: Colors.transparent,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: useGlass
+              ? ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0)
+              : ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: useGlass
+                  ? (isDark
+                      ? Theme.of(context).cardColor.withValues(alpha: 0.78)
+                      : Colors.white.withValues(alpha: 0.85))
+                  : Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: useGlass
+                    ? (isDark
+                        ? Colors.white.withValues(alpha: 0.15)
+                        : Colors.black.withValues(alpha: 0.08))
+                    : (pref.showCardBorder || highContrast ? AppTheme.borderColor : Colors.transparent),
+                width: 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.12),
+                  blurRadius: 28,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -74,10 +113,10 @@ class DrugInteractionDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade50.withValues(alpha: 0.7),
+                  color: isDark ? Colors.amber.shade900.withValues(alpha: 0.25) : Colors.amber.shade50.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Colors.amber.shade200,
+                    color: isDark ? Colors.amber.withValues(alpha: 0.35) : Colors.amber.shade200,
                     width: 1,
                   ),
                 ),
@@ -86,7 +125,7 @@ class DrugInteractionDialog extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.info_outline,
-                      color: Colors.amber.shade900,
+                      color: isDark ? Colors.amber.shade300 : Colors.amber.shade900,
                       size: 20,
                     ),
                     const SizedBox(width: 10),
@@ -94,7 +133,7 @@ class DrugInteractionDialog extends StatelessWidget {
                       child: Text(
                         warningMessage,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.amber.shade900,
+                          color: isDark ? Colors.amber.shade200 : Colors.amber.shade900,
                           height: 1.4,
                         ),
                       ),
@@ -160,6 +199,9 @@ class DrugInteractionDialog extends StatelessWidget {
           ),
         ),
       ),
+    ),
+  ),
+),
     );
   }
 }

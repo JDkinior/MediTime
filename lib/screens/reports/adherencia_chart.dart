@@ -148,6 +148,27 @@ class WeeklyComplianceChart extends StatelessWidget {
         alignment: BarChartAlignment.spaceAround,
         maxY: 100,
         gridData: const FlGridData(show: false),
+        extraLinesData: ExtraLinesData(
+          horizontalLines: [
+            HorizontalLine(
+              y: 80,
+              color: (isDark ? Colors.white : AppTheme.primaryTextColor).withValues(alpha: 0.15),
+              strokeWidth: 1.2,
+              dashArray: [4, 4],
+              label: HorizontalLineLabel(
+                show: true,
+                alignment: Alignment.topRight,
+                padding: const EdgeInsets.only(right: 4, bottom: 2),
+                style: TextStyle(
+                  color: AppTheme.secondaryTextColor.withValues(alpha: 0.7),
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                ),
+                labelResolver: (line) => 'Meta 80%',
+              ),
+            ),
+          ],
+        ),
         borderData: FlBorderData(show: false),
         barTouchData: BarTouchData(
           touchTooltipData: BarTouchTooltipData(

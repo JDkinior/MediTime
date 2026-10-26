@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -77,27 +78,57 @@ class CustomDrawer extends StatelessWidget {
                 ? const Color(0xFFF3ECFA)
                 : const Color(0xFFEFF6FF)));
 
+    final isModern = preferences.interfaceStyle == 'modern';
+    final highContrast = preferences.highContrast;
+    final useGlass = isModern && !highContrast;
+
     return Drawer(
-      backgroundColor: AppTheme.backgroundColor,
-      child: Column(
-        children: [
-          // HEADER
-          Container(
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 20,
-              left: 20,
-              right: 20,
-              bottom: 24,
-            ),
+      backgroundColor: useGlass ? Colors.transparent : AppTheme.backgroundColor,
+      elevation: useGlass ? 0 : 16,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: useGlass
+              ? ImageFilter.blur(sigmaX: 25.0, sigmaY: 25.0)
+              : ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
+          child: Container(
             decoration: BoxDecoration(
-              color: headerBgColor,
-              border: Border(
-                bottom: BorderSide(
-                  color: AppTheme.borderColor,
-                  width: 1,
-                ),
-              ),
+              color: useGlass
+                  ? (isDark
+                      ? AppTheme.backgroundColor.withValues(alpha: 0.75)
+                      : Colors.white.withValues(alpha: 0.82))
+                  : AppTheme.backgroundColor,
+              border: useGlass
+                  ? Border(
+                      right: BorderSide(
+                        color: (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.12 : 0.08),
+                        width: 1.0,
+                      ),
+                    )
+                  : null,
             ),
+            child: Column(
+              children: [
+                // HEADER
+                Container(
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).padding.top + 20,
+                    left: 20,
+                    right: 20,
+                    bottom: 24,
+                  ),
+                  decoration: BoxDecoration(
+                    color: useGlass
+                        ? (isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02))
+                        : headerBgColor,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: useGlass
+                            ? (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.08 : 0.06)
+                            : dividerColor,
+                        width: 1,
+                      ),
+                    ),
+                  ),
             child: Row(
               children: [
                 // Profile Image with instant local cache and smooth fallback
@@ -433,6 +464,9 @@ class CustomDrawer extends StatelessWidget {
           ),
         ],
       ),
+    ),
+  ),
+),
     );
   }
 

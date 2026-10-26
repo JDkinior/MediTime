@@ -22,7 +22,8 @@ void main() {
 
       const userId = 'user_123';
       const docId = 'doc_456';
-      final doseTime = DateTime(2026, 10, 11, 8, 0);
+      final now = DateTime.now();
+      final doseTime = DateTime(now.year, now.month, now.day, 8, 0);
       const notificationId = 12345;
       const profileId = 'prof_789';
 
@@ -161,7 +162,8 @@ void main() {
     test('Local offline dose ledger prevents overwriting completed doses with notificada', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = PreferenceService();
-      final doseTime = DateTime(2026, 10, 11, 8, 0);
+      final now = DateTime.now();
+      final doseTime = DateTime(now.year, now.month, now.day, 8, 0);
 
       await prefs.saveLocalDoseStatus(
         userId: 'u_1',

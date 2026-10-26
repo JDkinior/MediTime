@@ -173,6 +173,57 @@ void main() {
       );
       expect(gradientFinder, findsNothing);
     });
+
+    testWidgets('encapsulateOnScroll fades out title and materializes button capsules on scroll', (tester) async {
+      await tester.pumpWidget(
+        buildTestWidget(
+          child: Scaffold(
+            appBar: ModernAppBar(
+              encapsulateOnScroll: true,
+              child: AppBar(
+                leading: IconButton(
+                  icon: const Icon(Icons.menu),
+                  onPressed: () {},
+                ),
+                title: const Text('MediTime'),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.face),
+                    onPressed: () {},
+                  ),
+                ],
+              ),
+            ),
+            body: ListView.builder(
+              itemCount: 50,
+              itemBuilder: (context, index) => ListTile(title: Text('Item $index')),
+            ),
+          ),
+        ),
+      );
+
+      // Initially at rest: title is fully visible
+      final titleOpacityAtRest = tester.widget<Opacity>(
+        find.ancestor(of: find.text('MediTime'), matching: find.byType(Opacity)),
+      );
+      expect(titleOpacityAtRest.opacity, 1.0);
+
+      // Scroll the list
+      await tester.drag(find.text('Item 0'), const Offset(0, -200));
+      await tester.pumpAndSettle();
+
+      // Scrolled: title opacity is 0.0
+      final titleOpacityScrolled = tester.widget<Opacity>(
+        find.ancestor(of: find.text('MediTime'), matching: find.byType(Opacity)),
+      );
+      expect(titleOpacityScrolled.opacity, 0.0);
+
+      // Scrolled: encapsulated circular containers exist with shadow
+      final capsuleFinder = find.byWidgetPredicate(
+        (w) => w is Container && w.decoration is BoxDecoration && ((w.decoration as BoxDecoration).boxShadow?.isNotEmpty ?? false),
+      );
+      expect(capsuleFinder, findsWidgets);
+    });
   });
 
   group('ModernContentFade Widget Tests', () {

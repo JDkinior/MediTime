@@ -22,7 +22,7 @@ class LegalSection {
 /// - Principios de protección de datos de salud (RGPD/GDPR Art. 9 y 17, Ley 1581 de 2012 / Habeas Data, HIPAA).
 /// - Deslinde explícito de responsabilidad clínica y farmacológica.
 class LegalContent {
-  static const String version = '2.36.0';
+  static const String version = '2.37.0';
   static const String lastUpdated = '11 de Octubre de 2026';
   static const String legalEntity = 'MediTime App';
   static const String contactEmail = 'privacidad@meditime.app';

@@ -1,5 +1,8 @@
 // lib/core/utils.dart
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/core/constants.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/services/tratamiento_service.dart';
@@ -272,21 +275,121 @@ class AppUtils {
 
     final result = await showDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
+      barrierColor: Colors.black.withValues(alpha: 0.40),
+      builder: (dialogCtx) {
+        PreferenceNotifier? pref;
+        try {
+          pref = dialogCtx.watch<PreferenceNotifier>();
+        } catch (_) {}
+        final isDark = Theme.of(dialogCtx).brightness == Brightness.dark;
+        final isModern = pref?.interfaceStyle == 'modern' || pref == null;
+        final highContrast = pref?.highContrast ?? false;
+        final useGlass = isModern && !highContrast;
+
+        if (!useGlass) {
+          return AlertDialog(
             title: Text(title),
             content: Text(message),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context, false),
+                onPressed: () => Navigator.pop(dialogCtx, false),
                 child: Text(cancelText),
               ),
               ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
+                onPressed: () => Navigator.pop(dialogCtx, true),
                 child: Text(confirmText),
               ),
             ],
+          );
+        }
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          elevation: 0,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 400),
+                decoration: BoxDecoration(
+                  color: useGlass
+                      ? (isDark
+                          ? Theme.of(dialogCtx).cardColor.withValues(alpha: 0.78)
+                          : Colors.white.withValues(alpha: 0.85))
+                      : Theme.of(dialogCtx).cardColor,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: useGlass
+                        ? (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.15 : 0.08)
+                        : ((pref?.showCardBorder ?? false) || highContrast ? AppTheme.borderColor : Colors.transparent),
+                    width: 1.0,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.12),
+                      blurRadius: 28,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryTextColor,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      message,
+                      style: TextStyle(
+                        fontSize: 15,
+                        height: 1.4,
+                        color: AppTheme.secondaryTextColor,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogCtx, false),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppTheme.secondaryTextColor,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text(cancelText, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(dialogCtx, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryColor,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text(confirmText, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
+        );
+      },
     );
 
     return result ?? false;

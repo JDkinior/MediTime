@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -22,12 +23,22 @@ class ModernAppBar extends StatefulWidget implements PreferredSizeWidget {
   /// Extensión opcional por debajo de la AppBar (por defecto 0.0 para no sobreponerse a elementos inferiores).
   final double fadeExtension;
 
+  /// Controla si la barra debe renderizarse con efecto de cristal esmerilado translúcido.
+  final bool useGlass;
+
+  /// Si es true, al hacer scroll el título desaparece suavemente (opacity -> 0)
+  /// y los botones (leading y actions) se encapsulan en cápsulas flotantes
+  /// con sombra y fondo de cristal / superficie, siguiendo la estética Samsung One UI.
+  final bool encapsulateOnScroll;
+
   const ModernAppBar({
     super.key,
     required this.child,
     this.showFade = true,
     this.fadeEnabledNotifier,
     this.fadeExtension = 0.0,
+    this.useGlass = false,
+    this.encapsulateOnScroll = false,
   });
 
   @override
@@ -104,7 +115,7 @@ class _ModernAppBarState extends State<ModernAppBar> {
     final metrics = notification.metrics;
     if (metrics.axis == Axis.vertical) {
       final double extent = metrics.extentBefore;
-      final double progress = (extent / 24.0).clamp(0.0, 1.0);
+      final double progress = (extent / 36.0).clamp(0.0, 1.0);
       if ((progress - _scrollProgress).abs() > 0.01) {
         setState(() {
           _scrollProgress = progress;
@@ -113,15 +124,135 @@ class _ModernAppBarState extends State<ModernAppBar> {
     }
   }
 
-  PreferredSizeWidget _makeTransparentAppBar(PreferredSizeWidget child) {
+  PreferredSizeWidget _makeTransparentAppBar(BuildContext context, PreferredSizeWidget child) {
     if (child is! AppBar) return child;
     final bar = child;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    Widget? leading = bar.leading;
+    List<Widget>? actions = bar.actions;
+    Widget? title = bar.title;
+
+    if (widget.encapsulateOnScroll) {
+      if (title != null) {
+        final titleOpacity = (1.0 - _scrollProgress).clamp(0.0, 1.0);
+        title = IgnorePointer(
+          ignoring: _scrollProgress > 0.7,
+          child: Opacity(
+            opacity: titleOpacity,
+            child: Transform.translate(
+              offset: Offset(0, -6.0 * _scrollProgress),
+              child: title,
+            ),
+          ),
+        );
+      }
+
+      // 2. Botón leading encapsulado en cápsula circular One UI (menú hamburguesa o retroceso)
+      if (leading != null) {
+        leading = Center(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 6.0),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _scrollProgress > 0.05
+                    ? (isDark
+                        ? const Color(0xFF22242A).withValues(alpha: 0.92 * _scrollProgress)
+                        : Colors.white.withValues(alpha: 0.94 * _scrollProgress))
+                    : Colors.transparent,
+                border: _scrollProgress > 0.05
+                    ? Border.all(
+                        color: (isDark ? Colors.white : Colors.black)
+                            .withValues(alpha: (isDark ? 0.12 : 0.08) * _scrollProgress),
+                        width: 1.0,
+                      )
+                    : Border.all(color: Colors.transparent),
+                boxShadow: _scrollProgress > 0.05
+                    ? (isDark
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.65 * _scrollProgress),
+                              blurRadius: 16,
+                              spreadRadius: 1,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.12 * _scrollProgress),
+                              blurRadius: 14,
+                              spreadRadius: 1,
+                              offset: const Offset(0, 4),
+                            ),
+                          ])
+                    : null,
+              ),
+              child: Center(child: leading),
+            ),
+          ),
+        );
+      }
+
+      // 3. Botones de acciones encapsulados en cápsula circular One UI (como Midi)
+      if (actions != null && actions.isNotEmpty) {
+        actions = actions.map((action) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _scrollProgress > 0.05
+                      ? (isDark
+                          ? const Color(0xFF22242A).withValues(alpha: 0.92 * _scrollProgress)
+                          : Colors.white.withValues(alpha: 0.94 * _scrollProgress))
+                      : Colors.transparent,
+                  border: _scrollProgress > 0.05
+                      ? Border.all(
+                          color: (isDark ? Colors.white : Colors.black)
+                              .withValues(alpha: (isDark ? 0.12 : 0.08) * _scrollProgress),
+                          width: 1.0,
+                        )
+                      : Border.all(color: Colors.transparent),
+                  boxShadow: _scrollProgress > 0.05
+                      ? (isDark
+                          ? [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.65 * _scrollProgress),
+                                blurRadius: 16,
+                                spreadRadius: 1,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.12 * _scrollProgress),
+                                blurRadius: 14,
+                                spreadRadius: 1,
+                                offset: const Offset(0, 4),
+                              ),
+                            ])
+                      : null,
+                ),
+                child: Center(child: action),
+              ),
+            ),
+          );
+        }).toList();
+      }
+    }
+
     return AppBar(
       key: bar.key,
-      leading: bar.leading,
+      leading: leading,
       automaticallyImplyLeading: bar.automaticallyImplyLeading,
-      title: bar.title,
-      actions: bar.actions,
+      title: title,
+      actions: actions,
       flexibleSpace: bar.flexibleSpace,
       bottom: bar.bottom,
       elevation: 0.0,
@@ -140,12 +271,12 @@ class _ModernAppBarState extends State<ModernAppBar> {
       toolbarOpacity: bar.toolbarOpacity,
       bottomOpacity: bar.bottomOpacity,
       toolbarHeight: bar.toolbarHeight,
-      leadingWidth: bar.leadingWidth,
+      leadingWidth: widget.encapsulateOnScroll ? 62.0 : bar.leadingWidth,
       toolbarTextStyle: bar.toolbarTextStyle,
       titleTextStyle: bar.titleTextStyle,
       systemOverlayStyle: bar.systemOverlayStyle,
       forceMaterialTransparency: true,
-      clipBehavior: bar.clipBehavior,
+      clipBehavior: Clip.none,
     );
   }
 
@@ -172,19 +303,48 @@ class _ModernAppBarState extends State<ModernAppBar> {
     final currentExtension = (isScrollFadeEnabled && _isFadeActive && _scrollProgress > 0.0)
         ? (widget.fadeExtension * _scrollProgress)
         : 0.0;
-    final showGradient = isScrollFadeEnabled && _isFadeActive && currentExtension > 0.0;
+    final showGradient = !widget.encapsulateOnScroll && isScrollFadeEnabled && _isFadeActive && currentExtension > 0.0;
 
     return Stack(
-      clipBehavior: showGradient ? Clip.none : Clip.hardEdge,
+      clipBehavior: Clip.none,
       children: [
-        // 1. Fondo sólido completo para barra de estado y toolbar
+        // 1. Fondo para barra de estado y toolbar (cristal esmerilado si useGlass está activo, o sólido)
         Positioned(
           key: const ValueKey('modern_app_bar_bg'),
           left: 0,
           right: 0,
           top: 0,
           height: totalAppBarHeight,
-          child: Container(color: bgColor),
+          child: (widget.useGlass && isModern && !preferenceNotifier.highContrast)
+              ? ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: (Theme.of(context).brightness == Brightness.dark)
+                            ? (Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.78 * (widget.encapsulateOnScroll ? (1.0 - _scrollProgress).clamp(0.0, 1.0) : 1.0)))
+                            : Colors.white.withValues(alpha: 0.82 * (widget.encapsulateOnScroll ? (1.0 - _scrollProgress).clamp(0.0, 1.0) : 1.0)),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: ((Theme.of(context).brightness == Brightness.dark)
+                                    ? Colors.white
+                                    : Colors.black)
+                                .withValues(
+                              alpha: ((Theme.of(context).brightness == Brightness.dark) ? 0.08 : 0.06) *
+                                  (widget.encapsulateOnScroll ? (1.0 - _scrollProgress).clamp(0.0, 1.0) : 1.0),
+                            ),
+                            width: 1.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : Container(
+                  color: widget.encapsulateOnScroll
+                      ? bgColor.withValues(alpha: (1.0 - _scrollProgress).clamp(0.0, 1.0))
+                      : bgColor,
+                ),
         ),
         // 2. AppBar transparente con sus iconos y títulos (Key y orden estables para preservar el render tree de Showcase)
         Theme(
@@ -197,7 +357,7 @@ class _ModernAppBarState extends State<ModernAppBar> {
                   elevation: 0.0,
                 ),
           ),
-          child: _makeTransparentAppBar(widget.child),
+          child: _makeTransparentAppBar(context, widget.child),
         ),
         // 3. Degradado continuo suave proyectado exclusivamente por DEBAJO de la toolbar
         if (showGradient)

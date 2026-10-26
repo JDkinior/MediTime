@@ -490,7 +490,7 @@ class PreferenceService {
   Future<void> saveTermsAccepted(
     String userId, {
     required bool accepted,
-    String version = '2.36.0',
+    String version = '2.37.0',
     DateTime? timestamp,
   }) async {
     final prefs = await SharedPreferences.getInstance();

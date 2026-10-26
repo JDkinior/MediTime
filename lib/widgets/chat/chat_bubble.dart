@@ -1,3 +1,5 @@
+import 'package:provider/provider.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
 // lib/widgets/chat/chat_bubble.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -40,6 +42,14 @@ class ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final isUser = message.isUser;
     final textColor = isUser ? Colors.white : AppTheme.primaryTextColor;
+    PreferenceNotifier? pref;
+    try {
+      pref = Provider.of<PreferenceNotifier>(context);
+    } catch (_) {}
+    final isModern = pref?.interfaceStyle == 'modern';
+    final highContrast = pref?.highContrast ?? false;
+    final useGlass = isModern && !highContrast;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Widget bubble = Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -53,8 +63,20 @@ class ChatBubble extends StatelessWidget {
                   : MediaQuery.of(context).size.width * 0.90,
         ),
         decoration: BoxDecoration(
-          color: isUser ? null : Theme.of(context).cardColor,
-          border: isUser ? null : Border.all(color: AppTheme.borderColor),
+          color: isUser
+              ? null
+              : (useGlass
+                  ? (isDark
+                      ? Theme.of(context).cardColor.withValues(alpha: 0.72)
+                      : Colors.white.withValues(alpha: 0.85))
+                  : Theme.of(context).cardColor),
+          border: isUser
+              ? null
+              : Border.all(
+                  color: useGlass
+                      ? (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.10 : 0.07)
+                      : AppTheme.borderColor,
+                ),
           gradient:
               isUser
                   ? const LinearGradient(

@@ -53,3 +53,14 @@ key.properties
 *.keystore
 **/*.keystore
 
+
+# Temporary presentation build artifacts and previews
+documentos/*_preview/
+documentos/extracted_assets/
+documentos/clean_template_*.pptx
+documentos/bg_slide*.png
+documentos/build_real_deck.py
+documentos/generate_deck_12_slides.py
+documentos/generate_deck_official_template.py
+documentos/generate_visual_deck.py
+documentos/generate_deck_from_thesis.py

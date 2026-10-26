@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
-import 'package:meditime/theme/app_theme.dart';
 
 /// Envoltorio para listas o vistas desplazables que, en modo moderno,
 /// añade un difuminado suave en los extremos (superior, inferior o ambos) al hacer scroll.
@@ -89,7 +88,7 @@ class _ModernContentFadeState extends State<ModernContentFade> {
       return widget.child;
     }
 
-    final bgColor = widget.color ?? AppTheme.backgroundColor;
+    final bgColor = widget.color ?? Theme.of(context).scaffoldBackgroundColor;
     final effectiveBottomHeight = widget.bottomHeight ?? widget.height;
 
     return NotificationListener<Notification>(

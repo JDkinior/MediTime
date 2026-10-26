@@ -1,0 +1,6 @@
+{
+  "name": "meditime-tools",
+  "displayName": "MediTime Flutter & Design Tools",
+  "version": "1.0.0",
+  "description": "Herramientas de Dart, Flutter, Firebase y diseño UI/UX para MediTime"
+}

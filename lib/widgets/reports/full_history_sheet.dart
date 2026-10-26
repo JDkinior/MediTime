@@ -1,6 +1,8 @@
+import 'dart:ui';
 // lib/widgets/reports/full_history_sheet.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:meditime/core/utils.dart';
 import 'package:meditime/models/tratamiento.dart';
 import 'package:meditime/notifiers/preference_notifier.dart';
 import 'package:meditime/theme/app_theme.dart';
@@ -9,18 +11,32 @@ import 'package:provider/provider.dart';
 /// Hoja modal con el historial completo interactivo de dosis pasadas y filtros.
 class FullHistorySheet extends StatefulWidget {
   final List<Tratamiento> tratamientos;
+  final List<Map<String, dynamic>>? rawEntries;
+  final String? sheetTitle;
 
-  const FullHistorySheet({super.key, required this.tratamientos});
+  const FullHistorySheet({
+    super.key,
+    required this.tratamientos,
+    this.rawEntries,
+    this.sheetTitle,
+  });
 
   static Future<void> show(
     BuildContext context,
-    List<Tratamiento> tratamientos,
-  ) {
+    List<Tratamiento> tratamientos, {
+    List<Map<String, dynamic>>? rawEntries,
+    String? sheetTitle,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => FullHistorySheet(tratamientos: tratamientos),
+      barrierColor: Colors.black.withValues(alpha: 0.35),
+      builder: (ctx) => FullHistorySheet(
+        tratamientos: tratamientos,
+        rawEntries: rawEntries,
+        sheetTitle: sheetTitle,
+      ),
     );
   }
 
@@ -51,8 +67,8 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
           borderRadius: BorderRadius.circular(12),
           border: showBorder
               ? Border.all(
-                  color: isSelected ? color : color.withValues(alpha: 0.25),
-                  width: isSelected ? 1.5 : 1,
+                  color: isSelected ? Colors.transparent : color.withValues(alpha: 0.25),
+                  width: 1,
                 )
               : null,
         ),
@@ -97,23 +113,41 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
   Widget build(BuildContext context) {
     final pref = context.watch<PreferenceNotifier>();
     final showBorder = pref.showCardBorder || pref.highContrast;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isModern = pref.interfaceStyle == 'modern';
+    final highContrast = pref.highContrast;
+    final useGlass = isModern && !highContrast;
     final List<Map<String, dynamic>> allHistory = [];
     final now = DateTime.now();
-    for (var t in widget.tratamientos) {
-      t.doseStatus.forEach((dateString, status) {
-        final doseTime = DateTime.tryParse(dateString);
-        if (doseTime != null && doseTime.isBefore(now)) {
-          allHistory.add({'treatment': t, 'time': doseTime, 'status': status});
-        }
-      });
+    if (widget.rawEntries != null) {
+      allHistory.addAll(widget.rawEntries!);
+    } else {
+      for (var t in widget.tratamientos) {
+        t.doseStatus.forEach((dateString, status) {
+          final doseTime = DateTime.tryParse(dateString);
+          if (doseTime != null && doseTime.isBefore(now)) {
+            allHistory.add({
+              'treatment': t,
+              'treatmentName': t.nombreMedicamento,
+              'presentation': t.presentacion,
+              'time': doseTime,
+              'status': status,
+            });
+          }
+        });
+      }
     }
     allHistory.sort(
       (a, b) => (b['time'] as DateTime).compareTo(a['time'] as DateTime),
     );
 
     final uniqueMeds = <String>{};
-    for (var t in widget.tratamientos) {
-      uniqueMeds.add(t.nombreMedicamento);
+    for (var entry in allHistory) {
+      final name = (entry['treatment'] as Tratamiento?)?.nombreMedicamento ??
+          (entry['treatmentName'] as String? ?? '');
+      if (name.isNotEmpty) {
+        uniqueMeds.add(name);
+      }
     }
     final List<String> medList = ['Todos', ...uniqueMeds];
 
@@ -122,9 +156,9 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
           if (_selectedStatus != null && entry['status'] != _selectedStatus) {
             return false;
           }
-          if (_selectedMed != 'Todos' &&
-              (entry['treatment'] as Tratamiento).nombreMedicamento !=
-                  _selectedMed) {
+          final medName = (entry['treatment'] as Tratamiento?)?.nombreMedicamento ??
+              (entry['treatmentName'] as String? ?? '');
+          if (_selectedMed != 'Todos' && medName != _selectedMed) {
             return false;
           }
           return true;
@@ -135,28 +169,53 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
       maxChildSize: 0.95,
       minChildSize: 0.5,
       builder:
-          (ctx, scrollController) => Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
-              ),
-              border: showBorder ? Border.all(color: AppTheme.borderColor) : null,
+          (ctx, scrollController) => ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(28),
+              topRight: Radius.circular(28),
             ),
-            child: Column(
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(top: 12, bottom: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+            child: BackdropFilter(
+              filter: useGlass
+                  ? ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0)
+                  : ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: useGlass
+                      ? (isDark
+                          ? Theme.of(context).cardColor.withValues(alpha: 0.78)
+                          : Colors.white.withValues(alpha: 0.85))
+                      : Theme.of(context).cardColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(28),
+                    topRight: Radius.circular(28),
                   ),
+                  border: Border.all(
+                    color: (useGlass
+                        ? (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.12 : 0.08)
+                        : (showBorder ? AppTheme.borderColor : Colors.transparent)),
+                    width: 1.0,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.40 : 0.10),
+                      blurRadius: 24,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
                 ),
+                child: Column(
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(top: 12, bottom: 8),
+                        decoration: BoxDecoration(
+                          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.20),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
@@ -169,7 +228,7 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Historial de tomas',
+                            widget.sheetTitle ?? 'Historial de tomas',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -215,7 +274,7 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                         isSelected: _selectedStatus == DoseStatus.tomada,
                         onTap:
                             () => setState(
-                              () => _selectedStatus = DoseStatus.tomada,
+                              () => _selectedStatus = _selectedStatus == DoseStatus.tomada ? null : DoseStatus.tomada,
                             ),
                         color: AppTheme.successColor,
                         count:
@@ -230,7 +289,7 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                         isSelected: _selectedStatus == DoseStatus.omitida,
                         onTap:
                             () => setState(
-                              () => _selectedStatus = DoseStatus.omitida,
+                              () => _selectedStatus = _selectedStatus == DoseStatus.omitida ? null : DoseStatus.omitida,
                             ),
                         color: AppTheme.errorColor,
                         count:
@@ -239,23 +298,42 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                                 .length,
                         showBorder: showBorder,
                       ),
-                      const SizedBox(width: 8),
-                      _buildHistoryFilterChip(
-                        label: 'Aplazadas',
-                        isSelected: _selectedStatus == DoseStatus.aplazada,
-                        onTap:
-                            () => setState(
-                              () => _selectedStatus = DoseStatus.aplazada,
-                            ),
-                        color: Colors.orange,
-                        count:
-                            allHistory
-                                .where(
-                                  (e) => e['status'] == DoseStatus.aplazada,
-                                )
-                                .length,
-                        showBorder: showBorder,
-                      ),
+                      if (allHistory.any((e) => e['status'] == DoseStatus.notificada)) ...[
+                        const SizedBox(width: 8),
+                        _buildHistoryFilterChip(
+                          label: 'Notificadas',
+                          isSelected: _selectedStatus == DoseStatus.notificada,
+                          onTap:
+                              () => setState(
+                                () => _selectedStatus = _selectedStatus == DoseStatus.notificada ? null : DoseStatus.notificada,
+                              ),
+                          color: Colors.amber,
+                          count:
+                              allHistory
+                                  .where((e) => e['status'] == DoseStatus.notificada)
+                                  .length,
+                          showBorder: showBorder,
+                        ),
+                      ],
+                      if (allHistory.any((e) => e['status'] == DoseStatus.aplazada)) ...[
+                        const SizedBox(width: 8),
+                        _buildHistoryFilterChip(
+                          label: 'Aplazadas',
+                          isSelected: _selectedStatus == DoseStatus.aplazada,
+                          onTap:
+                              () => setState(
+                                () => _selectedStatus = _selectedStatus == DoseStatus.aplazada ? null : DoseStatus.aplazada,
+                              ),
+                          color: Colors.orange,
+                          count:
+                              allHistory
+                                  .where(
+                                    (e) => e['status'] == DoseStatus.aplazada,
+                                  )
+                                  .length,
+                          showBorder: showBorder,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -327,9 +405,13 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                             itemCount: filtered.length,
                             itemBuilder: (ctx, index) {
                               final entry = filtered[index];
-                              final t = entry['treatment'] as Tratamiento;
+                              final t = entry['treatment'] as Tratamiento?;
+                              final medName = t?.nombreMedicamento ?? (entry['treatmentName'] as String? ?? '');
+                              final presentation = t?.presentacion ?? (entry['presentation'] as String? ?? '');
                               final doseTime = entry['time'] as DateTime;
                               final status = entry['status'] as DoseStatus;
+                              final profileName = entry['profileName'] as String?;
+                              final profileColorHex = entry['profileColorHex'] as String?;
 
                               Color statusColor;
                               IconData statusIcon;
@@ -399,7 +481,7 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            t.nombreMedicamento,
+                                            medName,
                                             style: TextStyle(
                                               fontSize: 15,
                                               fontWeight: FontWeight.bold,
@@ -408,13 +490,33 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                                           ),
                                           const SizedBox(height: 3),
                                           Text(
-                                            '${t.presentacion} · ${t.dosisPorToma} dosis · ${DateFormat('dd MMM, hh:mm a', 'es').format(doseTime)}',
+                                            presentation.isNotEmpty
+                                                ? '${AppUtils.localizePresentation(context, presentation)} · ${DateFormat('dd MMM, hh:mm a', 'es').format(doseTime)}'
+                                                : DateFormat('dd MMM, hh:mm a', 'es').format(doseTime),
                                             style: TextStyle(
                                               fontSize: 12,
                                               color:
                                                   AppTheme.secondaryTextColor,
                                             ),
                                           ),
+                                          if (profileName != null && profileColorHex != null) ...[
+                                            const SizedBox(height: 5),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Color(int.parse(profileColorHex.replaceFirst('#', 'FF'), radix: 16)).withValues(alpha: 0.08),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                profileName,
+                                                style: TextStyle(
+                                                  fontSize: 10.5,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(int.parse(profileColorHex.replaceFirst('#', 'FF'), radix: 16)),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ],
                                       ),
                                     ),
@@ -446,6 +548,8 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
               ],
             ),
           ),
+        ),
+      ),
     );
   }
 }

@@ -1,8 +1,8 @@
-import 'dart:typed_data';
-
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+
+import 'package:flutter/services.dart';
 
 import 'package:flutter/rendering.dart';
 
@@ -1342,172 +1342,93 @@ class _ReportesPageState extends State<ReportesPage> {
 
 
   Widget _buildIntervalSelector() {
+    final l10n = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-
       padding: const EdgeInsets.all(5),
-
       decoration: BoxDecoration(
-
         color: Theme.of(context).cardColor,
-
         borderRadius: BorderRadius.circular(30),
-
         border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-
-            ? Border.all(color: const Color(0xFFC3C6D7).withValues(alpha: 0.3))
-
+            ? Border.all(color: AppTheme.borderColor)
             : null,
-
         boxShadow: [
-
           BoxShadow(
-
-            color: Colors.black.withValues(alpha: 0.03),
-
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
             blurRadius: 8,
-
             offset: const Offset(0, 3),
-
           ),
-
         ],
-
       ),
-
       child: Row(
-
         children: ReportInterval.values.map((interval) {
-
           final isSelected = _selectedInterval == interval;
-
-          final l10n = AppLocalizations.of(context);
-
           String text = '';
-
           switch (interval) {
-
             case ReportInterval.semana:
-
               text = l10n?.intervalWeek ?? 'Semana';
-
               break;
-
             case ReportInterval.mes:
-
               text = l10n?.intervalMonth ?? 'Mes';
-
               break;
-
             case ReportInterval.anio:
-
               text = l10n?.intervalYear ?? 'Año';
-
               break;
-
             case ReportInterval.todo:
-
               text = l10n?.intervalAll ?? 'Todo';
-
               break;
-
           }
 
-
-
           return Expanded(
-
             child: GestureDetector(
-
               onTap: () {
-
+                HapticFeedback.selectionClick();
                 setState(() {
-
                   _selectedInterval = interval;
-
                 });
-
               },
-
               child: AnimatedContainer(
-
-                duration: const Duration(milliseconds: 200),
-
-                curve: Curves.easeInOut,
-
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
                 padding: const EdgeInsets.symmetric(vertical: 10),
-
                 decoration: BoxDecoration(
-
                   borderRadius: BorderRadius.circular(24),
-
                   color: isSelected ? AppTheme.primaryColor : Colors.transparent,
-
                   boxShadow: isSelected
-
                       ? [
-
                           BoxShadow(
-
-                            color: AppTheme.primaryColor.withValues(alpha: 0.2),
-
-                            blurRadius: 6,
-
+                            color: AppTheme.primaryColor.withValues(alpha: 0.28),
+                            blurRadius: 8,
                             offset: const Offset(0, 3),
-
                           ),
-
                         ]
-
                       : null,
-
                 ),
-
                 child: Center(
-
                   child: FittedBox(
-
                     fit: BoxFit.scaleDown,
-
                     child: Text(
-
                       text,
-
                       style: TextStyle(
-
                         color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
-
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-
-                        fontSize: 14,
-
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                        fontSize: 13.5,
+                        letterSpacing: isSelected ? -0.2 : 0,
                       ),
-
                     ),
-
                   ),
-
                 ),
-
               ),
-
             ),
-
           );
-
         }).toList(),
-
       ),
-
     );
-
   }
 
-
-
-  Widget _buildOverallAdherenceCard(double adherencia, int tomadas, int omitidas, int notificadas, int aplazadas) {
+    Widget _buildOverallAdherenceCard(double adherencia, int tomadas, int omitidas, int notificadas, int aplazadas) {
 
     final int total = tomadas + omitidas + notificadas + aplazadas;
 
