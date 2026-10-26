@@ -232,8 +232,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const RELEASES_CACHE_KEY = 'meditime_github_releases_v2';
   const CACHE_TTL_MS = 1000 * 60 * 60 * 3; // 3 horas
 
-  // Fallback data precompilado con la información exacta del proyecto y v2.32.0
+  // Fallback data precompilado con la información exacta del proyecto y v2.37.0
   const FALLBACK_RELEASES = [
+    {
+      tag_name: 'v2.37.0',
+      name: 'MediTime v2.37.0 – Diseño Transmateria Frosted Glass, Encapsulamiento One UI y Gamificación',
+      published_at: '2026-10-25T23:15:00Z',
+      apk_url: 'https://github.com/JDkinior/MediTime/releases/download/v2.37.0/app-release.apk',
+      body: `### Novedades Principales
+- **Diseño Transmateria y Frosted Glass:** Implementación de `FrostedGlassBottomSheet` con desenfoque gaussiano de 20px (`BackdropFilter`), gradiente adaptativo y atenuación de fondo en reprogramación, recetas y reportes.
+- **Navegación Fluida Samsung One UI:** Encapsulamiento dinámico flotante en `ModernAppBar` (`encapsulateOnScroll`) con disolución de título al hacer scroll y botones flotantes en cápsula circular esmerilada.
+- **Celebración de Racha Estilo Gamificación:** Hoja modal Duolingo-style (`StreakCelebrationSheet`) con físicas spring (`Curves.easeOutBack`), retroalimentación háptica táctil y desglose de cumplimiento.
+- **Acordeones de Tratamiento Refinados:** `TreatmentAccordionCard` con micro-interacciones táctiles de escala (`_PressableScale`) y barra de progreso segmentada multi-estado (cumplidas, omitidas, notificadas y aplazadas).
+- **Diálogo de Interacciones Farmacológicas Estilizado:** `DrugInteractionDialog` modernizado con estética de cristal ámbar de alto contraste.
+
+### Calidad & Entrega Oficial C3
+- **Suite de Pruebas Automatizadas:** 205 pruebas unitarias y de widgets ejecutadas exitosamente con 0 advertencias en análisis estático.
+- **Defensa Institucional de Grado:** Diapositivas oficiales en PPTX y PDF calibradas a 15 minutos para sustentación C3 2026.`
+    },
     {
       tag_name: 'v2.32.0',
       name: 'MediTime v2.32.0 – Suscripciones Premium, Micro-Consejos con IA y Gestión Multiperfil Robusta',

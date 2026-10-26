@@ -133,11 +133,21 @@
             <span class="sidebar-subtitle">Selecciona para ver detalles</span>
           </div>
           <div id="changelog-hub-list" class="changelog-hub-list" role="tablist">
+            <!-- Versión v2.37.0 -->
+            <button class="hub-version-item active" data-version="v2.37.0" role="tab" aria-selected="true">
+              <div class="hub-item-top">
+                <span class="hub-item-tag">v2.37.0</span>
+                <span class="hub-item-badge badge-latest">Última</span>
+              </div>
+              <div class="hub-item-date">25 de octubre de 2026</div>
+              <div class="hub-item-snippet">Diseño transmateria Frosted Glass, encapsulamiento One UI, racha gamificada y sustentación C3...</div>
+            </button>
+
             <!-- Versión v2.32.0 -->
-            <button class="hub-version-item active" data-version="v2.32.0" role="tab" aria-selected="true">
+            <button class="hub-version-item" data-version="v2.32.0" role="tab" aria-selected="false">
               <div class="hub-item-top">
                 <span class="hub-item-tag">v2.32.0</span>
-                <span class="hub-item-badge badge-latest">Última</span>
+                <span class="hub-item-badge badge-stable">Estable</span>
               </div>
               <div class="hub-item-date">18 de septiembre de 2026</div>
               <div class="hub-item-snippet">Motor de Micro-Consejos Farmacológicos con IA en tiempo real y soporte multiperfil...</div>
@@ -193,17 +203,17 @@
                 <span id="detail-version-badge" class="hub-item-badge badge-latest">Última Versión Oficial</span>
                 <span class="detail-platform-tag">Android 7.0+ · Flutter 3.29 · SQLite</span>
               </div>
-              <h2 id="detail-version-title" class="detail-title">v2.32.0</h2>
+              <h2 id="detail-version-title" class="detail-title">v2.37.0</h2>
               <div id="detail-version-date" class="detail-date">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                <span>Publicado el 18 de septiembre de 2026</span>
+                <span>Publicado el 25 de octubre de 2026</span>
               </div>
             </div>
 
             <div class="detail-header-right">
               <a id="detail-apk-download-btn" href="https://github.com/JDkinior/MediTime/releases/latest" class="btn btn-primary btn-glow" target="_blank" rel="noopener noreferrer">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <span>Descargar APK (v2.32.0)</span>
+                <span>Descargar APK (v2.37.0)</span>
               </a>
             </div>
           </div>
@@ -212,21 +222,22 @@
           <div id="detail-version-body" class="detail-body">
             <h3>Novedades Principales</h3>
             <ul>
-              <li><strong>Motor de IA para Micro-Consejos Clínicos:</strong> Análisis contextual en tiempo real con recomendaciones de ayunas, interacción con alimentos en AINEs y advertencias de absorción con 12h de persistencia en caché offline.</li>
-              <li><strong>Soporte Multiperfil Completo:</strong> Modo Cuidador (paleta morada relajante para administración de tutelados e hijos) y Modo Animales (paleta verde menta para pacientes veterinarios con dosificación por especie).</li>
-              <li><strong>Modelo Ético Freemium:</strong> 3 tratamientos y alarmas ilimitadas 100% gratuitas, con opción a MediTime Plus para pacientes polimedicados.</li>
+              <li><strong>Diseño Transmateria y Frosted Glass:</strong> Hojas modales con desenfoque gaussiano de 20px (<code>FrostedGlassBottomSheet</code> con <code>BackdropFilter</code>), gradiente adaptativo y atenuación de fondo.</li>
+              <li><strong>Navegación Fluida Samsung One UI:</strong> Encapsulamiento en <code>ModernAppBar</code> (<code>encapsulateOnScroll</code>) con disolución gradual de título y botones circulares flotantes en cápsula translúcida.</li>
+              <li><strong>Celebración de Racha Estilo Gamificación:</strong> Hoja modal Duolingo-style (<code>StreakCelebrationSheet</code>) con física spring y retroalimentación háptica táctil.</li>
+              <li><strong>Acordeones con Barra de Progreso Segmentada:</strong> Desglose visual multi-estado continuo (cumplidas, omitidas, notificadas y aplazadas) en <code>TreatmentAccordionCard</code>.</li>
             </ul>
 
-            <h3>Mejoras de Rendimiento y Estabilidad</h3>
+            <h3>Calidad, Pruebas y Sustentación C3</h3>
             <ul>
-              <li>Optimización del ciclo de renderizado reduciendo el uso de memoria en un 28% al navegar el calendario.</li>
-              <li>Transiciones de estado instantáneas con base de datos SQLite indexada.</li>
-              <li>Compatibilidad probada con Android 15 y APIs de bajo nivel de notificación.</li>
+              <li><strong>205 Pruebas Automatizadas:</strong> Suite completa de pruebas unitarias y de widgets pasando al 100% con 0 advertencias de análisis estático.</li>
+              <li><strong>Diapositivas y Guía Institucional Oficial:</strong> Material de defensa académica C3 en PPTX y PDF calibrado a 15 minutos exactos.</li>
+              <li>Compatibilidad completa probada en Android 14 y 15.</li>
             </ul>
           </div>
 
           <div class="detail-footer">
-            <a id="detail-github-release-link" href="https://github.com/JDkinior/MediTime/releases/tag/v2.32.0" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">
+            <a id="detail-github-release-link" href="https://github.com/JDkinior/MediTime/releases/tag/v2.37.0" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">
               <span>Ver release original en GitHub</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
             </a>
