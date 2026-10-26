@@ -1,5 +1,5 @@
 /**
- * MEDITIME - Dynamic Web Functionality & Modern Interactions (v2.32.0)
+ * MEDITIME - Dynamic Web Functionality & Modern Interactions (v2.37.0)
  */
 
 // Transiciones entre documentos: los navegadores compatibles usan la API nativa
@@ -229,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- 3. DYNAMIC GITHUB API CHANGELOG & RELEASES (SPOTLIGHT & HUB) ---
   const GITHUB_OWNER = 'JDkinior';
   const GITHUB_REPO = 'MediTime';
-  const RELEASES_CACHE_KEY = 'meditime_github_releases_v2';
+  const RELEASES_CACHE_KEY = 'meditime_github_releases_v237';
   const CACHE_TTL_MS = 1000 * 60 * 60 * 3; // 3 horas
 
   // Fallback data precompilado con la información exacta del proyecto y v2.37.0
@@ -315,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
 
   let currentReleases = FALLBACK_RELEASES;
-  let activeVersionTag = 'v2.32.0';
+  let activeVersionTag = 'v2.37.0';
 
   function renderChangelogSpotlight(latest) {
     if (!latest) return;
@@ -436,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bodyElem = $('#detail-version-body');
     const ghLink = $('#detail-github-release-link');
 
-    const isLatest = release.tag_name === (currentReleases[0] ? currentReleases[0].tag_name : 'v2.32.0');
+    const isLatest = release.tag_name === (currentReleases[0] ? currentReleases[0].tag_name : 'v2.37.0');
     const dateFormatted = formatSpanishDate(release.published_at);
     const parsedHtml = formatMarkdownBody(release.body || 'Sin notas de versión disponibles.');
     const downloadUrl = release.apk_url || `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tag/${release.tag_name}`;
@@ -546,7 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadGitHubReleases() {
     // 1. Renderizado instantáneo (0ms) con datos precompilados de MediTime
     renderChangelogSpotlight(FALLBACK_RELEASES[0]);
-    renderChangelogHubList(FALLBACK_RELEASES, 'v2.32.0');
+    renderChangelogHubList(FALLBACK_RELEASES, 'v2.37.0');
     renderChangelogHubDetail(FALLBACK_RELEASES[0]);
 
     let releases = null;
