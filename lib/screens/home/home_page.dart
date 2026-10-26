@@ -222,7 +222,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final List<String> titles = [
-      l10n?.appTitle ?? 'MediTime',
+      'Meditime',
       l10n?.appBarCalendar ?? 'Calendario',
       l10n?.navProgress ?? 'Progreso',
     ];
@@ -361,12 +361,12 @@ class _HomePageState extends State<HomePage> {
                     valueListenable: _currentIndexNotifier,
                     builder: (context, currentIndex, _) {
                       return Text(
-                        titles[currentIndex],
+                        isModern ? 'Meditime' : titles[currentIndex],
                         style: TextStyle(
                           color: AppTheme.primaryTextColor,
-                          fontWeight: currentIndex == 0 ? FontWeight.w800 : FontWeight.bold,
-                          fontSize: 20,
-                          letterSpacing: currentIndex == 0 ? -0.4 : -0.2,
+                          fontWeight: isModern ? FontWeight.w500 : (currentIndex == 0 ? FontWeight.w800 : FontWeight.bold),
+                          fontSize: isModern ? 23 : 20,
+                          letterSpacing: isModern ? -0.3 : (currentIndex == 0 ? -0.4 : -0.2),
                         ),
                       );
                     },
