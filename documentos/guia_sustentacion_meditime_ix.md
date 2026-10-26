@@ -1,4 +1,4 @@
-# GUÍA OFICIAL DE SUSTENTACIÓN PGC — MEDITIME (v2.32.0)
+# GUÍA OFICIAL DE SUSTENTACIÓN PGC — MEDITIME (v2.37.0)
 ## PROYECTO: MEDITIME: APLICACIÓN MÓVIL PARA LA GESTIÓN INTEGRAL DE RECETAS MÉDICAS Y CONTROL DE PRESCRIPCIONES
 ### AUTORES: JOHAN ALEXANDER ARÉVALO CONTRERAS & JORGE ELIECER DELGADO CORTÉS
 ### PROGRAMA DE INGENIERÍA DE SISTEMAS • UNIVERSIDAD DE CUNDINAMARCA — SECCIONAL UBATÉ
@@ -15,7 +15,7 @@
 [03:15 - 04:15]  Slide 5:  Marco de Referencia y Legal (70% efectividad mHealth Domenech, leyes 1581, 23, 527, 1438) (60 s)
 [04:15 - 05:15]  Slide 6:  Metodología Kanban y Cronograma Real (Tablero Trello y 64.3% de actividades cerradas) (60 s)
 [05:15 - 06:15]  Slide 7:  Clean Architecture y Stack Tecnológico (Capas Core, Domain, Data, Flutter, Groq, SQLite) (60 s)
-[06:15 - 07:15]  Slide 8:  Ecosistema MediTime (App Móvil v2.32 + Plataforma Web conectada a GitHub Releases) (60 s)
+[06:15 - 07:15]  Slide 8:  Ecosistema MediTime (App Móvil v2.37 + Plataforma Web conectada a GitHub Releases) (60 s)
 -----------------------------------------------------------------------------------------------------------------
 [07:15 - 12:00]  Slide 9:  DEMOSTRACIÓN EN VIVO (LIVE DEMO - ¡Casi 5 MINUTOS PARA LUCIRSE!)
                            • Paso 1: Navegación en el Sitio Web oficial y descarga directa del APK en GitHub.
@@ -41,7 +41,7 @@ Al pasar a la diapositiva 11, di con tranquilidad:
 
 > *"Distinguished members of the evaluation committee:*
 > 
-> *This project consolidates MediTime (v2.32.0), a comprehensive mobile solution designed to maximize compliance and accuracy in medical prescription management by leveraging emerging technologies.*
+> *This project consolidates MediTime (v2.37.0), a comprehensive mobile solution designed to maximize compliance and accuracy in medical prescription management by leveraging emerging technologies.*
 > 
 > *Built on Flutter and supported by Google Firebase and Groq LPU, the application surpasses conventional apps by integrating vision-based OCR extraction of handwritten prescriptions and conversational assistance via Midi AI.*
 > 

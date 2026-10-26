@@ -87,7 +87,7 @@ p_title.font.color.rgb = COLOR_UDEC_GREEN_DARK
 p_title.space_after = Pt(6)
 
 p_sub = tf.add_paragraph()
-p_sub.text = "Aplicación Móvil Asistida por IA (v2.32.0) y Plataforma Web Oficial"
+p_sub.text = "Aplicación Móvil Asistida por IA (v2.37.0) y Plataforma Web Oficial"
 p_sub.font.size = Pt(13)
 p_sub.font.bold = True
 p_sub.font.color.rgb = COLOR_TEXT_MUTED
@@ -457,7 +457,7 @@ atf2 = s7.shapes.add_textbox(Inches(6.9), Inches(2.1), Inches(5.4), Inches(4.3))
 atf2.word_wrap = True
 
 ap2 = atf2.paragraphs[0]
-ap2.text = "🛠️ Stack Tecnológico Oficial (v2.32.0)"
+ap2.text = "🛠️ Stack Tecnológico Oficial (v2.37.0)"
 ap2.font.size = Pt(16)
 ap2.font.bold = True
 ap2.font.color.rgb = COLOR_UDEC_GREEN_DARK
@@ -493,7 +493,7 @@ mtf = s8.shapes.add_textbox(Inches(1.0), Inches(2.1), Inches(5.2), Inches(4.3)).
 mtf.word_wrap = True
 
 mp1 = mtf.paragraphs[0]
-mp1.text = "📱 Aplicación Móvil (v2.32.0)"
+mp1.text = "📱 Aplicación Móvil (v2.37.0)"
 mp1.font.size = Pt(16)
 mp1.font.bold = True
 mp1.font.color.rgb = COLOR_UDEC_GREEN_DARK
@@ -694,7 +694,7 @@ sp11.font.color.rgb = COLOR_UDEC_GREEN_DARK
 sp11.space_after = Pt(6)
 
 lines_thesis_en = [
-    "This project consolidates MediTime (v2.32.0), a comprehensive mobile solution designed to maximize compliance and accuracy in medical prescription management by leveraging emerging technologies.",
+    "This project consolidates MediTime (v2.37.0), a comprehensive mobile solution designed to maximize compliance and accuracy in medical prescription management by leveraging emerging technologies.",
     "Built on Flutter and supported by Google Firebase and Groq LPU, the application surpasses conventional apps by integrating vision-based OCR extraction of handwritten prescriptions and conversational assistance via Midi AI.",
     "Furthermore, high-priority full-screen native alarms reliably bypass Android Doze Mode, while Caregiver and Pets modes expand social supervision for dependent family members.",
     "Finally, supported by our open-source web platform connected to GitHub Releases, MediTime ensures direct access, patient autonomy, and medication safety.\nThank you very much.\""
