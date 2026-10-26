@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Modos Especializados de MediTime en Profundidad - Modo Cuidador para adultos mayores y dependientes, y Modo Mascotas para farmacoterapia veterinaria." />
+  <meta name="theme-color" content="#004ac6" />
+  <script>
+    const savedTheme = localStorage.getItem('meditime_theme');
+    if (savedTheme === 'dark' || savedTheme === 'light') {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  </script>
+  <link rel="icon" href="images/meditime-icon.png" type="image/png" />
+  <title>MediTime | Modo Cuidador & Mascotas en Detalle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=2.39.0" />
+  <script src="scripts.js?v=2.39.0" defer></script>
+  <style>
+    @media (max-width: 768px) {
+      #header-download-btn,
+      .header-download-btn,
+      .header-actions .btn-primary {
+        display: none !important;
+      }
+      .menu-toggle-btn {
+        display: flex !important;
+        flex-shrink: 0 !important;
+      }
+      .theme-toggle-btn {
+        display: flex !important;
+        flex-shrink: 0 !important;
+      }
+      .header-actions {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        flex-shrink: 0 !important;
+      }
+      .brand-wrapper {
+        flex-shrink: 0 !important;
+        min-width: 0 !important;
+      }
+    }
+  </style>
+</head>
+<body class="page-window modes-page modes-theme-caregiver">
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="header" role="banner">
+    <div class="container">
+      <a href="index.html" class="brand-wrapper" aria-label="Ir al inicio de MediTime">
+        <img src="images/meditime-icon.png" alt="Logo de MediTime" class="brand-icon" width="40" height="40" />
+        <span class="brand-title">MEDITIME</span>
+      </a>
+
+      <!-- Desktop Navigation -->
+      <nav class="nav-desktop" aria-label="Navegación principal">
+        <a href="index.html" class="nav-link">Inicio</a>
+        <a href="arquitectura.html" class="nav-link">Arquitectura</a>
+        <a href="modos.html" class="nav-link active">Modos</a>
+        <a href="changelog.html" class="nav-link">Changelog</a>
+        <a href="index.html#pricing" class="nav-link">Planes</a>
+        <a href="index.html#about" class="nav-link">Nosotros</a>
+      </nav>
+
+      <!-- Actions: Theme toggle & CTA -->
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Cambiar a modo oscuro" title="Cambiar tema">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        </button>
+        <a id="header-download-btn" href="index.html#download" class="btn btn-primary btn-sm">Descargar APK</a>
+        <button id="menu-toggle" class="menu-toggle-btn" aria-label="Abrir menú de navegación" aria-controls="mobile-nav" aria-expanded="false">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer Navigation -->
+  <div id="mobile-nav" class="mobile-nav" aria-label="Menú móvil">
+    <a href="index.html" class="nav-link">Inicio</a>
+    <a href="arquitectura.html" class="nav-link">Arquitectura</a>
+    <a href="modos.html" class="nav-link active">Modos</a>
+    <a href="changelog.html" class="nav-link">Changelog</a>
+    <a href="index.html#pricing" class="nav-link">Planes y Precios</a>
+    <a href="index.html#about" class="nav-link">Sobre Nosotros</a>
+    <a href="index.html#download" class="nav-link">Descargar APK</a>
+  </div>
+
+  <!-- ==================== CONTENIDO: MODOS EN PROFUNDIDAD ==================== -->
+  <main id="main-content" style="padding-top: 112px; padding-bottom: 96px;">
+    <div class="container-wide">
+
+      <!-- Encabezado de la Ventana -->
+      <div class="section-header" style="margin-bottom: 36px;">
+        <div class="section-badge">Multiperfil Especializado</div>
+        <h1 class="section-title">Gestión Profunda: Modo Cuidador & Veterinaria</h1>
+        <p class="section-subtitle" style="max-width: 800px; margin: 0 auto;">
+          Explora las herramientas diseñadas para la tranquilidad de quienes cuidan a personas dependientes y la salud de los animales de compañía.
+        </p>
+      </div>
+
+      <!-- Selector Interactivo de Modo -->
+      <div class="modes-deep-tabs-wrapper">
+        <div class="modes-deep-tabs" role="tablist" aria-label="Seleccionar modo especializado">
+          <button class="mode-deep-tab-btn active" data-target-mode="caregiver" role="tab" aria-selected="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Modo Cuidador (Familiares & Dependientes)</span>
+          </button>
+          <button class="mode-deep-tab-btn" data-target-mode="pets" role="tab" aria-selected="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4" cy="8" r="2"/><path d="M9 10a5 5 0 0 1 6 0c1.5 1 2.5 3 2.5 5 0 2.5-2 4-5.5 4S6.5 17.5 6.5 15c0-2 1-4 2.5-5Z"/></svg>
+            <span>Modo Animales (Veterinaria & Mascotas)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel 1: Modo Cuidador -->
+      <div id="panel-deep-caregiver" class="mode-deep-panel active" role="tabpanel">
+        <div class="modes-deep-grid">
+          
+          <div class="mode-deep-card mode-deep-card-caregiver" style="opacity: 1; transform: none; filter: none;">
+            <div class="mode-deep-icon-box" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            </div>
+            <h3>Monitoreo de Adherencia en Tiempo Real</h3>
+            <p>
+              Supervisa el cumplimiento farmacológico de tus padres mayores o familiares con tratamientos complejos. Visualiza un semáforo de adherencia semanal y tasa de dosis tomadas a tiempo.
+            </p>
+            <ul class="mode-deep-checklist">
+              <li>Visualización simultánea de múltiples pacientes sin mezclar recetas.</li>
+              <li>Historial detallado con marca horaria de confirmación de cada toma.</li>
+              <li>Sincronización silenciosa y segura en segundo plano.</li>
+            </ul>
+          </div>
+
+          <div class="mode-deep-card mode-deep-card-caregiver" style="opacity: 1; transform: none; filter: none;">
+            <div class="mode-deep-icon-box" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+            <h3>Alertas Preventivas de Dosis Omitidas</h3>
+            <p>
+              Si un familiar dependiente no confirma la toma de un medicamento crítico dentro de los 30 minutos posteriores a la alarma, MediTime genera una alerta prioritaria para que puedas contactarlo.
+            </p>
+            <ul class="mode-deep-checklist">
+              <li>Prevención activa de descompensaciones por olvidos de medicación.</li>
+              <li>Reintentos progresivos con sonido distintivo y vibración sostenida.</li>
+              <li>Registro de causas de omisión (falta de medicamento, efecto adverso, etc.).</li>
+            </ul>
+          </div>
+
+          <div class="mode-deep-card mode-deep-card-caregiver" style="opacity: 1; transform: none; filter: none;">
+            <div class="mode-deep-icon-box" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+            <h3>Reportes Individuales para Consultas Médicas</h3>
+            <p>
+              Lleva a la cita del geriatra o especialista un reporte en PDF consolidado y ordenado por orden alfabético y horario. Olvida las listas manuscritas y cajas vacías de pastillas.
+            </p>
+            <ul class="mode-deep-checklist">
+              <li>Generación instantánea sin conexión a internet.</li>
+              <li>Firma del cuidador y fecha de emisión para validez en la historia clínica.</li>
+              <li>Compatibilidad con WhatsApp, Drive y correo electrónico.</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Panel 2: Modo Animales / Mascotas -->
+      <div id="panel-deep-pets" class="mode-deep-panel" style="display: none;" role="tabpanel">
+        <div class="modes-deep-grid">
+          
+          <div class="mode-deep-card mode-deep-card-pets" style="opacity: 1; transform: none; filter: none;">
+            <div class="mode-deep-icon-box" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg>
+            </div>
+            <h3>Dosificación Ponderal por Especie y Peso</h3>
+            <p>
+              La farmacología veterinaria exige precisión milimétrica según la masa corporal del animal. MediTime permite registrar el peso actual de tu perro o gato para calcular dosis seguras.
+            </p>
+            <ul class="mode-deep-checklist">
+              <li>Soporte para tabletas, suspensiones líquidas (ml) y gotas óticas/oftálmicas.</li>
+              <li>Ajuste automático de dosis al actualizar el peso del animal en revisiones.</li>
+              <li>Marcado visual para animales en gestación o cachorros.</li>
+            </ul>
+          </div>
+
+          <div class="mode-deep-card mode-deep-card-pets" style="opacity: 1; transform: none; filter: none;">
+            <div class="mode-deep-icon-box" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <h3>Calendario de Desparasitación y Vacunación</h3>
+            <p>
+              Organiza ciclos profilácticos semestrales o anuales (antirrábica, séxtuple, triple felina, desparasitaciones internas y pipetas contra pulgas y garrapatas).
+            </p>
+            <ul class="mode-deep-checklist">
+              <li>Recordatorios espaciados (3 meses, 6 meses, 1 año) que no se borran.</li>
+              <li>Avisos con 48h de anticipación para comprar el antiparasitario.</li>
+              <li>Historial de lotes y marcas aplicadas para evitar duplicidades.</li>
+            </ul>
+          </div>
+
+          <div class="mode-deep-card mode-deep-card-pets" style="opacity: 1; transform: none; filter: none;">
+            <div class="mode-deep-icon-box" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+            </div>
+            <h3>Cartilla Sanitaria Digital Portátil</h3>
+            <p>
+              Toda la información veterinaria de tus mascotas disponible en tu bolsillo. Muestra al veterinario el historial de cirugías, alergias a anestésicos o fármacos prescritos anteriormente.
+            </p>
+            <ul class="mode-deep-checklist">
+              <li>Ficha clínica con fotografía, microchip y raza del animal.</li>
+              <li>Exportación directa en PDF para viajes, hoteles caninos o guarderías.</li>
+              <li>Modo offline garantizado para zonas rurales sin cobertura.</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="brand-wrapper">
+            <img src="images/meditime-icon.png" alt="Logo de MediTime" class="brand-icon" width="38" height="38" />
+            <span class="brand-title">MEDITIME</span>
+          </div>
+          <p>
+            Tu asistente personal de medicación y salud. Alarmas nativas, micro-consejos clínicos con IA, seguimiento multiperfil y reportes en PDF.
+          </p>
+          <div style="display: flex; gap: 12px;">
+            <a href="https://github.com/JDkinior/MediTime" target="_blank" rel="noopener noreferrer" class="social-btn" aria-label="GitHub de MediTime">
+              <img src="images/github-icon.png" alt="GitHub" width="18" height="18" />
+            </a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Navegación</h4>
+          <div class="footer-links">
+            <a href="index.html" class="footer-link">Inicio</a>
+            <a href="arquitectura.html" class="footer-link">Arquitectura</a>
+            <a href="modos.html" class="footer-link">Modos</a>
+            <a href="changelog.html" class="footer-link">Changelog</a>
+            <a href="index.html#showcase" class="footer-link">Vistas de la App</a>
+            <a href="index.html#midi" class="footer-link">Asistente Midi</a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Recursos</h4>
+          <div class="footer-links">
+            <a href="index.html#pricing" class="footer-link">Planes y Precios</a>
+            <a href="index.html#download" class="footer-link">Descargar APK</a>
+            <a href="index.html#faq" class="footer-link">Preguntas Frecuentes</a>
+            <a href="index.html#about" class="footer-link">Equipo y Misión</a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Tecnología</h4>
+          <div class="footer-links">
+            <a href="https://github.com/JDkinior/MediTime" target="_blank" rel="noopener noreferrer" class="footer-link">
+              <span>Repositorio GitHub</span>
+              <span class="external-icon" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+            </a>
+            <a href="https://flutter.dev/" target="_blank" rel="noopener noreferrer" class="footer-link">
+              <span>Construido con Flutter</span>
+              <span class="external-icon" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2022–2026 MediTime. Todos los derechos reservados.</p>
+        <p>Universidad de Cundinamarca · Ingeniería de Sistemas y Computación</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

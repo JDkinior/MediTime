@@ -1,0 +1,21 @@
+{
+  "name": "MediTime - Gestión de Tratamientos Médicos",
+  "short_name": "MediTime",
+  "description": "Tu asistente personal de medicación. Recordatorios nativos, micro-consejos clínicos con IA, calendario y reportes.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8fafd",
+  "theme_color": "#004ac6",
+  "lang": "es-ES",
+  "categories": ["health", "medical", "productivity"],
+  "icons": [
+    {
+      "src": "images/meditime-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

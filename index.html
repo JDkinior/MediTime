@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="description" content="MediTime - Aplicación inteligente para la gestión de tratamientos médicos, alarmas nativas inquebrantables, micro-consejos clínicos con IA, modo cuidador y reportes en PDF." />
+  <meta name="keywords" content="MediTime, salud digital, recordatorios medicamentos, alarmas nativas, micro consejos IA, modo cuidador, veterinaria, adherencia médica, app salud Android" />
+  <meta name="author" content="Jorge Delgado, Johan Arévalo - MediTime" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#090d16" />
+  <meta name="color-scheme" content="light dark" />
+  <script>
+    const savedTheme = localStorage.getItem('meditime_theme');
+    if (savedTheme === 'dark' || savedTheme === 'light') {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  </script>
+
+  <!-- PWA Manifest & Favicon -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="images/meditime-icon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="images/meditime-icon.png" />
+
+  <title>MediTime | Gestión Inteligente de Tratamientos Médicos</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Stylesheet & Script with Cache-Busting -->
+  <link rel="preload" href="styles.css?v=2.35.0" as="style" />
+  <link rel="stylesheet" href="styles.css?v=2.39.0" />
+  <script src="scripts.js?v=2.39.0" defer></script>
+</head>
+<body>
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="header" role="banner">
+    <div class="container">
+      <a href="index.html" class="brand-wrapper" aria-label="Ir al inicio de MediTime">
+        <img src="images/meditime-icon.png" alt="Logo de MediTime" class="brand-icon" width="42" height="42" />
+        <span class="brand-title">MEDITIME</span>
+      </a>
+
+      <!-- Desktop Navigation -->
+      <nav class="nav-desktop" aria-label="Navegación principal">
+        <a href="index.html" class="nav-link active">Inicio</a>
+        <a href="arquitectura.html" class="nav-link">Arquitectura</a>
+        <a href="modos.html" class="nav-link">Modos</a>
+        <a href="changelog.html" class="nav-link">Changelog</a>
+        <a href="#pricing" class="nav-link">Planes</a>
+        <a href="#about" class="nav-link">Nosotros</a>
+      </nav>
+
+      <!-- Actions: Theme toggle & CTA -->
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Cambiar a modo oscuro" title="Cambiar tema">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        </button>
+        <a id="header-download-btn" href="#download" class="btn btn-primary btn-sm">Descargar APK</a>
+        <button id="menu-toggle" class="menu-toggle-btn" aria-label="Abrir menú de navegación" aria-controls="mobile-nav" aria-expanded="false">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer Navigation -->
+  <div id="mobile-nav" class="mobile-nav" aria-label="Menú móvil">
+    <a href="index.html" class="nav-link active">Inicio</a>
+    <a href="arquitectura.html" class="nav-link">Arquitectura</a>
+    <a href="modos.html" class="nav-link">Modos</a>
+    <a href="changelog.html" class="nav-link">Changelog</a>
+    <a href="#pricing" class="nav-link">Planes y Precios</a>
+    <a href="#about" class="nav-link">Sobre Nosotros</a>
+    <a href="#download" class="nav-link">Descargar APK</a>
+  </div>
+
+  <main id="main-content">
+    <!-- ==================== HERO SECTION ==================== -->
+    <section id="hero" class="hero">
+      <div class="hero-ambient-glow" aria-hidden="true"></div>
+      <div class="container">
+        <div class="hero-content">
+          <div class="hero-tag">
+            <span class="hero-tag-pulse" aria-hidden="true"></span>
+            <span id="hero-version-badge" class="hero-version-badge">
+              <span class="hero-version-prefix">Versión 2.32.0 disponible · Con</span>
+              <span class="hero-version-sr">Versión 2.32.0 disponible · Con IA y Modo Cuidador</span>
+              <span class="modo-rotator" aria-hidden="true">
+                <span class="modo-item modo-ia">IA</span>
+                <span class="modo-item modo-cuidador">Modo Cuidador</span>
+                <span class="modo-item modo-animales">Modo Animales</span>
+              </span>
+            </span>
+          </div>
+
+          <h1 class="hero-title">
+            Tu medicación, en el momento exacto. <span class="text-gradient">Control inteligente</span> <span class="text-gradient">de tu salud.</span>
+          </h1>
+
+          <p class="hero-description">
+            MediTime es la herramienta definitiva para pacientes, cuidadores y familias. Integra <strong>alarmas nativas inquebrantables de hardware</strong>, <strong>micro-consejos farmacológicos con IA</strong>, agenda diaria inteligente y reportes clínicos en PDF certificados para tu médico.
+          </p>
+
+          <div class="hero-actions">
+            <a id="hero-download-btn" href="#download" class="btn btn-primary btn-lg">
+              <span>Descargar APK Gratuito</span>
+              <span class="btn-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+            </a>
+            <a href="#showcase" class="btn btn-secondary btn-lg">
+              <span>Ver la App en Acción</span>
+              <span class="btn-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></span>
+            </a>
+          </div>
+
+          <!-- Trust Badges -->
+          <div class="hero-trust-bar">
+            <div class="trust-item">
+              <span class="trust-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+              <span>100% Funcional Offline</span>
+            </div>
+            <div class="trust-item">
+              <span class="trust-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+              <span>Sin anuncios ni rastreo</span>
+            </div>
+            <div class="trust-item">
+              <span class="trust-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></span>
+              <span>Consejos Clínicos con IA</span>
+            </div>
+            <div class="trust-item">
+              <span class="trust-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg></span>
+              <span>Modo Cuidador & Mascotas</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Phone Mockup Simulator -->
+        <div class="hero-visual">
+          <div class="hero-phone-showcase-wrapper">
+            <div class="phone-mockup-frame" id="sim-phone-frame" data-parallax="0.10">
+              <span class="phone-camera-dot" aria-hidden="true"></span>
+
+              <!-- Interactive Phone Screen -->
+              <div class="phone-screen" id="sim-phone-screen">
+                <!-- Top Status Bar -->
+                <div class="sim-status-bar">
+                  <span class="sim-status-time" id="sim-live-time">18:20</span>
+                  <div class="sim-status-icons">
+                    <!-- Cellular -->
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9z"/></svg>
+                    <!-- Wifi -->
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4z"/></svg>
+                    <!-- Battery -->
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 4h-3V2h-4v2H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/></svg>
+                  </div>
+                </div>
+
+                <!-- Heads-up Native Hardware Alarm Dropdown -->
+                <div class="sim-alarm-banner" id="sim-alarm-banner">
+                  <div class="sim-alarm-pulse-ring"></div>
+                  <div class="sim-alarm-content">
+                    <div class="sim-alarm-icon">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/></svg>
+                    </div>
+                    <div class="sim-alarm-details">
+                      <div class="sim-alarm-title">Alarma MediTime · 01:58 a.m.</div>
+                      <div class="sim-alarm-med">GARDASIL · 1 Gragea</div>
+                    </div>
+                  </div>
+                  <div class="sim-alarm-actions">
+                    <button class="sim-btn-take" id="sim-btn-alarm-take"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg> Tomada</button>
+                    <button class="sim-btn-snooze" id="sim-btn-alarm-snooze">10 min</button>
+                  </div>
+                </div>
+
+                <!-- Screen 1: Plan de Hoy & Receta Inteligente (Interactive) -->
+                <div class="sim-screen-view sim-view-plan active" id="sim-view-plan">
+                  <!-- Scrollable App Viewport -->
+                  <div class="sim-app-scroll" id="sim-app-scroll">
+                    <!-- App Header -->
+                    <div class="sim-app-header">
+                      <div class="sim-header-top">
+                        <button class="sim-icon-btn" aria-label="Menú principal de la app">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+                        </button>
+                        <strong class="sim-brand">MediTime</strong>
+                        <div class="sim-user-avatar" title="Perfil de usuario"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="7.5" cy="9" r="1.25" fill="currentColor"/><circle cx="16.5" cy="9" r="1.25" fill="currentColor"/><path d="M7 14c1.2 2.2 3 3.3 5 3.3s3.8-1.1 5-3.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+                      </div>
+                      <div class="sim-greeting">
+                        <h3 class="sim-greeting-title">Hola, Jorge</h3>
+                        <span class="sim-greeting-sub">Aquí está tu plan para hoy</span>
+                      </div>
+                      <div class="sim-date-chip">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                        <span>Lunes, 26 de octubre</span>
+                      </div>
+                    </div>
+
+                    <!-- Resumen de hoy (Alterna dinámicamente con Micro-Consejo IA) -->
+                    <div class="sim-summary-card" id="sim-summary-card">
+                      <!-- Vista A: Métricas del día -->
+                      <div class="sim-card-face sim-face-metrics active" id="sim-face-metrics">
+                        <div class="sim-summary-title">Resumen de hoy</div>
+                        <div class="sim-summary-metrics">
+                          <div class="sim-metric">
+                            <div class="sim-metric-val" id="sim-metric-pending">2</div>
+                            <div class="sim-metric-lbl">PENDIENTES</div>
+                          </div>
+                          <div class="sim-metric">
+                            <div class="sim-metric-val" id="sim-metric-taken">1</div>
+                            <div class="sim-metric-lbl">TOMADAS</div>
+                          </div>
+                          <div class="sim-metric">
+                            <div class="sim-metric-val" id="sim-metric-adherence">67%</div>
+                            <div class="sim-metric-lbl">ADHERENCIA</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Vista B: Solo el consejo clínico alternado dentro del mismo Resumen -->
+                      <div class="sim-card-face sim-face-ai" id="sim-face-ai">
+                        <p class="sim-summary-ai-text">Asocia las tomas de tu familiar a hábitos agradables como el desayuno o una charla tranquila.</p>
+                      </div>
+                    </div>
+
+                      <!-- Timeline of Doses -->
+                    <div class="sim-section-header">
+                      <h4>Dosis del día</h4>
+                      <span class="sim-badge-count" id="sim-dose-count">3 tomas</span>
+                    </div>
+
+                    <div class="sim-timeline">
+                      <div class="sim-timeline-line"></div>
+
+                      <!-- Dose 1: previously omitted -->
+                      <div class="sim-dose-item" id="sim-dose-1">
+                        <div class="sim-dose-node node-missed" id="sim-node-1"><span>×</span></div>
+                        <div class="sim-dose-card" id="sim-dose-card-1">
+                          <div class="sim-dose-row">
+                            <span class="sim-dose-time">12:17 a.m.</span>
+                          </div>
+                          <div class="sim-dose-name">ivermectina</div>
+                          <div class="sim-dose-sub"><span>◷ Cada 8 horas</span><span>◉ 1 Emulsiones</span></div>
+                        </div>
+                      </div>
+
+                      <!-- Dose 2: waits for its notification, then becomes taken -->
+                      <div class="sim-dose-item" id="sim-dose-2">
+                        <div class="sim-dose-node node-pending" id="sim-node-2"></div>
+                        <div class="sim-dose-card">
+                          <div class="sim-dose-row">
+                            <span class="sim-dose-time">01:58 a.m.</span>
+                          </div>
+                        <div class="sim-dose-name">GARDASIL</div>
+                        <div class="sim-dose-sub"><span>◷ Cada 8 horas</span><span>◉ 1 Grageas</span></div>
+                        </div>
+                      </div>
+
+                      <!-- Dose 3: Omeprazol -->
+                      <div class="sim-dose-item" id="sim-dose-3">
+                        <div class="sim-dose-node node-pending"></div>
+                        <div class="sim-dose-card">
+                          <div class="sim-dose-row">
+                            <span class="sim-dose-time">05:47 a.m.</span>
+                          </div>
+                          <div class="sim-dose-name">acetaminofén</div>
+                          <div class="sim-dose-sub"><span>◷ Cada 8 horas</span><span>▱ 1 Sobres</span></div>
+                        </div>
+                      </div>
+
+                      <!-- Dose 4: Dynamically added Ibuprofeno -->
+                      <div class="sim-dose-item sim-dose-new" id="sim-dose-new">
+                        <div class="sim-dose-node node-new"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><polyline points="20 6 9 17 4 12"/></svg></div>
+                        <div class="sim-dose-card sim-card-highlight">
+                          <div class="sim-dose-row">
+                            <span class="sim-dose-time">08:16 a.m.</span>
+                          </div>
+                          <div class="sim-dose-name">Ibuprofeno 400 mg</div>
+                          <div class="sim-dose-sub"><span>◷ Cada 8 horas</span><span>▱ Comprimidos</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Bottom Sheet Modal: Agregar Receta -->
+                  <div class="sim-bottom-sheet-backdrop" id="sim-sheet-backdrop"></div>
+                  <div class="sim-bottom-sheet" id="sim-bottom-sheet">
+                    <div class="sim-sheet-handle"></div>
+                    <div class="sim-sheet-header">
+                      <div class="sim-sheet-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span>Nueva Receta</span>
+                      </div>
+                      <button class="sim-sheet-close" id="sim-sheet-close" aria-label="Cerrar modal">&times;</button>
+                    </div>
+                    <div class="sim-sheet-form">
+                      <div class="sim-form-group">
+                        <label>Medicamento</label>
+                        <div class="sim-input-box">
+                          <span class="sim-input-text" id="sim-input-med-text">Ibuprofeno 400mg</span>
+                          <span class="sim-typing-cursor"></span>
+                        </div>
+                      </div>
+                      <div class="sim-form-row">
+                        <div class="sim-form-group">
+                          <label>Frecuencia</label>
+                          <div class="sim-input-box">Cada 8 h</div>
+                        </div>
+                        <div class="sim-form-group">
+                          <label>Presentación</label>
+                          <div class="sim-input-box">Comprimidos</div>
+                        </div>
+                      </div>
+                      <div class="sim-sheet-switch-row">
+                        <span>Alarma de Hardware</span>
+                        <div class="sim-switch on"></div>
+                      </div>
+                      <button class="sim-btn-save-recipe" id="sim-btn-save-recipe">
+                        <span>Guardar Receta</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+
+
+                <!-- Full-screen recipe flow used by the product tour -->
+                <div class="sim-screen-view sim-view-special sim-view-add" id="sim-view-add">
+                  <header class="tour-page-header"><button class="tour-back" id="sim-add-back" aria-label="Volver">‹</button><strong>Agregar Receta</strong><span class="tour-scan">▣</span></header>
+                  <div class="tour-add-content">
+                    <section id="sim-add-step-name"><h2>¿Qué medicamento vas a agregar?</h2><label for="sim-new-med-name">Nombre del medicamento</label><input id="sim-new-med-name" type="text" value="" placeholder="Escribe el nombre del medicamento" readonly></section>
+                    <section id="sim-add-step-details" hidden><h2>Completa los detalles</h2><label>Frecuencia</label><div class="tour-input">Cada 8 horas</div><label>Presentación</label><div class="tour-input">Comprimidos</div></section>
+                  </div>
+                  <button class="tour-next" id="sim-add-next" aria-label="Continuar">→</button>
+                </div>
+
+                <!-- Midi virtual assistant preview -->
+                <div class="sim-screen-view sim-view-special sim-view-assistant" id="sim-view-assistant">
+                  <header class="tour-chat-header"><button class="tour-back" id="sim-assistant-back" aria-label="Volver">‹</button><span class="tour-midi-avatar"><img src="images/midi_open.png" alt=""></span><strong>Midi <i></i></strong><span class="tour-pro-badge">✦ PRO · 119</span><span class="tour-history">◷</span></header>
+                  <div class="tour-chat-scroll" id="sim-chat-scroll">
+                    <div class="tour-chat-bubble midi">¡Hola! Soy Midi, tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?<small>3:16 AM</small></div>
+                    <div class="tour-chat-bubble user">Háblame de mis medicamentos activos<small>3:16 AM</small></div>
+                    <article class="tour-med-response" id="sim-midi-response" hidden><strong>Medicamentos activos</strong><div class="tour-med-table"><b>Medicamento　 Presentación</b><span>ivermectina · GARDASIL · acetaminofén</span></div><ul><li><b>Vía de administración:</b> Intramuscular y oral, según medicamento.</li><li><b>Dosis programadas hoy:</b> 12:17 h (tomada), 01:58 h, 05:47 h y 08:16 h.</li><li><b>Duración total:</b> 90 días (21 oct 2026 – 19 ene 2027).</li></ul><aside>⚠ Atención: Si notas alguna reacción adversa, contacta a tu médico de inmediato.</aside><small>3:16 AM</small></article>
+                    <div class="tour-chat-typing" id="sim-chat-typing" hidden><span></span><span></span><span></span> Midi está escribiendo</div>
+                  </div>
+                  <div class="tour-chat-composer"><span>✧　Pregunta lo que necesitas...</span><b>🎙</b></div>
+                </div>
+
+                <!-- Persistent Floating Action Button, available on every app screen -->
+                <button class="sim-fab" id="sim-fab-add" aria-label="Añadir nueva receta">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+
+                <!-- Screen 2: Calendario de Medicación -->
+                <div class="sim-screen-view sim-view-image sim-view-calendar" id="sim-view-calendar">
+                  <div class="sim-calendar-screen">
+  <div class="calendar-screen-title"><span class="calendar-menu-mark">☰</span><strong>Calendario</strong><span class="calendar-avatar"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="7.5" cy="9" r="1.25" fill="currentColor"/><circle cx="16.5" cy="9" r="1.25" fill="currentColor"/><path d="M7 14c1.2 2.2 3 3.3 5 3.3s3.8-1.1 5-3.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span></div>
+  <section class="calendar-month-card">
+    <div class="calendar-topbar"><button class="calendar-arrow" aria-label="Mes anterior">‹</button><div class="calendar-month">octubre de 2026</div><button class="calendar-arrow" aria-label="Mes siguiente">›</button></div>
+    <div class="calendar-weekdays"><span>dom</span><span>lun</span><span>mar</span><span>mié</span><span>jue</span><span>vie</span><span>sáb</span></div>
+    <div class="calendar-grid"><button class="calendar-day day-done">18</button><button class="calendar-day day-missed">19</button><button class="calendar-day day-missed">20</button><button class="calendar-day day-late">21</button><button class="calendar-day selected">22</button><button class="calendar-day day-late">23</button><button class="calendar-day day-late">24</button></div><span class="calendar-week-indicator"></span>
+  </section>
+  <section class="calendar-summary"><div class="calendar-summary-header"><strong>Resumen del día</strong><span>2 de 9 dosis completadas</span></div><div class="calendar-progress-track"><span class="calendar-progress-fill"></span></div></section>
+  <div class="calendar-meds"><h4>Medicamentos del día</h4>
+    <div class="calendar-med-item complete"><span class="calendar-dose-state state-done">✓</span><div class="calendar-med-main"><div><div class="med-time">12:17 a.m.</div><div class="med-name">ivermectina</div><div class="med-sub">◷ Cada 8 horas　◉ 1 Emulsiones</div></div></div><span class="calendar-more">⋮</span></div>
+    <div class="calendar-med-item"><span class="calendar-dose-state state-missed">×</span><div class="calendar-med-main"><div><div class="med-time time-red">01:58 a.m.</div><div class="med-name">GARDASIL</div><div class="med-sub">◷ Cada 8 horas　◉ 1 Grageas</div></div></div><span class="calendar-more">⋮</span></div>
+    <div class="calendar-med-item complete"><span class="calendar-dose-state state-done">✓</span><div class="calendar-med-main"><div><div class="med-time">05:47 a.m.</div><div class="med-name">acetaminofén</div><div class="med-sub">▱ 1 Sobres</div></div></div><span class="calendar-more">⋮</span></div>
+    <div class="calendar-med-item"><span class="calendar-dose-state state-alert">♟</span><div class="calendar-med-main"><div><div class="med-time time-amber">08:16 a.m.</div><div class="med-name">ivermectina</div><div class="med-sub">◷ Cada 8 horas　◉ 1 Emulsiones</div></div></div><span class="calendar-more">⋮</span></div>
+  </div>
+</div>
+                </div>
+
+                <!-- Screen 3: Progreso y Adherencia -->
+                <div class="sim-screen-view sim-view-image sim-view-stats" id="sim-view-stats">
+                  <div class="sim-progress-screen">
+  <div class="progress-screen-title"><span>☰</span><strong>Progreso</strong><span class="calendar-avatar"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="7.5" cy="9" r="1.25" fill="currentColor"/><circle cx="16.5" cy="9" r="1.25" fill="currentColor"/><path d="M7 14c1.2 2.2 3 3.3 5 3.3s3.8-1.1 5-3.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span></div>
+  <div class="progress-period"><button type="button" data-period="week">Semana</button><button type="button" class="active" data-period="month">Mes</button><button type="button" data-period="year">Año</button><button type="button" data-period="all">Todo</button></div>
+  <section class="progress-overview"><h4>Tu desempeño general</h4><div class="progress-top-row"><div class="progress-ring" aria-label="55% de adherencia"><div class="progress-ring-inner"><strong>55%</strong><span>Adherencia</span></div></div><div class="progress-stats"><strong class="progress-big-number">47 <small>/ 86 dosis</small></strong><span>Dosis tomadas a tiempo</span><b class="goal-pill">⚑ Meta clínica: 80%</b><p>Faltan 22 dosis a tiempo para alcanzar la meta clínica del 80%.</p></div></div></section>
+  <div class="progress-metric-grid"><div class="progress-metric taken-tile"><span>Tomadas　●</span><strong>47</strong><small>55% a tiempo</small></div><div class="progress-metric missed-tile"><span>Omitidas　⊗</span><strong>18</strong><small>21% sin tomar</small></div><div class="progress-metric delayed-tile"><span>Aplazadas　◷</span><strong>1</strong><small>Pospuestas</small></div><div class="progress-metric notified-tile"><span>Notificadas　♟</span><strong>20</strong><small>Por confirmar</small></div></div>
+  <div class="progress-bottom-grid"><div class="streak-card"><b>🔥</b><strong>1 día</strong><span>Racha activa</span><i>━━━━━━</i></div><div class="rhythm-card"><b>♧　Olvidos matutinos　›</b><p>La mayoría de omisiones son en la mañana. Vincula la toma con tu desayuno.</p><span>Ver análisis horario →</span></div></div>
+  <section class="pdf-report"><b>▣　Reporte Médico PDF</b><p>Descarga o comparte un informe de tu progreso.</p><button>⌯　Exportar</button><small class="report-period-note">4 medicamentos activos en este período</small></section>
+</div>
+                </div>
+
+                <!-- Shared Native Bottom Navigation Bar -->
+                <nav class="sim-bottom-nav" id="sim-bottom-nav" aria-label="Navegación de la app en simulador">
+                  <button class="sim-nav-btn active" id="sim-tab-plan" data-target="plan" aria-label="Vista Receta y Plan de hoy">
+                    <div class="sim-nav-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="16" height="16" x="4" y="4" rx="3"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                    </div>
+                    <span class="sim-nav-lbl">Receta</span>
+                  </button>
+                  <button class="sim-nav-btn" id="sim-tab-calendar" data-target="calendar" aria-label="Vista Calendario">
+                    <div class="sim-nav-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                    </div>
+                    <span class="sim-nav-lbl">Calendario</span>
+                  </button>
+                  <button class="sim-nav-btn" id="sim-tab-stats" data-target="stats" aria-label="Vista Progreso y Adherencia">
+                    <div class="sim-nav-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                    </div>
+                    <span class="sim-nav-lbl">Progreso</span>
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== FEATURES SECTION ==================== -->
+    <section id="features" class="features">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Diseñado con rigor clínico y calidez humana</h2>
+          <p class="section-subtitle">
+            MediTime combina la arquitectura más avanzada de Android con inteligencia artificial para ofrecer una experiencia accesible, confiable y segura.
+          </p>
+        </div>
+
+        <div class="features-grid">
+          <!-- Feature 1: AI Clinical Advice -->
+          <div class="feature-card">
+            <div class="feature-pill-tag">Nuevo en v2.32</div>
+            <div class="feature-icon-wrapper">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+            </div>
+            <h3>Micro-Consejos Clínicos con IA</h3>
+            <p>
+              Análisis farmacológico en tiempo real según tus medicamentos activos y porcentaje de adherencia. Cuenta con caché persistente de 12 horas y pautas instantáneas (ayunas, protección gástrica con AINEs, antibióticos e hidratación).
+            </p>
+          </div>
+
+          <!-- Feature 2: Hardware Persistent Alarms -->
+          <div class="feature-card">
+            <div class="feature-pill-tag">Motor Nativo</div>
+            <div class="feature-icon-wrapper">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/><path d="M6.38 18.7 4 21"/><path d="M17.64 18.67 20 21"/></svg>
+            </div>
+            <h3>Alarmas Nativas Inquebrantables</h3>
+            <p>
+              Construidas sobre <code>android_alarm_manager_plus</code> y nuestro plugin nativo. Suenan a pantalla completa con volumen óptimo incluso con la app cerrada, batería baja o tras reiniciar el teléfono.
+            </p>
+          </div>
+
+          <!-- Feature 3: Multi-profile Caregiver & Pets -->
+          <div class="feature-card">
+            <div class="feature-pill-tag">Multiperfil</div>
+            <div class="feature-icon-wrapper feature-icon-purple">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <h3>Modo Cuidador & Modo Mascotas</h3>
+            <p>
+              Gestiona esquemas de tratamiento de tus hijos o adultos mayores con una suave paleta morada, o tratamientos veterinarios de tus animales de compañía con tema verde menta dinámico.
+            </p>
+          </div>
+
+          <!-- Feature 4: Interactive Calendar & Plan -->
+          <div class="feature-card">
+            <div class="feature-pill-tag">Organización</div>
+            <div class="feature-icon-wrapper">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>
+            </div>
+            <h3>Plan de Hoy y Calendario</h3>
+            <p>
+              Agenda intuitiva con códigos de color para dosis tomadas, pendientes, notificadas u omitidas. Soporta tratamientos temporales e indefinidos con generación bajo demanda.
+            </p>
+          </div>
+
+          <!-- Feature 5: Clinical PDF Reports -->
+          <div class="feature-card">
+            <div class="feature-pill-tag">Seguimiento</div>
+            <div class="feature-icon-wrapper">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+            </div>
+            <h3>Reportes Médicos en PDF</h3>
+            <p>
+              Genera informes profesionales de cumplimiento terapéutico y adherencia con gráficos detallados, listos para imprimir o compartir directamente con tu médico especialista.
+            </p>
+          </div>
+
+          <!-- Feature 6: Ethical Freemium Model -->
+          <div class="feature-card">
+            <div class="feature-pill-tag">Ético & Seguro</div>
+            <div class="feature-icon-wrapper feature-icon-green">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg>
+            </div>
+            <h3>Suscripción Ética sin Publicidad</h3>
+            <p>
+              Nivel gratuito universal para hasta 3 tratamientos activos simultáneos con alarmas de hardware sin restricciones. Planes premium accesibles para uso familiar ilimitado.
+            </p>
+          </div>
+        </div>
+
+        <!-- CTA Banner to Architecture -->
+        <div class="features-cta-banner">
+          <div class="features-cta-text">
+            <h3>¿Quieres conocer la ciencia y tecnología detrás de MediTime?</h3>
+            <p>Descubre el pipeline del motor de IA farmacológica, las llamadas de bajo nivel de kernel de Android para el Doze Mode y la anatomía de los reportes médicos en PDF.</p>
+          </div>
+          <a href="arquitectura.html" class="btn btn-secondary btn-glow">
+            <span>Explorar Arquitectura Técnica</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== APP SHOWCASE (INTERACTIVE) ==================== -->
+    <section id="showcase" class="showcase">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Explora las pantallas de MediTime</h2>
+          <p class="section-subtitle">
+            Basado en la filosofía de diseño <strong>Serene Health</strong> ("Clinical Warmth"): una interfaz que transmite calma, precisión médica y eficiencia sin saturar la vista.
+          </p>
+        </div>
+
+        <div class="showcase-container">
+          <!-- Interactive Selector Tabs -->
+          <div class="showcase-tabs" role="tablist" aria-label="Pantallas de la aplicación">
+            <button class="showcase-tab active" data-screen="receta" data-index="0" role="tab" aria-selected="true">
+              <span class="tab-number">1</span>
+              <div class="tab-info">
+                <h4>Plan de Recetas</h4>
+                <p>Visualiza cada toma programada, registra dosis como tomadas u omitidas en 1 toque y recibe recomendaciones en la cabecera.</p>
+              </div>
+            </button>
+
+            <button class="showcase-tab" data-screen="cuidador" data-index="1" role="tab" aria-selected="false">
+              <span class="tab-number">2</span>
+              <div class="tab-info">
+                <h4>Modo Cuidador</h4>
+                <p>Supervisa los tratamientos de tus padres o hijos dependientes con alertas de omisión inmediata y control centralizado.</p>
+              </div>
+            </button>
+
+            <button class="showcase-tab" data-screen="animales" data-index="2" role="tab" aria-selected="false">
+              <span class="tab-number">3</span>
+              <div class="tab-info">
+                <h4>Modo Animales</h4>
+                <p>Gestiona la medicación veterinaria de perros, gatos y otras mascotas con esquemas dedicados, vacunas y dosis por peso.</p>
+              </div>
+            </button>
+          </div>
+
+          <!-- Showcase Phone Screen Preview with Loop Videos -->
+          <div class="showcase-preview">
+            <div class="showcase-phone-wrapper" id="showcase-phone-wrapper">
+              <div class="showcase-screen" id="showcase-screen" aria-label="Pantalla interactiva de MediTime: desliza para navegar">
+                <div class="showcase-slider-track" id="showcase-slider-track">
+                  <!-- Slide 1: Recetas -->
+                  <div class="showcase-slide active" data-screen="receta" data-index="0">
+                    <video class="showcase-video" src="Video/Recetaspage.mp4" autoplay loop muted playsinline webkit-playsinline preload="auto" poster="images/showcase-receta-dark.jpg"></video>
+                  </div>
+                  <!-- Slide 2: Cuidador -->
+                  <div class="showcase-slide" data-screen="cuidador" data-index="1">
+                    <video class="showcase-video" src="Video/cuidadorpage.mp4" loop muted playsinline webkit-playsinline preload="metadata" poster="images/showcase-receta-dark.jpg"></video>
+                  </div>
+                  <!-- Slide 3: Animales -->
+                  <div class="showcase-slide" data-screen="animales" data-index="2">
+                    <video class="showcase-video" src="Video/animalespage.mp4" loop muted playsinline webkit-playsinline preload="metadata" poster="images/showcase-receta-dark.jpg"></video>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Indicadores de deslizamiento / páginas -->
+            <div class="showcase-swipe-hint" aria-hidden="true">
+              <button class="swipe-dot active" data-index="0" aria-label="Ver Plan de Recetas"></button>
+              <button class="swipe-dot" data-index="1" aria-label="Ver Modo Cuidador"></button>
+              <button class="swipe-dot" data-index="2" aria-label="Ver Modo Animales"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== MIDI AI CHATBOT INTERACTIVE SIMULATOR ==================== -->
+    <section id="midi" class="midi-section">
+      <div class="container">
+        <div class="midi-grid">
+          <!-- Midi Description -->
+          <div class="midi-info">
+            <div class="midi-avatar-header">
+              <img src="images/midi_open.png" alt="Avatar animado de Midi" class="midi-avatar-img midi-avatar-dynamic" width="76" height="76" />
+              <div>
+                <h3 class="midi-avatar-title">Midi, tu Asistente IA</h3>
+                <div class="midi-status-indicator">
+                  <span class="midi-status-dot"></span>
+                  <span>En línea y listo para asistirte</span>
+                </div>
+              </div>
+            </div>
+
+            <h2 class="section-title midi-section-title">
+              Respuestas rápidas, orientación clínica y soporte técnico
+            </h2>
+            <p class="midi-lead-desc">
+              Midi es el asistente bilingüe integrado en MediTime impulsado por la API de Groq y modelos de lenguaje de última generación. Puedes hacerle preguntas sobre cómo tomar tus medicamentos, resolver dudas sobre la app o consultar buenas prácticas de adherencia.
+            </p>
+
+            <p class="midi-prompt-hint">
+              <span class="prompt-hint-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></span>
+              Haz clic en una pregunta de prueba para ver a Midi en acción:
+            </p>
+            <div class="midi-chips-container">
+              <button class="prompt-chip">¿Cómo tomo el omeprazol?</button>
+              <button class="prompt-chip">¿Qué hago si olvidé una dosis?</button>
+              <button class="prompt-chip">¿Cómo activo el Modo Cuidador?</button>
+              <button class="prompt-chip">¿Funciona la app sin internet?</button>
+              <button class="prompt-chip">¿Qué incluye MediTime Premium?</button>
+            </div>
+          </div>
+
+          <!-- Interactive Chat Window Simulator -->
+          <div class="chat-window">
+            <div class="chat-header">
+              <div class="chat-header-user">
+                <img src="images/midi_open.png" alt="Midi Avatar" class="chat-header-avatar midi-avatar-dynamic" width="38" height="38" />
+                <div>
+                  <div class="chat-header-name">Midi · MediTime Assistant</div>
+                  <div class="chat-header-role">Asistente Virtual Bilingüe</div>
+                </div>
+              </div>
+              <span class="chat-live-badge">Demo en Vivo</span>
+            </div>
+
+            <div id="chat-messages" class="chat-messages" role="log" aria-live="polite">
+              <div class="message bot">
+                <img src="images/midi_open.png" alt="Midi" class="message-avatar midi-avatar-dynamic" />
+                <div>
+                  <div class="message-bubble">
+                    ¡Hola! Soy <strong>Midi</strong>, el asistente virtual de MediTime. Puedo ayudarte con dudas sobre tus tratamientos, horarios de medicación o guiarte en el uso de la app. ¿En qué puedo orientarte hoy?
+                  </div>
+                  <div class="message-time">Ahora</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-input-box">
+              <input id="chat-user-input" type="text" placeholder="Escribe tu pregunta médica o técnica..." aria-label="Mensaje para Midi" />
+              <button id="chat-send-btn" class="chat-send-btn" aria-label="Enviar mensaje a Midi">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SPECIALIZED MODES ==================== -->
+    <section id="modes" class="modes-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Un modo especializado para cada miembro de la familia</h2>
+          <p class="section-subtitle">
+            MediTime entiende que la salud va más allá de uno mismo. Adapta su paleta y lógica para cuidar de quienes más quieres.
+          </p>
+        </div>
+
+        <div class="modes-grid">
+          <!-- Mode 1: Personal -->
+          <div class="mode-card mode-card-personal">
+            <div class="mode-badge mode-badge-personal">Personal</div>
+            <h3>Modo Individual</h3>
+            <p>
+              Lleva el control estricto de tus propios medicamentos, tratamientos crónicos o temporales, con sincronización en tiempo real y estadísticas de bienestar.
+            </p>
+            <ul class="mode-features-list">
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Historial personal encriptado</li>
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Micro-consejos según tu adherencia</li>
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Notificaciones activas o pasivas</li>
+            </ul>
+          </div>
+
+          <!-- Mode 2: Caregiver -->
+          <div class="mode-card mode-card-caregiver">
+            <div class="mode-badge mode-badge-caregiver">Familiar & Dependientes</div>
+            <h3>Modo Cuidador</h3>
+            <p>
+              Diseñado con una relajante temática morada pastel para administrar los tratamientos de tus padres mayores, hijos o personas bajo tu tutela médica.
+            </p>
+            <ul class="mode-features-list">
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Perfiles independientes con avatar</li>
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Esquemas múltiples sin confusiones</li>
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Reportes individuales listos para citas</li>
+            </ul>
+          </div>
+
+          <!-- Mode 3: Pets / Veterinary -->
+          <div class="mode-card mode-card-pets">
+            <div class="mode-badge mode-badge-pets">Veterinaria</div>
+            <h3>Modo Animales</h3>
+            <p>
+              Con temática verde menta clínico para gestionar la medicación veterinaria de perros, gatos y otras mascotas: desparasitaciones, antibióticos y vacunas.
+            </p>
+            <ul class="mode-features-list">
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Esquemas veterinarios dedicados</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- CTA Banner to Modes Deep Dive -->
+        <div class="modes-cta-banner">
+          <div class="modes-cta-text">
+            <h3>¿Cuidas de un familiar dependiente o gestionas la medicación de tus mascotas?</h3>
+            <p>Descubre cómo el Modo Cuidador unifica los tratamientos de tus padres o hijos con alertas de omisión, y cómo el Modo Animales calcula dosis por kilogramo de peso corporal.</p>
+          </div>
+          <a href="modos.html" class="btn btn-secondary btn-glow">
+            <span>Explorar Modos Cuidador y Mascotas</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== PRICING & ETHICAL FREEMIUM ==================== -->
+    <section id="pricing" class="pricing-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Planes pensados para cuidar tu salud</h2>
+          <p class="section-subtitle">
+            Sin publicidad intrusiva. Todas las alarmas de hardware y funciones esenciales son gratuitas para siempre.
+          </p>
+        </div>
+
+        <div class="pricing-grid">
+          <!-- Free Tier -->
+          <div class="pricing-card">
+            <div class="pricing-header">
+              <h3>Plan Gratuito</h3>
+              <p>Ideal para personas que gestionan tratamientos regulares individuales.</p>
+            </div>
+            <div class="pricing-price">
+              $0 <span class="pricing-period">/ para siempre</span>
+            </div>
+            <ul class="pricing-features">
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> <span>Hasta 3 tratamientos activos simultáneos</span></li>
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> <span>1 perfil dependiente adicional (Cuidador o Mascota)</span></li>
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> <span>Motor de alarmas nativas de hardware sin límites</span></li>
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> <span>Calendario mensual y agenda del día completa</span></li>
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> <span>Asistente Midi con orientación básica</span></li>
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> <span>100% libre de anuncios y publicidad</span></li>
+              <li class="disabled"><span class="mode-cross-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> <span>Tratamientos activos ilimitados</span></li>
+              <li class="disabled"><span class="mode-cross-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> <span>Exportación avanzada de reportes PDF ilimitada</span></li>
+              <li class="disabled"><span class="mode-cross-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> <span>Widgets de pantalla de inicio para Android</span></li>
+            </ul>
+            <a href="#download" class="btn btn-secondary">Comenzar Gratis</a>
+          </div>
+
+          <!-- Premium Tier -->
+          <div class="pricing-card popular">
+            <div class="popular-badge">Acceso Completo</div>
+            <div class="pricing-header">
+              <h3>MediTime Premium</h3>
+              <p>Para familias, pacientes crónicos o cuidadores con múltiples tratamientos.</p>
+            </div>
+            <div class="pricing-price">
+              Premium <span class="pricing-period">/ Mensual o Anual</span>
+            </div>
+            <ul class="pricing-features">
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> <span><strong>Tratamientos activos ilimitados</strong></span></li>
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> <span><strong>Perfiles ilimitados</strong> (Cuidadores y Mascotas)</span></li>
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> <span><strong>Exportación ilimitada de reportes PDF</strong> certificados</span></li>
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> <span><strong>Micro-consejos con IA avanzados</strong> y farmacológicos</span></li>
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> <span><strong>Widgets interactivos</strong> para el escritorio de Android</span></li>
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> <span>Control de dosis por voz y soporte prioritario</span></li>
+              <li><span class="mode-check-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> <span>Sincronización familiar instantánea en la nube</span></li>
+            </ul>
+            <a href="#download" class="btn btn-primary">Ver Planes en la App</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== GITHUB CHANGELOG SPOTLIGHT (LATEST VERSION) ==================== -->
+    <section id="changelog" class="changelog-section">
+      <div class="container-wide">
+        <div class="section-header">
+          <h2 class="section-title">Registro de Versiones: Novedades de la v2.32.0</h2>
+          <p class="section-subtitle">
+            Conoce los cambios más destacados de nuestra actualización más reciente y navega por el historial completo en nuestro Changelog Hub.
+          </p>
+        </div>
+
+        <!-- Spotlight Card: Latest Version -->
+        <div class="changelog-spotlight-card">
+          <div class="spotlight-header">
+            <div class="spotlight-title-group">
+              <span class="spotlight-tag" id="spotlight-version-tag">v2.32.0</span>
+              <span class="spotlight-date" id="spotlight-date-text">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span>18 de septiembre de 2026</span>
+              </span>
+            </div>
+            <div class="spotlight-meta-pill">
+              <span>Android 7.0+ · ~57 MB APK</span>
+            </div>
+          </div>
+
+          <div class="spotlight-body">
+            <p class="spotlight-intro">
+              La versión <strong>v2.32.0</strong> introduce el nuevo motor de Inteligencia Artificial para micro-consejos farmacológicos en tiempo real, el soporte integral para múltiples perfiles (Modo Cuidador y Modo Animales) y el modelo ético freemium.
+            </p>
+
+            <div class="spotlight-highlights-grid">
+              <div class="spotlight-pill-item">
+                <span class="pill-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg></span>
+                <div>
+                  <strong>Micro-Consejos con IA</strong>
+                  <p>Pautas de ayunas (omeprazol), alimentos con AINEs y caché offline de 12 horas.</p>
+                </div>
+              </div>
+              <div class="spotlight-pill-item">
+                <span class="pill-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                <div>
+                  <strong>Modo Cuidador & Mascotas</strong>
+                  <p>Paletas morada y verde menta para gestionar familiares dependientes y veterinaria.</p>
+                </div>
+              </div>
+              <div class="spotlight-pill-item">
+                <span class="pill-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>
+                <div>
+                  <strong>Alarmas Nativas Inquebrantables</strong>
+                  <p>Bypass de Doze Mode con AlarmSoundPlugin y sonido garantizado de hardware.</p>
+                </div>
+              </div>
+              <div class="spotlight-pill-item">
+                <span class="pill-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></span>
+                <div>
+                  <strong>Modelo Freemium Ético</strong>
+                  <p>3 tratamientos gratuitos sin restricciones de alarmas y plan Premium sin límites.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="spotlight-footer">
+            <div class="spotlight-actions-left">
+              <a href="https://github.com/JDkinior/MediTime/releases/tag/v2.32.0" target="_blank" rel="noopener noreferrer" class="btn btn-outline" style="font-size: 0.9rem;">
+                <span>Ver notas en GitHub</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </a>
+            </div>
+
+            <div class="spotlight-actions-right">
+              <a href="changelog.html" class="btn btn-primary btn-glow" id="btn-explore-changelog-hub">
+                <span>Ver Historial Completo</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== DOWNLOAD SECTION ==================== -->
+    <section id="download" class="download-section">
+      <div class="container">
+        <div class="download-card-container">
+          <!-- Left: Download Content -->
+          <div class="download-content">
+            <h2>Comienza a cuidar tu salud con MediTime</h2>
+            <p>
+              Instala la aplicación oficial en tu teléfono o tablet Android. Descarga el paquete APK directamente desde nuestro servidor de GitHub y disfruta de todas las funciones sin intermediarios.
+            </p>
+
+            <div class="download-meta">
+              <div class="meta-item">
+                <span class="meta-label">Versión</span>
+                <span id="download-meta-version" class="meta-value">v2.32.0</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Compatibilidad</span>
+                <span class="meta-value">Android 7.0 o superior</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Tamaño</span>
+                <span class="meta-value">~57 MB</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Seguridad</span>
+                <span class="meta-value">Verificado & Open Source</span>
+              </div>
+            </div>
+
+            <div class="download-actions">
+              <a id="main-download-btn" href="https://github.com/JDkinior/MediTime/releases/latest" class="btn btn-primary btn-lg" target="_blank" rel="noopener noreferrer">
+                <span>Descargar MediTime APK</span>
+                <span class="btn-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+              </a>
+              <p id="latest-version-text" class="download-subtext">
+                Última versión estable disponible en GitHub Releases
+              </p>
+            </div>
+
+            <!-- 3-Step Installation Guide -->
+            <div class="download-guide">
+              <h4 class="download-guide-title">Guía rápida de instalación:</h4>
+              <ol class="download-guide-list">
+                <li>Descarga el archivo APK pulsando el botón o escaneando el código QR.</li>
+                <li>Abre el archivo descargado y si Android te lo solicita, concede el permiso para "Instalar aplicaciones de fuentes desconocidas".</li>
+                <li>¡Listo! Abre MediTime, configura tu horario y empieza a organizar tus dosis.</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- Right: QR Code for Mobile Scanning -->
+          <div class="download-visual">
+            <div class="qr-box">
+              <div class="qr-image-wrapper">
+                <img src="images/qr-code.png" alt="Código QR para descargar MediTime en tu móvil" width="190" height="190" loading="lazy" />
+              </div>
+              <p>Escanea este código con la cámara de tu teléfono Android para descargar el APK de inmediato.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== FAQ ACCORDION ==================== -->
+    <section id="faq" class="faq-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">¿Tienes preguntas sobre MediTime?</h2>
+          <p class="section-subtitle">
+            Aquí resolvemos las dudas más habituales sobre permisos, alarmas de hardware, privacidad y funcionamiento.
+          </p>
+        </div>
+
+        <div class="faq-list">
+          <div class="faq-item active">
+            <button class="faq-trigger" aria-expanded="true">
+              <span>¿Cómo garantiza MediTime que las alarmas suenen con la pantalla apagada o el teléfono reiniciado?</span>
+              <span class="faq-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+            </button>
+            <div class="faq-content">
+              MediTime utiliza el motor nativo del sistema operativo a través de <code>android_alarm_manager_plus</code> y nuestro plugin nativo <code>AlarmSoundPlugin</code>. A diferencia de apps que solo envían notificaciones comunes (que el sistema puede posponer para ahorrar batería), MediTime programa alarmas exactas del sistema de hardware (AlarmClock), garantizando que tu dosis suene puntualmente aunque la app esté cerrada o el dispositivo se reinicie.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" aria-expanded="false">
+              <span>¿Puedo utilizar MediTime si no tengo conexión a internet o datos móviles?</span>
+              <span class="faq-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+            </button>
+            <div class="faq-content">
+              ¡Sí, absolutamente! La programación de alarmas, el calendario de dosis y los micro-consejos clínicos (con caché persistente de 12 horas) funcionan con total independencia offline. Una vez que recuperes conexión a internet, tus progresos y tomas registradas se sincronizan automáticamente y de forma segura en la nube de Firebase.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" aria-expanded="false">
+              <span>¿Qué diferencia hay entre el Modo Cuidador y el Modo Animales?</span>
+              <span class="faq-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+            </button>
+            <div class="faq-content">
+              El <strong>Modo Cuidador</strong> está diseñado para personas a tu cargo (hijos, adultos mayores o pacientes) con un tema morado pastel y resolución multiperfil. El <strong>Modo Animales</strong> está adaptado específicamente a esquemas veterinarios de mascotas (perros, gatos) con intervalos de horas personalizados y una temática verde menta.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" aria-expanded="false">
+              <span>¿Mis datos médicos personales están seguros y privados?</span>
+              <span class="faq-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+            </button>
+            <div class="faq-content">
+              Totalmente. Toda la información médica se transmite bajo cifrado SSL/TLS y se almacena en Cloud Firestore con reglas de seguridad estrictas (<code>firestore.rules</code>). No vendemos tus datos a terceros, no mostramos publicidad invasiva ni realizamos rastreo con fines comerciales.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-trigger" aria-expanded="false">
+              <span>¿Cómo puedo exportar los reportes para mi médico?</span>
+              <span class="faq-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+            </button>
+            <div class="faq-content">
+              En la pestaña de <strong>Progreso y Reportes</strong>, encontrarás el botón "Exportar Reporte PDF". MediTime generará un documento formal con tu historial de adherencia, porcentajes de cumplimiento y lista detallada de dosis, que puedes enviar por correo electrónico, WhatsApp o imprimir para tu consulta médica.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ABOUT US & TEAM ==================== -->
+    <section id="about" class="about-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">¿Quiénes estamos detrás de MediTime?</h2>
+          <p class="section-subtitle">
+            Un proyecto tecnológico e investigativo nacido del compromiso con la salud y el desarrollo de software de alta calidad.
+          </p>
+        </div>
+
+        <div class="team-grid">
+          <!-- Member 1: Jorge Delgado -->
+          <div class="team-card">
+            <img src="images/jorge-delgado.jpg" alt="Fotografía de Jorge Eliecer Delgado Cortés" class="team-avatar" width="110" height="110" loading="lazy" />
+            <div class="team-details">
+              <h3>Jorge Delgado</h3>
+              <div class="team-role">Co-Fundador · Backend & Lead UI/UX Designer</div>
+              <p class="team-bio">
+                Ingeniero de software enfocado en la arquitectura de soluciones móviles robustas, integración de inteligencia artificial y diseño centrado en la persona para la salud digital.
+              </p>
+              <div class="team-socials">
+                <a href="https://github.com/JDkinior" target="_blank" rel="noopener noreferrer" class="social-btn" aria-label="GitHub de Jorge Delgado">
+                  <img src="images/github-icon.png" alt="GitHub" width="18" height="18" />
+                </a>
+                <a href="https://www.linkedin.com/in/jorge-eliecer-delgado-cortes-320775361/" target="_blank" rel="noopener noreferrer" class="social-btn" aria-label="LinkedIn de Jorge Delgado">
+                  <img src="images/linkedin-icon.png" alt="LinkedIn" width="18" height="18" />
+                </a>
+                <a href="https://www.instagram.com/junior23160/" target="_blank" rel="noopener noreferrer" class="social-btn" aria-label="Instagram de Jorge Delgado">
+                  <img src="images/instagram-icon.png" alt="Instagram" width="18" height="18" />
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Member 2: Johan Arevalo -->
+          <div class="team-card">
+            <img src="images/johan-arevalo.jpeg" alt="Fotografía de Johan Alexander Arévalo Contréras" class="team-avatar" width="110" height="110" loading="lazy" />
+            <div class="team-details">
+              <h3>Johan Arévalo</h3>
+              <div class="team-role">Co-Fundador · Backend & Agile QA Lead</div>
+              <p class="team-bio">
+                Ingeniero de software especializado en metodologías ágiles, pruebas de aseguramiento de calidad (QA), desarrollo de planes legales y estructuración documental de software.
+              </p>
+              <div class="team-socials">
+                <a href="https://github.com/Alexander-ZZZ" target="_blank" rel="noopener noreferrer" class="social-btn" aria-label="GitHub de Johan Arévalo">
+                  <img src="images/github-icon.png" alt="GitHub" width="18" height="18" />
+                </a>
+                <a href="https://www.linkedin.com/in/jorgedelgado/" target="_blank" rel="noopener noreferrer" class="social-btn" aria-label="LinkedIn de Johan Arévalo">
+                  <img src="images/linkedin-icon.png" alt="LinkedIn" width="18" height="18" />
+                </a>
+                <a href="https://www.instagram.com/johan.arevalo.1088/" target="_blank" rel="noopener noreferrer" class="social-btn" aria-label="Instagram de Johan Arévalo">
+                  <img src="images/instagram-icon.png" alt="Instagram" width="18" height="18" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mission & Institutional Credit -->
+        <div class="mission-box">
+          <h3>Nuestra Misión Institucional</h3>
+          <p>
+            Simplificar y transformar la gestión de tratamientos médicos mediante una aplicación intuitiva, segura y accesible, diseñada para mejorar la adherencia terapéutica de los pacientes y optimizar el acompañamiento de sus familias.
+          </p>
+          <p class="mission-credits">
+            Agradecimientos especiales a la <strong>Universidad de Cundinamarca (Seccional Ubaté)</strong> – Programa de Ingeniería de Sistemas y Computación, por incentivar proyectos de investigación, innovación y desarrollo con impacto social directo.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== CONTACT SECTION ==================== -->
+    <section id="contact" class="contact-section">
+      <div class="container">
+        <div class="contact-card">
+          <div class="section-header contact-header">
+            <h2 class="section-title">Contáctanos</h2>
+            <p class="section-subtitle">
+              ¿Tienes sugerencias, dudas técnicas o te gustaría colaborar en el proyecto? Déjanos un mensaje.
+            </p>
+          </div>
+
+          <div id="form-status" class="form-status" role="alert"></div>
+
+          <form id="contact-form" action="https://formspree.io/f/xzzrbeje" method="POST" class="contact-form" novalidate>
+            <div class="form-group">
+              <label for="contact-name">Nombre completo</label>
+              <input id="contact-name" type="text" name="name" class="form-input" placeholder="¿Cómo te llamas?" required />
+            </div>
+
+            <div class="form-group">
+              <label for="contact-email">Correo electrónico</label>
+              <input id="contact-email" type="email" name="email" class="form-input" placeholder="ejemplo@correo.com" required />
+            </div>
+
+            <div class="form-group">
+              <label for="contact-message">Mensaje o sugerencia</label>
+              <textarea id="contact-message" name="message" class="form-textarea" placeholder="Escribe aquí tu mensaje sobre MediTime..." required></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg btn-contact-submit">
+              <span>Enviar Mensaje</span>
+              <span class="btn-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-top">
+        <!-- Brand Info -->
+        <div class="footer-brand">
+          <div class="brand-wrapper">
+            <img src="images/meditime-icon.png" alt="Logo de MediTime" class="brand-icon" width="38" height="38" />
+            <span class="brand-title">MEDITIME</span>
+          </div>
+          <p>
+            Tu asistente personal de medicación y salud. Alarmas nativas, micro-consejos clínicos con IA, seguimiento multiperfil y reportes en PDF.
+          </p>
+          <div class="footer-social-links">
+            <a href="https://github.com/JDkinior/MediTime" target="_blank" rel="noopener noreferrer" class="social-btn" aria-label="GitHub de MediTime">
+              <img src="images/github-icon.png" alt="GitHub" width="18" height="18" />
+            </a>
+          </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="footer-col">
+          <h4>Navegación</h4>
+          <div class="footer-links">
+            <a href="index.html" class="footer-link">Inicio</a>
+            <a href="arquitectura.html" class="footer-link">Arquitectura</a>
+            <a href="modos.html" class="footer-link">Modos</a>
+            <a href="changelog.html" class="footer-link">Changelog</a>
+            <a href="#showcase" class="footer-link">Vistas de la App</a>
+            <a href="#midi" class="footer-link">Asistente Midi</a>
+          </div>
+        </div>
+
+        <!-- Features & Resources -->
+        <div class="footer-col">
+          <h4>Recursos</h4>
+          <div class="footer-links">
+            <a href="#pricing" class="footer-link">Planes y Precios</a>
+            <a href="#download" class="footer-link">Descargar APK</a>
+            <a href="#faq" class="footer-link">Preguntas Frecuentes</a>
+            <a href="#about" class="footer-link">Equipo y Misión</a>
+          </div>
+        </div>
+
+        <!-- Open Source & Tech -->
+        <div class="footer-col">
+          <h4>Tecnología</h4>
+          <div class="footer-links">
+            <a href="https://github.com/JDkinior/MediTime" target="_blank" rel="noopener noreferrer" class="footer-link">
+              <span>Repositorio GitHub</span>
+              <span class="external-icon" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+            </a>
+            <a href="https://github.com/JDkinior/MediTime/releases/latest" target="_blank" rel="noopener noreferrer" class="footer-link">
+              <span>Último Release</span>
+              <span class="external-icon" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+            </a>
+            <a href="https://flutter.dev/" target="_blank" rel="noopener noreferrer" class="footer-link">
+              <span>Construido con Flutter</span>
+              <span class="external-icon" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+            </a>
+            <a href="https://firebase.google.com/" target="_blank" rel="noopener noreferrer" class="footer-link">
+              <span>Firebase Backend</span>
+              <span class="external-icon" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2022–2026 MediTime. Todos los derechos reservados.</p>
+        <p>Universidad de Cundinamarca · Ingeniería de Sistemas y Computación</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

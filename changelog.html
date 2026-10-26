@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Changelog Hub de MediTime - Historial completo de versiones, novedades, correcciones y descargas oficiales de APK." />
+  <meta name="theme-color" content="#004ac6" />
+  <script>
+    const savedTheme = localStorage.getItem('meditime_theme');
+    if (savedTheme === 'dark' || savedTheme === 'light') {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  </script>
+  <link rel="icon" href="images/meditime-icon.png" type="image/png" />
+  <title>MediTime | Changelog Hub & Historial de Versiones</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=2.39.0" />
+  <script src="scripts.js?v=2.39.0" defer></script>
+  <style>
+    @media (max-width: 768px) {
+      #header-download-btn,
+      .header-download-btn,
+      .header-actions .btn-primary {
+        display: none !important;
+      }
+      .menu-toggle-btn {
+        display: flex !important;
+        flex-shrink: 0 !important;
+      }
+      .theme-toggle-btn {
+        display: flex !important;
+        flex-shrink: 0 !important;
+      }
+      .header-actions {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        flex-shrink: 0 !important;
+      }
+      .brand-wrapper {
+        flex-shrink: 0 !important;
+        min-width: 0 !important;
+      }
+    }
+  </style>
+</head>
+<body class="page-window">
+
+  <!-- ==================== HEADER (APP BAR) ==================== -->
+  <header class="header" role="banner">
+    <div class="container">
+      <a href="index.html" class="brand-wrapper" aria-label="Ir al inicio de MediTime">
+        <img src="images/meditime-icon.png" alt="Logo de MediTime" class="brand-icon" width="40" height="40" />
+        <span class="brand-title">MEDITIME</span>
+      </a>
+
+      <!-- Desktop Navigation -->
+      <nav class="nav-desktop" aria-label="Navegación principal">
+        <a href="index.html" class="nav-link">Inicio</a>
+        <a href="arquitectura.html" class="nav-link">Arquitectura</a>
+        <a href="modos.html" class="nav-link">Modos</a>
+        <a href="changelog.html" class="nav-link active">Changelog</a>
+        <a href="index.html#pricing" class="nav-link">Planes</a>
+        <a href="index.html#about" class="nav-link">Nosotros</a>
+      </nav>
+
+      <!-- Actions: Theme toggle & CTA -->
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Cambiar a modo oscuro" title="Cambiar tema">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        </button>
+        <a id="header-download-btn" href="index.html#download" class="btn btn-primary btn-sm">Descargar APK</a>
+        <button id="menu-toggle" class="menu-toggle-btn" aria-label="Abrir menú de navegación" aria-controls="mobile-nav" aria-expanded="false">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer Navigation -->
+  <div id="mobile-nav" class="mobile-nav" aria-label="Menú móvil">
+    <a href="index.html" class="nav-link">Inicio</a>
+    <a href="arquitectura.html" class="nav-link">Arquitectura</a>
+    <a href="modos.html" class="nav-link">Modos</a>
+    <a href="changelog.html" class="nav-link active">Changelog</a>
+    <a href="index.html#pricing" class="nav-link">Planes y Precios</a>
+    <a href="index.html#about" class="nav-link">Sobre Nosotros</a>
+    <a href="index.html#download" class="nav-link">Descargar APK</a>
+  </div>
+
+  <!-- ==================== CONTENIDO PRINCIPAL: CHANGELOG HUB ==================== -->
+  <main id="main-content" style="padding-top: 112px; padding-bottom: 96px;">
+    <div class="container-wide">
+      
+      <!-- Encabezado de la Ventana -->
+      <div class="section-header" style="margin-bottom: 40px;">
+        <div class="section-badge">Historial Completo de Versiones</div>
+        <h1 class="section-title">Changelog Oficial de MediTime</h1>
+        <p class="section-subtitle" style="max-width: 800px; margin: 0 auto;">
+          Explora la evolución de la plataforma, filtrando por versión o características clínicas (alarmas, IA, cuidador, reportes PDF). Descarga el instalador APK oficial de cada lanzamiento.
+        </p>
+      </div>
+
+      <!-- Barra de herramientas: Búsqueda y Contador -->
+      <div class="hub-toolbar">
+        <div class="hub-search-wrapper">
+          <svg class="hub-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            id="changelog-search-input"
+            type="text"
+            class="hub-search-input"
+            placeholder="Buscar por versión o palabra clave (ej: alarma, IA, cuidador, PDF, calendario)..."
+            aria-label="Buscar en el historial de versiones"
+          />
+        </div>
+        <div id="hub-version-count-badge" class="hub-version-count-badge">5 versiones disponibles</div>
+      </div>
+
+      <!-- Cuadrícula Maestro-Detalle -->
+      <div class="changelog-hub-grid">
+        <!-- Columna Izquierda: Lista de Versiones -->
+        <aside class="changelog-hub-sidebar" aria-label="Lista de versiones">
+          <div class="sidebar-header">
+            <span class="sidebar-title">Historial de Versiones</span>
+            <span class="sidebar-subtitle">Selecciona para ver detalles</span>
+          </div>
+          <div id="changelog-hub-list" class="changelog-hub-list" role="tablist">
+            <!-- Versión v2.32.0 -->
+            <button class="hub-version-item active" data-version="v2.32.0" role="tab" aria-selected="true">
+              <div class="hub-item-top">
+                <span class="hub-item-tag">v2.32.0</span>
+                <span class="hub-item-badge badge-latest">Última</span>
+              </div>
+              <div class="hub-item-date">18 de septiembre de 2026</div>
+              <div class="hub-item-snippet">Motor de Micro-Consejos Farmacológicos con IA en tiempo real y soporte multiperfil...</div>
+            </button>
+
+            <!-- Versión v.2.28.0 -->
+            <button class="hub-version-item" data-version="v.2.28.0" role="tab" aria-selected="false">
+              <div class="hub-item-top">
+                <span class="hub-item-tag">v.2.28.0</span>
+                <span class="hub-item-badge badge-stable">Estable</span>
+              </div>
+              <div class="hub-item-date">28 de enero de 2026</div>
+              <div class="hub-item-snippet">Alarmas nativas inquebrantables de hardware con bypass del Doze Mode y WAKE_LOCK...</div>
+            </button>
+
+            <!-- Versión v2.27.0 -->
+            <button class="hub-version-item" data-version="v2.27.0" role="tab" aria-selected="false">
+              <div class="hub-item-top">
+                <span class="hub-item-tag">v2.27.0</span>
+                <span class="hub-item-badge badge-stable">Estable</span>
+              </div>
+              <div class="hub-item-date">15 de noviembre de 2025</div>
+              <div class="hub-item-snippet">Reportes Clínicos en PDF certificados con desglose de adherencia para consultas médicas...</div>
+            </button>
+
+            <!-- Versión v2.26.5 -->
+            <button class="hub-version-item" data-version="v2.26.5" role="tab" aria-selected="false">
+              <div class="hub-item-top">
+                <span class="hub-item-tag">v2.26.5</span>
+                <span class="hub-item-badge badge-patch">Parche</span>
+              </div>
+              <div class="hub-item-date">02 de septiembre de 2025</div>
+              <div class="hub-item-snippet">Optimización de persistencia local SQLite y soporte multi-paciente sin conexión...</div>
+            </button>
+
+            <!-- Versión v2.20.2 -->
+            <button class="hub-version-item" data-version="v2.20.2" role="tab" aria-selected="false">
+              <div class="hub-item-top">
+                <span class="hub-item-tag">v2.20.2</span>
+                <span class="hub-item-badge badge-base">Base</span>
+              </div>
+              <div class="hub-item-date">12 de mayo de 2025</div>
+              <div class="hub-item-snippet">Lanzamiento oficial de MediTime con gestión de recetas y notificaciones locales...</div>
+            </button>
+          </div>
+        </aside>
+
+        <!-- Columna Derecha: Panel de Detalle Enriquecido -->
+        <section id="changelog-hub-detail" class="changelog-hub-detail-panel" aria-label="Detalle de versión">
+          <div class="detail-header">
+            <div class="detail-header-left">
+              <div class="detail-badge-row">
+                <span id="detail-version-badge" class="hub-item-badge badge-latest">Última Versión Oficial</span>
+                <span class="detail-platform-tag">Android 7.0+ · Flutter 3.29 · SQLite</span>
+              </div>
+              <h2 id="detail-version-title" class="detail-title">v2.32.0</h2>
+              <div id="detail-version-date" class="detail-date">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span>Publicado el 18 de septiembre de 2026</span>
+              </div>
+            </div>
+
+            <div class="detail-header-right">
+              <a id="detail-apk-download-btn" href="https://github.com/JDkinior/MediTime/releases/latest" class="btn btn-primary btn-glow" target="_blank" rel="noopener noreferrer">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Descargar APK (v2.32.0)</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Cuerpo con notas y desglose de cambios -->
+          <div id="detail-version-body" class="detail-body">
+            <h3>Novedades Principales</h3>
+            <ul>
+              <li><strong>Motor de IA para Micro-Consejos Clínicos:</strong> Análisis contextual en tiempo real con recomendaciones de ayunas, interacción con alimentos en AINEs y advertencias de absorción con 12h de persistencia en caché offline.</li>
+              <li><strong>Soporte Multiperfil Completo:</strong> Modo Cuidador (paleta morada relajante para administración de tutelados e hijos) y Modo Animales (paleta verde menta para pacientes veterinarios con dosificación por especie).</li>
+              <li><strong>Modelo Ético Freemium:</strong> 3 tratamientos y alarmas ilimitadas 100% gratuitas, con opción a MediTime Plus para pacientes polimedicados.</li>
+            </ul>
+
+            <h3>Mejoras de Rendimiento y Estabilidad</h3>
+            <ul>
+              <li>Optimización del ciclo de renderizado reduciendo el uso de memoria en un 28% al navegar el calendario.</li>
+              <li>Transiciones de estado instantáneas con base de datos SQLite indexada.</li>
+              <li>Compatibilidad probada con Android 15 y APIs de bajo nivel de notificación.</li>
+            </ul>
+          </div>
+
+          <div class="detail-footer">
+            <a id="detail-github-release-link" href="https://github.com/JDkinior/MediTime/releases/tag/v2.32.0" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">
+              <span>Ver release original en GitHub</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+            <a href="index.html" class="btn btn-ghost btn-sm">
+              <span>← Volver al Inicio</span>
+            </a>
+          </div>
+        </section>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="brand-wrapper">
+            <img src="images/meditime-icon.png" alt="Logo de MediTime" class="brand-icon" width="38" height="38" />
+            <span class="brand-title">MEDITIME</span>
+          </div>
+          <p>
+            Tu asistente personal de medicación y salud. Alarmas nativas, micro-consejos clínicos con IA, seguimiento multiperfil y reportes en PDF.
+          </p>
+          <div style="display: flex; gap: 12px;">
+            <a href="https://github.com/JDkinior/MediTime" target="_blank" rel="noopener noreferrer" class="social-btn" aria-label="GitHub de MediTime">
+              <img src="images/github-icon.png" alt="GitHub" width="18" height="18" />
+            </a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Navegación</h4>
+          <div class="footer-links">
+            <a href="index.html" class="footer-link">Inicio</a>
+            <a href="arquitectura.html" class="footer-link">Arquitectura</a>
+            <a href="modos.html" class="footer-link">Modos</a>
+            <a href="changelog.html" class="footer-link">Changelog</a>
+            <a href="index.html#showcase" class="footer-link">Vistas de la App</a>
+            <a href="index.html#midi" class="footer-link">Asistente Midi</a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Recursos</h4>
+          <div class="footer-links">
+            <a href="index.html#pricing" class="footer-link">Planes y Precios</a>
+            <a href="index.html#download" class="footer-link">Descargar APK</a>
+            <a href="index.html#faq" class="footer-link">Preguntas Frecuentes</a>
+            <a href="index.html#about" class="footer-link">Equipo y Misión</a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Tecnología</h4>
+          <div class="footer-links">
+            <a href="https://github.com/JDkinior/MediTime" target="_blank" rel="noopener noreferrer" class="footer-link">
+              <span>Repositorio GitHub</span>
+              <span class="external-icon" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+            </a>
+            <a href="https://flutter.dev/" target="_blank" rel="noopener noreferrer" class="footer-link">
+              <span>Construido con Flutter</span>
+              <span class="external-icon" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2022–2026 MediTime. Todos los derechos reservados.</p>
+        <p>Universidad de Cundinamarca · Ingeniería de Sistemas y Computación</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "entries": [
+    {
+      "path": "C:/Users/degkp/.gemini/config/plugins/emilkowalski-skills/skills",
+      "include_only": [
+        "emil-design-eng",
+        "animate",
+        "animation-performance",
+        "animation-vocabulary",
+        "break-ui",
+        "find-animation-opportunities",
+        "mobile-native",
+        "review-animations"
+      ]
+    }
+  ]
+}

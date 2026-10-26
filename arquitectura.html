@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Arquitectura Técnica y Ciencia Médica de MediTime - Alarmas de bajo nivel en Android, heurísticas de IA farmacológica, reportes PDF certificados y SQLite local." />
+  <meta name="theme-color" content="#004ac6" />
+  <script>
+    const savedTheme = localStorage.getItem('meditime_theme');
+    if (savedTheme === 'dark' || savedTheme === 'light') {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  </script>
+  <link rel="icon" href="images/meditime-icon.png" type="image/png" />
+  <title>MediTime | Arquitectura Técnica & Farmacología IA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=2.39.0" />
+  <script src="scripts.js?v=2.39.0" defer></script>
+  <style>
+    @media (max-width: 768px) {
+      #header-download-btn,
+      .header-download-btn,
+      .header-actions .btn-primary {
+        display: none !important;
+      }
+      .menu-toggle-btn {
+        display: flex !important;
+        flex-shrink: 0 !important;
+      }
+      .theme-toggle-btn {
+        display: flex !important;
+        flex-shrink: 0 !important;
+      }
+      .header-actions {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        flex-shrink: 0 !important;
+      }
+      .brand-wrapper {
+        flex-shrink: 0 !important;
+        min-width: 0 !important;
+      }
+    }
+  </style>
+</head>
+<body class="page-window architecture-page">
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="header" role="banner">
+    <div class="container">
+      <a href="index.html" class="brand-wrapper" aria-label="Ir al inicio de MediTime">
+        <img src="images/meditime-icon.png" alt="Logo de MediTime" class="brand-icon" width="40" height="40" />
+        <span class="brand-title">MEDITIME</span>
+      </a>
+
+      <!-- Desktop Navigation -->
+      <nav class="nav-desktop" aria-label="Navegación principal">
+        <a href="index.html" class="nav-link">Inicio</a>
+        <a href="arquitectura.html" class="nav-link active">Arquitectura</a>
+        <a href="modos.html" class="nav-link">Modos</a>
+        <a href="changelog.html" class="nav-link">Changelog</a>
+        <a href="index.html#pricing" class="nav-link">Planes</a>
+        <a href="index.html#about" class="nav-link">Nosotros</a>
+      </nav>
+
+      <!-- Actions: Theme toggle & CTA -->
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Cambiar a modo oscuro" title="Cambiar tema">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        </button>
+        <a id="header-download-btn" href="index.html#download" class="btn btn-primary btn-sm">Descargar APK</a>
+        <button id="menu-toggle" class="menu-toggle-btn" aria-label="Abrir menú de navegación" aria-controls="mobile-nav" aria-expanded="false">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer Navigation -->
+  <div id="mobile-nav" class="mobile-nav" aria-label="Menú móvil">
+    <a href="index.html" class="nav-link">Inicio</a>
+    <a href="arquitectura.html" class="nav-link active">Arquitectura</a>
+    <a href="modos.html" class="nav-link">Modos</a>
+    <a href="changelog.html" class="nav-link">Changelog</a>
+    <a href="index.html#pricing" class="nav-link">Planes y Precios</a>
+    <a href="index.html#about" class="nav-link">Sobre Nosotros</a>
+    <a href="index.html#download" class="nav-link">Descargar APK</a>
+  </div>
+
+  <!-- ==================== CONTENIDO: ARQUITECTURA TÉCNICA ==================== -->
+  <main id="main-content" class="architecture-main">
+    <div class="container-wide">
+
+      <!-- Encabezado técnico -->
+      <section class="architecture-hero" aria-labelledby="architecture-title">
+        <div class="architecture-hero-copy">
+          <div class="section-badge">Ingeniería clínica · Offline first</div>
+          <p class="architecture-eyebrow">MediTime / Sistema de confianza</p>
+          <h1 id="architecture-title">Tecnología diseñada para que cada toma llegue a tiempo.</h1>
+          <p>
+            Una arquitectura local, resiliente y orientada a la privacidad que conecta reglas clínicas, alarmas nativas y reportes accionables sin depender de una conexión constante.
+          </p>
+          <div class="architecture-hero-stats" aria-label="Principios de la arquitectura">
+            <div><strong>Offline</strong><span>operación local</span></div>
+            <div><strong>Exacta</strong><span>alarmas nativas</span></div>
+            <div><strong>Privada</strong><span>datos bajo control</span></div>
+          </div>
+        </div>
+
+        <!-- Diagrama de componentes en flujo -->
+        <div class="architecture-diagram" aria-label="Diagrama de componentes de MediTime">
+          <div class="diagram-header">
+            <span class="diagram-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M3 14h7v7H3z"/><path d="M14 17h7"/><path d="M17 14v7"/></svg>
+              Flujo de datos en la app
+            </span>
+            <span class="diagram-chip">v2.32.0</span>
+          </div>
+
+          <div class="diagram-flow">
+            <div class="diagram-step">
+              <span class="diagram-step-num">01</span>
+              <strong>Aplicación</strong>
+              <small>Flutter · Interfaz clínica</small>
+              <span class="diagram-node-tag tag-cyan">Entrada</span>
+            </div>
+
+            <div class="diagram-step">
+              <span class="diagram-step-num">02</span>
+              <strong>Motor local</strong>
+              <small>Heurísticas farmacológicas</small>
+              <span class="diagram-node-tag tag-cyan">Procesamiento</span>
+            </div>
+
+            <div class="diagram-step">
+              <span class="diagram-step-num">03</span>
+              <strong>Alarmas nativas</strong>
+              <small>AlarmManager · Bypass Doze</small>
+              <span class="diagram-node-tag tag-amber">Ejecución</span>
+            </div>
+
+            <div class="diagram-step">
+              <span class="diagram-step-num">04</span>
+              <strong>Datos cifrados</strong>
+              <small>SQLite · Offline-first</small>
+              <span class="diagram-node-tag tag-emerald">Persistencia</span>
+            </div>
+
+            <div class="diagram-step">
+              <span class="diagram-step-num">05</span>
+              <strong>Reportes PDF</strong>
+              <small>Exportación clínica certificada</small>
+              <span class="diagram-node-tag tag-violet">Salida</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="architecture-section-intro">
+        <span>Arquitectura en cuatro capas</span>
+        <p>Cada capa responde a un punto crítico del seguimiento terapéutico.</p>
+      </div>
+
+      <!-- Bento Grid de Arquitectura a Ancho Completo -->
+      <div class="features-deep-grid">
+
+        <!-- Card 1: Pipeline IA Farmacológica -->
+        <article class="deep-card deep-card-ai">
+          <div class="deep-card-badge-row">
+            <span class="deep-badge badge-ai">Inteligencia Artificial Médica</span>
+            <span class="deep-tag">Caché Local 12h · Offline First</span>
+          </div>
+          <h2 class="deep-card-title">Pipeline de Micro-Consejos Clínicos con IA</h2>
+          <p class="deep-card-desc">
+            A diferencia de asistentes genéricos en la nube, el motor de MediTime analiza tu régimen farmacológico directamente en tu dispositivo. Detecta interacciones habituales y genera pautas oportunas antes de cada toma:
+          </p>
+
+          <div class="tech-pipeline">
+            <div class="pipeline-step">
+              <span class="pipeline-step-index">01</span>
+              <span class="pipeline-step-kicker">Detección</span>
+              <h4>Fármaco Activo</h4>
+              <p>Identificación de principios como Omeprazol, Amoxicilina o Ibuprofeno.</p>
+            </div>
+            <span class="pipeline-arrow" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </span>
+            <div class="pipeline-step">
+              <span class="pipeline-step-index">02</span>
+              <span class="pipeline-step-kicker">Reglas Clínicas</span>
+              <h4>Heurísticas Médicas</h4>
+              <p>Evaluación de biodisponibilidad gástrica y pauta horaria exacta.</p>
+            </div>
+            <span class="pipeline-arrow" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </span>
+            <div class="pipeline-step">
+              <span class="pipeline-step-index">03</span>
+              <span class="pipeline-step-kicker">Despacho</span>
+              <h4>Micro-Consejo Local</h4>
+              <p>Alerta visual y en cabecera sin transmitir datos biomédicos.</p>
+            </div>
+          </div>
+
+          <div class="clinical-rules-box">
+            <h4>Pautas Clínicas Automatizadas en v2.32:</h4>
+            <div class="rules-chips">
+              <span class="rule-chip">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+                <span><strong>Protectores Gástricos (Omeprazol):</strong> Ingesta en ayunas 30 min antes de la primera comida.</span>
+              </span>
+              <span class="rule-chip">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                <span><strong>AINEs (Ibuprofeno/Naproxeno):</strong> Alerta obligatoria de consumo con alimentos para evitar irritación gástrica.</span>
+              </span>
+              <span class="rule-chip">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                <span><strong>Antibióticos (Amoxicilina):</strong> Priorización estricta de intervalos de 8h/12h para prevenir resistencia bacteriana.</span>
+              </span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 2: Alarmas Nativas Inquebrantables -->
+        <article class="deep-card deep-card-hardware">
+          <h2 class="deep-card-title">Motor de Alarmas Nativas Inquebrantables</h2>
+          <p class="deep-card-desc">
+            En versiones modernas de Android, las capas de optimización agresiva (MIUI, OneUI, EMUI) matan aplicaciones en segundo plano para ahorrar batería. MediTime implementa una arquitectura nativa a prueba de fallos:
+          </p>
+
+          <div class="hardware-spec-grid">
+            <div class="spec-item">
+              <span class="spec-icon" aria-hidden="true">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </span>
+              <div>
+                <h5>USE_EXACT_ALARM & SCHEDULE_EXACT_ALARM</h5>
+                <p>Programa alarmas exactas con micro-tolerancia cero vía <code>AlarmManager.setExactAndAllowWhileIdle()</code>.</p>
+              </div>
+            </div>
+
+            <div class="spec-item">
+              <span class="spec-icon spec-icon-wake" aria-hidden="true">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
+              </span>
+              <div>
+                <h5>WakeLock de CPU de Alto Impacto</h5>
+                <p>Despierta el núcleo del procesador 3 segundos antes de la toma para precargar audio y vibración táctil.</p>
+              </div>
+            </div>
+
+            <div class="spec-item">
+              <span class="spec-icon spec-icon-full" aria-hidden="true">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+              </span>
+              <div>
+                <h5>FullScreenIntent Heads-Up</h5>
+                <p>Proyecta la pantalla de toma directamente sobre la pantalla de bloqueo sin requerir desbloqueo manual.</p>
+              </div>
+            </div>
+
+            <div class="spec-item">
+              <span class="spec-icon spec-icon-dnd" aria-hidden="true">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+              </span>
+              <div>
+                <h5>Canal de Audio con Exclusión DND</h5>
+                <p>Canal de audio exclusivo marcado como <code>USAGE_ALARM</code> que rompe el modo "No Molestar" si el usuario lo autoriza.</p>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 3: Anatomía de Reportes Clínicos en PDF -->
+        <article class="deep-card deep-card-pdf">
+          <h2 class="deep-card-title">Anatomía de los Reportes Clínicos en PDF</h2>
+          <p class="deep-card-desc">
+            Diseñados con base en estándares de legibilidad médica para facilitar la toma de decisiones clínicas durante las consultas con tu médico tratante:
+          </p>
+
+          <div class="pdf-anatomy-layout">
+            <div class="pdf-sheet" aria-hidden="true">
+              <div class="pdf-sheet-accent"></div>
+              <div class="pdf-sheet-head">
+                <div class="pdf-sheet-brand">
+                  <span class="pdf-sheet-logo">MEDITIME</span>
+                  <span class="pdf-sheet-doc">Clinical Report</span>
+                </div>
+                <div class="pdf-sheet-adherence">
+                  <span class="pdf-sheet-val">96.4%</span>
+                  <span class="pdf-sheet-lbl">Adherencia</span>
+                </div>
+              </div>
+              <div class="pdf-sheet-meta">
+                <span>Paciente: Adulto mayor</span>
+                <span>Período · 7 días</span>
+              </div>
+              <div class="pdf-sheet-panel">
+                <div class="pdf-sheet-chart">
+                  <div class="pdf-chart-col"><span class="pdf-chart-bar" style="height: 100%;"></span><span class="pdf-chart-lbl">L</span></div>
+                  <div class="pdf-chart-col"><span class="pdf-chart-bar" style="height: 96%;"></span><span class="pdf-chart-lbl">M</span></div>
+                  <div class="pdf-chart-col"><span class="pdf-chart-bar" style="height: 86%;"></span><span class="pdf-chart-lbl">X</span></div>
+                  <div class="pdf-chart-col"><span class="pdf-chart-bar" style="height: 100%;"></span><span class="pdf-chart-lbl">J</span></div>
+                  <div class="pdf-chart-col"><span class="pdf-chart-bar" style="height: 100%;"></span><span class="pdf-chart-lbl">V</span></div>
+                  <div class="pdf-chart-col"><span class="pdf-chart-bar" style="height: 94%;"></span><span class="pdf-chart-lbl">S</span></div>
+                  <div class="pdf-chart-col"><span class="pdf-chart-bar" style="height: 100%;"></span><span class="pdf-chart-lbl">D</span></div>
+                </div>
+                <div class="pdf-sheet-table">
+                  <div class="pdf-table-row"><span class="pdf-table-date">Lun 12 · 08:00</span><span class="pdf-table-med">Acetaminofén</span><span class="pdf-table-state ok">Tomada</span></div>
+                  <div class="pdf-table-row"><span class="pdf-table-date">Mié 14 · 20:00</span><span class="pdf-table-med">Amoxicilina</span><span class="pdf-table-state ok">Tomada</span></div>
+                  <div class="pdf-table-row"><span class="pdf-table-date">Sáb 17 · 02:00</span><span class="pdf-table-med">Omeprazol</span><span class="pdf-table-state warn">Omitida</span></div>
+                </div>
+              </div>
+              <div class="pdf-sheet-foot">
+                <span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 12-8.5 8.5a2.12 2.12 0 1 1-3-3L12 9"/><path d="M17.64 15 22 10.64"/><path d="m20.91 11.7-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 0 0-3.94-1.64H9l.92.82A6.18 6.18 0 0 1 12 8.4v1.56l2 2h2.47l2.26 1.91"/></svg>
+                  Firma digital médica
+                </span>
+                <span>Desglose horario de dosis omitidas</span>
+              </div>
+            </div>
+
+            <div class="pdf-features-list">
+              <div class="pdf-feat-row">
+                <span class="pdf-feat-num">01</span>
+                <div>
+                  <h4>Cálculo Matemático de Adherencia</h4>
+                  <p>Mide la correlación entre tomas programadas, tomas a tiempo y dosis retrasadas con porcentaje clínico formal.</p>
+                </div>
+              </div>
+              <div class="pdf-feat-row">
+                <span class="pdf-feat-num">02</span>
+                <div>
+                  <h4>Cronograma de Dosis Omitidas</h4>
+                  <p>Registra de manera transparente cualquier omisión involuntaria para que el médico ajuste la farmacoterapia.</p>
+                </div>
+              </div>
+              <div class="pdf-feat-row">
+                <span class="pdf-feat-num">03</span>
+                <div>
+                  <h4>Exportación Vectorial Liviana</h4>
+                  <p>Archivos PDF de menos de 180 KB listos para enviar por WhatsApp o correo a tu especialista.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 4: Almacenamiento Local Cifrado -->
+        <article class="deep-card deep-card-privacy">
+          <h2 class="deep-card-title">Arquitectura Offline-First & Privacidad Cifrada</h2>
+          <p class="deep-card-desc">
+            Tus datos de salud nunca son un producto publicitario. La arquitectura de MediTime se rige por principios de soberanía de datos del paciente:
+          </p>
+
+          <div class="privacy-pillars-grid">
+            <div class="privacy-pillar">
+              <span class="pillar-icon" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
+              <h4>Base de Datos Local SQLite</h4>
+              <p>Tratamientos, historial y horarios residen en la partición protegida de tu dispositivo móvil, sin servidores intermediarios.</p>
+            </div>
+            <div class="privacy-pillar">
+              <span class="pillar-icon pillar-icon-off" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>
+              </span>
+              <h4>Sin Telemetría Farmacológica</h4>
+              <p>Tus recetas y dosis nunca se envían a servidores de analítica ni empresas farmacéuticas.</p>
+            </div>
+            <div class="privacy-pillar">
+              <span class="pillar-icon pillar-icon-db" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+              </span>
+              <h4>Copias de Seguridad Portables</h4>
+              <p>Genera backups cifrados para restaurar tu información en cualquier teléfono nuevo con un solo toque.</p>
+            </div>
+          </div>
+        </article>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="brand-wrapper">
+            <img src="images/meditime-icon.png" alt="Logo de MediTime" class="brand-icon" width="38" height="38" />
+            <span class="brand-title">MEDITIME</span>
+          </div>
+          <p>
+            Tu asistente personal de medicación y salud. Alarmas nativas, micro-consejos clínicos con IA, seguimiento multiperfil y reportes en PDF.
+          </p>
+          <div style="display: flex; gap: 12px;">
+            <a href="https://github.com/JDkinior/MediTime" target="_blank" rel="noopener noreferrer" class="social-btn" aria-label="GitHub de MediTime">
+              <img src="images/github-icon.png" alt="GitHub" width="18" height="18" />
+            </a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Navegación</h4>
+          <div class="footer-links">
+            <a href="index.html" class="footer-link">Inicio</a>
+            <a href="arquitectura.html" class="footer-link">Arquitectura</a>
+            <a href="modos.html" class="footer-link">Modos</a>
+            <a href="changelog.html" class="footer-link">Changelog</a>
+            <a href="index.html#showcase" class="footer-link">Vistas de la App</a>
+            <a href="index.html#midi" class="footer-link">Asistente Midi</a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Recursos</h4>
+          <div class="footer-links">
+            <a href="index.html#pricing" class="footer-link">Planes y Precios</a>
+            <a href="index.html#download" class="footer-link">Descargar APK</a>
+            <a href="index.html#faq" class="footer-link">Preguntas Frecuentes</a>
+            <a href="index.html#about" class="footer-link">Equipo y Misión</a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Tecnología</h4>
+          <div class="footer-links">
+            <a href="https://github.com/JDkinior/MediTime" target="_blank" rel="noopener noreferrer" class="footer-link">
+              <span>Repositorio GitHub</span>
+              <span class="external-icon" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+            </a>
+            <a href="https://flutter.dev/" target="_blank" rel="noopener noreferrer" class="footer-link">
+              <span>Construido con Flutter</span>
+              <span class="external-icon" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2022–2026 MediTime. Todos los derechos reservados.</p>
+        <p>Universidad de Cundinamarca · Ingeniería de Sistemas y Computación</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
