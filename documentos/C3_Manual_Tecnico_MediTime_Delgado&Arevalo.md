@@ -16,7 +16,7 @@
 | Campo Institucional | Detalle Oficial del Proyecto |
 | :--- | :--- |
 | **Título del Proyecto:** | Desarrollo de una Aplicación Móvil para la Gestión de Tratamientos Médicos (MediTime) |
-| **Versión del Software:** | 2.37.0 |
+| **Versión del Software:** | 2.38.0 |
 | **Autores / Ingenieros Desarrolladores:** | **Jorge Eliecer Delgado Cortés**<br>**Johan Alexander Arévalo Contreras** |
 | **Programa Académico:** | Ingeniería de Sistemas y Computación |
 | **Facultad:** | Facultad de Ingeniería |
@@ -67,7 +67,7 @@
 
 ## 1. INTRODUCCIÓN Y RESUMEN TÉCNICO
 
-El presente **Manual Técnico** provee la especificación rigurosa de la ingeniería, arquitectura de software, patrones de diseño, modelo de datos y protocolos de comunicación implementados en **MediTime** (versión **2.37.0**).
+El presente **Manual Técnico** provee la especificación rigurosa de la ingeniería, arquitectura de software, patrones de diseño, modelo de datos y protocolos de comunicación implementados en **MedDue (MediTime)** (versión **2.38.0**).
 
 MediTime es una solución móvil empresarial orientada a la salud digital (*mHealth*), construida sobre el framework **Flutter** y el lenguaje **Dart**, con persistencia en la nube provista por **Google Cloud Firebase** y capacidades cognitivas soportadas en modelos fundacionales de inteligencia artificial ejecutados a baja latencia sobre la infraestructura de **Groq Cloud**.
 
@@ -80,7 +80,7 @@ El propósito de este documento es otorgar al equipo de ingeniería, a los evalu
 | Componente | Especificación Técnica | Justificación Tecnológica |
 | :--- | :--- | :--- |
 | **Nombre del Sistema:** | MediTime | Plataforma integral para la gestión farmacológica. |
-| **Versión Actual:** | 2.37.0 | Versión final estable y auditada para C3 (2026). |
+| **Versión Actual:** | 2.38.0 | Versión final estable y auditada para C3 (2026). |
 | **Framework Base:** | Flutter SDK 3.7.0+ (Canal Stable) | Renderizado reactivo a 60/120 fps con Skia/Impeller. |
 | **Lenguaje de Programación:** | Dart 3.7+ con *Sound Null Safety* | Tipado estricto, análisis estático y sealed classes. |
 | **Plataforma Primaria:** | Android (API Level 26 a 34+) | Cobertura superior al 95% del ecosistema móvil colombiano. |
@@ -297,7 +297,7 @@ A continuación se detalla la responsabilidad técnica de cada uno de los archiv
   * `drawer_widget.dart`: Menú lateral unificado con sincronización temática total en modo claro y oscuro.
 
 ### 4.8. Puntos de Entrada del Sistema
-- `main.dart`: Punto de inicio del runtime. Inicializa los bindings de Flutter, Firebase Core, el servicio de notificaciones, configura la inyección de dependencias con `MultiProvider` y define las rutas de navegación.
+- `main.dart`: Punto de inicio del runtime. Inicializa los bindings de Flutter, Firebase Core, el servicio de notificaciones, configura la inyección de dependencias con `MultiProvider` y optimiza las reconstrucciones temáticas de `MaterialApp` mediante `Selector2<PreferenceNotifier, CaregiverNotifier, _AppThemeConfig>`.
 - `auth_wrapper.dart`: Widget guardián que evalúa el stream de autenticación de Firebase (`authStateChanges`), redirigiendo al usuario al `HomePage` si existe una sesión válida o al `LoginPage` si el usuario no está autenticado.
 - `firebase_options.dart`: Generado por FlutterFire CLI, contiene las claves API y parámetros de proyecto para Android e iOS.
 
@@ -558,7 +558,7 @@ El proyecto implementa un estricto conjunto de reglas en `analysis_options.yaml`
 El proyecto cuenta con un flujo automatizado de Integración Continua configurado en `.github/workflows/flutter_ci.yml` que se dispara ante cada *push* o *pull request* hacia la rama `main`, garantizando:
 1. Verificación estricta de formato de código (`dart format --output=none --set-exit-if-changed`).
 2. Análisis estático riguroso (`flutter analyze`) con cero advertencias y cero errores tolerados.
-3. Ejecución de la suite completa de **205 pruebas automatizadas** (`flutter test`) con cobertura exhaustiva de widgets, lógica de negocio y servicios.
+3. Ejecución de la suite completa de **210 pruebas automatizadas** (`flutter test`) con cobertura exhaustiva de widgets, lógica de negocio y servicios.
 
 ### 10.3. Ejecución de Pruebas Automatizadas en Entorno Local
 Para auditar la integridad del código fuente antes de un despliegue:
@@ -566,7 +566,7 @@ Para auditar la integridad del código fuente antes de un despliegue:
 # Ejecución de análisis estático (0 issues):
 flutter analyze
 
-# Ejecución de la suite completa de 205 pruebas unitarias y de widgets:
+# Ejecución de la suite completa de 210 pruebas unitarias y de widgets:
 flutter test
 ```
 

@@ -1,4 +1,4 @@
-# MediTime 💊✨
+# MedDue 💊✨
 
 **Tu asistente personal de medicación. Gestiona tus tratamientos, recibe recordatorios puntuales y cuida tu salud de forma inteligente y sencilla.**
 
@@ -6,11 +6,11 @@
 
 ## 🌟 Introducción
 
-MediTime es una aplicación móvil multiplataforma desarrollada con Flutter, diseñada para ayudarte a llevar un control riguroso y sencillo de tus tratamientos médicos. Con un sistema avanzado de notificaciones y alarmas persistentes, MediTime asegura que nunca te saltes una dosis importante, incluso cuando la aplicación está cerrada o el dispositivo se reinicia.
+MedDue es una aplicación móvil multiplataforma desarrollada con Flutter, diseñada para ayudarte a llevar un control riguroso y sencillo de tus tratamientos médicos. Con un sistema avanzado de notificaciones y alarmas persistentes, MedDue asegura que nunca te saltes una dosis importante, incluso cuando la aplicación está cerrada o el dispositivo se reinicia.
 
 La aplicación utiliza Firebase como backend para ofrecer una experiencia de usuario fluida y sincronizada en tiempo real, desde la autenticación hasta el almacenamiento seguro de tus datos de salud, siguiendo una arquitectura de software limpia y escalable.
 
-**Versión actual:** 2.37.0
+**Versión actual:** 2.38.0
 
 ## 🔥 Características Principales
 
@@ -290,7 +290,7 @@ La aplicación maneja automáticamente las zonas horarias, con fallback a 'Ameri
 ## 🤖 Chatbot Midi - Asistente de IA Bilingüe
 
 ### Descripción
-**Midi** es un asistente virtual bilingüe (español/inglés) integrado en MediTime que proporciona soporte médico y técnico mediante inteligencia artificial. Utiliza la **API Groq** (LLM gratuito) con streaming en tiempo real, avatar animado y una interfaz tipo WhatsApp.
+**Midi** es un asistente virtual bilingüe (español/inglés) integrado en MedDue que proporciona soporte médico y técnico mediante inteligencia artificial. Utiliza la **API Groq** (LLM gratuito) con streaming en tiempo real, avatar animado y una interfaz tipo WhatsApp.
 
 ### Características Principales del Chatbot
 - ✅ **Streaming en tiempo real:** La respuesta se renderiza progresivamente mientras se genera
@@ -302,8 +302,8 @@ La aplicación maneja automáticamente las zonas horarias, con fallback a 'Ameri
 - ✅ **UI profesional:** Burbujas de chat asimétricos con degradados azules (#2296F3 → #316AA7)
 
 ### Acceso al Chatbot
-1. Abre MediTime
-2. Toca el botón "Asistente MediTime" en el drawer (menú lateral)
+1. Abre MedDue
+2. Toca el botón "Asistente MedDue" en el drawer (menú lateral)
 3. Escribe tu pregunta en español o inglés
 4. Midi responde automáticamente en el mismo idioma
 
@@ -343,8 +343,8 @@ lib/
 
 ### System Instructions del Bot
 ```
-You are the MediTime virtual assistant. Your role is to provide 
-expert support in medical management and MediTime technical support.
+You are the MedDue virtual assistant. Your role is to provide
+expert support in medical management and MedDue technical support.
 
 Rules:
 1. Detect if user's latest message is Spanish or English
@@ -434,7 +434,7 @@ sealed class Result<T> {
 
 ## 🤝 Contribuciones
 
-¡Las contribuciones son bienvenidas! Si quieres mejorar MediTime, por favor sigue estos pasos:
+¡Las contribuciones son bienvenidas! Si quieres mejorar MedDue, por favor sigue estos pasos:
 
 1. **Fork** del proyecto
 2. Crea una nueva rama (`git checkout -b feature/nueva-funcionalidad`)
@@ -501,37 +501,30 @@ Agradecimientos especiales a la **Universidad de Cundinamarca**, seccional Ubat�
 
 ---
 
-**MediTime v2.37.0** - Tu salud, nuestra prioridad 💊✨
+**MedDue v2.38.0** - Tu salud, nuestra prioridad 💊✨
 
-### 🆕 Novedades en v2.37.0
+### 🆕 Novedades en v2.38.0
 
-#### 🪟 Diseño Transmateria y Frosted Glass (`FrostedGlassBottomSheet`)
-- **Hojas Modales con Desenfoque Gaussiano:** Implementación de `FrostedGlassBottomSheet` con desenfoque de 20px (`BackdropFilter`), gradiente translúcido adaptativo para modo claro y oscuro y micro-bordes suaves.
-- **Despliegue Universal:** Integrado en hojas de opciones de calendario, reprogramación de dosis, selector de recetas y reportes analíticos con atenuación de fondo (`barrierColor`).
-- **Diálogo de Interacciones Farmacológicas Estilizado:** `DrugInteractionDialog` modernizado con estética de cristal, desenfoque de fondo y paleta ámbar de alto contraste.
+#### 🏷️ Rebranding Integral a MedDue
+- **Identidad Unificada Multiplataforma:** Actualización completa de la marca de MediTime a **MedDue** en manifiestos y configuraciones nativas (`AndroidManifest.xml`, `Info.plist` en iOS/macOS, `manifest.json` e `index.html` en Web, `Runner.rc` y `main.cpp` en Windows, `my_application.cc` en Linux).
+- **Localización y Textos Legales:** Actualización trilingüe completa (`.arb` en español, inglés y portugués), marco legal (`LegalContent`, `privacidad@meddue.app`, `soporte@meddue.app`), prompts del asistente Midi y reportes PDF.
 
-#### 📱 Navegación Fluida Samsung One UI & Apple (`ModernAppBar`)
-- **Encapsulamiento Flotante en Scroll (`encapsulateOnScroll`):** Al desplazar las listas verticalmente, el título se disuelve gradualmente (`opacity -> 0`) y los botones de menú y acciones se encapsulan en cápsulas flotantes circulares estilizadas con sombras suaves y fondos translúcidos.
-- **Modo Translúcido Esmerilado (`useGlass`):** Integración nativa de cristal esmerilado en barras superiores con cálculo reactivo de altura de barra de estado.
+#### ⚡ Optimización de Renderizado y Rendimiento UI
+- **Selectores Reactivos en `MyApp` (`main.dart`):** Sustitución de `Consumer2` por `Selector2<PreferenceNotifier, CaregiverNotifier, _AppThemeConfig>` evitando reconstrucciones globales innecesarias del árbol `MaterialApp`.
+- **Aislamiento de Capas GPU (`RepaintBoundary`):** Optimización de efectos *frosted glass* (`BackdropFilter`) en `CustomDrawer`, `FrostedGlassBottomSheet`, `DrugInteractionDialog`, `ModernAppBar` y hojas de reportes para mantener fluidez constante.
+- **Refinamiento de Navegación y Calendario:** Ajustes en `ModernAppBar`, `ModernContentFade`, `HomePage` y `CalendarioPage` respaldados por nuevas pruebas de usabilidad y renderizado.
 
-#### 🔥 Celebración de Racha Estilo Gamificación (`StreakCelebrationSheet`)
-- **Hoja Modal de Logros Duolingo-Style:** Visualización inmersiva de días consecutivos de adherencia con animaciones físicas tipo spring (`Curves.easeOutBack`), retroalimentación háptica táctil y desglose de cumplimiento por tratamiento.
-- **Micro-Interacciones Táctiles (`_PressableScale`):** Retroalimentación de escala física al pulsar tarjetas de tratamiento y botones de acción.
-
-#### 📊 Refinamiento de Acordeones de Tratamiento (`TreatmentAccordionCard`)
-- **Barra de Progreso Segmentada Multi-Estado:** Indicador visual continuo con desglose dinámico proporcional de tomas cumplidas (verde), omitidas (rojo), notificadas (ámbar) y aplazadas (naranja).
-- **Insignias Dinámicas de Nivel:** Etiquetas de adherencia con gradientes cromáticos y metadatos de posología e intervalos horarios.
-
-#### 🎓 Entrega Institucional Oficial (C3 2026)
-- **Sustentación de Proyecto de Grado:** Incorporación de diapositivas oficiales en PowerPoint (`.pptx`) y PDF (`.pdf`), guía metodológica de defensa (`guia_sustentacion_meditime_ix.md`) y script generador automatizado.
-- **Cobertura de Pruebas Automatizadas:** Incremento de la suite a **205 pruebas unitarias y de widgets** con 0 advertencias en `flutter analyze`.
+#### 🧪 Aseguramiento de Calidad
+- **Cobertura Expandida:** Suite automatizada ampliada a **210 pruebas unitarias y de widgets** superadas al 100% y análisis estático limpio.
 
 ---
 
 ### 📋 Historial de Versiones Anteriores
 
 <details>
-<summary><b>v2.26.5 - v2.36.0</b> (Click para desplegar)</summary>
+<summary><b>v2.26.5 - v2.37.0</b> (Click para desplegar)</summary>
+
+- **v2.37.0:** Diseño transmateria `FrostedGlassBottomSheet` con desenfoque de 20px, encapsulamiento One UI en `ModernAppBar` (`encapsulateOnScroll`), celebración de rachas estilo Duolingo (`StreakCelebrationSheet`), barra de progreso segmentada en `TreatmentAccordionCard` y diapositivas oficiales C3.
 
 - **v2.36.0:** Modularización profunda de chat, reportes y recetas, editor integral en pantalla única (EditarTratamientoPage), transiciones GPU 120 FPS (ContainerTransformCard), manejador de calendario (CalendarExpandHandle), formato horario AM/PM y pipeline CI/CD en GitHub Actions.
 - **v2.35.0:** Asistente Midi multiperfil con cuotas diarias (AiQuotaService), renderizado Markdown enriquecido (MarkdownMessageBody), repositorio legal de privacidad y consentimiento informado (LegalContent, LegalDocumentPage) y resiliencia en alarmas nativas.

@@ -1,4 +1,4 @@
-# GUÍA OFICIAL DE SUSTENTACIÓN PGC — MEDITIME (v2.37.0)
+# GUÍA OFICIAL DE SUSTENTACIÓN PGC — MEDDUE / MEDITIME (v2.38.0)
 ## PROYECTO: MEDITIME: APLICACIÓN MÓVIL PARA LA GESTIÓN INTEGRAL DE RECETAS MÉDICAS Y CONTROL DE PRESCRIPCIONES
 ### AUTORES: JOHAN ALEXANDER ARÉVALO CONTRERAS & JORGE ELIECER DELGADO CORTÉS
 ### PROGRAMA DE INGENIERÍA DE SISTEMAS • UNIVERSIDAD DE CUNDINAMARCA — SECCIONAL UBATÉ
@@ -41,7 +41,7 @@ Al pasar a la diapositiva 11, di con tranquilidad:
 
 > *"Distinguished members of the evaluation committee:*
 > 
-> *This project consolidates MediTime (v2.37.0), a comprehensive mobile solution designed to maximize compliance and accuracy in medical prescription management by leveraging emerging technologies.*
+> *This project consolidates MedDue / MediTime (v2.38.0), a comprehensive mobile solution designed to maximize compliance and accuracy in medical prescription management by leveraging emerging technologies.*
 > 
 > *Built on Flutter and supported by Google Firebase and Groq LPU, the application surpasses conventional apps by integrating vision-based OCR extraction of handwritten prescriptions and conversational assistance via Midi AI.*
 > 
