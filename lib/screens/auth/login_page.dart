@@ -266,7 +266,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       child: Column(
                         children: [
                           const Text(
-                            'MediTime',
+                            'MedDue',
                             style: TextStyle(
                               fontSize: 55,
                               fontWeight: FontWeight.bold,

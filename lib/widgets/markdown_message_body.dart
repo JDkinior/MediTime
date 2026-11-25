@@ -481,7 +481,8 @@ class MarkdownMessageBody extends StatelessWidget {
       final badgeGroup = match.group(5);
 
       if (boldGroup != null) {
-        final isBrand = boldGroup.toLowerCase().contains('meditime') ||
+        final isBrand = boldGroup.toLowerCase().contains('meddue') ||
+            boldGroup.toLowerCase().contains('meditime') ||
             boldGroup.toLowerCase().contains('midi');
         spans.add(TextSpan(
           text: boldGroup,

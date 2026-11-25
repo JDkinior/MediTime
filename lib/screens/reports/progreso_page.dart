@@ -58,12 +58,141 @@ class TodayDose {
   });
 }
 
+class ProgresoIntervalSelector extends StatelessWidget {
+  final ProgresoInterval interval;
+  final ValueChanged<ProgresoInterval> onChanged;
+  final bool floating;
+
+  const ProgresoIntervalSelector({
+    super.key,
+    required this.interval,
+    required this.onChanged,
+    this.floating = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      margin: floating
+          ? EdgeInsets.zero
+          : const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: floating ? null : Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(30),
+        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+            ? Border.all(color: AppTheme.borderColor)
+            : null,
+        boxShadow: floating ? null : [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedAlign(
+                alignment: AlignmentDirectional(
+                  -1 + 2 * interval.index / (ProgresoInterval.values.length - 1),
+                  0,
+                ),
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                child: FractionallySizedBox(
+                  widthFactor: 1 / ProgresoInterval.values.length,
+                  heightFactor: 1,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      color: AppTheme.primaryColor,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.28),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Row(
+            children: ProgresoInterval.values.map((interval) {
+              final isSelected = this.interval == interval;
+              String text = '';
+              switch (interval) {
+                case ProgresoInterval.semana:
+                  text = l10n?.intervalWeek ?? 'Semana';
+                  break;
+                case ProgresoInterval.mes:
+                  text = l10n?.intervalMonth ?? 'Mes';
+                  break;
+                case ProgresoInterval.anio:
+                  text = l10n?.intervalYear ?? 'Año';
+                  break;
+                case ProgresoInterval.todo:
+                  text = l10n?.intervalAll ?? 'Todo';
+                  break;
+              }
+
+              return Expanded(
+                child: _PressableScale(
+                  scaleFactor: 0.95,
+                  onTap: () {
+                    if (!isSelected) onChanged(interval);
+                  },
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          text,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                            fontSize: 13.5,
+                            letterSpacing: isSelected ? -0.2 : 0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class ProgresoPage extends StatefulWidget {
+  final ProgresoInterval interval;
+  final ValueChanged<ProgresoInterval> onIntervalChanged;
+  final ValueNotifier<double>? scrollProgress;
+  final double toolbarScrollInset;
   final GlobalKey? progressRingKey;
   final GlobalKey? progressTimelineKey;
 
   const ProgresoPage({
     super.key,
+    required this.interval,
+    required this.onIntervalChanged,
+    this.scrollProgress,
+    this.toolbarScrollInset = 0,
     this.progressRingKey,
     this.progressTimelineKey,
   });
@@ -75,7 +204,7 @@ class ProgresoPage extends StatefulWidget {
 class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
-  ProgresoInterval _selectedInterval = ProgresoInterval.semana;
+  ProgresoInterval get _selectedInterval => widget.interval;
   bool _isSortAscending = false;
   bool _showScrollToTop = false;
   final Set<String> _expandedTreatments = <String>{};
@@ -163,7 +292,7 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
     }
     return {
       'start': DateTime(startDate.year, startDate.month, startDate.day),
-      'end': now,
+      'end': DateTime(now.year, now.month, now.day, now.hour, now.minute),
     };
   }
 
@@ -173,7 +302,10 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
   Map<String, int> _calcularEstadisticas(Tratamiento tratamiento, Map<String, DateTime> dateRange) {
     final start = dateRange['start']!;
     final end = dateRange['end']!;
-    final cacheKey = "${tratamiento.id}_${start.millisecondsSinceEpoch}_${end.millisecondsSinceEpoch}_${tratamiento.doseStatus.length}";
+    final statusHash = Object.hashAllUnordered(
+      tratamiento.doseStatus.entries.map((e) => Object.hash(e.key, e.value)),
+    );
+    final cacheKey = "${tratamiento.id}_${start.millisecondsSinceEpoch}_${end.millisecondsSinceEpoch}_${tratamiento.doseStatus.length}_$statusHash";
     if (_statsCache.containsKey(cacheKey)) {
       return _statsCache[cacheKey]!;
     }
@@ -258,6 +390,9 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
       'notificadas': notificadas,
       'programadasPasadas': programadasPasadas,
     };
+    if (_statsCache.length > 150) {
+      _statsCache.clear();
+    }
     _statsCache[cacheKey] = result;
     return result;
   }
@@ -3185,94 +3320,14 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
   }
 
 
-  Widget _buildIntervalSelector() {
-    final l10n = AppLocalizations.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      padding: const EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(30),
-        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-            ? Border.all(color: AppTheme.borderColor)
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: ProgresoInterval.values.map((interval) {
-          final isSelected = _selectedInterval == interval;
-          String text = '';
-          switch (interval) {
-            case ProgresoInterval.semana:
-              text = l10n?.intervalWeek ?? 'Semana';
-              break;
-            case ProgresoInterval.mes:
-              text = l10n?.intervalMonth ?? 'Mes';
-              break;
-            case ProgresoInterval.anio:
-              text = l10n?.intervalYear ?? 'Año';
-              break;
-            case ProgresoInterval.todo:
-              text = l10n?.intervalAll ?? 'Todo';
-              break;
-          }
-
-          return Expanded(
-            child: _PressableScale(
-              scaleFactor: 0.95,
-              onTap: () {
-                HapticFeedback.selectionClick();
-                setState(() {
-                  _selectedInterval = interval;
-                  _expandedTreatments.clear();
-                  _selectedTimelineDayIndex = null;
-                  _selectedStatusFilter = null;
-                });
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  color: isSelected ? AppTheme.primaryColor : Colors.transparent,
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.28),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Center(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      text,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                        fontSize: 13.5,
-                        letterSpacing: isSelected ? -0.2 : 0,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
+  @override
+  void didUpdateWidget(covariant ProgresoPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.interval != widget.interval) {
+      _expandedTreatments.clear();
+      _selectedTimelineDayIndex = null;
+      _selectedStatusFilter = null;
+    }
   }
 
   @override
@@ -3303,19 +3358,38 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
     
     _updateStreamIfNeeded(user.uid, isGeneralMode, profiles, activeProfile, firestoreService);
 
+    final scrollProgress = widget.scrollProgress;
+    final movesInterval = widget.toolbarScrollInset > 0;
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final intervalSelector = ProgresoIntervalSelector(
+      interval: widget.interval,
+      onChanged: widget.onIntervalChanged,
+    );
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: NotificationListener<ScrollNotification>(
-        onNotification: (notification) => true,
+        onNotification: (notification) {
+          final metrics = notification.metrics;
+          if (scrollProgress != null &&
+              notification.depth == 0 &&
+              metrics.axis == Axis.vertical) {
+            final progress = (metrics.extentBefore / (movesInterval ? 66 : 36)).clamp(0.0, 1.0);
+            scrollProgress.value = reduceMotion
+                ? (progress >= 0.5 ? 1.0 : 0.0)
+                : progress;
+          }
+          return !movesInterval;
+        },
         child: Stack(
           children: [
           Column(
             children: [
-              _buildIntervalSelector(),
+              if (!movesInterval) intervalSelector,
               Expanded(
                 child: ModernContentFade(
                   topOffset: 0.0,
                   height: 32,
+                  enableTopFade: !movesInterval,
                   child: StreamBuilder<List<Map<String, dynamic>>>(
                   key: ValueKey('${isGeneralMode}_${activeProfile?.id}_$isManagedMode'),
                   stream: _combinedStream,
@@ -3394,7 +3468,11 @@ class _ProgresoPageState extends State<ProgresoPage> with AutomaticKeepAliveClie
                         padding: EdgeInsets.only(
                           left: 16.0,
                           right: 16.0,
-                          top: 8.0,
+                          // La lista y la cápsula recorren la misma distancia
+                          // durante la primera parte del scroll.
+                          top: !movesInterval
+                              ? 8.0
+                              : widget.toolbarScrollInset + 86.0,
                           bottom: isModern ? 100.0 : 8.0,
                         ),
                         children: [

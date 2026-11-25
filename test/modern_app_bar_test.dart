@@ -224,6 +224,119 @@ void main() {
       );
       expect(capsuleFinder, findsWidgets);
     });
+
+    testWidgets('reserved control space keeps toolbar icons aligned', (tester) async {
+      final encapsulate = ValueNotifier(true);
+      addTearDown(encapsulate.dispose);
+      await tester.pumpWidget(
+        buildTestWidget(
+          child: Scaffold(
+            appBar: PreferredSize(
+              preferredSize: const Size.fromHeight(kToolbarHeight),
+              child: ValueListenableBuilder<bool>(
+                valueListenable: encapsulate,
+                builder: (_, enabled, _) => ModernAppBar(
+                  encapsulateOnScroll: enabled,
+                  reserveControlSpace: true,
+                  scrollProgress: const AlwaysStoppedAnimation<double>(1),
+                  child: AppBar(
+                    title: const Text('MedDue'),
+                    leading: IconButton(
+                      onPressed: () {},
+                      icon: const Icon(Icons.menu),
+                    ),
+                    actions: [
+                      IconButton(
+                        onPressed: () {},
+                        icon: const Icon(Icons.face),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final menu = find.byIcon(Icons.menu);
+      final assistant = find.byIcon(Icons.face);
+      final menuX = tester.getCenter(menu).dx;
+      final assistantX = tester.getCenter(assistant).dx;
+
+      encapsulate.value = false;
+      await tester.pump();
+
+      expect(tester.getCenter(menu).dx, menuX);
+      expect(tester.getCenter(assistant).dx, assistantX);
+    });
+
+    testWidgets('external scroll progress fades the title in place', (tester) async {
+      final progress = ValueNotifier(0.0);
+      addTearDown(progress.dispose);
+      await tester.pumpWidget(
+        buildTestWidget(
+          child: Scaffold(
+            appBar: ModernAppBar(
+              encapsulateOnScroll: true,
+              scrollProgress: progress,
+              fadeTitleInPlace: true,
+              child: AppBar(title: const Text('MedDue')),
+            ),
+          ),
+        ),
+      );
+
+      final title = find.text('MedDue');
+      final initialY = tester.getTopLeft(title).dy;
+      progress.value = 0.5;
+      await tester.pump();
+      expect(tester.getTopLeft(title).dy, initialY);
+      final titleOpacity = find.ancestor(
+        of: title,
+        matching: find.byType(Opacity),
+      );
+      expect(tester.widget<Opacity>(titleOpacity).opacity, 0.5);
+
+      progress.value = 0.0;
+      await tester.pump();
+      expect(tester.getTopLeft(title).dy, initialY);
+      expect(tester.widget<Opacity>(titleOpacity).opacity, 1.0);
+    });
+
+    testWidgets('useGlass + encapsulateOnScroll drops BackdropFilter when fully scrolled', (tester) async {
+      await tester.pumpWidget(
+        buildTestWidget(
+          child: Scaffold(
+            appBar: ModernAppBar(
+              useGlass: true,
+              encapsulateOnScroll: true,
+              child: AppBar(title: const Text('Glass Test')),
+            ),
+            body: ListView.builder(
+              itemCount: 50,
+              itemBuilder: (context, index) => ListTile(title: Text('Item $index')),
+            ),
+          ),
+        ),
+      );
+
+      // At rest, BackdropFilter is active
+      expect(
+        find.descendant(of: find.byType(ModernAppBar), matching: find.byType(BackdropFilter)),
+        findsOneWidget,
+      );
+
+      // Scroll past 36px so progress reaches 1.0
+      await tester.drag(find.text('Item 0'), const Offset(0, -200));
+      await tester.pumpAndSettle();
+
+      // BackdropFilter is dropped when background is fully faded out
+      expect(
+        find.descendant(of: find.byType(ModernAppBar), matching: find.byType(BackdropFilter)),
+        findsNothing,
+      );
+    });
   });
 
   group('ModernContentFade Widget Tests', () {
@@ -328,6 +441,12 @@ void main() {
         (w) => w is Positioned && w.bottom == 0.0 && w.height == 24.0 && w.child is IgnorePointer,
       );
       expect(bottomFadeFinder, findsOneWidget);
+
+      // Verify ModernContentFade uses gradient alpha instead of Opacity saveLayer
+      expect(
+        find.descendant(of: find.byType(ModernContentFade), matching: find.byType(Opacity)),
+        findsNothing,
+      );
     });
   });
 }

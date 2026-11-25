@@ -41,6 +41,7 @@ class DetalleRecetaPage extends StatefulWidget {
 class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
   Timer? _timer;
   late DateTime? _nextUpcomingDose;
+  final ValueNotifier<DateTime> _nowNotifier = ValueNotifier<DateTime>(DateTime.now());
   bool _isProcessing = false;
   DoseStatus? _currentStatus;
   late Tratamiento _tratamiento;
@@ -55,23 +56,42 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
       _currentStatus = _getDoseStatus(_horaDosis!);
     }
     _nextUpcomingDose = _findNextUpcomingDose();
+    _syncCountdownTimer();
+  }
 
-    if (_nextUpcomingDose != null) {
-      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (DateTime.now().isAfter(_nextUpcomingDose!)) {
-          setState(() {
-            _nextUpcomingDose = _findNextUpcomingDose();
-          });
-        } else {
-          setState(() {});
-        }
-      });
+  void _syncCountdownTimer() {
+    if (_nextUpcomingDose == null) {
+      _timer?.cancel();
+      _timer = null;
+      return;
     }
+    if (_timer != null && _timer!.isActive) return;
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      final now = DateTime.now();
+      _nowNotifier.value = now;
+      if (_nextUpcomingDose == null) {
+        timer.cancel();
+        return;
+      }
+      if (now.isAfter(_nextUpcomingDose!)) {
+        setState(() {
+          _nextUpcomingDose = _findNextUpcomingDose();
+        });
+        if (_nextUpcomingDose == null) {
+          timer.cancel();
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _nowNotifier.dispose();
     super.dispose();
   }
 
@@ -679,13 +699,18 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
     }
 
     if (selectedDose != null && nextDose.isAtSameMomentAs(selectedDose)) {
-      return _buildStatusBannerCard(
-        icon: Icons.notifications_active_rounded,
-        color: AppTheme.primaryColor,
-        title:
-            (l10n?.doseDetailNextDosePrompt ?? 'Esta es la próxima dosis')
-                .toUpperCase(),
-        subtitle: _getTiempoRestante(nextDose, l10n),
+      return ValueListenableBuilder<DateTime>(
+        valueListenable: _nowNotifier,
+        builder: (context, _, __) {
+          return _buildStatusBannerCard(
+            icon: Icons.notifications_active_rounded,
+            color: AppTheme.primaryColor,
+            title:
+                (l10n?.doseDetailNextDosePrompt ?? 'Esta es la próxima dosis')
+                    .toUpperCase(),
+            subtitle: _getTiempoRestante(nextDose, l10n),
+          );
+        },
       );
     }
 
@@ -704,7 +729,6 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
             .trim()
             .toUpperCase();
     final timeStr = DateFormat('hh:mm a, d MMM', localeStr).format(nextDose);
-    final remainingStr = _getTiempoRestante(nextDose, l10n);
 
     return Material(
       color: Colors.transparent,
@@ -760,13 +784,18 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      remainingStr,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w400,
-                        color: Color(0xFF64748B),
-                      ),
+                    ValueListenableBuilder<DateTime>(
+                      valueListenable: _nowNotifier,
+                      builder: (context, _, __) {
+                        return Text(
+                          _getTiempoRestante(nextDose, l10n),
+                          style: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF64748B),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -903,6 +932,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
           _tratamiento = updatedTratamiento;
           _nextUpcomingDose = _findNextUpcomingDose();
         });
+        _syncCountdownTimer();
       }
       return;
     }
@@ -1152,6 +1182,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
               _currentStatus = _getDoseStatus(_horaDosis!);
               _nextUpcomingDose = _findNextUpcomingDose();
             });
+            _syncCountdownTimer();
           }
         }
         if (mounted) {
@@ -1209,6 +1240,7 @@ class _DetalleRecetaPageState extends State<DetalleRecetaPage> {
             }
             _nextUpcomingDose = _findNextUpcomingDose();
           });
+          _syncCountdownTimer();
           scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Text(

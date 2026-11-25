@@ -1,6 +1,43 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:meditime/l10n/generated/app_localizations.dart';
+import 'package:meditime/models/caregiver_profile.dart';
+import 'package:meditime/models/tratamiento.dart';
+import 'package:meditime/notifiers/caregiver_notifier.dart';
+import 'package:meditime/notifiers/preference_notifier.dart';
+import 'package:meditime/screens/calendar/calendario_page.dart';
+import 'package:meditime/services/auth_service.dart';
+import 'package:meditime/services/firestore_service.dart';
+import 'package:meditime/services/preference_service.dart';
+import 'package:meditime/widgets/calendar_expand_handle.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:table_calendar/table_calendar.dart';
+
+class _CalendarUser extends Fake implements User {
+  @override
+  String get uid => 'calendar-test';
+}
+
+class _CalendarAuth extends Fake implements AuthService {
+  @override
+  User get currentUser => _CalendarUser();
+}
+
+class _CalendarFirestore extends Fake implements FirestoreService {
+  @override
+  Stream<List<Tratamiento>> getMedicamentosStream(
+    String userId, [
+    CaregiverProfile? profile,
+  ]) => Stream.value([]);
+
+  @override
+  List<Tratamiento> getCachedMedicamentos(
+    String userId, [
+    CaregiverProfile? profile,
+  ]) => [];
+}
 
 int getMonthRowCount(DateTime focusedDay) {
   final first = DateTime(focusedDay.year, focusedDay.month, 1);
@@ -48,6 +85,113 @@ bool isDayOnCurrentPage({
 }
 
 void main() {
+  testWidgets('resizing the calendar keeps November 28 in view', (tester) async {
+    SharedPreferences.setMockInitialValues({'calendar_format_string': 'monthly'});
+    final preferences = PreferenceService();
+    final firestore = _CalendarFirestore();
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          Provider<PreferenceService>.value(value: preferences),
+          Provider<AuthService>(create: (_) => _CalendarAuth()),
+          Provider<FirestoreService>.value(value: firestore),
+          ChangeNotifierProvider(create: (_) => PreferenceNotifier(preferences)),
+          ChangeNotifierProvider(create: (_) => CaregiverNotifier(preferences, firestore)),
+        ],
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: CalendarioPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    TableCalendar<Map<String, dynamic>> calendar() => tester.widget(
+      find.byType(TableCalendar<Map<String, dynamic>>),
+    );
+
+    final selected = DateTime.utc(2026, 11, 28);
+    calendar().onPageChanged!(DateTime.utc(2026, 11, 1));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('28').hitTestable());
+    await tester.pumpAndSettle();
+    expect(calendar().selectedDayPredicate!(selected), isTrue);
+
+    final handle = find.byType(CalendarExpandHandle);
+    final gesture = await tester.startGesture(tester.getCenter(handle));
+    for (final distance in [24.0, 48.0, 56.0, 100.0]) {
+      await gesture.moveBy(Offset(0, -distance));
+      await tester.pump(const Duration(milliseconds: 70));
+      expect(isSameDay(calendar().focusedDay, selected), isTrue);
+      final selectedLabel = find.byWidgetPredicate(
+        (widget) => widget is Text &&
+            widget.data == '28' &&
+            widget.style?.color == Colors.white,
+      ).last;
+      expect(
+        tester.getCenter(selectedLabel).dy,
+        greaterThan(tester.getCenter(find.text('Sat').first).dy),
+      );
+      expect(
+        tester.getCenter(selectedLabel).dy,
+        lessThan(tester.getTopLeft(handle).dy),
+      );
+      final visibleRow = find.ancestor(
+        of: selectedLabel,
+        matching: find.byType(Opacity),
+      ).first;
+      expect(tester.widget<Opacity>(visibleRow).opacity, closeTo(1, 0.001));
+    }
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(calendar().calendarFormat, CalendarFormat.week);
+    expect(isSameDay(calendar().focusedDay, selected), isTrue);
+    expect(find.text('28').hitTestable(), findsOneWidget);
+
+    await tester.tap(handle);
+    await tester.pumpAndSettle();
+    expect(calendar().calendarFormat, CalendarFormat.month);
+    expect(isSameDay(calendar().focusedDay, selected), isTrue);
+    expect(find.text('28').hitTestable(), findsOneWidget);
+
+    await tester.tap(find.text('1').hitTestable());
+    await tester.pumpAndSettle();
+    final toBiweekly = await tester.startGesture(tester.getCenter(handle));
+    for (final distance in [24.0, 45.0, 45.0, 45.0]) {
+      await toBiweekly.moveBy(Offset(0, -distance));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    final outsideDayStyle = calendar().calendarStyle.outsideTextStyle;
+    final outsideDay = find.byWidgetPredicate(
+      (widget) => widget is Text &&
+          widget.data == '26' &&
+          widget.style == outsideDayStyle,
+    );
+    expect(outsideDay, findsOneWidget);
+
+    await toBiweekly.up();
+    await tester.pumpAndSettle();
+    expect(calendar().calendarFormat, CalendarFormat.twoWeeks);
+    expect(outsideDay.hitTestable(), findsOneWidget);
+
+    final grayOctober28 = find.byWidgetPredicate(
+      (widget) => widget is Text &&
+          widget.data == '28' &&
+          widget.style == outsideDayStyle,
+    ).hitTestable();
+    await tester.tap(grayOctober28);
+    await tester.pumpAndSettle();
+
+    final october28 = DateTime.utc(2026, 10, 28);
+    expect(calendar().calendarFormat, CalendarFormat.twoWeeks);
+    expect(calendar().selectedDayPredicate!(october28), isTrue);
+    expect(isSameDay(calendar().focusedDay, october28), isTrue);
+    expect(find.text('October 2026'), findsOneWidget);
+    expect(outsideDay.hitTestable(), findsNothing);
+  });
+
   group('Calendar Month Row Count & Height Calculation Tests', () {
     test('October 2026 requires exactly 5 rows (340.0px)', () {
       final oct2026 = DateTime(2026, 10, 21);

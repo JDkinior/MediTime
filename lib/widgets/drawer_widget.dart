@@ -82,31 +82,23 @@ class CustomDrawer extends StatelessWidget {
     final highContrast = preferences.highContrast;
     final useGlass = isModern && !highContrast;
 
-    return Drawer(
-      backgroundColor: useGlass ? Colors.transparent : AppTheme.backgroundColor,
-      elevation: useGlass ? 0 : 16,
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: useGlass
-              ? ImageFilter.blur(sigmaX: 25.0, sigmaY: 25.0)
-              : ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: useGlass
-                  ? (isDark
-                      ? AppTheme.backgroundColor.withValues(alpha: 0.75)
-                      : Colors.white.withValues(alpha: 0.82))
-                  : AppTheme.backgroundColor,
-              border: useGlass
-                  ? Border(
-                      right: BorderSide(
-                        color: (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.12 : 0.08),
-                        width: 1.0,
-                      ),
-                    )
-                  : null,
-            ),
-            child: Column(
+    final drawerBody = Container(
+      decoration: BoxDecoration(
+        color: useGlass
+            ? (isDark
+                ? AppTheme.backgroundColor.withValues(alpha: 0.75)
+                : Colors.white.withValues(alpha: 0.82))
+            : AppTheme.backgroundColor,
+        border: useGlass
+            ? Border(
+                right: BorderSide(
+                  color: (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.12 : 0.08),
+                  width: 1.0,
+                ),
+              )
+            : null,
+      ),
+      child: Column(
               children: [
                 // HEADER
                 Container(
@@ -254,7 +246,7 @@ class CustomDrawer extends StatelessWidget {
                   icon: subscription.isPremium
                       ? Icons.workspace_premium_rounded
                       : Icons.auto_awesome_rounded,
-                  title: subscription.isPremium ? 'MediTime Pro Activo' : 'Obtener MediTime Pro',
+                  title: subscription.isPremium ? 'MedDue Pro Activo' : 'Obtener MedDue Pro',
                   subtitle: subscription.isPremium
                       ? (subscription.subscriptionTier == 'annual' ? 'Plan Anual Activo' : 'Plan Mensual Activo')
                       : 'Tratamientos y reportes sin límites',
@@ -337,7 +329,7 @@ class CustomDrawer extends StatelessWidget {
                 ),
                 _DrawerTile(
                   icon: Icons.smart_toy_outlined,
-                  title: l10n?.drawerChatbot ?? 'Chatbot MediTime',
+                  title: l10n?.drawerChatbot ?? 'Chatbot MedDue',
                   subtitle: l10n?.drawerChatbotSubtitle ?? 'Asistente inteligente',
                   iconColor: themeIconColor,
                   iconBgColor: themeIconBgColor,
@@ -449,7 +441,7 @@ class CustomDrawer extends StatelessWidget {
                     builder: (context, snapshot) {
                       final version = snapshot.hasData ? snapshot.data!.version : '2.30.0';
                       return Text(
-                        'MediTime v$version',
+                        'MedDue v$version',
                         style: TextStyle(
                           fontSize: 12,
                           color: AppTheme.secondaryTextColor,
@@ -464,9 +456,21 @@ class CustomDrawer extends StatelessWidget {
           ),
         ],
       ),
-    ),
-  ),
-),
+    );
+
+    return Drawer(
+      backgroundColor: useGlass ? Colors.transparent : AppTheme.backgroundColor,
+      elevation: useGlass ? 0 : 16,
+      child: useGlass
+          ? RepaintBoundary(
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                  child: drawerBody,
+                ),
+              ),
+            )
+          : drawerBody,
     );
   }
 

@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "MediTime",
+  "appTitle": "MedDue",
   
   "commonAccept": "Accept",
   "commonCancel": "Cancel",
@@ -43,7 +43,7 @@
   "drawerHelpSubtitle": "Help and support center",
   "drawerTutorial": "Tutorial",
   "drawerTutorialSubtitle": "Guides and usage tips",
-  "drawerChatbot": "MediTime Chatbot",
+  "drawerChatbot": "MedDue Chatbot",
   "drawerChatbotSubtitle": "Smart assistant",
   "drawerSectionManage": "MANAGEMENT",
   "drawerManagePatients": "Manage Patients",
@@ -188,7 +188,7 @@
   "complianceChartTitle": "Compliance chart",
   "progressByPatient": "Progress by patient",
 
-  "chatBotGreeting": "Hello! I am Midi, your health assistant in MediTime.",
+  "chatBotGreeting": "Hello! I am Midi, your health assistant in MedDue.",
   "chatBotPlaceholder": "Type a message or ask a medical question...",
   "chatBotListening": "Listening...",
   "chatBotClearHistory": "Clear conversation",
@@ -281,7 +281,7 @@
   "addPrescriptionUpdatedSuccess": "Treatment updated successfully",
   "addPrescriptionSaveError": "Error saving treatment",
 
-  "chatBotWelcome": "Hello! I am Midi, your MediTime virtual assistant. I'm here to help you organize your medications, remind you of your doses, or answer any questions you have about the app. How can I help you today?",
+  "chatBotWelcome": "Hello! I am Midi, your MedDue virtual assistant. I'm here to help you organize your medications, remind you of your doses, or answer any questions you have about the app. How can I help you today?",
   "chatBotAskAbout": "You can ask me about:",
   "chatBotQuickMeds": "My medications",
   "chatBotQuickMedsSubtitle": "Info, doses & schedules",
@@ -428,7 +428,7 @@
   "helpDevelopersSubtitle": "Creator team and project credits.",
   "helpUnderstood": "Understood",
   "helpLoadingVersion": "Loading version...",
-  "helpVersionText": "MediTime version {version} (Build {buildNumber}).",
+  "helpVersionText": "MedDue version {version} (Build {buildNumber}).",
   "@helpVersionText": {
     "placeholders": {
       "version": { "type": "String" },

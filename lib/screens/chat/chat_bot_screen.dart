@@ -75,7 +75,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   final List<_ChatMessage> _messages = <_ChatMessage>[
     _ChatMessage(
       text:
-          '¡Hola! Soy Midi, tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?',
+          '¡Hola! Soy Midi, tu asistente virtual de MedDue. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?',
       isUser: false,
     ),
   ];
@@ -86,7 +86,8 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
 
   bool _isGenerating = false;
   bool _hasText = false;
-  bool _isBlinking = false;
+  final ValueNotifier<bool> _isBlinkingNotifier = ValueNotifier<bool>(false);
+  bool _imagesPrecached = false;
   bool _isRecording = false;
   bool _isTranscribing = false;
   bool _wasLastInputVoice = false;
@@ -104,8 +105,11 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    precacheImage(const AssetImage(_midiOpenAsset), context);
-    precacheImage(const AssetImage(_midiBlinkAsset), context);
+    if (!_imagesPrecached) {
+      _imagesPrecached = true;
+      precacheImage(const AssetImage(_midiOpenAsset), context);
+      precacheImage(const AssetImage(_midiBlinkAsset), context);
+    }
 
     final prefNotifier = Provider.of<PreferenceNotifier>(context, listen: false);
     final caregiverNotifier = Provider.of<CaregiverNotifier>(context, listen: false);
@@ -137,7 +141,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         if (activeProfile != null) {
           final petName = activeProfile.name.trim();
           final species = activeProfile.species?.trim().isNotEmpty == true ? ' (${activeProfile.species!.trim()})' : '';
-          welcomeText = '¡Hola! Soy Midi, tu asistente veterinario de MediTime 🐾. Te ayudo a organizar los tratamientos de **$petName**$species, consultar cuándo finaliza cada medicación, recordar las dosis prescritas por su veterinario y prevenir intoxicaciones con alimentos o fármacos humanos peligrosos. ¿En qué te ayudo hoy?';
+          welcomeText = '¡Hola! Soy Midi, tu asistente veterinario de MedDue 🐾. Te ayudo a organizar los tratamientos de **$petName**$species, consultar cuándo finaliza cada medicación, recordar las dosis prescritas por su veterinario y prevenir intoxicaciones con alimentos o fármacos humanos peligrosos. ¿En qué te ayudo hoy?';
         } else {
           final petCount = caregiverNotifier.managedProfiles.where((p) => p.isAnimal).length;
           final petsStr = petCount > 0 ? ' ($petCount mascotas registradas)' : '';
@@ -147,7 +151,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         if (activeProfile != null) {
           final patientName = activeProfile.name.trim();
           final room = activeProfile.roomNumber?.trim().isNotEmpty == true ? ' (Hab. ${activeProfile.roomNumber!.trim()})' : '';
-          welcomeText = '¡Hola! Soy Midi, tu asistente de cuidado de MediTime 🩺. Estoy enfocado en los tratamientos y seguridad de **$patientName**$room. Te asisto verificando dosis según los 5 correctos, alertándote de alergias y consultando cuándo termina cada tratamiento. ¿En qué te colaboro hoy?';
+          welcomeText = '¡Hola! Soy Midi, tu asistente de cuidado de MedDue 🩺. Estoy enfocado en los tratamientos y seguridad de **$patientName**$room. Te asisto verificando dosis según los 5 correctos, alertándote de alergias y consultando cuándo termina cada tratamiento. ¿En qué te colaboro hoy?';
         } else {
           final patientCount = caregiverNotifier.managedProfiles.where((p) => !p.isAnimal).length;
           final patientsStr = patientCount > 0 ? ' ($patientCount pacientes asignados)' : '';
@@ -155,7 +159,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         }
       } else {
         welcomeText = l10n?.chatBotWelcome ??
-            '¡Hola! Soy Midi, tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis, saber cuándo termina tu tratamiento o responder cualquier duda que tengas sobre tu salud. ¿En qué te puedo ayudar hoy?';
+            '¡Hola! Soy Midi, tu asistente virtual de MedDue. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis, saber cuándo termina tu tratamiento o responder cualquier duda que tengas sobre tu salud. ¿En qué te puedo ayudar hoy?';
       }
 
       _messages[0] = _ChatMessage(
@@ -179,6 +183,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   @override
   void dispose() {
     _blinkTimer?.cancel();
+    _isBlinkingNotifier.dispose();
     _voiceService?.dispose();
     _messageController.removeListener(_handleInputChanged);
     _messageController.dispose();
@@ -199,12 +204,12 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
       if (!mounted) {
         return;
       }
-      setState(() => _isBlinking = true);
+      _isBlinkingNotifier.value = true;
       _blinkTimer = Timer(const Duration(milliseconds: 150), () {
         if (!mounted) {
           return;
         }
-        setState(() => _isBlinking = false);
+        _isBlinkingNotifier.value = false;
         _scheduleBlink();
       });
     });
@@ -675,7 +680,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         content: Text(
           isPremium
               ? 'Has alcanzado el límite de seguridad de ${AiQuotaService.premiumDailyLimit} consultas diarias con Midi. Tu cuota se reiniciará automáticamente a las 00:00.'
-              : 'Has completado tus ${AiQuotaService.freeDailyLimit} consultas diarias gratuitas con Midi. Tu cuota se renovará automáticamente a medianoche.\n\nPuedes actualizar a MediTime Premium para disfrutar de hasta ${AiQuotaService.premiumDailyLimit} consultas diarias y respuestas prioritarias.',
+              : 'Has completado tus ${AiQuotaService.freeDailyLimit} consultas diarias gratuitas con Midi. Tu cuota se renovará automáticamente a medianoche.\n\nPuedes actualizar a MedDue Premium para disfrutar de hasta ${AiQuotaService.premiumDailyLimit} consultas diarias y respuestas prioritarias.',
           style: const TextStyle(fontSize: 14, height: 1.4),
         ),
         actions: [
@@ -1547,7 +1552,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
       _messages.add(
         _ChatMessage(
           text: AppLocalizations.of(context)?.chatBotWelcome ??
-              '¡Hola! Soy Midi, tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?',
+              '¡Hola! Soy Midi, tu asistente virtual de MedDue. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?',
           isUser: false,
         ),
       );
@@ -2050,94 +2055,99 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
             ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: (context.watch<PreferenceNotifier>().interfaceStyle == 'modern' &&
-                              !context.watch<PreferenceNotifier>().highContrast)
-                          ? ((Theme.of(context).brightness == Brightness.dark)
-                              ? Theme.of(context).cardColor.withValues(alpha: 0.68)
-                              : Colors.white.withValues(alpha: 0.82))
-                          : Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(_composerRadius),
-                      border: Border.all(
-                        color: _isRecording
-                            ? AppTheme.errorColor.withValues(alpha: 0.4)
-                            : ((context.watch<PreferenceNotifier>().interfaceStyle == 'modern' &&
-                                    !context.watch<PreferenceNotifier>().highContrast)
-                                ? ((Theme.of(context).brightness == Brightness.dark)
-                                    ? Colors.white.withValues(alpha: 0.12)
-                                    : Colors.black.withValues(alpha: 0.08))
-                                : AppTheme.borderColor),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (Theme.of(context).brightness == Brightness.dark)
-                              ? Colors.black.withValues(alpha: 0.25)
-                              : Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 14,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+            child: Builder(
+              builder: (context) {
+                final pref = context.watch<PreferenceNotifier>();
+                final useGlass = pref.interfaceStyle == 'modern' && !pref.highContrast;
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+
+                final inputField = TextField(
+                  controller: _messageController,
+                  minLines: 1,
+                  maxLines: 4,
+                  enabled: !_isRecording,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: TextStyle(color: AppTheme.primaryTextColor),
+                  decoration: InputDecoration(
+                    hintText: _isRecording
+                        ? (l10n?.chatBotListening ?? 'Escuchando...')
+                        : (l10n?.chatBotInputHint ?? 'Pregunta lo que necesitas...'),
+                    hintStyle: TextStyle(
+                      color: _isRecording ? AppTheme.errorColor.withValues(alpha: 0.6) : AppTheme.secondaryTextColor.withValues(alpha: 0.6),
+                      fontSize: 16,
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(_composerRadius),
-                      child: BackdropFilter(
-                        filter: (context.watch<PreferenceNotifier>().interfaceStyle == 'modern' &&
-                                !context.watch<PreferenceNotifier>().highContrast)
-                            ? ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0)
-                            : ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
-                        child: TextField(
-                          controller: _messageController,
-                          minLines: 1,
-                          maxLines: 4,
-                          enabled: !_isRecording,
-                          textCapitalization: TextCapitalization.sentences,
-                          style: TextStyle(color: AppTheme.primaryTextColor),
-                          decoration: InputDecoration(
-                            hintText: _isRecording
-                                ? (l10n?.chatBotListening ?? 'Escuchando...')
-                                : (l10n?.chatBotInputHint ?? 'Pregunta lo que necesitas...'),
-                            hintStyle: TextStyle(
-                              color: _isRecording ? AppTheme.errorColor.withValues(alpha: 0.6) : AppTheme.secondaryTextColor.withValues(alpha: 0.6),
-                              fontSize: 16,
-                            ),
-                            filled: !(context.watch<PreferenceNotifier>().interfaceStyle == 'modern' &&
-                                !context.watch<PreferenceNotifier>().highContrast),
-                            fillColor: (context.watch<PreferenceNotifier>().interfaceStyle == 'modern' &&
-                                    !context.watch<PreferenceNotifier>().highContrast)
-                                ? Colors.transparent
-                                : Theme.of(context).cardColor,
-                          prefixIcon: Padding(
-                            padding: const EdgeInsets.only(left: 12, right: 8),
-                            child: InkWell(
-                              onTap: _isGenerating || _isRecording ? null : _scanPrescription,
-                              child: const ShaderMask(
-                                shaderCallback: _sparklesGradientShader,
-                                child: Icon(
-                                  Icons.auto_awesome_outlined,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                              ),
-                            ),
-                          ),
-                          border: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
+                    filled: !useGlass,
+                    fillColor: useGlass
+                        ? Colors.transparent
+                        : Theme.of(context).cardColor,
+                    prefixIcon: Padding(
+                      padding: const EdgeInsets.only(left: 12, right: 8),
+                      child: InkWell(
+                        onTap: _isGenerating || _isRecording ? null : _scanPrescription,
+                        child: const ShaderMask(
+                          shaderCallback: _sparklesGradientShader,
+                          child: Icon(
+                            Icons.auto_awesome_outlined,
+                            color: Colors.white,
+                            size: 24,
                           ),
                         ),
-                        onSubmitted: (_) => _sendMessage(),
                       ),
+                    ),
+                    border: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
                     ),
                   ),
-                ),
-                ),
+                  onSubmitted: (_) => _sendMessage(),
+                );
+
+                return Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: useGlass
+                              ? (isDark
+                                  ? Theme.of(context).cardColor.withValues(alpha: 0.68)
+                                  : Colors.white.withValues(alpha: 0.82))
+                              : Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(_composerRadius),
+                          border: Border.all(
+                            color: _isRecording
+                                ? AppTheme.errorColor.withValues(alpha: 0.4)
+                                : (useGlass
+                                    ? (isDark
+                                        ? Colors.white.withValues(alpha: 0.12)
+                                        : Colors.black.withValues(alpha: 0.08))
+                                    : AppTheme.borderColor),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isDark
+                                  ? Colors.black.withValues(alpha: 0.25)
+                                  : Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 14,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(_composerRadius),
+                          child: useGlass
+                              ? RepaintBoundary(
+                                  child: BackdropFilter(
+                                    filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                                    child: inputField,
+                                  ),
+                                )
+                              : inputField,
+                        ),
+                      ),
+                    ),
                 const SizedBox(width: 8),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
@@ -2210,6 +2220,8 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                         ),
                 ),
               ],
+            );
+              },
             ),
           ),
         ],
@@ -2228,31 +2240,23 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = authService.currentUser;
 
-    return Drawer(
-      backgroundColor: useGlass ? Colors.transparent : AppTheme.backgroundColor,
-      elevation: useGlass ? 0 : 16,
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: useGlass
-              ? ImageFilter.blur(sigmaX: 25.0, sigmaY: 25.0)
-              : ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: useGlass
-                  ? (isDark
-                      ? AppTheme.backgroundColor.withValues(alpha: 0.75)
-                      : Colors.white.withValues(alpha: 0.82))
-                  : AppTheme.backgroundColor,
-              border: useGlass
-                  ? Border(
-                      right: BorderSide(
-                        color: (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.12 : 0.08),
-                        width: 1.0,
-                      ),
-                    )
-                  : null,
-            ),
-            child: Column(
+    final drawerContent = Container(
+      decoration: BoxDecoration(
+        color: useGlass
+            ? (isDark
+                ? AppTheme.backgroundColor.withValues(alpha: 0.75)
+                : Colors.white.withValues(alpha: 0.82))
+            : AppTheme.backgroundColor,
+        border: useGlass
+            ? Border(
+                right: BorderSide(
+                  color: (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.12 : 0.08),
+                  width: 1.0,
+                ),
+              )
+            : null,
+      ),
+      child: Column(
         children: [
           DrawerHeader(
             decoration: const BoxDecoration(
@@ -2381,9 +2385,21 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
           ),
         ],
       ),
-    ),
-    ),
-    ),
+    );
+
+    return Drawer(
+      backgroundColor: useGlass ? Colors.transparent : AppTheme.backgroundColor,
+      elevation: useGlass ? 0 : 16,
+      child: useGlass
+          ? RepaintBoundary(
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                  child: drawerContent,
+                ),
+              ),
+            )
+          : drawerContent,
     );
   }
 
@@ -2453,7 +2469,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
           children: [
             CircularProgressIndicator(),
             SizedBox(width: 20),
-            Expanded(child: Text('Guardando tratamiento en MediTime...')),
+            Expanded(child: Text('Guardando tratamiento en MedDue...')),
           ],
         ),
       ),
@@ -2493,7 +2509,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         } else if (isCaregiver && effectiveProfile != null) {
           successMsg = '¡Tratamiento de **$name** asignado con éxito a **${effectiveProfile.name}** 🩺! Las alertas de administración están activas.';
         } else {
-          successMsg = '¡Tratamiento de **$name** agregado con éxito a tu cuenta de MediTime! Las alarmas y notificaciones han sido configuradas.';
+          successMsg = '¡Tratamiento de **$name** agregado con éxito a tu cuenta de MedDue! Las alarmas y notificaciones han sido configuradas.';
         }
 
         setState(() {
@@ -2522,16 +2538,17 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final useGlass = context.select<PreferenceNotifier, bool>(
+      (p) => p.interfaceStyle == 'modern' && !p.highContrast,
+    );
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       drawer: _buildHistoryDrawer(context),
-      drawerScrimColor: (context.watch<PreferenceNotifier>().interfaceStyle == 'modern' &&
-              !context.watch<PreferenceNotifier>().highContrast)
+      drawerScrimColor: useGlass
           ? Colors.black.withValues(alpha: 0.35)
           : null,
       appBar: ModernAppBar(
-        useGlass: (context.watch<PreferenceNotifier>().interfaceStyle == 'modern' &&
-            !context.watch<PreferenceNotifier>().highContrast),
+        useGlass: useGlass,
         child: AppBar(
           centerTitle: false,
           elevation: 0,
@@ -2550,10 +2567,15 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                 height: 38,
                 clipBehavior: Clip.antiAlias,
                 decoration: const BoxDecoration(shape: BoxShape.circle),
-                child: Image.asset(
-                  _isBlinking ? _midiBlinkAsset : _midiOpenAsset,
-                  key: ValueKey<bool>(_isBlinking),
-                  fit: BoxFit.cover,
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: _isBlinkingNotifier,
+                  builder: (_, isBlinking, __) {
+                    return Image.asset(
+                      isBlinking ? _midiBlinkAsset : _midiOpenAsset,
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true,
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 10),

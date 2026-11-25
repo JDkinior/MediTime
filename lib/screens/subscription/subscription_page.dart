@@ -154,7 +154,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                                             isPremium
                                                 ? 'Tu suscripción está activa (${subNotifier.subscriptionTier == 'annual' ? 'Plan Anual' : 'Plan Mensual'}).\nDisfrutas de todos los beneficios Pro.'
                                                 : (widget.sourceFeature != null
-                                                    ? 'Para usar ${widget.sourceFeature}, pásate a MediTime Pro por un costo muy económico.'
+                                                    ? 'Para usar ${widget.sourceFeature}, pásate a MedDue Pro por un costo muy económico.'
                                                     : 'Desbloquea herramientas avanzadas diseñadas para tu tranquilidad y la de tu familia.'),
                                             textAlign: TextAlign.center,
                                             style: TextStyle(
@@ -186,7 +186,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                                                 onTap: () => _showBenefitDialog(
                                                   context,
                                                   title: 'Medicamentos y Tratamientos Ilimitados',
-                                                  description: 'En el plan gratuito puedes gestionar hasta 3 tratamientos simultáneos. Con MediTime Pro puedes agregar todos los tratamientos, recetas y recordatorios que necesites sin ningún límite.',
+                                                  description: 'En el plan gratuito puedes gestionar hasta 3 tratamientos simultáneos. Con MedDue Pro puedes agregar todos los tratamientos, recetas y recordatorios que necesites sin ningún límite.',
                                                   iconColor: const Color(0xFF2563EB),
                                                 ),
                                               ),
@@ -354,7 +354,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                 ),
                 SizedBox(width: 7),
                 Text(
-                  'MEDITIME PRO',
+                  'MEDDUE PRO',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
@@ -965,7 +965,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
       if (mounted) {
         scaffoldMessenger.showSnackBar(
           const SnackBar(
-            content: Text('🎉 ¡Bienvenido a MediTime Pro! Todas las funciones están desbloqueadas.'),
+            content: Text('🎉 ¡Bienvenido a MedDue Pro! Todas las funciones están desbloqueadas.'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 4),
           ),

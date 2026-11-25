@@ -103,7 +103,7 @@ abstract class AppLocalizations {
   /// Nombre de la aplicación
   ///
   /// In es, this message translates to:
-  /// **'MediTime'**
+  /// **'MedDue'**
   String get appTitle;
 
   /// No description provided for @commonAccept.
@@ -337,7 +337,7 @@ abstract class AppLocalizations {
   /// No description provided for @drawerChatbot.
   ///
   /// In es, this message translates to:
-  /// **'Chatbot MediTime'**
+  /// **'Chatbot MedDue'**
   String get drawerChatbot;
 
   /// No description provided for @drawerChatbotSubtitle.
@@ -1135,7 +1135,7 @@ abstract class AppLocalizations {
   /// No description provided for @chatBotGreeting.
   ///
   /// In es, this message translates to:
-  /// **'¡Hola! Soy Midi, tu asistente de salud en MediTime.'**
+  /// **'¡Hola! Soy Midi, tu asistente de salud en MedDue.'**
   String get chatBotGreeting;
 
   /// No description provided for @chatBotPlaceholder.
@@ -1657,7 +1657,7 @@ abstract class AppLocalizations {
   /// No description provided for @chatBotWelcome.
   ///
   /// In es, this message translates to:
-  /// **'¡Hola! Soy Midi, tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?'**
+  /// **'¡Hola! Soy Midi, tu asistente virtual de MedDue. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?'**
   String get chatBotWelcome;
 
   /// No description provided for @chatBotAskAbout.
@@ -2425,7 +2425,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpVersionText.
   ///
   /// In es, this message translates to:
-  /// **'MediTime versión {version} (Build {buildNumber}).'**
+  /// **'MedDue versión {version} (Build {buildNumber}).'**
   String helpVersionText(String version, String buildNumber);
 
   /// No description provided for @helpProgramming.

@@ -10,8 +10,8 @@ void main() {
     test('LegalContent defines proper version and non-empty metadata', () {
       expect(LegalContent.version, isNotEmpty);
       expect(LegalContent.lastUpdated, isNotEmpty);
-      expect(LegalContent.supportEmail, equals('soporte@meditime.app'));
-      expect(LegalContent.contactEmail, equals('privacidad@meditime.app'));
+      expect(LegalContent.supportEmail, equals('soporte@meddue.app'));
+      expect(LegalContent.contactEmail, equals('privacidad@meddue.app'));
     });
 
     test('Terms of Service contains 10 rigorous sections including critical medical disclaimer', () {

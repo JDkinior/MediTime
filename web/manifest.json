@@ -1,11 +1,11 @@
 {
-    "name": "MediTime",
-    "short_name": "MediTime",
+    "name": "MedDue",
+    "short_name": "MedDue",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "MediTime - Gestión inteligente y segura de medicamentos, recordatorios y adherencia terapéutica.",
+    "description": "MedDue - Gestión inteligente y segura de medicamentos, recordatorios y adherencia terapéutica.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

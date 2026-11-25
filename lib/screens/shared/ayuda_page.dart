@@ -153,7 +153,7 @@ class AyudaPage extends StatelessWidget {
                           snapshot.hasData) {
                         final info = snapshot.data!;
                         versionText = l10n?.helpVersionText(info.version, info.buildNumber) ??
-                            'MediTime versión ${info.version} (Build ${info.buildNumber}).';
+                            'MedDue versión ${info.version} (Build ${info.buildNumber}).';
                       }
                       return AlertDialog(
                         title: Text(

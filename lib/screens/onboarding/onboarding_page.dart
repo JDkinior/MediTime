@@ -556,7 +556,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             child: Text(
               widget.isReconfiguring
                   ? 'Asistente de Personalización'
-                  : '¡Te damos la bienvenida a MediTime!',
+                  : '¡Te damos la bienvenida a MedDue!',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 24,
@@ -632,7 +632,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Aviso Médico: MediTime es una herramienta de recordatorio y registro. NO es un dispositivo médico ni sustituye la consulta o el criterio de su médico tratante ante urgencias.',
+                      'Aviso Médico: MedDue es una herramienta de recordatorio y registro. NO es un dispositivo médico ni sustituye la consulta o el criterio de su médico tratante ante urgencias.',
                       style: TextStyle(
                         fontSize: 11.5,
                         color: AppTheme.primaryTextColor,
@@ -755,7 +755,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               ),
                             ),
                           ),
-                          const TextSpan(text: ' de Salud de MediTime.'),
+                          const TextSpan(text: ' de Salud de MedDue.'),
                         ],
                       ),
                     ),
@@ -968,7 +968,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           FadeSlideCard(
             delayMs: 0,
             child: Text(
-              '¿Para qué usarás MediTime?',
+              '¿Para qué usarás MedDue?',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 22,
@@ -1229,7 +1229,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           FadeSlideCard(
             delayMs: 140,
             child: Text(
-              'Hemos configurado MediTime a tu medida. Aquí tienes un resumen de tu perfil:',
+              'Hemos configurado MedDue a tu medida. Aquí tienes un resumen de tu perfil:',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
@@ -1441,7 +1441,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ? PrimaryButton(
               text: widget.isReconfiguring
                   ? 'Guardar cambios'
-                  : 'Comenzar a usar MediTime',
+                  : 'Comenzar a usar MedDue',
               isLoading: _isSaving,
               onPressed: _completeOnboarding,
             )

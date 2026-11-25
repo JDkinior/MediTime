@@ -119,7 +119,7 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
                   SettingsCardWrapper(
                     title: 'Estado de Permisos y Batería',
                     subtitle:
-                        'Verifica si el sistema operativo permite que MediTime suene en segundo plano.',
+                        'Verifica si el sistema operativo permite que MedDue suene en segundo plano.',
                     trailingHeader: _buildStatusBadge(),
                     child: _buildLiveDiagnosisContent(
                         primaryTextColor, secondaryTextColor),
@@ -467,13 +467,13 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
       {
         'title': '1. Suspensión y "Doze Mode" de Android',
         'desc':
-            'Cuando la pantalla se apaga, Android suspende procesos en segundo plano. Si MediTime no tiene el permiso "Sin restricciones", las alarmas se silencian hasta que vuelvas a encender la pantalla.',
+            'Cuando la pantalla se apaga, Android suspende procesos en segundo plano. Si MedDue no tiene el permiso "Sin restricciones", las alarmas se silencian hasta que vuelvas a encender la pantalla.',
         'icon': Icons.bedtime_outlined,
       },
       {
         'title': '2. Gestión estricta de memoria (Xiaomi, Samsung, Huawei)',
         'desc':
-            'Las capas de personalización cierran apps de la memoria RAM automáticamente. Para evitarlo, es necesario activar "Inicio Automático" y fijar MediTime con candado en las aplicaciones recientes.',
+            'Las capas de personalización cierran apps de la memoria RAM automáticamente. Para evitarlo, es necesario activar "Inicio Automático" y fijar MedDue con candado en las aplicaciones recientes.',
         'icon': Icons.memory_rounded,
       },
       {
@@ -558,10 +558,10 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
         _buildBrandTile(
           brandName: 'Xiaomi / Redmi / POCO (MIUI & HyperOS)',
           steps: [
-            '1. Toca en "Inicio Automático" arriba y activa MediTime.',
-            '2. En Ajustes > Apps > Administrar apps > MediTime > Ahorro de batería, elige "Sin restricciones".',
+            '1. Toca en "Inicio Automático" arriba y activa MedDue.',
+            '2. En Ajustes > Apps > Administrar apps > MedDue > Ahorro de batería, elige "Sin restricciones".',
             '3. En "Otros permisos", activa "Mostrar en pantalla de bloqueo" y "Ventanas emergentes".',
-            '4. En apps recientes, mantén pulsada la tarjeta de MediTime y toca el candado 🔒.',
+            '4. En apps recientes, mantén pulsada la tarjeta de MedDue y toca el candado 🔒.',
           ],
           primaryTextColor: primaryTextColor,
           secondaryTextColor: secondaryTextColor,
@@ -570,9 +570,9 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
         _buildBrandTile(
           brandName: 'Samsung (One UI)',
           steps: [
-            '1. En "Ahorro de Batería", busca MediTime y selecciona "No restringida".',
+            '1. En "Ahorro de Batería", busca MedDue y selecciona "No restringida".',
             '2. Ve a Ajustes > Cuidado del dispositivo > Batería > Límites de uso en segundo plano.',
-            '3. En "Aplicaciones nunca suspendidas", toca "+" y añade MediTime.',
+            '3. En "Aplicaciones nunca suspendidas", toca "+" y añade MedDue.',
           ],
           primaryTextColor: primaryTextColor,
           secondaryTextColor: secondaryTextColor,
@@ -581,7 +581,7 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
         _buildBrandTile(
           brandName: 'Huawei / Honor (EMUI / Magic UI)',
           steps: [
-            '1. Ve a Ajustes > Batería > Inicio de aplicaciones > MediTime.',
+            '1. Ve a Ajustes > Batería > Inicio de aplicaciones > MedDue.',
             '2. Desactiva "Gestionar automáticamente".',
             '3. Activa las 3 casillas: Inicio automático, Inicio secundario y Ejecutar en 2do plano.',
           ],
@@ -592,7 +592,7 @@ class _GuiaOptimizacionPageState extends State<GuiaOptimizacionPage>
         _buildBrandTile(
           brandName: 'Oppo / Realme / OnePlus (ColorOS / OxygenOS)',
           steps: [
-            '1. Ve a Ajustes > Batería > Más ajustes > Uso de batería de la app > MediTime.',
+            '1. Ve a Ajustes > Batería > Más ajustes > Uso de batería de la app > MedDue.',
             '2. Activa "Permitir actividad en segundo plano" e "Inicio automático".',
             '3. Bloquea la app con candado en Aplicaciones recientes.',
           ],

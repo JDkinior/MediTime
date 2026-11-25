@@ -469,7 +469,7 @@ class _AddEditCaregiverProfilePageState extends State<AddEditCaregiverProfilePag
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'El usuario debe tener una cuenta registrada en MediTime',
+                          'El usuario debe tener una cuenta registrada en MedDue',
                           style: TextStyle(fontSize: 12, color: AppTheme.secondaryTextColor),
                         ),
                       ],

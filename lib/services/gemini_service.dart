@@ -701,7 +701,7 @@ class GeminiService {
         final breed = activeProfile.breed?.trim().isNotEmpty == true ? ', raza ${activeProfile.breed!.trim()}' : '';
         final weight = activeProfile.weight?.trim().isNotEmpty == true ? ', peso ${activeProfile.weight!.trim()}' : '';
 
-        buffer.writeln('Eres Midi, el asistente veterinario especializado de MediTime.');
+        buffer.writeln('Eres Midi, el asistente veterinario especializado de MedDue.');
         buffer.writeln('MODO ACTIVO: 🐾 MODO ANIMALES (VETERINARIO) - VISTA DE MASCOTA INDIVIDUAL.');
         buffer.writeln('Tutor: $userLabel | Mascota seleccionada: $petName ($species$breed$weight).');
         if (activeProfile.allergies?.trim().isNotEmpty == true) {
@@ -724,7 +724,7 @@ class GeminiService {
       } else {
         // Vista General de Animales / Varias Mascotas
         final petProfiles = (allProfiles ?? []).where((p) => p.isAnimal).toList();
-        buffer.writeln('Eres Midi, el asistente veterinario especializado de MediTime.');
+        buffer.writeln('Eres Midi, el asistente veterinario especializado de MedDue.');
         buffer.writeln('MODO ACTIVO: 🐾 MODO ANIMALES (VETERINARIO) - VISTA GENERAL DE MASCOTAS.');
         buffer.writeln('Tutor: $userLabel.');
         buffer.writeln('Estás en la VISTA GENERAL. El tutor tiene ${petProfiles.length} mascota(s) registrada(s):');
@@ -789,7 +789,7 @@ class GeminiService {
         final room = activeProfile.roomNumber?.trim().isNotEmpty == true ? ', Hab/Cama ${activeProfile.roomNumber!.trim()}' : '';
         final cat = activeProfile.category?.trim().isNotEmpty == true ? ', Área ${activeProfile.category!.trim()}' : '';
 
-        buffer.writeln('Eres Midi, el asistente de cuidado especializado de MediTime.');
+        buffer.writeln('Eres Midi, el asistente de cuidado especializado de MedDue.');
         buffer.writeln('MODO ACTIVO: ${isClinico ? "🩺 MODO CUIDADOR CLÍNICO" : "👨‍👩‍👧 MODO CUIDADOR FAMILIAR"} (VISTA DE PACIENTE INDIVIDUAL).');
         buffer.writeln('Cuidador responsable: $userLabel.');
         buffer.writeln('PACIENTE SELECCIONADO EN PANTALLA: $patientName ($rel$room$cat).');
@@ -806,7 +806,7 @@ class GeminiService {
       } else {
         // Vista General de Cuidador (Todos los Pacientes)
         final patientProfiles = (allProfiles ?? []).where((p) => !p.isAnimal).toList();
-        buffer.writeln('Eres Midi, el asistente de cuidado especializado de MediTime.');
+        buffer.writeln('Eres Midi, el asistente de cuidado especializado de MedDue.');
         buffer.writeln('MODO ACTIVO: ${isClinico ? "🩺 MODO CUIDADOR CLÍNICO" : "👨‍👩‍👧 MODO CUIDADOR FAMILIAR"} (VISTA GENERAL DE PACIENTES).');
         buffer.writeln('Cuidador responsable: $userLabel.');
         buffer.writeln('Estás en la VISTA GENERAL. Gestionas a ${patientProfiles.length} paciente(s) a tu cargo:');
@@ -839,7 +839,7 @@ class GeminiService {
       buffer.writeln('   • Evalúa siempre interacciones entre medicamentos concurrentes del paciente (ej: Warfarina + Cefalexina/antibióticos con riesgo de INR/hemorragia, o anticoagulantes + AINEs).');
       buffer.writeln('   • Prioriza esta alerta en la tarjeta destacada (> ⚠️ **Atención:**) indicando el mecanismo, riesgo y la acción médica requerida.');
     } else {
-      buffer.writeln('Eres Midi, el asistente virtual y organizador de salud personal de MediTime.');
+      buffer.writeln('Eres Midi, el asistente virtual y organizador de salud personal de MedDue.');
       buffer.writeln('MODO ACTIVO: 👤 MODO PERSONAL.');
       buffer.writeln('Usuario: $userLabel.');
       buffer.writeln();
@@ -2106,7 +2106,7 @@ class GeminiService {
             },
             {
               'title': '🩺 Clinical Safety',
-              'content': 'MediTime assists you in following the 5 rights and safe medication administration.',
+              'content': 'MedDue assists you in following the 5 rights and safe medication administration.',
               'isAi': 'false',
             },
           ];
@@ -2119,7 +2119,7 @@ class GeminiService {
             },
             {
               'title': '🩺 Segurança Clínica',
-              'content': 'O MediTime auxilia no cumprimento dos 5 certos e na administração segura.',
+              'content': 'O MedDue auxilia no cumprimento dos 5 certos e na administração segura.',
               'isAi': 'false',
             },
           ];
@@ -2132,7 +2132,7 @@ class GeminiService {
           },
           {
             'title': '🩺 Seguridad Clínica',
-            'content': 'MediTime te asiste en el cumplimiento de los 5 correctos y la administración segura.',
+            'content': 'MedDue te asiste en el cumplimiento de los 5 correctos y la administración segura.',
             'isAi': 'false',
           },
         ];

@@ -16,6 +16,7 @@ class MidiBlinkingIcon extends StatefulWidget {
 
 class _MidiBlinkingIconState extends State<MidiBlinkingIcon> {
   bool _isBlinking = false;
+  bool _precached = false;
   Timer? _blinkTimer;
   final Random _random = Random();
 
@@ -28,8 +29,11 @@ class _MidiBlinkingIconState extends State<MidiBlinkingIcon> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    precacheImage(const AssetImage('assets/chatbot/midi_blink.png'), context);
-    precacheImage(const AssetImage('assets/chatbot/midi_open.png'), context);
+    if (!_precached) {
+      _precached = true;
+      precacheImage(const AssetImage('assets/chatbot/midi_blink.png'), context);
+      precacheImage(const AssetImage('assets/chatbot/midi_open.png'), context);
+    }
   }
 
   @override
@@ -58,6 +62,7 @@ class _MidiBlinkingIconState extends State<MidiBlinkingIcon> {
       width: widget.size,
       height: widget.size,
       fit: BoxFit.contain,
+      gaplessPlayback: true,
     );
   }
 }

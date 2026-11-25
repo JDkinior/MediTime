@@ -86,7 +86,7 @@ class _LocalizadorFarmaciasPageState extends State<LocalizadorFarmaciasPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
                 Text(
-                  'MediTime solicita acceso a la ubicación de tu dispositivo mientras usas el Localizador de Farmacias para:',
+                  'MedDue solicita acceso a la ubicación de tu dispositivo mientras usas el Localizador de Farmacias para:',
                   style: TextStyle(fontSize: 13.5, height: 1.35),
                 ),
                 SizedBox(height: 10),

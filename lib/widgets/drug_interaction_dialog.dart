@@ -38,20 +38,7 @@ class DrugInteractionDialog extends StatelessWidget {
     final useGlass = isModern && !highContrast;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(28),
-      ),
-      elevation: useGlass ? 0 : 8,
-      backgroundColor: Colors.transparent,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: useGlass
-              ? ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0)
-              : ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
-          child: Container(
+    final dialogContent = Container(
             decoration: BoxDecoration(
               color: useGlass
                   ? (isDark
@@ -199,9 +186,26 @@ class DrugInteractionDialog extends StatelessWidget {
           ),
         ),
       ),
-    ),
-  ),
-),
+    );
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(28),
+      ),
+      elevation: useGlass ? 0 : 8,
+      backgroundColor: Colors.transparent,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: useGlass
+            ? RepaintBoundary(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 14.0, sigmaY: 14.0),
+                  child: dialogContent,
+                ),
+              )
+            : dialogContent,
+      ),
     );
   }
 }

@@ -103,7 +103,7 @@ Future<void> homeWidgetBackgroundCallback(Uri? uri) async {
         await NotificationService.showSimpleNotification(
           id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
           title: '¡Dosis marcada como tomada!',
-          body: 'Se ha registrado la toma desde el Widget de MediTime.',
+          body: 'Se ha registrado la toma desde el Widget de MedDue.',
         );
       } else if (uriStr.contains('postpone_dose')) {
         await firestoreService.updateDoseStatus(
@@ -196,7 +196,7 @@ class WidgetService {
       await HomeWidget.saveWidgetData<String>('next_dose_time', '--:--');
       await HomeWidget.saveWidgetData<String>(
         'next_dose_detail',
-        'Inicia sesión en MediTime para ver tus recordatorios.',
+        'Inicia sesión en MedDue para ver tus recordatorios.',
       );
       await HomeWidget.saveWidgetData<String>('next_dose_doc_id', '');
       await HomeWidget.saveWidgetData<String>('next_dose_iso_time', '');

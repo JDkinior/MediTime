@@ -338,7 +338,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
             ],
           ),
           content: const Text(
-            'Esta acción es definitiva e IRREVERSIBLE.\n\nSe eliminarán permanentemente de la base de datos de MediTime:\n• Tu cuenta y credenciales de acceso\n• Todos tus tratamientos y recordatorios\n• Tus perfiles de cuidadores o mascotas gestionados\n• Tu historial médico y de consultas con Midi\n\n¿Estás seguro de que deseas continuar?',
+            'Esta acción es definitiva e IRREVERSIBLE.\n\nSe eliminarán permanentemente de la base de datos de MedDue:\n• Tu cuenta y credenciales de acceso\n• Todos tus tratamientos y recordatorios\n• Tus perfiles de cuidadores o mascotas gestionados\n• Tu historial médico y de consultas con Midi\n\n¿Estás seguro de que deseas continuar?',
             style: TextStyle(fontSize: 13.5, height: 1.4),
           ),
           actions: [
@@ -391,7 +391,7 @@ class _DatosPrivacidadPageState extends State<DatosPrivacidadPage> {
                   SettingsSwitchTileCard(
                     title: 'Protección contra capturas',
                     description:
-                        'Bloquea capturas de pantalla y oculta la vista previa de MediTime al cambiar entre aplicaciones.',
+                        'Bloquea capturas de pantalla y oculta la vista previa de MedDue al cambiar entre aplicaciones.',
                     value: pref.secureScreen,
                     icon: Icons.security_rounded,
                     activeColor: AppTheme.primaryColor,

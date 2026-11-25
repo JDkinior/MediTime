@@ -53,6 +53,8 @@ class _RecetaPageState extends State<RecetaPage>
   List<Map<String, String>> _aiTips = [];
   bool _isLoadingAiTips = false;
   String _lastTipsCacheKey = '';
+  Stream<List<Tratamiento>>? _medicamentosStream;
+  String? _lastStreamKey;
 
   Future<void> _fetchAiTipsIfNeeded({
     required List<Tratamiento> treatments,
@@ -1145,12 +1147,18 @@ class _RecetaPageState extends State<RecetaPage>
             ? (rawDate.substring(0, 1).toUpperCase() + rawDate.substring(1))
             : rawDate;
 
+    final streamKey = '${user.uid}_${activeProfile?.id ?? 'personal'}';
+    if (_medicamentosStream == null || _lastStreamKey != streamKey) {
+      _lastStreamKey = streamKey;
+      _medicamentosStream = firestoreService.getMedicamentosStream(user.uid, activeProfile);
+    }
+
     final content = StreamBuilder<List<Tratamiento>>(
         initialData: firestoreService.getCachedMedicamentos(
           user.uid,
           activeProfile,
         ),
-        stream: firestoreService.getMedicamentosStream(user.uid, activeProfile),
+        stream: _medicamentosStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting &&
               !snapshot.hasData) {
@@ -1179,7 +1187,11 @@ class _RecetaPageState extends State<RecetaPage>
                     activeProfile.linkedUid!,
                   );
                 }
-                if (mounted) setState(() {});
+                if (mounted) {
+                  setState(() {
+                    _lastStreamKey = null;
+                  });
+                }
               },
               child: const SizedBox.shrink(),
             );

@@ -31,7 +31,14 @@ class CalendarioPage extends StatefulWidget {
   final GlobalKey? calendarKey;
   final GlobalKey? calendarViewKey;
 
-  const CalendarioPage({super.key, this.calendarKey, this.calendarViewKey});
+  final bool isActive;
+
+  const CalendarioPage({
+    super.key,
+    this.calendarKey,
+    this.calendarViewKey,
+    this.isActive = true,
+  });
 
   @override
   State<CalendarioPage> createState() => _CalendarioPageState();
@@ -183,6 +190,7 @@ class _CalendarioPageState extends State<CalendarioPage>
             userId: user.uid,
             calendarKey: widget.calendarKey,
             calendarViewKey: widget.calendarViewKey,
+            isActive: widget.isActive,
           );
         },
       ),
@@ -195,10 +203,12 @@ class _CalendarioContenido extends StatefulWidget {
   final String userId;
   final GlobalKey? calendarKey;
   final GlobalKey? calendarViewKey;
+  final bool isActive;
 
   const _CalendarioContenido({
     required this.tratamientosItems,
     required this.userId,
+    required this.isActive,
     this.calendarKey,
     this.calendarViewKey,
   });
@@ -208,8 +218,15 @@ class _CalendarioContenido extends StatefulWidget {
 }
 
 class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleTickerProviderStateMixin {
-  static const double _kHeightWeek = 132.0;
-  static const double _kHeightTwoWeeks = 184.0;
+  static const double _dayShadowPadding = 8.0;
+  static const double _calendarHeaderHeight = 80.0;
+  static const double _calendarRowHeight = 52.0;
+  static const _calendarStyle = CalendarStyle(
+    outsideDaysVisible: false,
+    tablePadding: EdgeInsets.only(bottom: _dayShadowPadding),
+  );
+  static const double _kHeightWeek = _calendarHeaderHeight + _calendarRowHeight + _dayShadowPadding;
+  static const double _kHeightTwoWeeks = _calendarHeaderHeight + 2 * _calendarRowHeight + _dayShadowPadding;
 
   CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _focusedDay = DateTime.now();
@@ -220,8 +237,11 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
   Animation<double>? _snapAnimation;
   double? _interactiveHeight;
   double _dragStartHeight = _kHeightWeek;
+  double _calendarDragDy = 0;
   bool _isDraggingCalendar = false;
   CalendarFormat? _targetFormat;
+  final _calendarPageStorage = PageStorageBucket();
+  int _selectionRevision = 0;
 
   final Map<DateTime, Map<String, List<Map<String, dynamic>>>> _dayCache = {};
   final Set<DateTime> _populatedMonths = {};
@@ -294,7 +314,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
 
   double _getMonthHeight(DateTime focusedDay) {
     final rowCount = _getMonthRowCount(focusedDay);
-    return 80.0 + rowCount * 52.0;
+    return _calendarHeaderHeight + rowCount * _calendarRowHeight + _dayShadowPadding;
   }
 
   double _getHeightForFormat(CalendarFormat format) {
@@ -321,22 +341,27 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
     return DateTime.utc(day.year, day.month, day.day).subtract(Duration(days: daysBefore));
   }
 
-  bool _isDayOnCurrentPage(DateTime day) {
-    final firstDay = DateTime.utc(2022, 1, 1);
-    final cleanDay = DateTime.utc(day.year, day.month, day.day);
-    switch (_calendarFormat) {
-      case CalendarFormat.month:
-        return day.year == _focusedDay.year && day.month == _focusedDay.month;
-      case CalendarFormat.twoWeeks:
-        final firstWeekDay = _firstDayOfWeek(firstDay);
-        final pageDay = cleanDay.difference(firstWeekDay).inDays ~/ 14;
-        final pageFocused = _focusedDay.difference(firstWeekDay).inDays ~/ 14;
-        return pageDay == pageFocused;
-      case CalendarFormat.week:
-        final firstWeekDay = _firstDayOfWeek(firstDay);
-        final pageDay = cleanDay.difference(firstWeekDay).inDays ~/ 7;
-        final pageFocused = _focusedDay.difference(firstWeekDay).inDays ~/ 7;
-        return pageDay == pageFocused;
+  DateTime _firstDayOfTwoWeeks(DateTime day) {
+    final weekStart = _firstDayOfWeek(day);
+    final firstWeek = _firstDayOfWeek(DateTime.utc(2022, 1, 1));
+    final weekIndex = weekStart.difference(firstWeek).inDays ~/ 7;
+    return weekStart.subtract(Duration(days: (weekIndex % 2) * 7));
+  }
+
+  bool _isDayOnCurrentPage(DateTime day, CalendarFormat format) {
+    return switch (format) {
+      CalendarFormat.month =>
+        day.year == _focusedDay.year && day.month == _focusedDay.month,
+      CalendarFormat.twoWeeks =>
+        _firstDayOfTwoWeeks(day) == _firstDayOfTwoWeeks(_focusedDay),
+      CalendarFormat.week => _firstDayOfWeek(day) == _firstDayOfWeek(_focusedDay),
+    };
+  }
+
+  void _anchorResizeToSelectedDay() {
+    final selectedDay = _selectedDay;
+    if (selectedDay != null && _isDayOnCurrentPage(selectedDay, _calendarFormat)) {
+      _focusedDay = selectedDay;
     }
   }
 
@@ -351,18 +376,21 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
 
   void _handleDragStart() {
     _snapController.stop();
+    _calendarDragDy = 0;
     setState(() {
+      _anchorResizeToSelectedDay();
       _isDraggingCalendar = true;
       _dragStartHeight = _interactiveHeight ?? _getHeightForFormat(_calendarFormat);
       _interactiveHeight = _dragStartHeight;
     });
   }
 
-  void _handleDragUpdate(double totalDy) {
+  void _handleDragUpdate(DragUpdateDetails details) {
+    _calendarDragDy += details.delta.dy;
     final minH = _kHeightWeek;
     final maxH = _getMonthHeight(_focusedDay);
     setState(() {
-      _interactiveHeight = (_dragStartHeight + totalDy).clamp(minH, maxH);
+      _interactiveHeight = (_dragStartHeight + _calendarDragDy).clamp(minH, maxH);
     });
   }
 
@@ -418,7 +446,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
 
   void _handleTap() {
     _snapController.stop();
-    final currentH = _getHeightForFormat(_calendarFormat);
+    final currentH = _interactiveHeight ?? _getHeightForFormat(_calendarFormat);
     final CalendarFormat target;
     final double targetH;
 
@@ -434,7 +462,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
   }
 
   void _animateToHeightAndFormat(double startH, double endH, CalendarFormat target) {
-    _syncFocusedDayForFormat(target);
+    _anchorResizeToSelectedDay();
     _targetFormat = target;
     _snapAnimation = Tween<double>(begin: startH, end: endH).animate(
       CurvedAnimation(parent: _snapController, curve: Curves.easeOutCubic),
@@ -472,6 +500,18 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
   @override
   void didUpdateWidget(covariant _CalendarioContenido oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isActive && widget.isActive) {
+      _snapController.stop();
+      _calendarFormat = _targetFormat ?? _calendarFormat;
+      _targetFormat = null;
+      _interactiveHeight = null;
+      _isDraggingCalendar = false;
+      final selectedDay = _selectedDay ?? DateTime.now();
+      _focusedDay = selectedDay;
+      _selectedDay = selectedDay;
+      _selectionRevision++;
+      _populateCacheForMonth(selectedDay);
+    }
     if (oldWidget.tratamientosItems != widget.tratamientosItems) {
       _dayCache.clear();
       _populatedMonths.clear();
@@ -598,10 +638,6 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
         }
       }
     });
-
-    if (mounted) {
-      setState(() {});
-    }
   }
 
   Map<String, List<Map<String, dynamic>>> _getGroupedDosesForDay(DateTime day) {
@@ -1462,34 +1498,30 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
                         ? Border.all(color: AppTheme.borderColor)
                         : null,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_isDraggingCalendar || _snapController.isAnimating)
-                    ClipRect(
-                      child: SizedBox(
-                        height: _interactiveHeight ?? _getHeightForFormat(_calendarFormat),
-                        child: OverflowBox(
-                          alignment: Alignment.topCenter,
-                          minHeight: 0,
-                          maxHeight: _getMonthHeight(_focusedDay),
-                          child: _buildCalendar(),
-                        ),
-                      ),
-                    )
-                  else
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onVerticalDragStart: (_) => _handleDragStart(),
+                onVerticalDragUpdate: _handleDragUpdate,
+                onVerticalDragEnd: (details) =>
+                    _handleDragEnd(details.primaryVelocity ?? 0),
+                onVerticalDragCancel: () {
+                  if (_isDraggingCalendar && !_snapController.isAnimating) {
+                    _handleDragCancel();
+                  }
+                },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     _buildCalendar(),
-                  CalendarExpandHandle(
-                    calendarFormat: _calendarFormat,
-                    onFormatChanged: _updateCalendarFormat,
-                    isDragging: _isDraggingCalendar,
-                    onDragStart: _handleDragStart,
-                    onDragUpdate: (totalDy) => _handleDragUpdate(totalDy),
-                    onDragEnd: (velocity) => _handleDragEnd(velocity),
-                    onDragCancel: _handleDragCancel,
-                    onTap: _handleTap,
-                  ),
-                ],
+                    CalendarExpandHandle(
+                      calendarFormat: _calendarFormat,
+                      onFormatChanged: _updateCalendarFormat,
+                      isDragging: _isDraggingCalendar,
+                      enableVerticalDrag: false,
+                      onTap: _handleTap,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1579,12 +1611,17 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
               child: Builder(
                 builder: (context) {
                   if (flatDoses.isEmpty) {
-                    return EstadoVista(
-                      state: ViewState.empty,
-                      emptyMessage:
-                          l10n?.calendarNoEvents ??
-                          'No hay dosis programadas para este día.',
-                      child: const SizedBox.shrink(),
+                    return Center(
+                      child: SingleChildScrollView(
+                        primary: false,
+                        child: EstadoVista(
+                          state: ViewState.empty,
+                          emptyMessage:
+                              l10n?.calendarNoEvents ??
+                              'No hay dosis programadas para este día.',
+                          child: const SizedBox.shrink(),
+                        ),
+                      ),
                     );
                   }
 
@@ -1592,6 +1629,7 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
                       context.watch<PreferenceNotifier>().interfaceStyle ==
                       'modern';
                   return ListView.builder(
+                    key: const PageStorageKey('calendar-day-doses'),
                     padding: EdgeInsets.only(
                       left: 20.0,
                       right: 20.0,
@@ -1620,42 +1658,149 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
   }
 
   Widget _buildCalendar() {
-    final isInteractive = _isDraggingCalendar || _snapController.isAnimating;
     final langCode = Localizations.localeOf(context).languageCode;
+    final builders = CalendarBuilders<Map<String, dynamic>>(
+      markerBuilder: (context, day, events) => const SizedBox.shrink(),
+      defaultBuilder: (context, day, focusedDay) {
+        final dosesForDay = _getGroupedDosesForDay(day);
+        if (dosesForDay.isEmpty) return null;
+        final dayColor = _determineDayColor(dosesForDay);
+        final isHighContrast = context.watch<PreferenceNotifier>().highContrast;
+        return AspectRatio(
+          aspectRatio: 1.0,
+          child: Container(
+            margin: const EdgeInsets.all(5.0),
+            decoration: BoxDecoration(
+              color: dayColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12.0),
+              border: isHighContrast
+                  ? Border.all(color: dayColor, width: 1.5)
+                  : null,
+            ),
+            child: Center(
+              child: Text(
+                '${day.day}',
+                style: TextStyle(
+                  color: dayColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      selectedBuilder: (context, day, focusedDay) {
+        return AspectRatio(
+          aspectRatio: 1.0,
+          child: Container(
+            margin: const EdgeInsets.all(5.0),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor,
+              borderRadius: BorderRadius.circular(12.0),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                '${day.day}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      todayBuilder: (context, day, focusedDay) {
+        final dosesForDay = _getGroupedDosesForDay(day);
+        final dayColor = dosesForDay.isNotEmpty
+            ? _determineDayColor(dosesForDay)
+            : AppTheme.primaryColor;
+        return AspectRatio(
+          aspectRatio: 1.0,
+          child: Container(
+            margin: const EdgeInsets.all(5.0),
+            decoration: BoxDecoration(
+              color: dosesForDay.isNotEmpty
+                  ? dayColor.withValues(alpha: 0.15)
+                  : null,
+              borderRadius: BorderRadius.circular(12.0),
+              border: Border.all(
+                color: dosesForDay.isNotEmpty
+                    ? dayColor.withValues(alpha: 0.5)
+                    : AppTheme.primaryColor,
+                width: 1.5,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                '${day.day}',
+                style: TextStyle(
+                  color: dayColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    final interactiveHeight = _interactiveHeight;
+    final isPreview = interactiveHeight != null;
+    final format = _calendarFormat;
+    final selectionRevision = _selectionRevision;
     final calendar = TableCalendar<Map<String, dynamic>>(
-      locale: langCode == 'en' ? 'en_US' : 'es_ES',
+      key: ValueKey((isPreview, format, selectionRevision)),
+      locale: langCode == 'en' ? 'en_US' : (langCode == 'pt' ? 'pt_BR' : 'es_ES'),
       firstDay: DateTime.utc(2022, 1, 1),
       lastDay: DateTime.utc(2030, 12, 31),
       focusedDay: _focusedDay,
       selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-      calendarFormat: isInteractive ? CalendarFormat.month : _calendarFormat,
+      calendarFormat: format,
+      rowHeight: _calendarRowHeight,
       availableCalendarFormats: const {
         CalendarFormat.month: 'Month',
         CalendarFormat.twoWeeks: '2 weeks',
         CalendarFormat.week: 'Week',
       },
-      availableGestures: AvailableGestures.horizontalSwipe,
+      availableGestures:
+          isPreview ? AvailableGestures.none : AvailableGestures.horizontalSwipe,
       pageAnimationEnabled: false,
       formatAnimationDuration: Duration.zero,
       formatAnimationCurve: Curves.easeInOutCubic,
       eventLoader:
           (day) => _getGroupedDosesForDay(day).values.expand((d) => d).toList(),
-      onDaySelected: (selectedDay, focusedDay) {
-        if (!isSameDay(_selectedDay, selectedDay)) {
-          final onCurrentPage = _isDayOnCurrentPage(selectedDay);
-          setState(() {
-            _selectedDay = selectedDay;
-            if (!onCurrentPage) {
-              _focusedDay = selectedDay;
-            }
-          });
-          _populateCacheForMonth(selectedDay);
-        }
+      onDaySelected: (selectedDay, _) {
+        final changesMonth = !_isDayOnCurrentPage(selectedDay, CalendarFormat.month);
+        if (!changesMonth && isSameDay(_selectedDay, selectedDay)) return;
+
+        final movesFocus = changesMonth ||
+            !_isDayOnCurrentPage(selectedDay, _calendarFormat);
+        setState(() {
+          _selectedDay = selectedDay;
+          if (movesFocus) _focusedDay = selectedDay;
+        });
+        _populateCacheForMonth(selectedDay);
       },
       onFormatChanged: (format) {
         _updateCalendarFormat(format);
       },
       onPageChanged: (focusedDay) {
+        if (isPreview ||
+            _interactiveHeight != null ||
+            format != _calendarFormat ||
+            selectionRevision != _selectionRevision) {
+          return;
+        }
         setState(() {
           if (_calendarFormat == CalendarFormat.month &&
               _selectedDay != null &&
@@ -1668,102 +1813,8 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
         });
         _populateCacheForMonth(focusedDay);
       },
-      calendarBuilders: CalendarBuilders(
-        markerBuilder: (context, day, events) => const SizedBox.shrink(),
-        defaultBuilder: (context, day, focusedDay) {
-          final dosesForDay = _getGroupedDosesForDay(day);
-          if (dosesForDay.isEmpty) return null;
-          final dayColor = _determineDayColor(dosesForDay);
-          final isHighContrast = context.watch<PreferenceNotifier>().highContrast;
-          return AspectRatio(
-            aspectRatio: 1.0,
-            child: Container(
-              margin: const EdgeInsets.all(5.0),
-              decoration: BoxDecoration(
-                color: dayColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12.0),
-                border: isHighContrast
-                    ? Border.all(color: dayColor, width: 1.5)
-                    : null,
-              ),
-              child: Center(
-                child: Text(
-                  '${day.day}',
-                  style: TextStyle(
-                    color: dayColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-        selectedBuilder: (context, day, focusedDay) {
-          return AspectRatio(
-            aspectRatio: 1.0,
-            child: Container(
-              margin: const EdgeInsets.all(5.0),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor,
-                borderRadius: BorderRadius.circular(12.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  '${day.day}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-        todayBuilder: (context, day, focusedDay) {
-          final dosesForDay = _getGroupedDosesForDay(day);
-          final dayColor = dosesForDay.isNotEmpty
-              ? _determineDayColor(dosesForDay)
-              : AppTheme.primaryColor;
-          return AspectRatio(
-            aspectRatio: 1.0,
-            child: Container(
-              margin: const EdgeInsets.all(5.0),
-              decoration: BoxDecoration(
-                color: dosesForDay.isNotEmpty
-                    ? dayColor.withValues(alpha: 0.15)
-                    : null,
-                borderRadius: BorderRadius.circular(12.0),
-                border: Border.all(
-                  color: dosesForDay.isNotEmpty
-                      ? dayColor.withValues(alpha: 0.5)
-                      : AppTheme.primaryColor,
-                  width: 1.5,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  '${day.day}',
-                  style: TextStyle(
-                    color: dayColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-      calendarStyle: const CalendarStyle(outsideDaysVisible: false),
+      calendarBuilders: builders,
+      calendarStyle: _calendarStyle,
       headerStyle: HeaderStyle(
         titleCentered: true,
         formatButtonVisible: false,
@@ -1774,6 +1825,16 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
         ),
       ),
     );
+
+    // On a format change, TableCalendar must start from focusedDay, not
+    // restore a page index from a different format or the dose list.
+    final calendarWithLocalStorage = PageStorage(
+      bucket: _calendarPageStorage,
+      child: calendar,
+    );
+    final content = interactiveHeight == null
+        ? calendarWithLocalStorage
+        : _buildCalendarPreview(calendarWithLocalStorage, builders, interactiveHeight);
 
     final keyToUse = widget.calendarViewKey ?? widget.calendarKey;
     if (keyToUse != null) {
@@ -1796,10 +1857,119 @@ class _CalendarioContenidoState extends State<_CalendarioContenido> with SingleT
           borderRadius: BorderRadius.circular(20),
         ),
         targetPadding: const EdgeInsets.all(4),
-        child: calendar,
+        child: content,
       );
     }
-    return calendar;
+    return content;
+  }
+
+  Widget _buildCalendarPreview(
+    Widget calendar,
+    CalendarBuilders<Map<String, dynamic>> builders,
+    double height,
+  ) {
+    final monthStart = _firstDayOfWeek(DateTime.utc(_focusedDay.year, _focusedDay.month));
+    final weekStart = _firstDayOfWeek(_focusedDay);
+    final twoWeekStart = _firstDayOfTwoWeeks(_focusedDay);
+    final firstRow = monthStart.isBefore(twoWeekStart) ? monthStart : twoWeekStart;
+    final monthRows = _getMonthRowCount(_focusedDay);
+    final monthHeight = _getMonthHeight(_focusedDay);
+
+    double rowOf(DateTime day) => day.difference(firstRow).inDays / 7;
+    final firstVisibleRow = height <= _kHeightTwoWeeks
+        ? rowOf(weekStart) + (rowOf(twoWeekStart) - rowOf(weekStart)) *
+            ((height - _kHeightWeek) / _calendarRowHeight).clamp(0.0, 1.0)
+        : rowOf(twoWeekStart) + (rowOf(monthStart) - rowOf(twoWeekStart)) *
+            ((height - _kHeightTwoWeeks) / (monthHeight - _kHeightTwoWeeks)).clamp(0.0, 1.0);
+
+    final lastMonthRow = rowOf(monthStart).toInt() + monthRows;
+    final lastBiweeklyRow = rowOf(twoWeekStart).toInt() + 2;
+    final rowCount = lastMonthRow > lastBiweeklyRow ? lastMonthRow : lastBiweeklyRow;
+    final datesHeight = height - _calendarHeaderHeight;
+    final rowViewportHeight = datesHeight - _dayShadowPadding;
+    final rowOffset = firstVisibleRow * _calendarRowHeight;
+    final today = DateTime.now();
+    final outsideDayOpacity =
+        (1 - (height - _kHeightTwoWeeks) / (monthHeight - _kHeightTwoWeeks))
+            .clamp(0.0, 1.0);
+
+    return IgnorePointer(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipRect(
+            child: SizedBox(
+              height: _calendarHeaderHeight,
+              child: OverflowBox(
+                alignment: Alignment.topCenter,
+                minHeight: 0,
+                maxHeight: monthHeight,
+                child: calendar,
+              ),
+            ),
+          ),
+          ClipRect(
+            child: SizedBox(
+              height: datesHeight,
+              child: OverflowBox(
+                alignment: Alignment.topCenter,
+                minHeight: 0,
+                maxHeight: rowCount * _calendarRowHeight + _dayShadowPadding,
+                child: Transform.translate(
+                  offset: Offset(0, -rowOffset),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(rowCount, (row) {
+                      final rowTop = row * _calendarRowHeight - rowOffset;
+                      final visibleHeight = (rowTop + _calendarRowHeight)
+                              .clamp(0.0, rowViewportHeight) -
+                          rowTop.clamp(0.0, rowViewportHeight);
+                      final opacity =
+                          ((visibleHeight / _calendarRowHeight - 0.6) / 0.4)
+                              .clamp(0.0, 1.0);
+                      return Opacity(
+                        opacity: opacity,
+                        child: SizedBox(
+                          height: _calendarRowHeight,
+                          child: Row(
+                            children: List.generate(7, (column) {
+                              final day = firstRow.add(Duration(days: row * 7 + column));
+                              final isOutside = day.month != _focusedDay.month;
+                              final isWeekend = day.weekday >= DateTime.saturday;
+                              final dayBuilder = isSameDay(_selectedDay, day)
+                                  ? builders.selectedBuilder
+                                  : isSameDay(today, day)
+                                      ? builders.todayBuilder
+                                      : isOutside
+                                          ? builders.outsideBuilder
+                                          : builders.defaultBuilder;
+                              final textStyle = isOutside
+                                  ? _calendarStyle.outsideTextStyle
+                                  : isWeekend
+                                      ? _calendarStyle.weekendTextStyle
+                                      : _calendarStyle.defaultTextStyle;
+                              final cell = Center(
+                                child: dayBuilder?.call(context, day, _focusedDay) ??
+                                    Text('${day.day}', style: textStyle),
+                              );
+                              return Expanded(
+                                child: isOutside
+                                    ? Opacity(opacity: outsideDayOpacity, child: cell)
+                                    : cell,
+                              );
+                            }),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildTimelineRow(

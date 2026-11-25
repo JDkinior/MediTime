@@ -9,7 +9,7 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
-  String get appTitle => 'MediTime';
+  String get appTitle => 'MedDue';
 
   @override
   String get commonAccept => 'Aceptar';
@@ -126,7 +126,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get drawerTutorialSubtitle => 'Guías y consejos de uso';
 
   @override
-  String get drawerChatbot => 'Chatbot MediTime';
+  String get drawerChatbot => 'Chatbot MedDue';
 
   @override
   String get drawerChatbotSubtitle => 'Asistente inteligente';
@@ -562,7 +562,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chatBotGreeting =>
-      '¡Hola! Soy Midi, tu asistente de salud en MediTime.';
+      '¡Hola! Soy Midi, tu asistente de salud en MedDue.';
 
   @override
   String get chatBotPlaceholder =>
@@ -872,7 +872,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chatBotWelcome =>
-      '¡Hola! Soy Midi, tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?';
+      '¡Hola! Soy Midi, tu asistente virtual de MedDue. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?';
 
   @override
   String get chatBotAskAbout => 'Puedes preguntarme sobre:';
@@ -1294,7 +1294,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String helpVersionText(String version, String buildNumber) {
-    return 'MediTime versión $version (Build $buildNumber).';
+    return 'MedDue versión $version (Build $buildNumber).';
   }
 
   @override

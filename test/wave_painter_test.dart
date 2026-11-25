@@ -39,5 +39,13 @@ void main() {
 
       expect(painter1.shouldRepaint(painter2), isFalse);
     });
+
+    test('handles Size.zero without throwing or producing NaN', () {
+      final painter = WavePainter(animationValue: 0.5);
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+
+      expect(() => painter.paint(canvas, Size.zero), returnsNormally);
+    });
   });
 }

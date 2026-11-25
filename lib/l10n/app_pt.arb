@@ -1,6 +1,6 @@
 {
   "@@locale": "pt",
-  "appTitle": "MediTime",
+  "appTitle": "MedDue",
   "@appTitle": {
     "description": "Nombre de la aplicación"
   },
@@ -228,7 +228,7 @@
   "complianceHistoricalSubtitle": "Porcentagem de tomas nos últimos 6 meses",
   "complianceChartTitle": "Gráfico de cumprimento",
   "progressByPatient": "Progresso por paciente",
-  "chatBotGreeting": "Olá! Sou o Midi, seu assistente de saúde no MediTime.",
+  "chatBotGreeting": "Olá! Sou o Midi, seu assistente de saúde no MedDue.",
   "chatBotPlaceholder": "Escreva uma mensagem ou faça uma pergunta médica...",
   "chatBotListening": "Ouvindo...",
   "chatBotClearHistory": "Limpar conversa",
@@ -436,7 +436,7 @@
   "addPrescriptionSavedSuccess": "Tratamento salvo com sucesso",
   "addPrescriptionUpdatedSuccess": "Tratamento atualizado com sucesso",
   "addPrescriptionSaveError": "Erro ao salvar o tratamento",
-  "chatBotWelcome": "Olá! Sou o Midi, seu assistente virtual do MediTime. Estou aqui para ajudar você a organizar seus medicamentos, lembrar suas doses ou responder a qualquer dúvida sobre o aplicativo. Como posso ajudar você hoje?",
+  "chatBotWelcome": "Olá! Sou o Midi, seu assistente virtual do MedDue. Estou aqui para ajudar você a organizar seus medicamentos, lembrar suas doses ou responder a qualquer dúvida sobre o aplicativo. Como posso ajudar você hoje?",
   "chatBotAskAbout": "Você pode me perguntar sobre:",
   "chatBotQuickMeds": "Meus medicamentos",
   "chatBotQuickMedsSubtitle": "Info, doses e horários",
@@ -592,7 +592,7 @@
   "helpDevelopersSubtitle": "Equipe criadora e créditos do projeto.",
   "helpUnderstood": "Entendido",
   "helpLoadingVersion": "Carregando versão...",
-  "helpVersionText": "MediTime versão {version} (Build {buildNumber}).",
+  "helpVersionText": "MedDue versão {version} (Build {buildNumber}).",
   "@helpVersionText": {
     "placeholders": {
       "version": {
@@ -644,11 +644,11 @@
   "appearanceCalendarMonthly": "Mensal",
   "appearanceCalendarMonthlyDesc": "Completo",
   "optionsPersonalizationWizard": "Assistente de Personalização",
-  "optionsPersonalizationWizardSubtitle": "Execute novamente a configuração guiada inicial do MediTime.",
+  "optionsPersonalizationWizardSubtitle": "Execute novamente a configuração guiada inicial do MedDue.",
   "optionsSettingsUpdatedSuccess": "Configurações atualizadas com sucesso.",
   "onboardingTakePhoto": "Tirar foto com a câmera",
   "onboardingChooseGallery": "Escolher da galeria",
-  "onboardingWelcomeTitle": "Boas-vindas ao MediTime!",
+  "onboardingWelcomeTitle": "Boas-vindas ao MedDue!",
   "onboardingWelcomeSubtitle": "Seu assistente inteligente para nunca esquecer uma dose de medicamento e cuidar de quem você ama.",
   "onboardingPunctualityTitle": "Pontualidade Segura",
   "onboardingPunctualityDesc": "Alarmes pontuais que tocam mesmo sem internet ou sinal.",
@@ -664,7 +664,7 @@
   "onboardingNameLabel": "Nome ou apelido",
   "onboardingNameHint": "Ex. João Silva",
   "onboardingGoogleNameNote": "Se você entrou com o Google, seu nome foi carregado automaticamente.",
-  "onboardingPurposeTitle": "Para que você usará o MediTime?",
+  "onboardingPurposeTitle": "Para que você usará o MedDue?",
   "onboardingPurposeSubtitle": "Adaptaremos a tela inicial e as opções às suas necessidades.",
   "onboardingPurposePersonalTitle": "Para mim (Uso Pessoal)",
   "onboardingPurposePersonalDesc": "Registrar meus próprios medicamentos, receitas e acompanhar minha adesão diária.",
@@ -696,7 +696,7 @@
       }
     }
   },
-  "onboardingSummarySubtitle": "Configuramos o MediTime sob medida para você. Aqui está um resumo do seu perfil:",
+  "onboardingSummarySubtitle": "Configuramos o MedDue sob medida para você. Aqui está um resumo do seu perfil:",
   "onboardingSummaryUser": "Usuário",
   "onboardingSummaryPurpose": "Objetivo",
   "onboardingSummaryStyle": "Estilo Visual",
@@ -712,7 +712,7 @@
   "onboardingSummaryValInfo": "Informativo",
   "onboardingDefaultFriend": "Amigo",
   "onboardingBtnContinue": "Continuar",
-  "onboardingBtnStart": "Começar a usar o MediTime",
+  "onboardingBtnStart": "Começar a usar o MedDue",
   "onboardingSaveError": "Erro ao salvar as configurações: {error}",
   "@onboardingSaveError": {
     "placeholders": {
@@ -721,8 +721,8 @@
       }
     }
   },
-  "drawerProActive": "MediTime Pro Ativo",
-  "drawerGetPro": "Obter MediTime Pro",
+  "drawerProActive": "MedDue Pro Ativo",
+  "drawerGetPro": "Obter MedDue Pro",
   "drawerAnnualPlanActive": "Plano Anual Ativo",
   "drawerMonthlyPlanActive": "Plano Mensal Ativo",
   "drawerProSubtitle": "Tratamentos e relatórios ilimitados",
@@ -730,12 +730,12 @@
   "cardAiTipsDescription": "Dicas clínicas inteligentes adaptadas a cada medicamento e modo.",
   "cardViewPro": "Ver PRO",
   "subCloseTooltip": "Fechar",
-  "subBadgePro": "MEDITIME PRO",
+  "subBadgePro": "MEDDUE PRO",
   "subTitleMemberPro": "Você já é Membro Pro!",
   "subTitleNoLimits": "Cuide da sua saúde e da sua família sem limites",
   "subSubtitleActiveAnnual": "Sua assinatura está ativa (Plano Anual).\nVocê aproveita todos os benefícios Pro.",
   "subSubtitleActiveMonthly": "Sua assinatura está ativa (Plano Mensal).\nVocê aproveita todos os benefícios Pro.",
-  "subSubtitleSourceFeature": "Para usar {feature}, mude para o MediTime Pro por um valor muito acessível.",
+  "subSubtitleSourceFeature": "Para usar {feature}, mude para o MedDue Pro por um valor muito acessível.",
   "@subSubtitleSourceFeature": {
     "placeholders": {
       "feature": {
@@ -748,7 +748,7 @@
   "subCardMedicationsTitle2": "Tratamentos ilimitados",
   "subCardMedicationsSubtitle": "Supere o limite de 3 tratamentos do plano gratuito.",
   "subCardMedicationsDialogTitle": "Medicamentos e Tratamentos Ilimitados",
-  "subCardMedicationsDialogDesc": "No plano gratuito você pode gerenciar até 3 tratamentos simultâneos. Com o MediTime Pro você pode adicionar todos os tratamentos, receitas e lembretes que precisar sem nenhum limite, além de escanear e digitalizar receitas instantaneamente com Visão IA.",
+  "subCardMedicationsDialogDesc": "No plano gratuito você pode gerenciar até 3 tratamentos simultâneos. Com o MedDue Pro você pode adicionar todos os tratamentos, receitas e lembretes que precisar sem nenhum limite, além de escanear e digitalizar receitas instantaneamente com Visão IA.",
   "subCardCaregiverTitle1": "Modo Cuidador &",
   "subCardCaregiverTitle2": "Pets ilimitado",
   "subCardCaregiverSubtitle": "Cadastre pacientes, familiares ou animais sem restrição.",
@@ -791,7 +791,7 @@
   "subPriceDisclaimer": "Cancele a qualquer momento sem penalidade.",
   "subDialogGotIt": "Entendido",
   "subSnackLoginRequired": "Por favor, faça login para assinar.",
-  "subSnackWelcomePro": "🎉 Boas-vindas ao MediTime Pro! Todas as funcionalidades estão desbloqueadas.",
+  "subSnackWelcomePro": "🎉 Boas-vindas ao MedDue Pro! Todas as funcionalidades estão desbloqueadas.",
   "subSnackError": "Erro ao processar a assinatura: {error}",
   "@subSnackError": {
     "placeholders": {

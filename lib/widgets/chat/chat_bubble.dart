@@ -202,13 +202,14 @@ class ChatBubble extends StatelessWidget {
       }
 
       final boldText = match.group(1) ?? '';
-      final isMediTime = boldText.toLowerCase().contains('meditime');
+      final isBrand = boldText.toLowerCase().contains('meddue') ||
+          boldText.toLowerCase().contains('meditime');
 
       spans.add(
         TextSpan(
           text: boldText,
           style: TextStyle(
-            color: isMediTime ? AppTheme.primaryColor : baseColor,
+            color: isBrand ? AppTheme.primaryColor : baseColor,
             fontWeight: FontWeight.bold,
             fontSize: 15,
             height: 1.35,

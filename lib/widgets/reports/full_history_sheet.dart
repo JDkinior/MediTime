@@ -169,16 +169,8 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
       maxChildSize: 0.95,
       minChildSize: 0.5,
       builder:
-          (ctx, scrollController) => ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(28),
-              topRight: Radius.circular(28),
-            ),
-            child: BackdropFilter(
-              filter: useGlass
-                  ? ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0)
-                  : ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
-              child: Container(
+          (ctx, scrollController) {
+            final sheetContent = Container(
                 decoration: BoxDecoration(
                   color: useGlass
                       ? (isDark
@@ -547,9 +539,23 @@ class _FullHistorySheetState extends State<FullHistorySheet> {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
+          );
+
+            return ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(28),
+                topRight: Radius.circular(28),
+              ),
+              child: useGlass
+                  ? RepaintBoundary(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 14.0, sigmaY: 14.0),
+                        child: sheetContent,
+                      ),
+                    )
+                  : sheetContent,
+            );
+          },
     );
   }
 }

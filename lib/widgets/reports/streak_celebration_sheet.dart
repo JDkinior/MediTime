@@ -174,35 +174,29 @@ class _StreakCelebrationSheetState extends State<StreakCelebrationSheet>
     const fireOrange = Color(0xFFFF6B00);
     const fireAmber = Color(0xFFFFB703);
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-      child: BackdropFilter(
-        filter: useGlass
-            ? ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0)
-            : ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
-        child: Container(
-          decoration: BoxDecoration(
-            color: useGlass
-                ? (isDark
-                    ? Theme.of(context).cardColor.withValues(alpha: 0.78)
-                    : Colors.white.withValues(alpha: 0.85))
-                : Theme.of(context).cardColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-            border: Border.all(
-              color: (useGlass
-                  ? (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.12 : 0.08)
-                  : ((pref?.showCardBorder ?? false) || highContrast ? AppTheme.borderColor : Colors.transparent)),
-              width: 1.0,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.5 : 0.15),
-                blurRadius: 30,
-                offset: const Offset(0, -6),
-              ),
-            ],
+    final sheetContent = Container(
+      decoration: BoxDecoration(
+        color: useGlass
+            ? (isDark
+                ? Theme.of(context).cardColor.withValues(alpha: 0.78)
+                : Colors.white.withValues(alpha: 0.85))
+            : Theme.of(context).cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        border: Border.all(
+          color: (useGlass
+              ? (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.12 : 0.08)
+              : ((pref?.showCardBorder ?? false) || highContrast ? AppTheme.borderColor : Colors.transparent)),
+          width: 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.5 : 0.15),
+            blurRadius: 30,
+            offset: const Offset(0, -6),
           ),
-          child: SafeArea(
+        ],
+      ),
+      child: SafeArea(
         top: false,
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -525,10 +519,20 @@ class _StreakCelebrationSheetState extends State<StreakCelebrationSheet>
           ),
         ],
       ),
-    ),
-  ),
-),
       ),
+      ),
+    );
+
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      child: useGlass
+          ? RepaintBoundary(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 14.0, sigmaY: 14.0),
+                child: sheetContent,
+              ),
+            )
+          : sheetContent,
     );
   }
 

@@ -393,7 +393,7 @@ class _AlarmRingingPageState extends State<AlarmRingingPage>
                             Text(
                               widget.isTest
                                   ? 'PRUEBA DE MODO ALARMA'
-                                  : 'MEDITIME • HORA DE MEDICAMENTO',
+                                  : 'MEDDUE • HORA DE MEDICAMENTO',
                               style: const TextStyle(
                                 color: Color(0xFF93C5FD),
                                 fontSize: 11,

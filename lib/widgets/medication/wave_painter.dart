@@ -9,31 +9,29 @@ class WavePainter extends CustomPainter {
 
   WavePainter({required this.animationValue});
 
+  static final Paint _paint1 = Paint()
+    ..color = Colors.white.withValues(alpha: 0.12)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3.0;
+
+  static final Paint _paint2 = Paint()
+    ..color = Colors.white.withValues(alpha: 0.08)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2.0;
+
+  static final Paint _paint3 = Paint()
+    ..color = Colors.white.withValues(alpha: 0.06)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.5;
+
+  static final Paint _paint4 = Paint()
+    ..color = Colors.white.withValues(alpha: 0.04)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.0;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint1 =
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.12)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3.0;
-
-    final paint2 =
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.08)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.0;
-
-    final paint3 =
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.06)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5;
-
-    final paint4 =
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.04)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.0;
+    if (size.width <= 0 || size.height <= 0) return;
 
     final path1 = Path();
     final path2 = Path();
@@ -109,10 +107,10 @@ class WavePainter extends CustomPainter {
       path4.lineTo(x, y4);
     }
 
-    canvas.drawPath(path1, paint1);
-    canvas.drawPath(path2, paint2);
-    canvas.drawPath(path3, paint3);
-    canvas.drawPath(path4, paint4);
+    canvas.drawPath(path1, _paint1);
+    canvas.drawPath(path2, _paint2);
+    canvas.drawPath(path3, _paint3);
+    canvas.drawPath(path4, _paint4);
   }
 
   @override

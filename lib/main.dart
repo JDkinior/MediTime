@@ -176,38 +176,52 @@ class MyApp extends StatelessWidget {
               )..loadProfiles(context.read<AuthService>().currentUser?.uid ?? ''),
         ),
       ],
-      child: Consumer2<PreferenceNotifier, CaregiverNotifier>(
-        builder: (context, preferenceNotifier, caregiverNotifier, child) {
-          final themeModeStr = preferenceNotifier.themeMode;
-          final isDark = themeModeStr == 'dark' ||
-              (themeModeStr == 'system' &&
+      child: Selector2<PreferenceNotifier, CaregiverNotifier, _AppThemeConfig>(
+        selector: (_, pref, caregiver) => _AppThemeConfig(
+          themeModeStr: pref.themeMode,
+          themeModeEnum: pref.themeModeEnum,
+          highContrast: pref.highContrast,
+          isAnimalMode: pref.isAnimalMode,
+          largeButtons: pref.largeButtons,
+          showCardBorder: pref.showCardBorder,
+          interfaceStyle: pref.interfaceStyle,
+          largeText: pref.largeText,
+          locale: pref.locale,
+          isCaregiverModeActive: caregiver.isCaregiverModeActive,
+          modeType: caregiver.modeType,
+        ),
+        builder: (context, config, child) {
+          final isDark = config.themeModeStr == 'dark' ||
+              (config.themeModeStr == 'system' &&
                   MediaQuery.platformBrightnessOf(context) == Brightness.dark);
-          final isAnimal = preferenceNotifier.isAnimalMode || caregiverNotifier.modeType == CaregiverModeType.veterinario;
-          final isCaregiver = caregiverNotifier.isCaregiverModeActive && !isAnimal;
+          final isAnimal = config.isAnimalMode || config.modeType == CaregiverModeType.veterinario;
+          final isCaregiver = config.isCaregiverModeActive && !isAnimal;
+          final showCardBorder = config.showCardBorder || config.highContrast;
+          final isModern = config.interfaceStyle == 'modern';
           AppTheme.updateThemeColors(
             isDark,
-            highContrast: preferenceNotifier.highContrast,
+            highContrast: config.highContrast,
             isAnimalMode: isAnimal,
             isCaregiverMode: isCaregiver,
           );
 
           return MaterialApp(
-            title: 'MediTime',
+            title: 'MedDue',
             navigatorKey: navigatorKey,
             theme: AppTheme.getLightTheme(
-              largeButtons: preferenceNotifier.largeButtons,
-              showCardBorder: preferenceNotifier.showCardBorder || preferenceNotifier.highContrast,
-              isModern: preferenceNotifier.interfaceStyle == 'modern',
+              largeButtons: config.largeButtons,
+              showCardBorder: showCardBorder,
+              isModern: isModern,
             ),
             darkTheme: AppTheme.getDarkTheme(
-              largeButtons: preferenceNotifier.largeButtons,
-              showCardBorder: preferenceNotifier.showCardBorder || preferenceNotifier.highContrast,
-              isModern: preferenceNotifier.interfaceStyle == 'modern',
+              largeButtons: config.largeButtons,
+              showCardBorder: showCardBorder,
+              isModern: isModern,
             ),
-            themeMode: preferenceNotifier.themeModeEnum,
+            themeMode: config.themeModeEnum,
             builder: (context, widget) {
               final mediaQueryData = MediaQuery.of(context);
-              final scale = preferenceNotifier.largeText ? 1.3 : 1.0;
+              final scale = config.largeText ? 1.3 : 1.0;
               return MediaQuery(
                 data: mediaQueryData.copyWith(
                   textScaler: TextScaler.linear(scale),
@@ -237,7 +251,7 @@ class MyApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
             supportedLocales: AppLocalizations.supportedLocales,
-            locale: preferenceNotifier.locale,
+            locale: config.locale,
             routes: {ChatBotScreen.routeName: (_) => const ChatBotScreen()},
             home: const AuthWrapper(),
           );
@@ -245,4 +259,64 @@ class MyApp extends StatelessWidget {
       ),
     );
   }
+}
+
+@immutable
+class _AppThemeConfig {
+  final String themeModeStr;
+  final ThemeMode themeModeEnum;
+  final bool highContrast;
+  final bool isAnimalMode;
+  final bool largeButtons;
+  final bool showCardBorder;
+  final String interfaceStyle;
+  final bool largeText;
+  final Locale? locale;
+  final bool isCaregiverModeActive;
+  final CaregiverModeType modeType;
+
+  const _AppThemeConfig({
+    required this.themeModeStr,
+    required this.themeModeEnum,
+    required this.highContrast,
+    required this.isAnimalMode,
+    required this.largeButtons,
+    required this.showCardBorder,
+    required this.interfaceStyle,
+    required this.largeText,
+    required this.locale,
+    required this.isCaregiverModeActive,
+    required this.modeType,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _AppThemeConfig &&
+          themeModeStr == other.themeModeStr &&
+          themeModeEnum == other.themeModeEnum &&
+          highContrast == other.highContrast &&
+          isAnimalMode == other.isAnimalMode &&
+          largeButtons == other.largeButtons &&
+          showCardBorder == other.showCardBorder &&
+          interfaceStyle == other.interfaceStyle &&
+          largeText == other.largeText &&
+          locale == other.locale &&
+          isCaregiverModeActive == other.isCaregiverModeActive &&
+          modeType == other.modeType;
+
+  @override
+  int get hashCode => Object.hash(
+        themeModeStr,
+        themeModeEnum,
+        highContrast,
+        isAnimalMode,
+        largeButtons,
+        showCardBorder,
+        interfaceStyle,
+        largeText,
+        locale,
+        isCaregiverModeActive,
+        modeType,
+      );
 }

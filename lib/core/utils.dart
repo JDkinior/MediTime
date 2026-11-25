@@ -309,9 +309,10 @@ class AppUtils {
           elevation: 0,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(28),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-              child: Container(
+            child: RepaintBoundary(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 14.0, sigmaY: 14.0),
+                child: Container(
                 constraints: const BoxConstraints(maxWidth: 400),
                 decoration: BoxDecoration(
                   color: useGlass
@@ -386,6 +387,7 @@ class AppUtils {
                   ],
                 ),
               ),
+            ),
             ),
           ),
         );

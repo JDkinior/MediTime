@@ -246,7 +246,7 @@ class LocationHelper {
 					Uri.parse(_nominatimEndpoint).replace(queryParameters: queryParameters),
 					headers: {
 						'Accept': 'application/json',
-						'User-Agent': 'MediTime/1.0 (Flutter app)',
+						'User-Agent': 'MedDue/1.0 (Flutter app)',
 					},
 				)
 				.timeout(const Duration(seconds: 8));
@@ -306,7 +306,7 @@ class LocationHelper {
 						Uri.parse(endpoint),
 						headers: {
 							'Content-Type': 'application/x-www-form-urlencoded',
-							'User-Agent': 'MediTime/1.0 (Flutter app)',
+							'User-Agent': 'MedDue/1.0 (Flutter app)',
 						},
 						body: {'data': query},
 					)

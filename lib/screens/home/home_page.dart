@@ -23,6 +23,7 @@ import 'package:meditime/widgets/tutorial_tooltip.dart';
 import 'package:meditime/widgets/midi_blinking_icon.dart';
 import 'package:meditime/widgets/caregiver/patient_selector_dialog.dart';
 import 'package:meditime/widgets/modern_app_bar.dart';
+import 'package:meditime/widgets/modern_content_fade.dart';
 import 'package:meditime/l10n/generated/app_localizations.dart';
 
 class HomePage extends StatefulWidget {
@@ -34,6 +35,11 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final PageController _pageController = PageController();
+  Object? _tabTransition;
+  final _drawerOpen = ValueNotifier(false);
+  final _recetaScroll = ValueNotifier(0.0);
+  final _progressScroll = ValueNotifier(0.0);
+  final _progressInterval = ValueNotifier(ProgresoInterval.semana);
   final ValueNotifier<int> _currentIndexNotifier = ValueNotifier<int>(0);
   bool _isTutorialRunning = false;
 
@@ -72,6 +78,10 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _hideSkipButton();
     _pageController.dispose();
+    _drawerOpen.dispose();
+    _recetaScroll.dispose();
+    _progressScroll.dispose();
+    _progressInterval.dispose();
     _currentIndexNotifier.dispose();
     super.dispose();
   }
@@ -194,13 +204,29 @@ class _HomePageState extends State<HomePage> {
     _markTutorialDone();
   }
 
-  void _onTabTapped(int index) {
+  Future<void> _onTabTapped(int index) async {
+    final transition = Object();
+    _tabTransition = transition;
     _currentIndexNotifier.value = index;
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+    try {
+      if (MediaQuery.disableAnimationsOf(context)) {
+        _pageController.jumpToPage(index);
+      } else {
+        await _pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.fastOutSlowIn,
+        );
+      }
+    } finally {
+      if (mounted && identical(_tabTransition, transition)) {
+        _tabTransition = null;
+        if (_pageController.hasClients) {
+          final visibleIndex = _pageController.page?.round();
+          if (visibleIndex != null) _currentIndexNotifier.value = visibleIndex;
+        }
+      }
+    }
   }
 
 
@@ -222,7 +248,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final List<String> titles = [
-      'Meditime',
+      'MedDue',
       l10n?.appBarCalendar ?? 'Calendario',
       l10n?.navProgress ?? 'Progreso',
     ];
@@ -278,13 +304,30 @@ class _HomePageState extends State<HomePage> {
         final hasManagedBanner = isManagedModeActive && (caregiverNotifier.isGeneralMode || activeProfile != null);
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
-        return Scaffold(
+        final useToolbarInterval = isModern && !isManagedModeActive &&
+            ctx.watch<AuthService>().currentUser != null;
+
+        final scaffold = Scaffold(
+          onDrawerChanged: (open) => _drawerOpen.value = open,
           extendBody: isModern,
           extendBodyBehindAppBar: isModern,
           drawerScrimColor: isModern ? Colors.black.withValues(alpha: 0.35) : null,
-          appBar: ModernAppBar(
-            encapsulateOnScroll: true,
-            child: AppBar(
+          appBar: PreferredSize(
+            preferredSize: const Size.fromHeight(kToolbarHeight),
+            child: ValueListenableBuilder<int>(
+              valueListenable: _currentIndexNotifier,
+              builder: (context, currentIndex, _) {
+                final showInterval = useToolbarInterval && currentIndex == 2;
+                return ModernAppBar(
+                  encapsulateOnScroll: currentIndex != 1,
+                  reserveControlSpace: true,
+                  scrollProgress: switch (currentIndex) {
+                    0 => _recetaScroll,
+                    2 => _progressScroll,
+                    _ => const AlwaysStoppedAnimation<double>(0),
+                  },
+                  fadeTitleInPlace: showInterval,
+                  child: AppBar(
             centerTitle: true,
             title: isManagedModeActive
                 ? InkWell(
@@ -300,7 +343,7 @@ class _HomePageState extends State<HomePage> {
                       decoration: BoxDecoration(
                         color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(12),
-                        border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                        border: (preferenceNotifier.showCardBorder || preferenceNotifier.highContrast)
                             ? Border.all(color: AppTheme.borderColor)
                             : null,
                         boxShadow: [
@@ -357,19 +400,14 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   )
-                : ValueListenableBuilder<int>(
-                    valueListenable: _currentIndexNotifier,
-                    builder: (context, currentIndex, _) {
-                      return Text(
-                        isModern ? 'Meditime' : titles[currentIndex],
+                : Text(
+                        isModern ? 'MedDue' : titles[currentIndex],
                         style: TextStyle(
                           color: AppTheme.primaryTextColor,
                           fontWeight: isModern ? FontWeight.w500 : (currentIndex == 0 ? FontWeight.w800 : FontWeight.bold),
                           fontSize: isModern ? 23 : 20,
                           letterSpacing: isModern ? -0.3 : (currentIndex == 0 ? -0.4 : -0.2),
                         ),
-                      );
-                    },
                   ),
             actions: [
               if (!preferenceNotifier.simplifiedInterface)
@@ -419,8 +457,11 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
             ),
+                  ),
+                );
+              },
+            ),
           ),
-        ),
         drawer: CustomDrawer(
             onLogout: _handleLogout,
             onStartTutorial: _startTutorial,
@@ -462,48 +503,106 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   Expanded(
-                    child: PageView(
-                      physics: const PageScrollPhysics(parent: ClampingScrollPhysics()),
-                      controller: _pageController,
-                      onPageChanged: (index) {
-                        if (_currentIndexNotifier.value != index) {
-                          _currentIndexNotifier.value = index;
-                        }
-                      },
-                      children: [
-                        (isManagedModeActive && caregiverNotifier.isGeneralMode)
-                            ? Padding(
+                    child: PrimaryScrollController.none(
+                      child: PageView(
+                        physics: const PageScrollPhysics(parent: ClampingScrollPhysics()),
+                        controller: _pageController,
+                        onPageChanged: (index) {
+                          // Al saltar dos pestañas, PageView también notifica
+                          // la página intermedia durante la animación.
+                          if (_tabTransition == null) {
+                            _currentIndexNotifier.value = index;
+                          }
+                        },
+                        children: [
+                          ValueListenableBuilder<int>(
+                            key: const PageStorageKey('receta-scroll'),
+                            valueListenable: _currentIndexNotifier,
+                            child: NotificationListener<ScrollNotification>(
+                              onNotification: (notification) {
+                                final metrics = notification.metrics;
+                                if (notification.depth == 0 && metrics.axis == Axis.vertical) {
+                                  _recetaScroll.value = (metrics.extentBefore / 36).clamp(0.0, 1.0);
+                                }
+                                return false;
+                              },
+                              child: (isManagedModeActive && caregiverNotifier.isGeneralMode)
+                                  ? Padding(
+                                      padding: EdgeInsets.only(
+                                        top: (isModern && !hasManagedBanner)
+                                            ? (MediaQuery.paddingOf(context).top + kToolbarHeight)
+                                            : 0,
+                                      ),
+                                      child: const GeneralCaregiverPage(),
+                                    )
+                                  : RecetaPage(
+                                      fabKey: isModern ? null : _classicFabKey,
+                                      summaryKey: _summaryKey,
+                                      dateKey: _dateKey,
+                                    ),
+                            ),
+                            builder: (_, currentIndex, child) => TickerMode(
+                              enabled: currentIndex == 0,
+                              child: child!,
+                            ),
+                          ),
+                          ValueListenableBuilder<int>(
+                            key: const PageStorageKey('calendario-scroll'),
+                            valueListenable: _currentIndexNotifier,
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                top: (isModern && !hasManagedBanner) ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0,
+                              ),
+                              child: ValueListenableBuilder<int>(
+                                valueListenable: _currentIndexNotifier,
+                                builder: (_, index, _) => CalendarioPage(
+                                  calendarKey: _calendarKey,
+                                  calendarViewKey: _calendarViewKey,
+                                  isActive: index == 1,
+                                ),
+                              ),
+                            ),
+                            builder: (_, currentIndex, child) => TickerMode(
+                              enabled: currentIndex == 1,
+                              child: child!,
+                            ),
+                          ),
+                          ValueListenableBuilder<int>(
+                            key: const PageStorageKey('progreso-scroll'),
+                            valueListenable: _currentIndexNotifier,
+                            child: ModernContentFade(
+                              enableTopFade: useToolbarInterval,
+                              height: MediaQuery.paddingOf(context).top > 0
+                                  ? MediaQuery.paddingOf(context).top + 6
+                                  : 28,
+                              child: Padding(
                                 padding: EdgeInsets.only(
-                                  top: (isModern && !hasManagedBanner)
-                                      ? (MediaQuery.paddingOf(context).top + kToolbarHeight)
+                                  top: (isModern && !hasManagedBanner && !useToolbarInterval)
+                                      ? MediaQuery.paddingOf(context).top + kToolbarHeight
                                       : 0,
                                 ),
-                                child: const GeneralCaregiverPage(),
-                              )
-                            : RecetaPage(
-                                fabKey: isModern ? null : _classicFabKey,
-                                summaryKey: _summaryKey,
-                                dateKey: _dateKey,
+                                child: ValueListenableBuilder<ProgresoInterval>(
+                                  valueListenable: _progressInterval,
+                                  builder: (_, interval, _) => ProgresoPage(
+                                    interval: interval,
+                                    onIntervalChanged: (value) => _progressInterval.value = value,
+                                    scrollProgress: _progressScroll,
+                                    toolbarScrollInset: useToolbarInterval
+                                        ? MediaQuery.paddingOf(context).top + kToolbarHeight
+                                        : 0,
+                                    progressRingKey: _progressRingKey,
+                                    progressTimelineKey: _progressTimelineKey,
+                                  ),
+                                ),
                               ),
-                        Padding(
-                          padding: EdgeInsets.only(
-                            top: (isModern && !hasManagedBanner) ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0,
+                            ),
+                            builder: (_, currentIndex, child) => TickerMode(
+                              enabled: currentIndex == 2,
+                              child: child!,
+                            ),
                           ),
-                          child: CalendarioPage(
-                            calendarKey: _calendarKey,
-                            calendarViewKey: _calendarViewKey,
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.only(
-                            top: (isModern && !hasManagedBanner) ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0,
-                          ),
-                          child: ProgresoPage(
-                            progressRingKey: _progressRingKey,
-                            progressTimelineKey: _progressTimelineKey,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -560,90 +659,53 @@ class _HomePageState extends State<HomePage> {
                               borderRadius: BorderRadius.circular(24),
                             ),
                             targetPadding: EdgeInsets.zero,
-                            child: Container(
-                              height: 64,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(24),
-                                boxShadow: isDark
-                                    ? [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.70),
-                                          blurRadius: 28,
-                                          spreadRadius: 2,
-                                          offset: const Offset(0, 4),
+                            child: Builder(
+                              builder: (context) {
+                                final useGlass = !preferenceNotifier.highContrast;
+                                final showBorder = preferenceNotifier.showCardBorder || preferenceNotifier.highContrast;
+                                final navContent = Container(
+                                  decoration: BoxDecoration(
+                                    color: useGlass
+                                        ? (isDark
+                                            ? Theme.of(context).cardColor.withValues(alpha: 0.55)
+                                            : Colors.white.withValues(alpha: 0.62))
+                                        : Theme.of(context).cardColor,
+                                    borderRadius: BorderRadius.circular(24),
+                                    border: showBorder
+                                        ? Border.all(color: AppTheme.borderColor, width: 1)
+                                        : Border.all(
+                                            color: isDark
+                                                ? Colors.white.withValues(alpha: 0.12)
+                                                : Colors.white.withValues(alpha: 0.45),
+                                            width: 1,
+                                          ),
+                                  ),
+                                  child: ValueListenableBuilder<int>(
+                                    valueListenable: _currentIndexNotifier,
+                                    builder: (context, currentIndex, _) {
+                                      return BottomNavigationBar(
+                                        onTap: _onTabTapped,
+                                        currentIndex: currentIndex,
+                                        selectedItemColor: AppTheme.primaryColor,
+                                        unselectedItemColor:
+                                            AppTheme.secondaryTextColor.withValues(alpha: 0.6),
+                                        backgroundColor: Colors.transparent,
+                                        elevation: 0,
+                                        type: BottomNavigationBarType.fixed,
+                                        showSelectedLabels: true,
+                                        showUnselectedLabels: true,
+                                        selectedFontSize: 11.5,
+                                        unselectedFontSize: 11.5,
+                                        selectedLabelStyle: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 11.5,
                                         ),
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.55),
-                                          blurRadius: 16,
-                                          offset: const Offset(0, 8),
+                                        unselectedLabelStyle: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 11.5,
                                         ),
-                                      ]
-                                    : [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.10),
-                                          blurRadius: 24,
-                                          spreadRadius: 1,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.08),
-                                          blurRadius: 14,
-                                          offset: const Offset(0, 8),
-                                        ),
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.04),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(24),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: (context.watch<PreferenceNotifier>().highContrast)
-                                          ? Theme.of(context).cardColor
-                                          : (isDark
-                                              ? Theme.of(context).cardColor.withValues(alpha: 0.55)
-                                              : Colors.white.withValues(alpha: 0.62)),
-                                      borderRadius: BorderRadius.circular(24),
-                                      border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
-                                          ? Border.all(color: AppTheme.borderColor, width: 1)
-                                          : Border.all(
-                                              color: isDark
-                                                  ? Colors.white.withValues(alpha: 0.12)
-                                                  : Colors.white.withValues(alpha: 0.45),
-                                              width: 1,
-                                            ),
-                                    ),
-                                    child: ValueListenableBuilder<int>(
-                                  valueListenable: _currentIndexNotifier,
-                                  builder: (context, currentIndex, _) {
-                                    return BottomNavigationBar(
-                                      onTap: _onTabTapped,
-                                      currentIndex: currentIndex,
-                                      selectedItemColor: AppTheme.primaryColor,
-                                      unselectedItemColor:
-                                          AppTheme.secondaryTextColor.withValues(alpha: 0.6),
-                                      backgroundColor: Colors.transparent,
-                                      elevation: 0,
-                                      type: BottomNavigationBarType.fixed,
-                                      showSelectedLabels: true,
-                                      showUnselectedLabels: true,
-                                      selectedFontSize: 11.5,
-                                      unselectedFontSize: 11.5,
-                                      selectedLabelStyle: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 11.5,
-                                      ),
-                                      unselectedLabelStyle: const TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 11.5,
-                                      ),
-                                      iconSize: 24,
-                                      items: [
+                                        iconSize: 24,
+                                        items: [
                                           BottomNavigationBarItem(
                                             icon: const Icon(Icons.medication_outlined),
                                             activeIcon: const Icon(Icons.medication_rounded),
@@ -699,12 +761,40 @@ class _HomePageState extends State<HomePage> {
                                       );
                                     },
                                   ),
-                                ),
-                              ),
+                                );
+
+                                return Container(
+                                  height: 64,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(24),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: isDark ? 0.55 : 0.10),
+                                        blurRadius: 18,
+                                        spreadRadius: isDark ? 1 : 0,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: useGlass
+                                      ? RepaintBoundary(
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(24),
+                                            child: BackdropFilter(
+                                              filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                                              child: navContent,
+                                            ),
+                                          ),
+                                        )
+                                      : ClipRRect(
+                                          borderRadius: BorderRadius.circular(24),
+                                          child: navContent,
+                                        ),
+                                );
+                              },
                             ),
                           ),
                         ),
-                      ),
                         const SizedBox(width: 12),
                         // Right: Modern FAB
                         Showcase.withWidget(
@@ -785,7 +875,7 @@ class _HomePageState extends State<HomePage> {
                   child: Container(
                     decoration: BoxDecoration(
                       color: AppTheme.backgroundColor,
-                      border: (context.watch<PreferenceNotifier>().showCardBorder || context.watch<PreferenceNotifier>().highContrast)
+                      border: (preferenceNotifier.showCardBorder || preferenceNotifier.highContrast)
                           ? Border(top: BorderSide(color: AppTheme.borderColor, width: 1))
                           : null,
                       boxShadow: [
@@ -857,6 +947,80 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
+        );
+
+        final safeArea = MediaQuery.paddingOf(ctx);
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            scaffold,
+            if (useToolbarInterval)
+              ValueListenableBuilder<bool>(
+                valueListenable: _drawerOpen,
+                builder: (_, drawerOpen, child) =>
+                    drawerOpen ? const SizedBox.shrink() : child!,
+                child: AnimatedBuilder(
+                  animation: Listenable.merge([_pageController, _progressScroll]),
+                  child: RepaintBoundary(
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: ValueListenableBuilder<ProgresoInterval>(
+                        valueListenable: _progressInterval,
+                        builder: (_, interval, _) => ProgresoIntervalSelector(
+                          interval: interval,
+                          onChanged: (value) => _progressInterval.value = value,
+                          floating: true,
+                        ),
+                      ),
+                    ),
+                  ),
+                  builder: (context, child) {
+                    if (!_pageController.hasClients ||
+                        !_pageController.position.hasViewportDimension ||
+                        !_pageController.position.hasContentDimensions) {
+                      return const SizedBox.shrink();
+                    }
+                    final pageOffset = 2 - (_pageController.page ?? 0);
+                    if (pageOffset.abs() >= 1) return const SizedBox.shrink();
+
+                    final direction =
+                        Directionality.of(context) == TextDirection.rtl ? -1 : 1;
+                    final horizontalOffset =
+                        pageOffset * _pageController.position.viewportDimension * direction;
+                    final progress = _progressScroll.value;
+                    final rightInset =
+                        preferenceNotifier.simplifiedInterface ? 16.0 : 56.0;
+                    return Positioned(
+                      top: safeArea.top + kToolbarHeight + 12 - 66 * progress,
+                      left: safeArea.left + 16 + 44 * progress + horizontalOffset,
+                      right: safeArea.right + 16 + (rightInset - 16) * progress - horizontalOffset,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Color.lerp(
+                            Theme.of(context).cardColor,
+                            ModernAppBar.controlSurface(isDark: isDark),
+                            progress,
+                          ),
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow.lerp(
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                              ModernAppBar.controlShadow(isDark: isDark, progress: 1),
+                              progress,
+                            )!,
+                          ],
+                        ),
+                        child: child!,
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
         );
       },
     );

@@ -1,6 +1,6 @@
 {
   "@@locale": "es",
-  "appTitle": "MediTime",
+  "appTitle": "MedDue",
   "@appTitle": {
     "description": "Nombre de la aplicación"
   },
@@ -46,7 +46,7 @@
   "drawerHelpSubtitle": "Centro de ayuda y soporte",
   "drawerTutorial": "Tutorial",
   "drawerTutorialSubtitle": "Guías y consejos de uso",
-  "drawerChatbot": "Chatbot MediTime",
+  "drawerChatbot": "Chatbot MedDue",
   "drawerChatbotSubtitle": "Asistente inteligente",
   "drawerSectionManage": "GESTIÓN",
   "drawerManagePatients": "Gestionar Pacientes",
@@ -230,7 +230,7 @@
   "complianceChartTitle": "Gráfico de cumplimiento",
   "progressByPatient": "Progreso por paciente",
 
-  "chatBotGreeting": "¡Hola! Soy Midi, tu asistente de salud en MediTime.",
+  "chatBotGreeting": "¡Hola! Soy Midi, tu asistente de salud en MedDue.",
   "chatBotPlaceholder": "Escribe un mensaje o haz una pregunta médica...",
   "chatBotListening": "Escuchando...",
   "chatBotClearHistory": "Borrar conversación",
@@ -406,7 +406,7 @@
   "addPrescriptionUpdatedSuccess": "Tratamiento actualizado exitosamente",
   "addPrescriptionSaveError": "Error al guardar el tratamiento",
 
-  "chatBotWelcome": "¡Hola! Soy Midi, tu asistente virtual de MediTime. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?",
+  "chatBotWelcome": "¡Hola! Soy Midi, tu asistente virtual de MedDue. Estoy aquí para ayudarte a organizar tus medicamentos, recordarte tus dosis o responder cualquier duda que tengas sobre la aplicación. ¿En qué te puedo ayudar hoy?",
   "chatBotAskAbout": "Puedes preguntarme sobre:",
   "chatBotQuickMeds": "Mis medicamentos",
   "chatBotQuickMedsSubtitle": "Info, dosis y horarios",
@@ -553,7 +553,7 @@
   "helpDevelopersSubtitle": "Equipo creador y créditos del proyecto.",
   "helpUnderstood": "Entendido",
   "helpLoadingVersion": "Cargando versión...",
-  "helpVersionText": "MediTime versión {version} (Build {buildNumber}).",
+  "helpVersionText": "MedDue versión {version} (Build {buildNumber}).",
   "@helpVersionText": {
     "placeholders": {
       "version": { "type": "String" },

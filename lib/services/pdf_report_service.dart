@@ -61,7 +61,7 @@ class PdfReportService {
           children: [
             pw.Image(logo, width: 40),
             pw.SizedBox(width: 10),
-            pw.Text("MediTime", style: pw.TextStyle(font: font, fontSize: 24, color: PdfColors.blue800)),
+            pw.Text("MedDue", style: pw.TextStyle(font: font, fontSize: 24, color: PdfColors.blue800)),
           ]
         ),
         pw.Text("Reporte de Adherencia", style: pw.TextStyle(font: font, fontSize: 16, color: PdfColors.blue700)),

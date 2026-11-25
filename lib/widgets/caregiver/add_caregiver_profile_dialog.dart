@@ -259,7 +259,7 @@ class _AddCaregiverProfileDialogState extends State<AddCaregiverProfileDialog> w
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          'Vincular con un usuario existente de MediTime.',
+          'Vincular con un usuario existente de MedDue.',
           style: TextStyle(color: Colors.grey, fontSize: 13),
         ),
         const SizedBox(height: 16),

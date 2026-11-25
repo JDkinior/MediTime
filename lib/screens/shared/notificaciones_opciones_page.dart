@@ -423,7 +423,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                   SettingsCardWrapper(
                     title: 'Fiabilidad de Alarmas y Batería',
                     subtitle:
-                        'Verifica que Android autorice a MediTime a sonar puntualmente en segundo plano.',
+                        'Verifica que Android autorice a MedDue a sonar puntualmente en segundo plano.',
                     trailingHeader: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
@@ -769,7 +769,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
     return SettingsCardWrapper(
       title: 'Tono y Sonido de Alarma',
       subtitle:
-          'Configura el sonido del Modo Alarma con tonos de tu teléfono o personalizados de MediTime.',
+          'Configura el sonido del Modo Alarma con tonos de tu teléfono o personalizados de MedDue.',
       child: Column(
         children: [
           Material(
@@ -831,7 +831,7 @@ class _NotificacionesOpcionesPageState extends State<NotificacionesOpcionesPage>
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  isCustom ? 'Personalizado MediTime' : 'Tono del Teléfono',
+                                  isCustom ? 'Personalizado MedDue' : 'Tono del Teléfono',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
@@ -902,7 +902,7 @@ class _AlarmToneSelectorSheet extends StatefulWidget {
 }
 
 class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
-  int _tabIndex = 0; // 0: Personalizados MediTime, 1: Tonos del teléfono
+  int _tabIndex = 0; // 0: Personalizados MedDue, 1: Tonos del teléfono
   String? _previewId;
   List<Map<String, String>> _phoneRingtones = [];
   bool _loadingPhoneRingtones = true;
@@ -1255,7 +1255,7 @@ class _AlarmToneSelectorSheetState extends State<_AlarmToneSelectorSheet> {
       return _buildToneItemTile(
         title: tone.title,
         subtitle: tone.subtitle,
-        badgeText: 'MediTime',
+        badgeText: 'MedDue',
         badgeColor: Colors.indigo,
         icon: Icons.music_note_rounded,
         isSelected: isSelected,

@@ -12,6 +12,7 @@ class CalendarExpandHandle extends StatefulWidget {
   final CalendarFormat calendarFormat;
   final ValueChanged<CalendarFormat> onFormatChanged;
   final bool? isDragging;
+  final bool enableVerticalDrag;
   final VoidCallback? onDragStart;
   final ValueChanged<double>? onDragUpdate;
   final ValueChanged<double>? onDragEnd;
@@ -23,6 +24,7 @@ class CalendarExpandHandle extends StatefulWidget {
     required this.calendarFormat,
     required this.onFormatChanged,
     this.isDragging,
+    this.enableVerticalDrag = true,
     this.onDragStart,
     this.onDragUpdate,
     this.onDragEnd,
@@ -39,8 +41,9 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
   late CalendarFormat _currentFormatDuringDrag;
   double _totalDragY = 0.0;
   bool _isDragging = false;
+  bool _isPressed = false;
 
-  bool get _isActiveDragging => widget.isDragging ?? _isDragging;
+  bool get _isActiveDragging => widget.isDragging ?? (_isDragging || _isPressed);
 
   @override
   void initState() {
@@ -62,6 +65,7 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
     if (mounted) {
       setState(() {
         _isDragging = false;
+        _isPressed = false;
         _totalDragY = 0.0;
         _dragStartFormat = widget.calendarFormat;
         _currentFormatDuringDrag = widget.calendarFormat;
@@ -213,21 +217,19 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
               }
             }
           },
-          onVerticalDragDown: (_) {
+          onVerticalDragDown: widget.enableVerticalDrag ? (_) {
+            setState(() => _isPressed = true);
+          } : null,
+          onVerticalDragStart: widget.enableVerticalDrag ? (_) {
             setState(() {
               _isDragging = true;
               _totalDragY = 0.0;
-                    _dragStartFormat = widget.calendarFormat;
+              _dragStartFormat = widget.calendarFormat;
               _currentFormatDuringDrag = widget.calendarFormat;
             });
-          },
-          onVerticalDragStart: (_) {
-            setState(() {
-              _isDragging = true;
-            });
             widget.onDragStart?.call();
-          },
-          onVerticalDragUpdate: (details) {
+          } : null,
+          onVerticalDragUpdate: widget.enableVerticalDrag ? (details) {
             _totalDragY += details.delta.dy;
             if (widget.onDragUpdate != null) {
               widget.onDragUpdate!(_totalDragY);
@@ -237,8 +239,8 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
             if (mounted) {
               setState(() {});
             }
-          },
-          onVerticalDragEnd: (details) {
+          } : null,
+          onVerticalDragEnd: widget.enableVerticalDrag ? (details) {
             final velocity = details.primaryVelocity ?? 0.0;
             if (widget.onDragEnd != null) {
               widget.onDragEnd!(velocity);
@@ -246,11 +248,11 @@ class _CalendarExpandHandleState extends State<CalendarExpandHandle> {
               _handleFallbackDragEnd(velocity);
             }
             _resetDrag();
-          },
-          onVerticalDragCancel: () {
-            widget.onDragCancel?.call();
+          } : null,
+          onVerticalDragCancel: widget.enableVerticalDrag ? () {
+            if (_isDragging) widget.onDragCancel?.call();
             _resetDrag();
-          },
+          } : null,
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.only(

@@ -15,18 +15,18 @@ class LegalSection {
   });
 }
 
-/// Repositorio oficial y completo de Términos de Servicio y Política de Privacidad de MediTime.
+/// Repositorio oficial y completo de Términos de Servicio y Política de Privacidad de MedDue.
 ///
 /// Redactado con rigor técnico-jurídico cumpliendo:
 /// - Directivas de Google Play para aplicaciones de salud (Health Apps Policy).
 /// - Principios de protección de datos de salud (RGPD/GDPR Art. 9 y 17, Ley 1581 de 2012 / Habeas Data, HIPAA).
 /// - Deslinde explícito de responsabilidad clínica y farmacológica.
 class LegalContent {
-  static const String version = '2.37.0';
+  static const String version = '2.38.0';
   static const String lastUpdated = '11 de Octubre de 2026';
-  static const String legalEntity = 'MediTime App';
-  static const String contactEmail = 'privacidad@meditime.app';
-  static const String supportEmail = 'soporte@meditime.app';
+  static const String legalEntity = 'MedDue App';
+  static const String contactEmail = 'privacidad@meddue.app';
+  static const String supportEmail = 'soporte@meddue.app';
 
   // ═══════════════════════════════════════════════════════════════════════════
   // TÉRMINOS DE SERVICIO Y CONDICIONES DE USO
@@ -37,7 +37,7 @@ class LegalContent {
       title: '1. Aceptación y Naturaleza del Servicio',
       content:
           'El presente documento establece los Términos de Servicio y Condiciones de Uso '
-          'que rigen la descarga, instalación, acceso y uso de la aplicación móvil MediTime (en adelante, "la Aplicación"). '
+          'que rigen la descarga, instalación, acceso y uso de la aplicación móvil MedDue (en adelante, "la Aplicación"). '
           'Al registrarse, acceder o continuar utilizando la Aplicación, usted (en adelante, "el Usuario") declara ser '
           'mayor de edad en su jurisdicción o contar con la autorización legal correspondiente, y acepta quedar vinculado '
           'de forma expresa, plena e incondicional por las presentes cláusulas.\n\n'
@@ -48,7 +48,7 @@ class LegalContent {
     LegalSection(
       title: '2. Deslinde de Responsabilidad Médica (Aviso Clínico Esencial)',
       content:
-          'MEDITIME ES EXCLUSIVAMENTE UNA HERRAMIENTA INFORMÁTICA DE REGISTRO, ORGANIZACIÓN Y RECORDATORIO DIGITAL DE HORARIOS '
+          'MEDDUE ES EXCLUSIVAMENTE UNA HERRAMIENTA INFORMÁTICA DE REGISTRO, ORGANIZACIÓN Y RECORDATORIO DIGITAL DE HORARIOS '
           'DE TOMA DE MEDICAMENTOS. LA APLICACIÓN NO ES UN DISPOSITIVO MÉDICO (SOFTWARE AS A MEDICAL DEVICE), NO POSEE ACREDITACIÓN '
           'DIAGNÓSTICA CLÍNICA NI SUSTITUYE EN NINGÚN CASO EL JUICIO, DIAGNÓSTICO, PRESCRIPCIÓN O TRATAMIENTO DE UN PROFESIONAL '
           'MÉDICO O FARMACÉUTICO COLEGIADO.\n\n'
@@ -68,7 +68,7 @@ class LegalContent {
           'El Usuario asume la responsabilidad exclusiva por la exactitud, veracidad y actualización de toda la información '
           'ingresada en la Aplicación, incluyendo pero no limitándose a: nombres comerciales y genéricos de medicamentos, '
           'concentraciones, dosis por toma, intervalos horarios, inventario de pastillas restante y fechas de caducidad.\n\n'
-          'MediTime ofrece alertas orientativas de posibles interacciones farmacológicas de referencia general, pero no verifica '
+          'MedDue ofrece alertas orientativas de posibles interacciones farmacológicas de referencia general, pero no verifica '
           'químicamente ni garantiza la ausencia total de interacciones entre medicamentos registrados, ni responde por errores '
           'humanos de transcripción o administración de dosis incorrectas por parte del Usuario.',
       icon: Icons.medication_rounded,
@@ -80,7 +80,7 @@ class LegalContent {
           '• Modo Cuidador: Permite organizar tomas para familiares, dependientes o pacientes asignados. El cuidador registrado '
           'declara contar con la autorización o consentimiento informado del paciente o de su representante legal para almacenar '
           'sus datos en la Aplicación, y asume la responsabilidad directa en el suministro oportuno y seguro de los medicamentos.\n\n'
-          '• Modo Animales (Veterinario): Diseñado para el seguimiento de prescripciones veterinarias en mascotas. MediTime no '
+          '• Modo Animales (Veterinario): Diseñado para el seguimiento de prescripciones veterinarias en mascotas. MedDue no '
           'constituye un servicio veterinario; la dosificación debe responder con exclusividad a las indicaciones de un '
           'médico veterinario certificado.',
       icon: Icons.supervised_user_circle_rounded,
@@ -100,14 +100,14 @@ class LegalContent {
     LegalSection(
       title: '6. Fiabilidad Técnica de Alarmas y Limitaciones del Sistema Operativo',
       content:
-          'MediTime implementa arquitecturas de alta prioridad (Android AlarmManager, alarmas exactas, flags insistentes y servicios '
+          'MedDue implementa arquitecturas de alta prioridad (Android AlarmManager, alarmas exactas, flags insistentes y servicios '
           'en segundo plano con soporte offline). No obstante, el Usuario reconoce que la activación y puntualidad de las alarmas '
           'dependen de factores técnicos ajenos a nuestro control directo:\n\n'
           '• Restricciones de fabricantes de hardware (p. ej., políticas agresivas de ahorro de batería de Xiaomi MIUI/HyperOS, '
           'Samsung One UI, Huawei EMUI).\n'
           '• Estado de la batería del dispositivo (agotamiento, apagado o reinicio pendiente).\n'
           '• Revocación de permisos por parte del usuario (permisos de notificaciones, alarmas exactas o exención de optimización de batería).\n\n'
-          'MediTime no será responsable patrimonial ni legalmente por tomas omitidas o demoradas a causa de restricciones del sistema operativo.',
+          'MedDue no será responsable patrimonial ni legalmente por tomas omitidas o demoradas a causa de restricciones del sistema operativo.',
       icon: Icons.alarm_rounded,
     ),
     LegalSection(
@@ -122,8 +122,8 @@ class LegalContent {
     LegalSection(
       title: '8. Propiedad Intelectual y Licencia de Uso',
       content:
-          'Todos los derechos de propiedad intelectual sobre el código fuente, diseño, logotipos, nombres comerciales ("MediTime", "Midi"), '
-          'iconografía y materiales multimedia pertenecen a los desarrolladores de MediTime. Se otorga al Usuario una licencia personal, '
+          'Todos los derechos de propiedad intelectual sobre el código fuente, diseño, logotipos, nombres comerciales ("MedDue", "Midi"), '
+          'iconografía y materiales multimedia pertenecen a los desarrolladores de MedDue. Se otorga al Usuario una licencia personal, '
           'no exclusiva, revocable e intransferible para usar la Aplicación conforme a su finalidad prevista.',
       icon: Icons.copyright_rounded,
     ),
@@ -153,7 +153,7 @@ class LegalContent {
     LegalSection(
       title: '1. Compromiso Ético y Marco Regulatorio de Salud',
       content:
-          'En MediTime reconocemos la naturaleza altamente sensible de los datos relativos a la salud personal. Nuestra política '
+          'En MedDue reconocemos la naturaleza altamente sensible de los datos relativos a la salud personal. Nuestra política '
           'está diseñada bajo los estándares más exigentes de privacidad digital, en estricto cumplimiento con la Política de Aplicaciones '
           'de Salud de Google Play (Health Apps Policy), los principios de minimización y privacidad desde el diseño del RGPD/GDPR '
           '(Reglamento General de Protección de Datos, Art. 9 y Art. 17), la Ley Estatutaria 1581 de 2012 y Decreto 1377 de 2013 (Habeas Data), '
@@ -182,7 +182,7 @@ class LegalContent {
       title: '3. Prohibición Absoluta de Venta y Monetización de Datos Médicos',
       content:
           'NUESTRO COMPROMISO ES CATEGÓRICO E INNEGOCIABLE:\n\n'
-          '• MediTime NUNCA venderá, comercializará, alquilará ni cederá datos de salud ni información personal del Usuario a corredores '
+          '• MedDue NUNCA venderá, comercializará, alquilará ni cederá datos de salud ni información personal del Usuario a corredores '
           'de datos (data brokers), aseguradoras, empresas farmacéuticas ni redes publicitarias de terceros.\n'
           '• La Aplicación no incluye rastreadores de publicidad comportamental ni bibliotecas de monetización basadas en perfiles médicos.\n'
           '• Sus registros clínicos nunca serán utilizados para entrenar modelos públicos de inteligencia artificial.',
@@ -239,7 +239,7 @@ class LegalContent {
     LegalSection(
       title: '8. Protección de Datos de Menores y Pacientes Tutelados',
       content:
-          'MediTime no recopila conscientemente datos de menores de edad sin la supervisión y autorización directa de sus padres o tutores '
+          'MedDue no recopila conscientemente datos de menores de edad sin la supervisión y autorización directa de sus padres o tutores '
           'legales. En el Modo Cuidador, el adulto responsable es quien administra y custodia las recetas asignadas al menor o dependiente.',
       icon: Icons.family_restroom_rounded,
     ),
@@ -256,8 +256,8 @@ class LegalContent {
       content:
           'Para ejercer cualquiera de sus derechos, formular inquietudes legales o reportar cualquier asunto vinculado con la privacidad '
           'de sus datos de salud, puede comunicarse formalmente con nuestro equipo a:\n\n'
-          '• Correo de Privacidad: privacidad@meditime.app\n'
-          '• Soporte Técnico General: soporte@meditime.app',
+          '• Correo de Privacidad: privacidad@meddue.app\n'
+          '• Soporte Técnico General: soporte@meddue.app',
       icon: Icons.contact_mail_rounded,
     ),
   ];

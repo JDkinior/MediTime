@@ -353,7 +353,7 @@ class NotificationService {
 
     AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'meditime_dosis_channel',
-      'MediTime Recordatorios de Dosis',
+      'MedDue Recordatorios de Dosis',
       channelDescription: 'Canal para recordatorios de dosis de medicamentos.',
       importance: Importance.max,
       priority: Priority.high,
@@ -375,7 +375,7 @@ class NotificationService {
         contentTitle: title,
         htmlFormatBigText: false,
         htmlFormatContentTitle: false,
-        summaryText: 'MediTime',
+        summaryText: 'MedDue',
       ),
       silent: false,
       enableLights: true,
@@ -497,7 +497,7 @@ class NotificationService {
 
     final AndroidNotificationChannel alarmChannel = AndroidNotificationChannel(
       channelId,
-      'MediTime Alarma Despertador',
+      'MedDue Alarma Despertador',
       description:
           'Canal de máxima prioridad para alarmas sonoras continuas de medicamentos.',
       importance: Importance.max,
@@ -551,7 +551,7 @@ class NotificationService {
       const AndroidNotificationChannel simpleChannel =
           AndroidNotificationChannel(
             'meditime_dosis_channel',
-            'MediTime Recordatorios de Dosis',
+            'MedDue Recordatorios de Dosis',
             description: 'Canal para recordatorios de dosis de medicamentos.',
             importance: Importance.max,
             playSound: true,
@@ -565,7 +565,7 @@ class NotificationService {
       const AndroidNotificationChannel activeChannel =
           AndroidNotificationChannel(
             'meditime_active_dosis_channel',
-            'MediTime Dosis Activas',
+            'MedDue Dosis Activas',
             description:
                 'Canal para notificaciones de dosis que requieren acción del usuario.',
             importance: Importance.max,
@@ -580,7 +580,7 @@ class NotificationService {
       const AndroidNotificationChannel snoozeChannel =
           AndroidNotificationChannel(
             'meditime_snooze_channel',
-            'MediTime Dosis Aplazadas',
+            'MedDue Dosis Aplazadas',
             description: 'Canal para recordatorios aplazados.',
             importance: Importance.max,
             playSound: true,
@@ -704,7 +704,7 @@ class NotificationService {
 
     final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       channelId,
-      'MediTime Alarma Despertador',
+      'MedDue Alarma Despertador',
       channelDescription:
           'Canal de máxima prioridad para alarmas sonoras continuas de medicamentos.',
       importance: Importance.max,
@@ -731,7 +731,7 @@ class NotificationService {
         contentTitle: title,
         htmlFormatBigText: false,
         htmlFormatContentTitle: false,
-        summaryText: 'MediTime Alarma',
+        summaryText: 'MedDue Alarma',
       ),
       silent: false,
       enableLights: true,
@@ -819,7 +819,7 @@ class NotificationService {
     final AndroidNotificationDetails
     androidDetails = AndroidNotificationDetails(
       'meditime_active_dosis_channel',
-      'MediTime Dosis Activas',
+      'MedDue Dosis Activas',
       channelDescription:
           'Canal para notificaciones de dosis que requieren acción del usuario.',
       importance: Importance.max,
@@ -844,7 +844,7 @@ class NotificationService {
         contentTitle: title,
         htmlFormatBigText: false,
         htmlFormatContentTitle: false,
-        summaryText: 'MediTime Dosis',
+        summaryText: 'MedDue Dosis',
       ),
       silent: false,
       enableLights: true,
@@ -1037,7 +1037,7 @@ class NotificationService {
 
     final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       channelId,
-      isAlarmMode ? 'MediTime Alarma Despertador' : 'MediTime Dosis Aplazadas',
+      isAlarmMode ? 'MedDue Alarma Despertador' : 'MedDue Dosis Aplazadas',
       channelDescription: isAlarmMode
           ? 'Canal de máxima prioridad para alarmas sonoras continuas de medicamentos.'
           : 'Canal para recordatorios aplazados.',
@@ -1059,7 +1059,7 @@ class NotificationService {
         contentTitle: isAlarmMode ? '¡ALARMA APLAZADA!' : 'Recordatorio Aplazado',
         htmlFormatBigText: false,
         htmlFormatContentTitle: false,
-        summaryText: 'MediTime Aplazado',
+        summaryText: 'MedDue Aplazado',
       ),
       actions: [
         AndroidNotificationAction(
