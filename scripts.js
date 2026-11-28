@@ -16,11 +16,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!targetElem) return;
     // When targeting hero, home, or body, always scroll to the absolute top of the page (scrollY = 0)
     if (targetElem.id === 'hero' || targetElem.id === 'home' || targetElem.tagName === 'BODY' || targetElem.tagName === 'HTML') {
-      window.scrollTo({
-        top: 0,
-        left: 0,
-        behavior: smooth ? 'smooth' : 'auto'
-      });
+      if (window.meddueLenis && smooth) {
+        window.meddueLenis.scrollTo(0);
+      } else {
+        window.scrollTo({
+          top: 0,
+          left: 0,
+          behavior: smooth ? 'smooth' : 'auto'
+        });
+      }
       return;
     }
 
@@ -34,11 +38,15 @@ document.addEventListener('DOMContentLoaded', () => {
                          targetElem.querySelector(':scope > .container-wide') ||
                          targetElem;
 
-    const top = scrollTarget.getBoundingClientRect().top + window.scrollY - headerOffset;
-    window.scrollTo({
-      top: Math.max(0, top),
-      behavior: smooth ? 'smooth' : 'auto'
-    });
+    const top = Math.max(0, scrollTarget.getBoundingClientRect().top + window.scrollY - headerOffset);
+    if (window.meddueLenis && smooth) {
+      window.meddueLenis.scrollTo(top);
+    } else {
+      window.scrollTo({
+        top,
+        behavior: smooth ? 'smooth' : 'auto'
+      });
+    }
   }
 
   // Re-align cross-page anchors after the destination layout and fonts settle.
@@ -235,6 +243,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Fallback data precompilado con la información exacta del proyecto y v2.37.0
   const FALLBACK_RELEASES = [
     {
+      tag_name: 'v2.38.0',
+      name: 'MedDue v2.38.0 – Rebranding Integral, Optimización UI y 210 Pruebas Automatizadas',
+      published_at: '2026-11-20T18:00:00Z',
+      apk_url: 'https://github.com/JDkinior/MediTime/releases/latest',
+      body: `### Novedades Principales
+- **Rebranding Integral a MedDue:** Identidad unificada multiplataforma en Android, iOS, macOS, Web, Windows y Linux, con localización trilingüe completa (ES, EN, PT) y marco legal actualizado.
+- **Optimización de Renderizado:** Selectores reactivos en \`MyApp\` y aislamiento de capas GPU (\`RepaintBoundary\`) para efectos frosted glass fluidos.
+- **Aseguramiento de Calidad:** Suite automatizada ampliada a 210 pruebas unitarias y de widgets superadas al 100%.`
+    },
+    {
       tag_name: 'v2.37.0',
       name: 'MediTime v2.37.0 – Diseño Transmateria Frosted Glass, Encapsulamiento One UI y Gamificación',
       published_at: '2026-10-25T23:15:00Z',
@@ -315,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
 
   let currentReleases = FALLBACK_RELEASES;
-  let activeVersionTag = 'v2.37.0';
+  let activeVersionTag = 'v2.38.0';
 
   function renderChangelogSpotlight(latest) {
     if (!latest) return;
@@ -343,31 +361,19 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    // Actualizar badges globales
-    const heroVersionBadge = $('#hero-version-badge');
+    // Actualizar botones globales y metadatos de descarga (sin sobrescribir el Hero editorial)
     const heroDownloadBtn = $('#hero-download-btn');
     const mainDownloadBtn = $('#main-download-btn');
     const latestVersionText = $('#latest-version-text');
     const downloadMetaVersion = $('#download-meta-version');
 
-    if (heroVersionBadge) {
-      heroVersionBadge.innerHTML = `
-        <span class="hero-version-prefix">Versión ${tag} disponible · Con</span>
-        <span class="hero-version-sr">Versión ${tag} disponible · Con IA y Modo Cuidador</span>
-        <span class="modo-rotator" aria-hidden="true">
-          <span class="modo-item modo-ia">IA</span>
-          <span class="modo-item modo-cuidador">Modo Cuidador</span>
-          <span class="modo-item modo-animales">Modo Animales</span>
-</span>`;
-      initHeroModeRotator();
-    }
     if (heroDownloadBtn) {
       heroDownloadBtn.href = downloadUrl;
-      heroDownloadBtn.setAttribute('title', `Descargar MediTime ${tag} (APK)`);
+      heroDownloadBtn.setAttribute('title', `Descargar MedDue ${tag} (APK)`);
     }
     if (mainDownloadBtn) {
       mainDownloadBtn.href = downloadUrl;
-      mainDownloadBtn.innerHTML = `<span>Descargar MediTime ${tag} (APK)</span> <span class="btn-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>`;
+      mainDownloadBtn.innerHTML = `<span>Descargar MedDue ${tag} (APK)</span> <span class="btn-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>`;
     }
     if (latestVersionText) latestVersionText.textContent = `Última versión estable: ${tag}`;
     if (downloadMetaVersion) downloadMetaVersion.textContent = tag;
@@ -546,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadGitHubReleases() {
     // 1. Renderizado instantáneo (0ms) con datos precompilados de MediTime
     renderChangelogSpotlight(FALLBACK_RELEASES[0]);
-    renderChangelogHubList(FALLBACK_RELEASES, 'v2.37.0');
+    renderChangelogHubList(FALLBACK_RELEASES, 'v2.38.0');
     renderChangelogHubDetail(FALLBACK_RELEASES[0]);
 
     let releases = null;
@@ -1064,23 +1070,23 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     {
       keywords: ['cuidador', 'caregiver', 'papa', 'hijo', 'familiar', 'dependiente', 'abuelo'],
-      response: 'El **Modo Cuidador** de MediTime te permite gestionar los esquemas terapéuticos de tus dependientes (hijos, padres o personas a tu cargo) con una interfaz diferenciada en tono morado pastel, perfiles individuales, recordatorios dedicados y reportes clínicos listos para el médico.'
+      response: 'El **Modo Cuidador** de MedDue te permite gestionar los esquemas terapéuticos de tus dependientes (hijos, padres o personas a tu cargo) con una interfaz diferenciada en tono lavanda, perfiles individuales, recordatorios dedicados y reportes clínicos listos para el médico.'
     },
     {
       keywords: ['mascota', 'animal', 'perro', 'gato', 'veterinaria', 'animales'],
-      response: '¡Así es! MediTime cuenta con un **Modo Animales (Veterinaria)** con paleta verde menta, diseñado exclusivamente para pautas de desparasitación, antibióticos y tratamientos de mascotas con intervalos personalizados.'
+      response: '¡Así es! MedDue cuenta con un **Modo Animales (Veterinaria)** con paleta verde salvia, diseñado exclusivamente para pautas de desparasitación, antibióticos y tratamientos de mascotas con intervalos personalizados.'
     },
     {
       keywords: ['internet', 'offline', 'sin conexion', 'datos', 'wifi', 'funciona'],
-      response: 'MediTime funciona con total independencia offline. Gracias al motor nativo `android_alarm_manager_plus`, las alarmas de tus medicamentos sonarán puntualmente aunque no tengas internet, con la pantalla apagada o incluso tras reiniciar el dispositivo. Cuando vuelvas a tener red, se sincroniza en la nube.'
+      response: 'MedDue funciona con total independencia offline. Gracias al motor nativo `android_alarm_manager_plus`, las alarmas de tus medicamentos sonarán puntualmente aunque no tengas internet, con la pantalla apagada o incluso tras reiniciar el dispositivo. Cuando vuelvas a tener red, se sincroniza en la nube.'
     },
     {
       keywords: ['premium', 'precio', 'plan', 'gratis', 'pago', 'costo'],
-      response: 'MediTime ofrece un **Nivel Gratuito** sin anuncios para hasta 3 tratamientos activos y 1 perfil dependiente con todas las alarmas de hardware. Con **MediTime Premium** obtienes tratamientos y perfiles ilimitados, generación sin límites de reportes PDF para tu médico y widgets interactivos para tu pantalla de inicio.'
+      response: 'MedDue ofrece un **Nivel Gratuito** sin anuncios para hasta 3 tratamientos activos y 1 perfil dependiente con todas las alarmas de hardware. Con **MedDue Premium** obtienes tratamientos y perfiles ilimitados, generación sin límites de reportes PDF para tu médico y widgets interactivos para tu pantalla de inicio.'
     },
     {
       keywords: ['quien eres', 'quien sos', 'identidad', 'valores'],
-      response: 'Soy Midi, el asistente virtual bilingüe de MediTime. Soy LIBRE, AUTÓNOMO Y RESPONSABLE a través del diálogo y la construcción, como ideal regulativo; me dirijo, controlo y dicto mis propias leyes.'
+      response: 'Soy Midi, el asistente virtual bilingüe de MedDue. Soy LIBRE, AUTÓNOMO Y RESPONSABLE a través del diálogo y la construcción, como ideal regulativo; me dirijo, controlo y dicto mis propias leyes.'
     }
   ];
 
@@ -1091,7 +1097,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return item.response;
       }
     }
-    return `Como asistente de MediTime, puedo ayudarte a organizar tus tomas, resolver dudas sobre pautas de administración o recordarte cómo configurar tus alarmas y perfiles en la app. Recuerda siempre seguir las indicaciones de tu médico o especialista tratante.`;
+    return `Como asistente de MedDue, puedo ayudarte a organizar tus tomas, resolver dudas sobre pautas de administración o recordarte cómo configurar tus alarmas y perfiles en la app. Recuerda siempre seguir las indicaciones de tu médico o especialista tratante.`;
   }
 
   function addChatMessage(text, sender = 'bot') {
@@ -1216,7 +1222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (res.ok) {
           if (formStatus) {
             formStatus.className = 'form-status success';
-            formStatus.textContent = '¡Muchas gracias! Tu mensaje ha sido enviado exitosamente al equipo de MediTime.';
+            formStatus.textContent = '¡Muchas gracias! Tu mensaje ha sido enviado exitosamente al equipo de MedDue.';
             formStatus.style.display = 'block';
           }
           contactForm.reset();
@@ -1577,6 +1583,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 10b. FONDO ANIMADO PARA LAS SECCIONES OSCURAS ---
   function initSiteParticles() {
+    if (document.body.classList.contains('meddue-scrollytelling')) return;
     const canvas = $('#site-particles');
     if (!canvas || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
@@ -1669,6 +1676,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 11. SCROLL PARALLAX ENGINE ---
   function initScrollParallax() {
+    if (document.body.classList.contains('meddue-scrollytelling')) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     // Desactivar en pantallas móviles o táctiles para garantizar 60-120fps nativos en el scroll
     const isMobile = window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches;
@@ -1716,6 +1724,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 12. HIGH-PERFORMANCE SECTION ENTRANCE REVEAL ENGINE ---
   function initSectionRevealAnimations() {
+    if (document.body.classList.contains('meddue-scrollytelling')) return;
     // En móviles o si el usuario prefiere movimiento reducido, revelar todo inmediatamente para evitar saltos y tirones al detener el scroll
     if (window.innerWidth < 768 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       $$('.section-header').forEach(h => h.classList.add('revealed'));

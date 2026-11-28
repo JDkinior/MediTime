@@ -1,7 +1,7 @@
 {
-  "name": "MediTime - Gestión de Tratamientos Médicos",
-  "short_name": "MediTime",
-  "description": "Tu asistente personal de medicación. Recordatorios nativos, micro-consejos clínicos con IA, calendario y reportes.",
+  "name": "MedDue - Gestión de Tratamientos Médicos",
+  "short_name": "MedDue",
+  "description": "Tu asistente personal de medicación. Alarmas nativas, micro-consejos clínicos con IA, calendario, modo cuidador y reportes PDF.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

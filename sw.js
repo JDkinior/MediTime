@@ -1,5 +1,5 @@
-// MediTime PWA Service Worker (v2.39.2)
-const CACHE_NAME = 'meditime-cache-v2.39.2';
+// MedDue PWA Service Worker (v5.5.0)
+const CACHE_NAME = 'meddue-cache-v5.5.0';
 
 const APP_ASSETS = [
   './',
@@ -7,9 +7,12 @@ const APP_ASSETS = [
   './changelog.html',
   './arquitectura.html',
   './modos.html',
-  './styles.css',
+  './meddue.css?v=5.5.0',
+  './app.js?v=5.5.0',
+  './styles.css?v=3.0.1',
   './scripts.js',
   './manifest.webmanifest',
+  './images/Group%201.png',
   './images/meditime-icon.png',
   './images/app-screen-receta.png',
   './images/app-screen-calendario.png',
@@ -21,10 +24,8 @@ const APP_ASSETS = [
   './images/showcase-receta-light.jpg',
   './images/showcase-calendario-light.jpg',
   './images/showcase-progreso-light.jpg',
-  './images/midi_open.png',
-  './images/midi_blink.png',
   './images/dispositivo.png',
-  './images/qr-code.png',
+  './images/qr-code.png?v=4.0.0',
   './images/calendar-feature.png',
   './images/notifications-feature.png',
   './images/reports-feature.png',
@@ -61,8 +62,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
-  // Never cache external API calls like GitHub Releases or form submissions
-  if (request.url.includes('api.github.com') || request.url.includes('formspree.io')) {
+  // Never cache external API calls or third-party CDNs
+  if (
+    request.url.includes('api.github.com') ||
+    request.url.includes('formspree.io') ||
+    request.url.includes('cdn.jsdelivr.net')
+  ) {
     return;
   }
 

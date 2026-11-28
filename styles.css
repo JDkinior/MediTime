@@ -590,6 +590,34 @@ h1, h2, h3, h4, h5, h6 {
   flex-shrink: 0;
 }
 
+.header-brand {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.header-wordmark {
+  display: block;
+  width: clamp(124px, 12vw, 150px);
+  height: auto;
+}
+
+@supports (mask-image: linear-gradient(#000, #000)) or (-webkit-mask-image: linear-gradient(#000, #000)) {
+  html[data-theme="light"] .header-wordmark {
+    clip-path: inset(0 66% 0 0);
+  }
+
+  html[data-theme="light"] .header-brand::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: var(--text-main);
+    -webkit-mask: url("images/Group%201.png") center / contain no-repeat;
+    mask: url("images/Group%201.png") center / contain no-repeat;
+    clip-path: inset(0 0 0 34%);
+  }
+}
+
 .brand-icon {
   width: 38px;
   height: 38px;
@@ -7137,3 +7165,390 @@ h1, h2, h3, h4, h5, h6 {
 .progress-screen-title { transform:translateY(-6px);margin-bottom:16px; }
 .progress-period { margin-bottom:26px; }
 .progress-overview { padding:13px 15px; }
+
+
+/* ==========================================================================
+   MEDDUE - SCROLLYTELLING 3D, SCROLL PROGRESS & CONTENT VISIBILITY
+   ========================================================================== */
+
+/* 1. Scroll-Driven Reading Progress Bar */
+.scroll-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  z-index: 1200;
+  pointer-events: none;
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, #004ac6 0%, #0ea5e9 50%, #10b981 100%);
+  opacity: 0;
+}
+
+@supports ((animation-timeline: scroll()) and (animation-range: 0% 100%)) {
+  .scroll-progress-bar {
+    opacity: 1;
+    animation: meddue-scroll-progress linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0% 100%;
+  }
+}
+
+@keyframes meddue-scroll-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* 2. Three.js Ambient 3D Stage */
+.meddue-3d-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  transition: opacity 0.4s var(--ease-out);
+}
+
+#meddue-3d-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.header,
+main,
+.footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* 3. Scrollytelling Narrative Section (#story) */
+.story-section {
+  position: relative;
+  padding: 5.5rem 0;
+  --story-accent: var(--primary);
+  --story-accent-soft: rgba(0, 74, 198, 0.12);
+}
+
+.story-section[data-active-accent="cyan"] {
+  --story-accent: #0ea5e9;
+  --story-accent-soft: rgba(14, 165, 233, 0.14);
+}
+
+.story-section[data-active-accent="purple"] {
+  --story-accent: #8b62d4;
+  --story-accent-soft: rgba(139, 98, 212, 0.14);
+}
+
+.story-section[data-active-accent="emerald"] {
+  --story-accent: #10b981;
+  --story-accent-soft: rgba(16, 185, 129, 0.14);
+}
+
+.story-header {
+  margin-bottom: 3.5rem;
+}
+
+.story-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 3.5rem;
+  align-items: start;
+}
+
+.story-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.story-step {
+  padding: 2rem;
+  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+  opacity: 0.62;
+  transform: translateY(4px);
+  transition: opacity var(--duration-normal) var(--ease-out),
+              transform var(--duration-normal) var(--ease-out),
+              border-color var(--duration-normal) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-out);
+}
+
+.story-step.is-active {
+  opacity: 1;
+  transform: translateY(0);
+  border-color: var(--story-accent);
+  box-shadow: var(--shadow-lg);
+}
+
+.story-step-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.32rem 0.85rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--story-accent);
+  background: var(--story-accent-soft);
+  margin-bottom: 0.9rem;
+}
+
+.story-step h3 {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.2vw, 1.7rem);
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.75rem;
+  line-height: 1.25;
+}
+
+.story-step p {
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* Sticky Visual Stage */
+.story-stage {
+  position: sticky;
+  top: 6.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.story-stage-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.25rem;
+}
+
+.story-chapter-counter {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--story-accent);
+  letter-spacing: 0.08em;
+}
+
+.story-progress-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.story-progress-dot {
+  width: 24px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: var(--border-subtle);
+  cursor: pointer;
+  padding: 0;
+  transition: width var(--duration-fast) var(--ease-out),
+              background-color var(--duration-fast) var(--ease-out);
+}
+
+.story-progress-dot.is-active {
+  width: 42px;
+  background: var(--story-accent);
+}
+
+.story-card-stack {
+  position: relative;
+  min-height: 360px;
+}
+
+.story-visual-card {
+  position: absolute;
+  inset: 0;
+  padding: 2.25rem;
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg-elevated);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border-subtle);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.25rem;
+  opacity: 0;
+  transform: translateY(16px) scale(0.96);
+  pointer-events: none;
+  transition: opacity var(--duration-modal) var(--ease-out),
+              transform var(--duration-modal) var(--ease-out);
+}
+
+.story-visual-card.is-active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.story-card-badge {
+  align-self: flex-start;
+  padding: 0.35rem 0.9rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: rgba(0, 74, 198, 0.12);
+  color: var(--primary);
+}
+
+.story-card-badge.cyan {
+  background: rgba(14, 165, 233, 0.14);
+  color: #0284c7;
+}
+
+.story-card-badge.purple {
+  background: rgba(139, 98, 212, 0.14);
+  color: #7c3aed;
+}
+
+.story-card-badge.emerald {
+  background: rgba(16, 185, 129, 0.14);
+  color: #059669;
+}
+
+[data-theme="dark"] .story-card-badge.cyan { color: #38bdf8; }
+[data-theme="dark"] .story-card-badge.purple { color: #c4b5fd; }
+[data-theme="dark"] .story-card-badge.emerald { color: #34d399; }
+
+.story-visual-card h4 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.story-visual-card p {
+  color: var(--text-muted);
+  font-size: 0.98rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.story-mock-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.story-mock-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.story-mock-dot.blue { background: #004ac6; }
+.story-mock-dot.cyan { background: #0ea5e9; }
+.story-mock-dot.purple { background: #8b62d4; }
+.story-mock-dot.emerald { background: #10b981; }
+
+.story-card-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.story-card-metrics > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.story-card-metrics strong {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.story-card-metrics span {
+  font-size: 0.78rem;
+  color: var(--text-light);
+}
+
+/* 4. Content Visibility Optimization for Below-the-Fold Sections */
+.showcase,
+.midi-section,
+.modes-section,
+.pricing-section,
+.download-section,
+.faq-section,
+.about-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 700px;
+}
+
+/* 5. Responsive Scrollytelling */
+@media (max-width: 991px) {
+  .story-section {
+    padding: 4rem 0;
+  }
+
+  .story-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .story-stage {
+    position: relative;
+    top: 0;
+  }
+
+  .story-card-stack {
+    min-height: 0;
+  }
+
+  .story-visual-card {
+    position: relative;
+    display: none;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .story-visual-card.is-active {
+    display: flex;
+  }
+}
+
+/* 6. Reduced Motion Safety */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-progress-bar {
+    animation: none !important;
+    display: none;
+  }
+
+  .story-step,
+  .story-visual-card {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .story-step {
+    opacity: 1 !important;
+  }
+}
