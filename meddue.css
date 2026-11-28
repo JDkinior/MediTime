@@ -145,7 +145,11 @@ img, svg {
 /* ==================== 3D BACKGROUND CANVAS ==================== */
 .stage-3d {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100lvh;
   z-index: 3;
   pointer-events: none;
   transition: opacity 320ms var(--ease-out);
@@ -411,7 +415,7 @@ html[data-theme="dark"] .text-gradient {
 .hero {
   position: relative;
   min-height: 100vh;
-  min-height: 100dvh;
+  min-height: 100svh;
   padding: 94px 0 68px;
   display: flex;
   align-items: center;
@@ -1315,6 +1319,7 @@ html[data-theme="light"] .story-section[data-accent="cyan"] {
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100lvh;
   overflow: clip;
 }
 
@@ -2255,6 +2260,7 @@ html[data-theme="light"] .footer {
 
   .hero-phone-3d {
     transform: none;
+    animation: none;
   }
 
   .hero-glow-waves span {

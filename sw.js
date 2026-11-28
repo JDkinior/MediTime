@@ -1,5 +1,5 @@
-// MedDue PWA Service Worker (v5.5.0)
-const CACHE_NAME = 'meddue-cache-v5.5.0';
+// MedDue PWA Service Worker (v5.5.1)
+const CACHE_NAME = 'meddue-cache-v5.5.1';
 
 const APP_ASSETS = [
   './',
@@ -7,8 +7,8 @@ const APP_ASSETS = [
   './changelog.html',
   './arquitectura.html',
   './modos.html',
-  './meddue.css?v=5.5.0',
-  './app.js?v=5.5.0',
+  './meddue.css?v=5.5.1',
+  './app.js?v=5.5.1',
   './styles.css?v=3.0.1',
   './scripts.js',
   './manifest.webmanifest',

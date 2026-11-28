@@ -251,14 +251,23 @@
       return null;
     }
 
+    let viewportWidth = stage.clientWidth || window.innerWidth;
+    let viewportHeight = stage.clientHeight || window.innerHeight;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(viewportWidth, viewportHeight, false);
     renderer.setClearColor(0x000000, 0);
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(44, window.innerWidth / window.innerHeight, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(44, viewportWidth / viewportHeight, 0.1, 100);
     camera.position.set(0, 0, 7.6);
     camera.updateMatrixWorld();
+
+    const getViewport = () => ({ width: viewportWidth, height: viewportHeight });
+    const beforeRender = [];
+    const addBeforeRender = (fn, { prepend = false } = {}) => {
+      if (prepend) beforeRender.unshift(fn);
+      else beforeRender.push(fn);
+    };
 
     const isLowPower =
       window.innerWidth < 768 ||
@@ -689,6 +698,8 @@
       isDigitizing: true,
       targetPos: new THREE.Vector3(isSmall ? 0 : 1.92, isSmall ? 0.45 : 0.12, 0),
       targetScale: isSmall ? 0.65 : 0.92,
+      anchorKey: null,
+      snapToAnchor: false,
       rotSpeed: 0.25,
       faceFront: true,
       pointerNDC: new THREE.Vector2(99, 99),
@@ -720,8 +731,8 @@
     let touchEndedAt = null;
     if (!prefersReducedMotion) {
       const projectPointer = (event) => {
-        state.pointerNDC.x = (event.clientX / window.innerWidth) * 2 - 1;
-        state.pointerNDC.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        state.pointerNDC.x = (event.clientX / viewportWidth) * 2 - 1;
+        state.pointerNDC.y = -(event.clientY / viewportHeight) * 2 + 1;
       };
       const clearPointer = () => {
         activeTouch = null;
@@ -754,16 +765,36 @@
       window.addEventListener('blur', clearPointer);
     }
 
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+    let pendingResize = false;
+    const syncStageSize = () => {
+      const nextWidth = stage.clientWidth || window.innerWidth;
+      const nextHeight = stage.clientHeight || window.innerHeight;
+      if (!nextWidth || !nextHeight) return;
+      if (nextWidth === viewportWidth && nextHeight === viewportHeight) return;
+      viewportWidth = nextWidth;
+      viewportHeight = nextHeight;
+      camera.aspect = viewportWidth / viewportHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }, { passive: true });
+      renderer.setSize(viewportWidth, viewportHeight, false);
+    };
+    const onViewportResize = () => {
+      if (prefersReducedMotion) {
+        syncStageSize();
+        renderer.render(scene, camera);
+      } else {
+        pendingResize = true;
+      }
+    };
+    window.addEventListener('resize', onViewportResize, { passive: true });
+    window.addEventListener('orientationchange', onViewportResize, { passive: true });
 
     let rafId = null;
     let prevTime = 0;
     let spinAngle = 0;
     let previousLayout = null;
+    let prevAnchorKey = null;
+    let prevTargetY = 0;
+    let hasPrevAnchor = false;
     let faqEnteredAt = 0;
     const clock = new THREE.Clock();
 
@@ -773,22 +804,43 @@
         return;
       }
 
+      if (pendingResize) {
+        pendingResize = false;
+        syncStageSize();
+      }
+      for (let i = 0; i < beforeRender.length; i++) {
+        beforeRender[i]();
+      }
+
       const t = clock.getElapsedTime();
       const dt = Math.min(0.05, Math.max(0.001, t - prevTime));
       prevTime = t;
       const layout = state.layout;
       if (layout?.shape === 'questions' && previousLayout?.shape !== 'questions') faqEnteredAt = t;
       const groupShifts = layout && layout !== previousLayout && layout.shape === previousLayout?.shape
-        ? layout.groups.map((group, i) => THREE.MathUtils.clamp(group.y - previousLayout.groups[i].y, -3, 3))
+        ? layout.groups.map((group, i) => THREE.MathUtils.clamp(group.y - previousLayout.groups[i].y, -12, 12))
         : null;
       previousLayout = layout;
 
       // Interpolate group position, scale, color & opacity
       const layoutEase = 1 - Math.exp(-9 * dt);
       const followsLayout = layout || isArchitecturePage;
-      masterGroup.position.lerp(state.targetPos, followsLayout ? layoutEase : 0.085);
-      const nextScale = masterGroup.scale.x + (state.targetScale - masterGroup.scale.x) * (followsLayout ? layoutEase : 0.09);
-      masterGroup.scale.setScalar(nextScale);
+      let nextScale;
+      if (state.snapToAnchor) {
+        masterGroup.position.copy(state.targetPos);
+        nextScale = state.targetScale;
+        masterGroup.scale.setScalar(nextScale);
+      } else {
+        if (hasPrevAnchor && state.anchorKey && state.anchorKey === prevAnchorKey) {
+          masterGroup.position.y += state.targetPos.y - prevTargetY;
+        }
+        masterGroup.position.lerp(state.targetPos, followsLayout ? layoutEase : 0.085);
+        nextScale = masterGroup.scale.x + (state.targetScale - masterGroup.scale.x) * (followsLayout ? layoutEase : 0.09);
+        masterGroup.scale.setScalar(nextScale);
+      }
+      prevAnchorKey = state.anchorKey;
+      prevTargetY = state.targetPos.y;
+      hasPrevAnchor = true;
 
       state.currentColor.lerp(state.targetColor, isArchitecturePage ? layoutEase : 0.06);
       bgMat.color.copy(state.currentColor);
@@ -842,7 +894,7 @@
       const pointerRepels = pointerActive && mat.opacity > 0.045;
       const isTouch = activeTouch !== null || touchEndedAt !== null;
       const screenSpacePointer = layout || isTouch;
-      const unitsPerPixel = 2 * camera.position.z / (camera.projectionMatrix.elements[5] * window.innerHeight * nextScale);
+      const unitsPerPixel = 2 * camera.position.z / (camera.projectionMatrix.elements[5] * viewportHeight * nextScale);
       const pointerRadius = screenSpacePointer ? unitsPerPixel * (isTouch ? 132 : 154) : 1.26;
       const pointerStrength = (screenSpacePointer ? unitsPerPixel * (isTouch ? 59 : 70) : 0.66) * touchGain;
 
@@ -1082,7 +1134,7 @@
 
     start();
 
-    return { state, masterGroup, camera, raycaster, zPlane, snapShape };
+    return { state, masterGroup, camera, raycaster, zPlane, snapShape, getViewport, addBeforeRender };
   }
 
   // --- 4b. HERO 3D PHONE SHOWCASE (RECETA / CALENDARIO / PROGRESO) ---
@@ -1218,7 +1270,8 @@
         }
         const step = steps[idx];
         if (!step) return;
-        const offset = -window.innerHeight * (chapterStart(idx) - 4) / 100;
+        const viewportH = threeCtrl ? threeCtrl.getViewport().height : window.innerHeight;
+        const offset = -viewportH * (chapterStart(idx) - 4) / 100;
         const lenis = getLenis();
         if (lenis) {
           lenis.scrollTo(step, { offset });
@@ -1249,7 +1302,10 @@
     const { gsap, ScrollTrigger } = window;
     const hasScrollTrigger = Boolean(gsap && ScrollTrigger);
     const usesNativeStory = () => compactView.matches || !hasScrollTrigger;
-    if (hasScrollTrigger) gsap.registerPlugin(ScrollTrigger);
+    if (hasScrollTrigger) {
+      gsap.registerPlugin(ScrollTrigger);
+      ScrollTrigger.config({ ignoreMobileResize: true });
+    }
 
     if (threeCtrl) {
       story.classList.add('has-particle-chapters');
@@ -1264,27 +1320,29 @@
         if (!heroPhone) return;
         const rect = heroPhone.getBoundingClientRect();
         if (!rect.width || !rect.height) return;
+        const { width, height } = threeCtrl.getViewport();
         threeCtrl.camera.updateMatrixWorld();
         const cx = rect.left + rect.width * 0.5;
         const cy = rect.top + rect.height * 0.5;
         const ndc = new window.THREE.Vector2(
-          (cx / window.innerWidth) * 2 - 1,
-          -(cy / window.innerHeight) * 2 + 1
+          (cx / width) * 2 - 1,
+          -(cy / height) * 2 + 1
         );
         threeCtrl.raycaster.setFromCamera(ndc, threeCtrl.camera);
         threeCtrl.raycaster.ray.intersectPlane(threeCtrl.zPlane, phoneOriginPos);
-        phoneOriginScale = rect.height / window.innerHeight * viewHeight / 3.55;
+        phoneOriginScale = rect.height / height * viewHeight / 3.55;
       };
 
       syncStorySlot = () => {
+        const { width, height } = threeCtrl.getViewport();
         if (compactView.matches) {
           const step = steps[activePillarIdx];
           const rect = step.getBoundingClientRect();
           const slotHeight = parseFloat(getComputedStyle(step).marginTop);
-          const unit = viewHeight / window.innerHeight;
+          const unit = viewHeight / height;
           const centerY = rect.top - slotHeight / 2;
-          storySlotPos.set((rect.left + rect.width / 2 - window.innerWidth / 2) * unit,
-            (window.innerHeight / 2 - centerY) * unit, 0);
+          storySlotPos.set((rect.left + rect.width / 2 - width / 2) * unit,
+            (height / 2 - centerY) * unit, 0);
           storySlotScale = (slotHeight - 24) * unit / 3.9;
           return;
         }
@@ -1293,18 +1351,18 @@
         threeCtrl.camera.updateMatrixWorld();
         const barH = dockBar.offsetHeight || 43;
         const stackH = dockStack ? (dockStack.offsetHeight || 189) : 189;
-        const colH = window.innerHeight - 108;
+        const colH = height - 108;
         const stickyBarTop = 80 + colH - (barH + 10 + stackH);
         const slotCx = barRect.left + barRect.width * 0.5;
         const availH = Math.max(170, stickyBarTop - 104);
         const slotCy = 72 + (stickyBarTop - 96) * 0.5;
         const ndc = new window.THREE.Vector2(
-          (slotCx / window.innerWidth) * 2 - 1,
-          -(slotCy / window.innerHeight) * 2 + 1
+          (slotCx / width) * 2 - 1,
+          -(slotCy / height) * 2 + 1
         );
         threeCtrl.raycaster.setFromCamera(ndc, threeCtrl.camera);
         threeCtrl.raycaster.ray.intersectPlane(threeCtrl.zPlane, storySlotPos);
-        storySlotScale = clamp(availH / window.innerHeight * viewHeight / 3.9, 0.58, 0.90);
+        storySlotScale = clamp(availH / height * viewHeight / 3.9, 0.58, 0.90);
       };
 
       const resetPhoneVisual = () => {
@@ -1362,7 +1420,7 @@
 
         if (compact) syncPhoneOrigin();
 
-        if (p <= 0.005 || d <= 0.002) {
+        if (p <= 0.005 || d <= 0.005) {
           if (!compact) syncPhoneOrigin();
           resetPhoneVisual();
           threeCtrl.state.particleOpacity = 0;
@@ -1371,6 +1429,8 @@
           threeCtrl.state.isDigitizing = true;
           threeCtrl.state.activeShape = 'phone';
           threeCtrl.state.faceFront = true;
+          threeCtrl.state.anchorKey = 'hero-phone';
+          threeCtrl.state.snapToAnchor = compact;
           threeCtrl.state.targetPos.copy(phoneOriginPos);
           threeCtrl.state.targetScale = phoneOriginScale;
           return;
@@ -1416,6 +1476,8 @@
           threeCtrl.state.activeShape = 'phone';
           threeCtrl.state.faceFront = true;
           threeCtrl.state.targetColor.set('#3b82f6');
+          threeCtrl.state.anchorKey = 'hero-phone';
+          threeCtrl.state.snapToAnchor = compact;
           threeCtrl.state.targetPos.copy(phoneOriginPos);
           threeCtrl.state.targetScale = phoneOriginScale;
         } else {
@@ -1427,6 +1489,8 @@
           const m = rawM * rawM * (3 - 2 * rawM);
           threeCtrl.state.dissolveProgress = 1.0 + rawM * 0.35;
           threeCtrl.state.isDigitizing = false;
+          threeCtrl.state.anchorKey = 'hero-to-story';
+          threeCtrl.state.snapToAnchor = false;
           if (compact) syncStorySlot();
           if (activePillarIdx === 0) {
             threeCtrl.state.activeShape = 'pill';
@@ -1456,6 +1520,8 @@
         state.phoneToPillMix = 1;
         state.dissolveProgress = 1.35;
         state.particleOpacity = 0.96;
+        state.anchorKey = `story-${activePillarIdx}`;
+        state.snapToAnchor = false;
         state.targetPos.copy(storySlotPos);
         state.targetScale = storySlotScale;
 
@@ -1471,7 +1537,7 @@
       // Derive the current scene from the viewport, including on direct links and history restores.
       syncStoryFromViewport = () => {
         if (lowerActive) return;
-        const height = window.innerHeight;
+        const { height } = threeCtrl.getViewport();
         const storyTop = story.getBoundingClientRect().top;
         const progress = clamp((height - storyTop) / (height * 1.1), 0, 1);
         const chapter = Math.max(0, steps.findLastIndex((step, index) =>
@@ -1484,26 +1550,30 @@
           showStoryFigure();
         }
       };
-      let storyFrame = 0;
-      const queueStorySync = () => {
-        if (storyFrame) return;
-        storyFrame = requestAnimationFrame(() => {
-          storyFrame = 0;
-          syncStoryFromViewport();
-        });
+      let storyDirty = true;
+      const markStoryDirty = () => {
+        storyDirty = true;
       };
+      threeCtrl.addBeforeRender(() => {
+        if (!storyDirty || !usesNativeStory()) return;
+        storyDirty = false;
+        syncStoryFromViewport();
+      });
       window.addEventListener('scroll', () => {
-        if (usesNativeStory()) queueStorySync();
+        if (usesNativeStory()) markStoryDirty();
       }, { passive: true });
-      window.addEventListener('resize', () => {
+      const handleStoryResize = () => {
         syncPhoneOrigin();
         syncStorySlot();
-        queueStorySync();
-      }, { passive: true });
-      window.addEventListener('pageshow', queueStorySync);
-      window.addEventListener('hashchange', queueStorySync);
-      document.fonts?.ready.then(queueStorySync);
-      queueStorySync();
+        storyDirty = true;
+        if (usesNativeStory()) syncStoryFromViewport();
+      };
+      window.addEventListener('resize', handleStoryResize, { passive: true });
+      window.addEventListener('orientationchange', handleStoryResize, { passive: true });
+      window.addEventListener('pageshow', markStoryDirty);
+      window.addEventListener('hashchange', markStoryDirty);
+      document.fonts?.ready.then(markStoryDirty);
+      syncStoryFromViewport();
 
       if (hasScrollTrigger) {
         ScrollTrigger.create({
@@ -1554,12 +1624,11 @@
     about.classList.add('has-particle-globe');
     const { camera, state } = threeCtrl;
     const { clamp, smoothstep } = window.THREE.MathUtils;
-    let frame = 0;
+    let lowerDirty = true;
 
     const sync = () => {
-      frame = 0;
-      const width = window.innerWidth;
-      const height = window.innerHeight;
+      lowerDirty = false;
+      const { width, height } = threeCtrl.getViewport();
       const unit = 2 * Math.tan(camera.fov * Math.PI / 360) * camera.position.z / height;
       const groupAt = (x, y, scaleX, scaleY) => ({
         x: (x - width * 0.5) * unit,
@@ -1604,6 +1673,7 @@
       state.dissolveProgress = 1.35;
       state.rotSpeed = 0.20;
       state.faceFront = true;
+      state.snapToAnchor = false;
       state.targetPos.set(0, 0, 0);
       state.targetScale = 1;
 
@@ -1611,6 +1681,7 @@
         state.activeShape = shape;
         state.targetColor.set(color);
         state.particleOpacity = opacity;
+        state.anchorKey = null;
         state.layout = { shape, pointSize, groups };
       };
 
@@ -1619,6 +1690,7 @@
         state.targetColor.set('#a78bfa');
         state.faceFront = false;
         state.layout = null;
+        state.anchorKey = 'about-globe';
         if (width <= 960) {
           const headerRect = aboutHeader.getBoundingClientRect();
           const slotHeight = parseFloat(getComputedStyle(aboutHeader).paddingTop);
@@ -1675,15 +1747,19 @@
       }
     };
 
-    const queueSync = () => {
-      if (!frame) frame = requestAnimationFrame(sync);
+    const markLowerDirty = () => {
+      lowerDirty = true;
     };
-    window.addEventListener('scroll', queueSync, { passive: true });
-    window.addEventListener('resize', queueSync, { passive: true });
-    const observer = new ResizeObserver(queueSync);
+    threeCtrl.addBeforeRender(() => {
+      if (lowerDirty) sync();
+    }, { prepend: true });
+    window.addEventListener('scroll', markLowerDirty, { passive: true });
+    window.addEventListener('resize', markLowerDirty, { passive: true });
+    window.addEventListener('orientationchange', markLowerDirty, { passive: true });
+    const observer = new ResizeObserver(markLowerDirty);
     [app, pricing, download, faq].forEach((section) => observer.observe(section));
-    window.addEventListener('pageshow', queueSync);
-    window.addEventListener('hashchange', queueSync);
+    window.addEventListener('pageshow', markLowerDirty);
+    window.addEventListener('hashchange', markLowerDirty);
     sync();
   }
 
@@ -1829,8 +1905,9 @@
 
     const syncSlotPos = (targetVec, fallbackX, fallbackY) => {
       if (!threeCtrl) return;
-      if (window.innerWidth <= 960 || !slotEl) {
-        targetVec.set(window.innerWidth <= 960 ? 0 : fallbackX, fallbackY, 0);
+      const { width, height } = threeCtrl.getViewport();
+      if (width <= 960 || !slotEl) {
+        targetVec.set(width <= 960 ? 0 : fallbackX, fallbackY, 0);
         return;
       }
       const r = slotEl.getBoundingClientRect();
@@ -1842,8 +1919,8 @@
       const cx = r.left + r.width * 0.5;
       const cy = r.top + r.height * 0.5;
       const ndc = new window.THREE.Vector2(
-        (cx / window.innerWidth) * 2 - 1,
-        -(cy / window.innerHeight) * 2 + 1
+        (cx / width) * 2 - 1,
+        -(cy / height) * 2 + 1
       );
       threeCtrl.raycaster.setFromCamera(ndc, threeCtrl.camera);
       threeCtrl.raycaster.ray.intersectPlane(threeCtrl.zPlane, targetVec);
@@ -1904,30 +1981,37 @@
         setHeroState('heart', '#a78bfa', true, 0.22);
         state.currentColor.copy(state.targetColor);
 
-        let frame = 0;
+        let modeDirty = true;
         const syncModeFigure = () => {
-          frame = 0;
+          modeDirty = false;
+          const { width, height } = threeCtrl.getViewport();
           const rect = slotEl.getBoundingClientRect();
           const centerX = rect.left + rect.width / 2;
-          const compact = window.innerWidth <= 960;
+          const compact = width <= 960;
           const centerY = rect.top + rect.height * (compact ? 0.5 : 0.42);
-          const unit = 2 * Math.tan(camera.fov * Math.PI / 360) * camera.position.z / window.innerHeight;
+          const unit = 2 * Math.tan(camera.fov * Math.PI / 360) * camera.position.z / height;
 
-          state.targetPos.set((centerX - window.innerWidth / 2) * unit,
-            (window.innerHeight / 2 - centerY) * unit, 0);
+          state.anchorKey = 'mode-figure';
+          state.snapToAnchor = false;
+          state.targetPos.set((centerX - width / 2) * unit,
+            (height / 2 - centerY) * unit, 0);
           state.targetScale = Math.min(0.86, rect.width * unit * 0.90 / 4.15, rect.height * unit / 3.3);
           state.particleOpacity = 0.88 * window.THREE.MathUtils.smoothstep(centerY, 68, 168);
         };
-        const queueModeFigure = () => {
-          if (!frame) frame = requestAnimationFrame(syncModeFigure);
+        const markModeDirty = () => {
+          modeDirty = true;
         };
+        threeCtrl.addBeforeRender(() => {
+          if (modeDirty) syncModeFigure();
+        });
 
         syncModeFigure();
         masterGroup.position.copy(state.targetPos);
         masterGroup.scale.setScalar(state.targetScale);
-        window.addEventListener('scroll', queueModeFigure, { passive: true });
-        window.addEventListener('resize', queueModeFigure, { passive: true });
-        const observer = new ResizeObserver(queueModeFigure);
+        window.addEventListener('scroll', markModeDirty, { passive: true });
+        window.addEventListener('resize', markModeDirty, { passive: true });
+        window.addEventListener('orientationchange', markModeDirty, { passive: true });
+        const observer = new ResizeObserver(markModeDirty);
         observer.observe(slotEl.closest('.subpage-hero-grid'));
       }
       applyMode('caregiver');
@@ -1944,17 +2028,17 @@
     const { camera, masterGroup, state } = threeCtrl;
     const { smoothstep } = window.THREE.MathUtils;
     let currentSlot = null;
-    let frame = 0;
+    let archDirty = true;
 
     state.isDigitizing = false;
     state.phoneToPillMix = 1;
     state.dissolveProgress = 1.35;
     state.faceFront = true;
+    state.snapToAnchor = false;
 
     const sync = () => {
-      frame = 0;
-      const width = window.innerWidth;
-      const height = window.innerHeight;
+      archDirty = false;
+      const { width, height } = threeCtrl.getViewport();
       const unit = 2 * Math.tan(camera.fov * Math.PI / 360) * camera.position.z / height;
       const focusY = height * 0.44;
       let selected;
@@ -1975,6 +2059,7 @@
 
       const { slot, bounds, center, visible } = selected;
       const centerX = bounds.left + bounds.width / 2;
+      state.anchorKey = `arch-${slot.dataset.architectureModel}`;
       state.targetPos.set((centerX - width / 2) * unit, (height / 2 - center) * unit, 0);
       state.targetScale = Math.min(0.9, Math.min(bounds.width / 4.15, bounds.height / 3.45) * unit);
       state.particleOpacity = 0.9 * smoothstep(visible / bounds.height, 0.02, 0.55);
@@ -1992,14 +2077,18 @@
       }
     };
 
-    const queueSync = () => {
-      if (!frame) frame = requestAnimationFrame(sync);
+    const markArchDirty = () => {
+      archDirty = true;
     };
-    window.addEventListener('scroll', queueSync, { passive: true });
-    window.addEventListener('resize', queueSync, { passive: true });
-    window.addEventListener('hashchange', queueSync);
-    window.addEventListener('pageshow', queueSync);
-    const observer = new ResizeObserver(queueSync);
+    threeCtrl.addBeforeRender(() => {
+      if (archDirty) sync();
+    });
+    window.addEventListener('scroll', markArchDirty, { passive: true });
+    window.addEventListener('resize', markArchDirty, { passive: true });
+    window.addEventListener('orientationchange', markArchDirty, { passive: true });
+    window.addEventListener('hashchange', markArchDirty);
+    window.addEventListener('pageshow', markArchDirty);
+    const observer = new ResizeObserver(markArchDirty);
     observer.observe($('#main-content'));
     sync();
   }
